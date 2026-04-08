@@ -86,8 +86,10 @@ def parse_args():
     p = argparse.ArgumentParser(description="Submit Micromegas scan to HTCondor")
     p.add_argument("--dry-run",  action="store_true",
                    help="Print jobs without submitting")
-    p.add_argument("--outdir",   default=None,
-                   help="Output directory (default: $HOME/mm_results)")
+    p.add_argument("--outdir",   default="/eos/user/d/dneff/mx17_geant_sim_results",
+                   help="Output directory for ROOT files (default: EOS results dir)")
+    p.add_argument("--jobdir",   default="/afs/cern.ch/user/d/dneff/condor/mx17_geant_sim",
+                   help="Directory for condor submit file, wrapper, and logs (must be on AFS)")
     p.add_argument("--nevents",  type=int, default=NEVENTS_DEFAULT,
                    help=f"Events per job (default: {NEVENTS_DEFAULT})")
     p.add_argument("--exe",      default=None,
@@ -227,12 +229,12 @@ def main():
         sys.exit(1)
     exe = str(Path(exe).resolve())
 
-    outdir = Path(args.outdir) if args.outdir else Path.home() / "mm_results"
+    outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
 
-    # Job submission directory (logs, sub file, wrapper)
-    job_dir = outdir / "condor"
-    job_dir.mkdir(exist_ok=True)
+    # Job submission directory (logs, sub file, wrapper) -- must be on AFS, not EOS
+    job_dir = Path(args.jobdir)
+    job_dir.mkdir(parents=True, exist_ok=True)
 
     # Setup script (must be accessible from worker nodes -- use EOS or AFS path)
     setup_script = str(Path(__file__).parent.resolve() / "setup_lxplus.sh")
