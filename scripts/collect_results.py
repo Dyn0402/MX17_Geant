@@ -36,7 +36,7 @@ except ImportError:
 
 # Regex to parse job tag: gas_particle_energyMeV
 TAG_RE = re.compile(
-    r"^(?P<gas>ArCF4Iso|ArCF4|HeEth|ArCO2|NeIso)"
+    r"^(?P<gas>ArCF4Iso|ArCF4|HeEth|ArCO2|NeIso|NeCF4)"
     r"_(?P<particle>gamma|electron|neutron|proton|muon)"
     r"_(?P<energy>[0-9ep.+-]+)MeV"
     r"(_t\d+)?\.root$"

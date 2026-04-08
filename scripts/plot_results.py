@@ -73,19 +73,30 @@ def load_summary(path: str) -> pd.DataFrame:
 def _draw_sensitivity_panel(ax, sub: pd.DataFrame, particle: str,
                             yscale: str, xlim=None):
     """Draw one sensitivity panel onto ax. Helper for fig_sensitivity_vs_energy."""
+    mean_vals = []
+
     for gas in sorted(sub["gas"].unique()):
         g = sub[sub["gas"] == gas].sort_values("energy_MeV")
         if xlim is not None:
             g = g[(g["energy_MeV"] >= xlim[0]) & (g["energy_MeV"] <= xlim[1])]
         if g.empty:
             continue
+
         clip_low = 0.1 if yscale == "log" else 0.0
-        ax.fill_between(g["energy_MeV"],
-                        g["nPrimDrift_p10"].clip(lower=clip_low),
-                        g["nPrimDrift_p90"].clip(lower=clip_low),
-                        alpha=0.15, color=GAS_COLORS.get(gas, "grey"))
-        ax.plot(g["energy_MeV"], g["nPrimDrift_mean"].clip(lower=0.01 if yscale == "log" else 0),
-                "o-", color=GAS_COLORS.get(gas, "grey"),
+        means = g["nPrimDrift_mean"].clip(lower=0.01 if yscale == "log" else 0)
+        mean_vals.extend(means.values)
+
+        # Only draw band where p90 > p10 (collapses to zero when efficiency is very low)
+        p10 = g["nPrimDrift_p10"].clip(lower=clip_low)
+        p90 = g["nPrimDrift_p90"].clip(lower=clip_low)
+        band_mask = p90.values > p10.values
+        if band_mask.any():
+            ax.fill_between(g["energy_MeV"].values[band_mask],
+                            p10.values[band_mask],
+                            p90.values[band_mask],
+                            alpha=0.15, color=GAS_COLORS.get(gas, "grey"))
+
+        ax.plot(g["energy_MeV"], means, "o-", color=GAS_COLORS.get(gas, "grey"),
                 label=GAS_LABELS.get(gas, gas), linewidth=1.8, markersize=4)
 
     ax.set_xscale("log")
@@ -97,10 +108,16 @@ def _draw_sensitivity_panel(ax, sub: pd.DataFrame, particle: str,
     ax.set_title(PARTICLE_TITLES.get(particle, particle), fontsize=12)
     ax.legend(fontsize=8, loc="best")
     ax.grid(True, which="both", alpha=0.3)
-    if yscale == "log":
+
+    # Set y-limits from mean line data only, ignoring the shaded bands
+    if mean_vals:
+        lo, hi = min(mean_vals), max(mean_vals)
+        if yscale == "log":
+            ax.set_ylim(bottom=max(0.01, lo * 0.3), top=hi * 3)
+        else:
+            ax.set_ylim(bottom=0, top=hi * 1.15)
+    elif yscale == "log":
         ax.set_ylim(bottom=0.01)
-    else:
-        ax.set_ylim(bottom=0)
 
 
 def _make_sensitivity_fig(df: pd.DataFrame, title: str,
