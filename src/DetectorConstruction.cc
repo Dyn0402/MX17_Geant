@@ -163,6 +163,20 @@ void DetectorConstruction::DefineMaterials() {
         m->AddMaterial(isobutane, fIso);
         fGasMaterials["NeIso"] = m;
     }
+
+    // =====================================================
+    // Gas mixture 6: Ne/CF4 90/10 vol%
+    // Strong Penning (Ne* 16.6 eV > CF4 IE 10.1 eV); fast drift
+    // =====================================================
+    {
+        G4double fNe=0.90, fCF4=0.10;
+        G4double rho = fNe*0.8999e-3 + fCF4*3.72e-3;
+        G4Material* m = new G4Material("NeCF4", rho*g/cm3, 2,
+                                        kStateGas, 293.15*kelvin, 1*atmosphere);
+        m->AddMaterial(pureNe, fNe);
+        m->AddMaterial(CF4,    fCF4);
+        fGasMaterials["NeCF4"] = m;
+    }
 }
 
 // ============================================================

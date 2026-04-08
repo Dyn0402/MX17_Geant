@@ -50,6 +50,7 @@ const std::map<std::string, double> SteppingAction::kWValues = {
     {"ArCO2",    27.0},
     {"ArCF4Iso", 33.0},
     {"NeIso",    27.0},
+    {"NeCF4",    30.0},  // Ne*(16.6 eV) > CF4 IE(10.1 eV): Penning active; ~30 eV estimate
 };
 
 SteppingAction::SteppingAction(const SimConfig& cfg, EventAction* eventAction)

@@ -26,29 +26,21 @@ from pathlib import Path
 # SCAN GRID -- edit here to add/remove points
 # ============================================================
 
-GASES = ["ArCF4", "HeEth", "ArCO2", "ArCF4Iso", "NeIso"]
+GASES = ["ArCF4", "HeEth", "ArCO2", "ArCF4Iso", "NeIso", "NeCF4"]
 
 # Energies in MeV for each particle type
 PARTICLE_ENERGIES = {
-    # Gammas: very wide range from near-IR equivalent (eV) to 10 MeV
-    # Sparse sampling -- we want cross-section shape, not fine resolution
+    # Gammas: fine log-spaced scan from 3 keV to 10 MeV (~55 points, ~5x denser)
     "gamma": [
-        1e-5,   # 10 eV     -- below K-edges, mostly Rayleigh
-        1e-4,   # 100 eV
-        1e-3,   # 1 keV     -- below Ar K-edge (3.2 keV), photoelectric dominates
-        3e-3,   # 3 keV
-        5e-3,   # 5 keV     -- Fe-55 region
-        1e-2,   # 10 keV
-        3e-2,   # 30 keV
-        6e-2,   # 60 keV    -- Co-57 region
-        1.22e-1,# 122 keV   -- Co-57 gamma
-        5e-1,   # 500 keV   -- Compton starts dominating
-        1.0,    # 1 MeV
-        2.0,
-        5.0,
-        10.0,
+        3.0e-3, 3.5e-3, 4.1e-3, 4.8e-3, 5.5e-3, 6.4e-3, 7.5e-3, 8.7e-3,  # 3–8.7 keV
+        1.0e-2, 1.16e-2, 1.35e-2, 1.57e-2, 1.82e-2, 2.12e-2, 2.46e-2, 2.86e-2,  # 10–29 keV
+        3.32e-2, 3.86e-2, 4.49e-2, 5.21e-2, 6.06e-2, 7.04e-2, 8.18e-2, 9.51e-2,  # 33–95 keV
+        1.10e-1, 1.22e-1, 1.49e-1, 1.73e-1, 2.01e-1, 2.33e-1, 2.71e-1, 3.15e-1,  # 110–315 keV; 122=Co-57
+        3.66e-1, 4.25e-1, 4.94e-1, 5.74e-1, 6.67e-1, 7.75e-1, 9.01e-1,  # 366–901 keV
+        1.05, 1.22, 1.41, 1.64, 1.91, 2.22, 2.58, 3.00,  # 1.05–3 MeV
+        3.49, 4.05, 4.71, 5.47, 6.36, 7.39, 8.59, 10.0, 20.0,  # 3.5–20 MeV
     ],
-    # Electrons: 1–10 MeV (as requested -- relativistic MIP regime)
+    # Electrons: 1–10 MeV (relativistic MIP regime)
     "electron": [
         1.0,
         2.0,
@@ -57,21 +49,28 @@ PARTICLE_ENERGIES = {
         7.0,
         10.0,
     ],
-    # Neutrons: thermal to fast (1 eV to 20 MeV)
+    # Neutrons: low-energy points kept sparse; fine scan from 50 keV to 10 MeV
     "neutron": [
-        1e-8,   # 10 neV  -- cold neutron
-        2.5e-8, # 25 neV  -- thermal (room temperature)
-        1e-6,   # 1 ueV
-        1e-4,   # 0.1 meV
-        1e-3,   # 1 meV
-        1e-2,   # 10 meV  -- epithermal
-        0.1,    # 100 keV -- fast
-        1.0,    # 1 MeV
-        2.0,
-        5.0,
-        14.0,   # 14 MeV  -- D-T fusion neutrons
+        1e-8,   # ~10 meV  -- cold neutron
+        2.5e-8, # ~25 meV  -- thermal
+        1e-6,   # ~1 eV
+        1e-4,   # ~100 eV  -- epithermal
+        1e-3,   # ~1 keV
+        1e-2,   # ~10 keV
+        # Fine scan 50 keV–10 MeV (~20 log-spaced points, ~5x denser than before)
+        0.050, 0.066, 0.087, 0.115, 0.150, 0.200, 0.270, 0.350,
+        0.470, 0.620, 0.810, 1.07, 1.42, 1.88, 2.48, 3.28,
+        4.34, 5.74, 7.59, 10.0,
+        14.0,   # D-T fusion neutrons
         20.0,
     ],
+}
+
+# Per-particle event count multiplier applied on top of --nevents
+NEVENTS_SCALE = {
+    "gamma":    1,
+    "electron": 1,
+    "neutron":  5,
 }
 
 # ============================================================
@@ -171,7 +170,7 @@ def write_wrapper_script(job_dir: Path, exe: str, setup_script: str) -> Path:
 
 
 def write_condor_submit(job_dir: Path, wrapper: Path, jobs: list,
-                        outdir: Path, nevents: int, flavour: str) -> Path:
+                        outdir: Path, flavour: str) -> Path:
     """
     Write a single Condor submit file with one queue entry per job.
     Uses queue ... from a list of arguments (Condor 8.8+ feature).
@@ -205,7 +204,7 @@ def write_condor_submit(job_dir: Path, wrapper: Path, jobs: list,
     import random
     rng = random.Random(42)
 
-    for (gas, particle, energy_mev) in jobs:
+    for (gas, particle, energy_mev, nevents) in jobs:
         tag     = make_job_tag(gas, particle, energy_mev)
         outfile = str(outdir / tag)
         seed    = rng.randint(1, 2**31 - 1)
@@ -247,19 +246,20 @@ def main():
                 print(f"WARNING: Unknown particle '{particle}', skipping")
                 continue
             for energy in PARTICLE_ENERGIES[particle]:
-                jobs.append((gas, particle, energy))
+                n = args.nevents * NEVENTS_SCALE.get(particle, 1)
+                jobs.append((gas, particle, energy, n))
 
     print(f"Total jobs to submit: {len(jobs)}")
     print(f"  Gases    : {args.gases}")
     print(f"  Particles: {args.particles}")
-    print(f"  Events   : {args.nevents} per job")
+    print(f"  Events   : {args.nevents} per job (x{NEVENTS_SCALE} scale by particle)")
     print(f"  Output   : {outdir}")
     print(f"  Exe      : {exe}")
 
     if args.dry_run:
         print("\n--- DRY RUN: first 10 jobs ---")
-        for j in jobs[:10]:
-            print(f"  {make_job_tag(*j)}")
+        for (gas, particle, energy, nevents) in jobs[:10]:
+            print(f"  {make_job_tag(gas, particle, energy)}  ({nevents} events)")
         if len(jobs) > 10:
             print(f"  ... and {len(jobs)-10} more")
         return
@@ -267,7 +267,7 @@ def main():
     # Write files
     wrapper = write_wrapper_script(job_dir, exe, setup_script)
     sub_file = write_condor_submit(job_dir, wrapper, jobs,
-                                   outdir, args.nevents, args.flavour)
+                                   outdir, args.flavour)
 
     print(f"\nSubmit file: {sub_file}")
     print("Submitting to HTCondor...")
