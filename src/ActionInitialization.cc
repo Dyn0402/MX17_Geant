@@ -9,7 +9,7 @@
 ActionInitialization::ActionInitialization(const SimConfig& cfg)
     : G4VUserActionInitialization(), fConfig(cfg) {}
 
-void ActionInitialization::BuildForMaster() {
+void ActionInitialization::BuildForMaster() const {
     // RunAction for master thread (handles file open/close)
     SetUserAction(new RunAction(fConfig, true));
 }

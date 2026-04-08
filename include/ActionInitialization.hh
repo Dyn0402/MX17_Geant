@@ -10,7 +10,7 @@ public:
     explicit ActionInitialization(const SimConfig& cfg);
     ~ActionInitialization() override = default;
 
-    void BuildForMaster() override;
+    void BuildForMaster() const override;
     void Build() const override;
 
 private:
