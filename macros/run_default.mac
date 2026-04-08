@@ -1,0 +1,16 @@
+# run_default.mac
+# Default Geant4 macro -- called if no macro is specified on command line.
+# The actual beam configuration is done via CLI args (-g -p -e -n),
+# so this macro is mostly for verbosity and UI control.
+
+/run/verbose 1
+/event/verbose 0
+/tracking/verbose 0
+
+# Cut for secondary production in gas (short range to catch delta electrons)
+/run/setCut 10 um
+
+# Print material table at start (useful for debugging gas mixtures)
+/material/verbose 1
+
+# Initialise -- the run is launched by the C++ main() after this macro
