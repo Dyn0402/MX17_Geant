@@ -10,8 +10,6 @@
 #   ls /cvmfs/geant4.cern.ch/geant4/
 #   ls /cvmfs/sft.cern.ch/lcg/releases/Geant4/
 
-set -e
-
 # ---- Sanity check: are we on lxplus? ----
 if [[ ! -d /cvmfs/geant4.cern.ch ]]; then
     echo "ERROR: /cvmfs/geant4.cern.ch not found. Are you on lxplus with CVMFS mounted?"
