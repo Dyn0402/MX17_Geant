@@ -39,6 +39,7 @@ GAS_COLORS = {
     "ArCO2":    "#d62728",
     "ArCF4Iso": "#ff7f0e",
     "NeIso":    "#9467bd",
+    "NeCF4":    "#8c564b",
 }
 GAS_LABELS = {
     "ArCF4":    "Ar/CF₄ 90/10",
@@ -46,6 +47,7 @@ GAS_LABELS = {
     "ArCO2":    "Ar/CO₂ 70/30",
     "ArCF4Iso": "Ar/CF₄/iC₄H₁₀ 88/10/2",
     "NeIso":    "Ne/iC₄H₁₀ 95/5",
+    "NeCF4":    "Ne/CF₄ 90/10",
 }
 PARTICLE_TITLES = {
     "gamma":    "Photons (γ)",
@@ -68,43 +70,82 @@ def load_summary(path: str) -> pd.DataFrame:
     return df
 
 
-def fig_sensitivity_vs_energy(df: pd.DataFrame, outdir: Path):
-    """Log-log plot of mean primary ionization vs energy, per particle type."""
+def _draw_sensitivity_panel(ax, sub: pd.DataFrame, particle: str,
+                            yscale: str, xlim=None):
+    """Draw one sensitivity panel onto ax. Helper for fig_sensitivity_vs_energy."""
+    for gas in sorted(sub["gas"].unique()):
+        g = sub[sub["gas"] == gas].sort_values("energy_MeV")
+        if xlim is not None:
+            g = g[(g["energy_MeV"] >= xlim[0]) & (g["energy_MeV"] <= xlim[1])]
+        if g.empty:
+            continue
+        clip_low = 0.1 if yscale == "log" else 0.0
+        ax.fill_between(g["energy_MeV"],
+                        g["nPrimDrift_p10"].clip(lower=clip_low),
+                        g["nPrimDrift_p90"].clip(lower=clip_low),
+                        alpha=0.15, color=GAS_COLORS.get(gas, "grey"))
+        ax.plot(g["energy_MeV"], g["nPrimDrift_mean"].clip(lower=0.01 if yscale == "log" else 0),
+                "o-", color=GAS_COLORS.get(gas, "grey"),
+                label=GAS_LABELS.get(gas, gas), linewidth=1.8, markersize=4)
+
+    ax.set_xscale("log")
+    ax.set_yscale(yscale)
+    if xlim is not None:
+        ax.set_xlim(xlim)
+    ax.set_xlabel("Particle energy [MeV]", fontsize=11)
+    ax.set_ylabel("Mean primary ion pairs in drift gap", fontsize=11)
+    ax.set_title(PARTICLE_TITLES.get(particle, particle), fontsize=12)
+    ax.legend(fontsize=8, loc="best")
+    ax.grid(True, which="both", alpha=0.3)
+    if yscale == "log":
+        ax.set_ylim(bottom=0.01)
+    else:
+        ax.set_ylim(bottom=0)
+
+
+def _make_sensitivity_fig(df: pd.DataFrame, title: str,
+                          xlims: dict, yscale: str):
+    """Build and return a sensitivity figure. xlims maps particle -> (xmin, xmax) or None."""
     particles = [p for p in ["gamma", "electron", "neutron"] if p in df["particle"].unique()]
-    fig, axes = plt.subplots(1, len(particles), figsize=(6 * len(particles), 5),
-                              sharey=False)
+    fig, axes = plt.subplots(1, len(particles), figsize=(6 * len(particles), 5), sharey=False)
     if len(particles) == 1:
         axes = [axes]
-
     for ax, particle in zip(axes, particles):
         sub = df[df["particle"] == particle].copy()
-        for gas in sorted(sub["gas"].unique()):
-            g = sub[sub["gas"] == gas].sort_values("energy_MeV")
-            # Plot mean (solid) with p10-p90 band
-            ax.fill_between(g["energy_MeV"],
-                            g["nPrimDrift_p10"].clip(lower=0.1),
-                            g["nPrimDrift_p90"].clip(lower=0.1),
-                            alpha=0.15, color=GAS_COLORS.get(gas, "grey"))
-            ax.plot(g["energy_MeV"], g["nPrimDrift_mean"].clip(lower=0.01),
-                    "o-", color=GAS_COLORS.get(gas, "grey"),
-                    label=GAS_LABELS.get(gas, gas), linewidth=1.8, markersize=4)
-
-        ax.set_xscale("log")
-        ax.set_yscale("log")
-        ax.set_xlabel("Particle energy [MeV]", fontsize=11)
-        ax.set_ylabel("Mean primary ion pairs in drift gap", fontsize=11)
-        ax.set_title(PARTICLE_TITLES.get(particle, particle), fontsize=12)
-        ax.legend(fontsize=8, loc="best")
-        ax.grid(True, which="both", alpha=0.3)
-        ax.set_ylim(bottom=0.01)
-
-    fig.suptitle("Micromegas Drift Gap Primary Ionization\n"
-                 "(3 cm gas, W-value corrected)", fontsize=13)
+        _draw_sensitivity_panel(ax, sub, particle, yscale, xlim=xlims.get(particle))
+    fig.suptitle(title, fontsize=13)
     plt.tight_layout()
+    return fig
+
+
+def fig_sensitivity_vs_energy(df: pd.DataFrame, outdir: Path):
+    """
+    Write sensitivity_vs_energy.pdf with three pages:
+      1. Full range, log-log
+      2. Zoomed range, log-log  (γ: 1 keV–20 MeV; n: 50 keV–20 MeV; e⁻: unchanged)
+      3. Zoomed range, log-linear
+    """
+    base_title = "Micromegas Drift Gap Primary Ionization\n(3 cm gas, W-value corrected)"
+    zoom_xlims = {
+        "gamma":    (1e-3, 20.0),   # 1 keV – 20 MeV
+        "electron": None,           # unchanged
+        "neutron":  (0.05, 20.0),   # 50 keV – 20 MeV
+    }
+    full_xlims = {"gamma": None, "electron": None, "neutron": None}
+
+    pages = [
+        (full_xlims, "log",    base_title),
+        (zoom_xlims, "log",    base_title + " — zoomed"),
+        (zoom_xlims, "linear", base_title + " — zoomed, linear y"),
+    ]
+
     out = outdir / "sensitivity_vs_energy.pdf"
-    fig.savefig(out, dpi=150, bbox_inches="tight")
-    plt.close(fig)
-    print(f"  Saved: {out}")
+    with PdfPages(out) as pdf:
+        for xlims, yscale, title in pages:
+            fig = _make_sensitivity_fig(df, title, xlims, yscale)
+            pdf.savefig(fig, dpi=150, bbox_inches="tight")
+            plt.close(fig)
+    print(f"  Saved: {out} (3 pages)")
 
 
 def fig_efficiency(df: pd.DataFrame, outdir: Path):
