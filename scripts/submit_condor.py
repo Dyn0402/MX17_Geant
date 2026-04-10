@@ -40,6 +40,9 @@ PARTICLE_ENERGIES = {
         3.66e-1, 4.25e-1, 4.94e-1, 5.74e-1, 6.67e-1, 7.75e-1, 9.01e-1,  # 366–901 keV
         1.05, 1.22, 1.41, 1.64, 1.91, 2.22, 2.58, 3.00,  # 1.05–3 MeV
         3.49, 4.05, 4.71, 5.47, 6.36, 7.39, 8.59, 10.0, 20.0,  # 3.5–20 MeV
+        # Extended range: 20 log-spaced points from ~28 MeV to 20 GeV
+        28.3, 40.0, 56.4, 79.7, 113, 159, 224, 317, 448, 633,  # 28–633 MeV
+        894, 1260, 1780, 2510, 3550, 5010, 7080, 10000, 14100, 20000,  # 894 MeV–20 GeV
     ],
     # Electrons: 1–10 MeV (relativistic MIP regime)
     "electron": [
@@ -64,14 +67,17 @@ PARTICLE_ENERGIES = {
         4.34, 5.74, 7.59, 10.0,
         14.0,   # D-T fusion neutrons
         20.0,
+        # Extended range: 20 log-spaced points from ~28 MeV to 20 GeV
+        28.3, 40.0, 56.4, 79.7, 113, 159, 224, 317, 448, 633,  # 28–633 MeV
+        894, 1260, 1780, 2510, 3550, 5010, 7080, 10000, 14100, 20000,  # 894 MeV–20 GeV
     ],
 }
 
 # Per-particle event count multiplier applied on top of --nevents
 NEVENTS_SCALE = {
-    "gamma":    1,
+    "gamma":    10,
     "electron": 1,
-    "neutron":  5,
+    "neutron":  200,
 }
 
 # ============================================================
