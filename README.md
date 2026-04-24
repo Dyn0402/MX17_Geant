@@ -35,6 +35,8 @@ pitch 63 µm, total flattened thickness ~30 µm.
 | `ArCO2`    | Ar/CO₂ 70/30             | 27 eV   |
 | `ArCF4Iso` | Ar/CF₄/iC₄H₁₀ 88/10/2   | 33 eV   |
 | `NeIso`    | Ne/iC₄H₁₀ 95/5           | 27 eV   |
+| `NeCF4`    | Ne/CF₄ 90/10             | 30 eV   |
+| `ArCF4CO2` | Ar/CF₄/CO₂ 45/40/15      | 34 eV   |
 
 W-values from ICRU 31 + Penning-transfer corrections (Sauli 1977, Biagi).
 

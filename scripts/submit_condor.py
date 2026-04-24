@@ -26,7 +26,8 @@ from pathlib import Path
 # SCAN GRID -- edit here to add/remove points
 # ============================================================
 
-GASES = ["ArCF4", "HeEth", "ArCO2", "ArCF4Iso", "NeIso", "NeCF4"]
+# GASES = ["ArCF4", "HeEth", "ArCO2", "ArCF4Iso", "NeIso", "NeCF4", "ArCF4CO2"]
+GASES = ["ArCF4CO2"]
 
 # Energies in MeV for each particle type
 PARTICLE_ENERGIES = {

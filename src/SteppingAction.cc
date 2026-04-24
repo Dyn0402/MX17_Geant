@@ -43,6 +43,7 @@
 // Ar/CO2 70/30  : ~27 eV.  CO2 quenches; mild Penning possible.
 // Ar/CF4/Iso 88/10/2: ~33 eV. CF4 dominant quencher, isobutane Penning mild.
 // Ne/Iso 95/5   : ~27 eV.  Ne*(16.6 eV) > Iso IE (10.6 eV): Penning active.
+// Ar/CF4/CO2 45/40/15: ~34 eV. High CF4 fraction dominates; no Penning; CO2 adds mild quenching.
 //
 const std::map<std::string, double> SteppingAction::kWValues = {
     {"ArCF4",    34.0},
@@ -50,7 +51,8 @@ const std::map<std::string, double> SteppingAction::kWValues = {
     {"ArCO2",    27.0},
     {"ArCF4Iso", 33.0},
     {"NeIso",    27.0},
-    {"NeCF4",    30.0},  // Ne*(16.6 eV) > CF4 IE(10.1 eV): Penning active; ~30 eV estimate
+    {"NeCF4",    30.0},     // Ne*(16.6 eV) > CF4 IE(10.1 eV): Penning active; ~30 eV estimate
+    {"ArCF4CO2", 34.0},    // CF4-rich (40%); no Penning with Ar; CO2 mild quencher
 };
 
 SteppingAction::SteppingAction(const SimConfig& cfg, EventAction* eventAction)

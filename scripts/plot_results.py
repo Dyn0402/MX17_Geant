@@ -40,6 +40,7 @@ GAS_COLORS = {
     "ArCF4Iso": "#ff7f0e",
     "NeIso":    "#9467bd",
     "NeCF4":    "#8c564b",
+    "ArCF4CO2": "#17becf",
 }
 GAS_LABELS = {
     "ArCF4":    "Ar/CF₄ 90/10",
@@ -48,6 +49,7 @@ GAS_LABELS = {
     "ArCF4Iso": "Ar/CF₄/iC₄H₁₀ 88/10/2",
     "NeIso":    "Ne/iC₄H₁₀ 95/5",
     "NeCF4":    "Ne/CF₄ 90/10",
+    "ArCF4CO2": "Ar/CF₄/CO₂ 45/40/15",
 }
 PARTICLE_TITLES = {
     "gamma":    "Photons (γ)",
