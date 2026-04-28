@@ -192,6 +192,19 @@ void DetectorConstruction::DefineMaterials() {
         m->AddMaterial(CO2,   fCO2);
         fGasMaterials["ArCF4CO2"] = m;
     }
+
+    // =====================================================
+    // Gas mixture 8: Pure CF4 100 vol%
+    // Density: 3.72 kg/m3 (NIST)
+    // Very fast drift velocity; high primary ionization yield
+    // =====================================================
+    {
+        G4Material* m = new G4Material("PureCF4", 3.72e-3 * g/cm3, 2,
+                                        kStateGas, 293.15*kelvin, 1*atmosphere);
+        m->AddElement(elC, 1);
+        m->AddElement(elF, 4);
+        fGasMaterials["PureCF4"] = m;
+    }
 }
 
 // ============================================================
@@ -199,7 +212,7 @@ G4Material* DetectorConstruction::GetGasMixture(const std::string& name) {
     auto it = fGasMaterials.find(name);
     if (it == fGasMaterials.end()) {
         throw std::runtime_error("Unknown gas mixture: " + name +
-            "\nAvailable: ArCF4, HeEth, ArCO2, ArCF4Iso, NeIso, NeCF4, ArCF4CO2");
+            "\nAvailable: ArCF4, HeEth, ArCO2, ArCF4Iso, NeIso, NeCF4, ArCF4CO2, PureCF4");
     }
     return it->second;
 }
