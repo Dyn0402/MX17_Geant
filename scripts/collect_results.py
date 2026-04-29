@@ -17,6 +17,7 @@ Requirements (on lxplus after sourcing setup_lxplus.sh):
 """
 
 import argparse
+import gc
 import os
 import sys
 import re
@@ -241,7 +242,10 @@ def main():
     # Read and summarise
     print("\n--- Computing summaries ---")
     summary_rows = []
-    cluster_dfs  = []
+    out_clus = outdir / "clusters_sample.csv"
+    if args.clusters and out_clus.exists():
+        out_clus.unlink()
+    cluster_rows_written = 0
 
     for key in sorted(merged.keys()):
         gas, particle, energy = key
@@ -256,6 +260,9 @@ def main():
             continue
 
         row = summarize(df, gas, particle, energy)
+        del df
+        gc.collect()
+
         if row:
             summary_rows.append(row)
             print(f"n={row['n_events']}  eff={row['efficiency']:.3f}"
@@ -264,7 +271,12 @@ def main():
         if args.clusters:
             cdf = collect_clusters(root_file, gas, particle, energy)
             if not cdf.empty:
-                cluster_dfs.append(cdf)
+                write_header = cluster_rows_written == 0
+                cdf.to_csv(out_clus, mode="a", index=False,
+                           header=write_header, float_format="%.5g")
+                cluster_rows_written += len(cdf)
+            del cdf
+            gc.collect()
 
     # Write summary CSV
     if summary_rows:
@@ -281,11 +293,8 @@ def main():
     else:
         print("WARNING: No summary rows produced.")
 
-    if args.clusters and cluster_dfs:
-        clus_df = pd.concat(cluster_dfs, ignore_index=True)
-        out_clus = outdir / "clusters_sample.csv"
-        clus_df.to_csv(out_clus, index=False, float_format="%.5g")
-        print(f"Cluster sample written: {out_clus}  ({len(clus_df)} rows)")
+    if args.clusters and cluster_rows_written:
+        print(f"Cluster sample written: {out_clus}  ({cluster_rows_written} rows)")
 
     print("\nDone! Next step:")
     print(f"  python3 scripts/plot_results.py --summary {outdir}/summary.csv")
