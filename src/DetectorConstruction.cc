@@ -250,11 +250,18 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
     G4double tKapAno  = 50.0  * um;   // anode PCB kapton
     G4double tCuAno   = 9.0   * um;   // anode copper
 
-    // World half-sizes
+    // Al shielding layer (placed 2 cm upstream of Mylar window)
+    G4double alThickness = fConfig.alThickness_mm * mm;
+    G4double alGap       = 2.0 * cm;  // air gap between Al back face and Mylar front
+
+    // World half-sizes: expand upstream when Al shielding is present
     G4double totalZ = (tMylar + tAlWin + tKapCath + tCuCath +
                        tDrift + tMesh + tAmp +
                        tKapAno + tCuAno);
-    G4double worldZ = totalZ + 5.0 * cm;  // air gap on either side
+    G4double upstreamMargin = (alThickness > 0)
+        ? (alGap + alThickness + 0.5*cm)
+        : 2.5*cm;
+    G4double worldZ = totalZ + upstreamMargin + 2.5*cm;
 
     // ---- World volume ----
     G4Box* worldSolid = new G4Box("World", detXY/2 + 2*cm, detXY/2 + 2*cm, worldZ/2);
@@ -262,6 +269,20 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
     G4VPhysicalVolume* worldPV = new G4PVPlacement(nullptr, G4ThreeVector(),
                                                     worldLV, "World", nullptr, false, 0, true);
     worldLV->SetVisAttributes(G4VisAttributes::GetInvisible());
+
+    // ---- Al shielding slab (placed before detector stack) ----
+    // Position: back face sits 2 cm upstream of the Mylar window front face.
+    // Detector stack front face is at z = -totalZ/2.
+    if (alThickness > 0) {
+        G4double alZCenter = -totalZ/2.0 - alGap - alThickness/2.0;
+        G4Box* alBox = new G4Box("AlShield", detXY/2, detXY/2, alThickness/2);
+        G4LogicalVolume* alLV = new G4LogicalVolume(alBox, matAl, "AlShield");
+        auto visAlShield = new G4VisAttributes(G4Color(0.75, 0.75, 0.75, 0.9));
+        visAlShield->SetForceSolid(true);
+        alLV->SetVisAttributes(visAlShield);
+        new G4PVPlacement(nullptr, G4ThreeVector(0, 0, alZCenter),
+                          alLV, "AlShield", worldLV, false, 0, true);
+    }
 
     // ---- Helper: place a flat slab at z_center ----
     // All layers stacked along z.  We track the front face z as we go.
@@ -328,6 +349,12 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
     G4cout << "  Drift gap     : " << tDrift / cm << " cm" << G4endl;
     G4cout << "  Amp gap       : " << tAmp   / um << " um" << G4endl;
     G4cout << "  Total det. Z  : " << totalZ / mm << " mm" << G4endl;
+    if (alThickness > 0) {
+        G4cout << "  Al shielding  : " << fConfig.alThickness_mm << " mm "
+               << "(back face " << alGap/cm << " cm upstream of Mylar)" << G4endl;
+    } else {
+        G4cout << "  Al shielding  : none" << G4endl;
+    }
     G4cout << "================================\n" << G4endl;
 
     return worldPV;

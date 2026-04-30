@@ -29,6 +29,11 @@ from pathlib import Path
 # GASES = ["ArCF4", "HeEth", "ArCO2", "ArCF4Iso", "NeIso", "NeCF4", "ArCF4CO2", "PureCF4"]
 GASES = ["PureCF4"]
 
+# Al shielding scan: thicknesses in mm (0 = no shielding baseline).
+# Applied only to SHIELDING_GAS when --shielding flag is used.
+SHIELDING_GAS        = "ArCF4"
+AL_THICKNESSES_MM    = [1, 4]  # 0 mm (no shield) is always included
+
 # Energies in MeV for each particle type
 PARTICLE_ENERGIES = {
     # Gammas: fine log-spaced scan from 3 keV to 10 MeV (~55 points, ~5x denser)
@@ -106,6 +111,9 @@ def parse_args():
                    help="Gas mixtures to include")
     p.add_argument("--particles",nargs="+", default=list(PARTICLE_ENERGIES.keys()),
                    help="Particle types to include")
+    p.add_argument("--shielding", action="store_true",
+                   help=f"Also submit Al shielding jobs for {SHIELDING_GAS} "
+                        f"at {AL_THICKNESSES_MM} mm (plus 0 mm baseline if not already present)")
     return p.parse_args()
 
 
@@ -123,10 +131,14 @@ def find_exe():
     return None
 
 
-def make_job_tag(gas, particle, energy_mev):
+def make_job_tag(gas, particle, energy_mev, al_mm=0):
     """Create a short unique tag for a job."""
     e_str = f"{energy_mev:.6g}MeV".replace(".", "p")
-    return f"{gas}_{particle}_{e_str}"
+    tag = f"{gas}_{particle}_{e_str}"
+    if al_mm > 0:
+        al_str = f"{al_mm:g}mm".replace(".", "p")
+        tag += f"_Al{al_str}"
+    return tag
 
 
 def write_wrapper_script(job_dir: Path, exe: str, setup_script: str) -> Path:
@@ -150,6 +162,7 @@ def write_wrapper_script(job_dir: Path, exe: str, setup_script: str) -> Path:
         NEVENTS="$4"
         OUTFILE="$5"
         SEED="$6"
+        AL_MM="${{7:-0}}"
 
         echo "=== mm_sim job ==="
         echo "  Node     : $(hostname)"
@@ -159,6 +172,7 @@ def write_wrapper_script(job_dir: Path, exe: str, setup_script: str) -> Path:
         echo "  Events   : $NEVENTS"
         echo "  Output   : $OUTFILE"
         echo "  Seed     : $SEED"
+        echo "  Al (mm)  : $AL_MM"
         echo "=================="
 
         "{exe}" \\
@@ -167,7 +181,8 @@ def write_wrapper_script(job_dir: Path, exe: str, setup_script: str) -> Path:
             -e "$ENERGY"   \\
             -n "$NEVENTS"  \\
             -o "$OUTFILE"  \\
-            -s "$SEED"
+            -s "$SEED"     \\
+            -a "$AL_MM"
 
         echo "Job done: $(date)"
     """)
@@ -202,20 +217,20 @@ def write_condor_submit(job_dir: Path, wrapper: Path, jobs: list,
         "# G4 HP neutron data lives on CVMFS -- needs network access on worker",
         'requirements          = (OpSysAndVer =?= "AlmaLinux9")',
         "",
-        "# Arguments: gas particle energy_MeV nevents outfile_base seed",
-        "arguments             = $(gas) $(particle) $(energy) $(nevents) $(outfile) $(seed)",
+        "# Arguments: gas particle energy_MeV nevents outfile_base seed al_mm",
+        "arguments             = $(gas) $(particle) $(energy) $(nevents) $(outfile) $(seed) $(al_mm)",
         "",
-        "queue gas,particle,energy,nevents,outfile,seed,tag from (",
+        "queue gas,particle,energy,nevents,outfile,seed,al_mm,tag from (",
     ]
 
     import random
     rng = random.Random(42)
 
-    for (gas, particle, energy_mev, nevents) in jobs:
-        tag     = make_job_tag(gas, particle, energy_mev)
+    for (gas, particle, energy_mev, nevents, al_mm) in jobs:
+        tag     = make_job_tag(gas, particle, energy_mev, al_mm)
         outfile = str(outdir / tag)
         seed    = rng.randint(1, 2**31 - 1)
-        lines.append(f"  {gas}, {particle}, {energy_mev}, {nevents}, {outfile}, {seed}, {tag}")
+        lines.append(f"  {gas}, {particle}, {energy_mev}, {nevents}, {outfile}, {seed}, {al_mm}, {tag}")
 
     lines.append(")")
 
@@ -245,7 +260,7 @@ def main():
     # Setup script (must be accessible from worker nodes -- use EOS or AFS path)
     setup_script = str(Path(__file__).parent.resolve() / "setup_lxplus.sh")
 
-    # Build job list
+    # Build job list: (gas, particle, energy, nevents, al_mm)
     jobs = []
     for gas in args.gases:
         for particle in args.particles:
@@ -254,7 +269,21 @@ def main():
                 continue
             for energy in PARTICLE_ENERGIES[particle]:
                 n = args.nevents * NEVENTS_SCALE.get(particle, 1)
-                jobs.append((gas, particle, energy, n))
+                jobs.append((gas, particle, energy, n, 0))
+
+    # Al shielding jobs: ArCF4 with 1 mm and 4 mm Al (+ 0 mm baseline if not already present)
+    if args.shielding:
+        shielding_gases = set(j[0] for j in jobs)
+        al_thicknesses = AL_THICKNESSES_MM[:]
+        if SHIELDING_GAS not in shielding_gases:
+            al_thicknesses = [0] + al_thicknesses  # include no-shield baseline too
+        for al_mm in al_thicknesses:
+            for particle in args.particles:
+                if particle not in PARTICLE_ENERGIES:
+                    continue
+                for energy in PARTICLE_ENERGIES[particle]:
+                    n = args.nevents * NEVENTS_SCALE.get(particle, 1)
+                    jobs.append((SHIELDING_GAS, particle, energy, n, al_mm))
 
     print(f"Total jobs to submit: {len(jobs)}")
     print(f"  Gases    : {args.gases}")
@@ -265,8 +294,8 @@ def main():
 
     if args.dry_run:
         print("\n--- DRY RUN: first 10 jobs ---")
-        for (gas, particle, energy, nevents) in jobs[:10]:
-            print(f"  {make_job_tag(gas, particle, energy)}  ({nevents} events)")
+        for (gas, particle, energy, nevents, al_mm) in jobs[:10]:
+            print(f"  {make_job_tag(gas, particle, energy, al_mm)}  ({nevents} events)")
         if len(jobs) > 10:
             print(f"  ... and {len(jobs)-10} more")
         return

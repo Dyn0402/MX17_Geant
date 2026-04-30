@@ -59,6 +59,11 @@ PARTICLE_TITLES = {
     "neutron":  "Neutrons (n)",
 }
 
+# Shielding comparison styling (by Al thickness in mm)
+AL_COLORS = {0: "#1f77b4", 1: "#ff7f0e", 4: "#d62728"}
+AL_STYLES = {0: "-",       1: "--",      4: ":"}
+AL_LABELS = {0: "No shielding (0 mm Al)", 1: "1 mm Al", 4: "4 mm Al"}
+
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--summary", required=True, help="Path to summary.csv")
@@ -71,6 +76,8 @@ def parse_args():
 
 def load_summary(path: str) -> pd.DataFrame:
     df = pd.read_csv(path)
+    if "al_mm" not in df.columns:
+        df["al_mm"] = 0.0  # backward compat: old summaries have no Al column
     return df
 
 
@@ -86,19 +93,19 @@ def _draw_sensitivity_panel(ax, sub: pd.DataFrame, particle: str,
         if g.empty:
             continue
 
-        clip_low = 0.1 if yscale == "log" else 0.0
-        means = g["nPrimDrift_mean"].clip(lower=0.01 if yscale == "log" else 0)
+        clip_low = 0.01 if yscale == "log" else 0.0
+        means_raw = g["nPrimDrift_mean"]
+        means = means_raw.clip(lower=clip_low)
         mean_vals.extend(means.values)
 
-        # Only draw band where p90 > p10 (collapses to zero when efficiency is very low)
-        p10 = g["nPrimDrift_p10"].clip(lower=clip_low)
-        p90 = g["nPrimDrift_p90"].clip(lower=clip_low)
-        band_mask = p90.values > p10.values
-        if band_mask.any():
-            ax.fill_between(g["energy_MeV"].values[band_mask],
-                            p10.values[band_mask],
-                            p90.values[band_mask],
-                            alpha=0.15, color=GAS_COLORS.get(gas, "grey"))
+        # Error band: standard error on the mean (SEM = std / sqrt(n))
+        # Zeros are included in both mean and std, so this is the SEM on the
+        # true per-event mean (which captures efficiency correctly).
+        sem = g["nPrimDrift_std"] / np.sqrt(g["n_events"])
+        band_lo = (means_raw - sem).clip(lower=clip_low)
+        band_hi = (means_raw + sem).clip(lower=clip_low)
+        ax.fill_between(g["energy_MeV"].values, band_lo.values, band_hi.values,
+                        alpha=0.25, color=GAS_COLORS.get(gas, "grey"))
 
         ax.plot(g["energy_MeV"], means, "o-", color=GAS_COLORS.get(gas, "grey"),
                 label=GAS_LABELS.get(gas, gas), linewidth=1.8, markersize=4)
@@ -148,9 +155,9 @@ def fig_sensitivity_vs_energy(df: pd.DataFrame, outdir: Path):
     """
     base_title = "Micromegas Drift Gap Primary Ionization\n(3 cm gas, W-value corrected)"
     zoom_xlims = {
-        "gamma":    (1e-3, 20.0),   # 1 keV – 20 MeV
+        "gamma":    (1e-3, 20.0e3),   # 1 keV – 20 GeV
         "electron": None,           # unchanged
-        "neutron":  (0.05, 20.0),   # 50 keV – 20 MeV
+        "neutron":  (0.05, 20.0e3),   # 50 keV – 20 GeV
     }
     full_xlims = {"gamma": None, "electron": None, "neutron": None}
 
@@ -338,6 +345,76 @@ def fig_nprim_distributions_from_root(rootdir: Path, outdir: Path, df_summary: p
     print(f"  Saved: {pdf_path}")
 
 
+def fig_shielding_comparison(df: pd.DataFrame, outdir: Path):
+    """
+    For each gas that has runs with Al shielding, produce a comparison plot:
+    one panel per particle type, one curve per Al thickness (0, 1, 4 mm).
+    Saved to shielding_comparison.pdf.
+    """
+    shielded_gases = df[df["al_mm"] > 0]["gas"].unique()
+    if len(shielded_gases) == 0:
+        return
+
+    out = outdir / "shielding_comparison.pdf"
+    with PdfPages(out) as pdf:
+        for gas in sorted(shielded_gases):
+            sub = df[df["gas"] == gas].copy()
+            al_thicknesses = sorted(sub["al_mm"].unique())
+
+            particles = [p for p in ["gamma", "electron", "neutron"]
+                         if p in sub["particle"].unique()]
+            fig, axes = plt.subplots(1, len(particles),
+                                     figsize=(6 * len(particles), 5), sharey=False)
+            if len(particles) == 1:
+                axes = [axes]
+
+            for ax, particle in zip(axes, particles):
+                psub = sub[sub["particle"] == particle].copy()
+                clip_low = 0.01
+
+                for al_mm in al_thicknesses:
+                    al_key = int(round(al_mm))
+                    g = psub[np.isclose(psub["al_mm"], al_mm)].sort_values("energy_MeV")
+                    if g.empty:
+                        continue
+
+                    means = g["nPrimDrift_mean"].clip(lower=clip_low)
+                    sem   = g["nPrimDrift_std"] / np.sqrt(g["n_events"])
+                    band_lo = (g["nPrimDrift_mean"] - sem).clip(lower=clip_low)
+                    band_hi = (g["nPrimDrift_mean"] + sem).clip(lower=clip_low)
+
+                    color = AL_COLORS.get(al_key, "grey")
+                    style = AL_STYLES.get(al_key, "-")
+                    label = AL_LABELS.get(al_key, f"{al_mm:g} mm Al")
+
+                    ax.fill_between(g["energy_MeV"].values, band_lo.values, band_hi.values,
+                                    alpha=0.2, color=color)
+                    ax.plot(g["energy_MeV"], means, style, color=color,
+                            label=label, linewidth=1.8, markersize=4)
+
+                ax.set_xscale("log")
+                ax.set_yscale("log")
+                ax.set_xlabel("Particle energy [MeV]", fontsize=11)
+                ax.set_ylabel("Mean primary ion pairs in drift gap", fontsize=11)
+                ax.set_title(PARTICLE_TITLES.get(particle, particle), fontsize=12)
+                ax.legend(fontsize=9, loc="best")
+                ax.grid(True, which="both", alpha=0.3)
+
+                all_means = psub["nPrimDrift_mean"].clip(lower=clip_low)
+                if not all_means.empty:
+                    ax.set_ylim(bottom=max(0.01, all_means.min() * 0.3),
+                                top=all_means.max() * 3)
+
+            fig.suptitle(f"Al Shielding Effect — {GAS_LABELS.get(gas, gas)}\n"
+                         f"(3 cm drift gap, Mylar window + 2 cm air gap + Al)",
+                         fontsize=12)
+            plt.tight_layout()
+            pdf.savefig(fig, dpi=150, bbox_inches="tight")
+            plt.close(fig)
+
+    print(f"  Saved: {out} ({len(shielded_gases)} gas(es))")
+
+
 def main():
     args = parse_args()
     summary_path = Path(args.summary)
@@ -348,15 +425,20 @@ def main():
     print(f"  {len(df)} rows, gases: {sorted(df['gas'].unique())}, "
           f"particles: {sorted(df['particle'].unique())}")
 
+    # No-shielding subset for the standard sensitivity/efficiency plots
+    df_noshield = df[df["al_mm"] == 0].copy()
+
     print("\nGenerating plots...")
-    fig_sensitivity_vs_energy(df, outdir)
-    fig_efficiency(df, outdir)
-    fig_relative_sensitivity(df, outdir)
+    fig_sensitivity_vs_energy(df_noshield, outdir)
+    fig_efficiency(df_noshield, outdir)
+    fig_relative_sensitivity(df_noshield, outdir)
+
+    fig_shielding_comparison(df, outdir)
 
     if args.rootdir:
         rootdir = Path(args.rootdir)
         print("Generating Nprim distribution plots from ROOT files...")
-        fig_nprim_distributions_from_root(rootdir, outdir, df)
+        fig_nprim_distributions_from_root(rootdir, outdir, df_noshield)
 
     print(f"\nAll plots saved to: {outdir}")
 

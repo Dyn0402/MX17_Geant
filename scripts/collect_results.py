@@ -35,11 +35,12 @@ except ImportError:
     sys.exit(1)
 
 
-# Regex to parse job tag: gas_particle_energyMeV
+# Regex to parse job tag: gas_particle_energyMeV[_Al{mm}mm]
 TAG_RE = re.compile(
     r"^(?P<gas>ArCF4CO2|ArCF4Iso|ArCF4|HeEth|ArCO2|NeIso|NeCF4|PureCF4)"
     r"_(?P<particle>gamma|electron|neutron|proton|muon)"
     r"_(?P<energy>[0-9ep.+-]+)MeV"
+    r"(_Al(?P<al_mm>[0-9p]+)mm)?"
     r"(_t\d+)?\.root$"
 )
 
@@ -53,7 +54,9 @@ def parse_tag(fname: str):
         energy = float(energy_str)
     except ValueError:
         return None
-    return m.group("gas"), m.group("particle"), energy
+    al_mm_raw = m.group("al_mm")
+    al_mm = float(al_mm_raw.replace("p", ".")) if al_mm_raw else 0.0
+    return m.group("gas"), m.group("particle"), energy, al_mm
 
 
 def find_root_files(indir: Path):
@@ -68,9 +71,10 @@ def find_root_files(indir: Path):
 
 def hadd_group(key, files, merged_dir: Path, dry_run=False) -> Path:
     """Merge thread files into one file using hadd."""
-    gas, particle, energy = key
-    e_str = f"{energy:.6g}".replace(".", "p")
-    outname = merged_dir / f"{gas}_{particle}_{e_str}MeV_merged.root"
+    gas, particle, energy, al_mm = key
+    e_str  = f"{energy:.6g}".replace(".", "p")
+    al_str = f"_Al{al_mm:g}mm".replace(".", "p") if al_mm > 0 else ""
+    outname = merged_dir / f"{gas}_{particle}_{e_str}MeV{al_str}_merged.root"
 
     if outname.exists():
         return outname  # already merged
@@ -113,8 +117,9 @@ def read_event_tree(root_file: Path) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-def summarize(df: pd.DataFrame, gas: str, particle: str, energy: float) -> dict:
-    """Compute summary statistics for one (gas, particle, energy) point."""
+def summarize(df: pd.DataFrame, gas: str, particle: str, energy: float,
+              al_mm: float = 0.0) -> dict:
+    """Compute summary statistics for one (gas, particle, energy, al_mm) point."""
     n = len(df)
     if n == 0:
         return {}
@@ -141,6 +146,7 @@ def summarize(df: pd.DataFrame, gas: str, particle: str, energy: float) -> dict:
         "gas":       gas,
         "particle":  particle,
         "energy_MeV": energy,
+        "al_mm":     al_mm,
         "n_events":  n,
         "efficiency": eff,
         # Drift
@@ -248,18 +254,19 @@ def main():
     cluster_rows_written = 0
 
     for key in sorted(merged.keys()):
-        gas, particle, energy = key
+        gas, particle, energy, al_mm = key
         root_file = merged[key]
         if not root_file or not root_file.exists():
             continue
 
-        print(f"  {gas:12s} {particle:10s} {energy:10.4g} MeV ...", end=" ", flush=True)
+        al_tag = f"  Al={al_mm:g}mm" if al_mm > 0 else ""
+        print(f"  {gas:12s} {particle:10s} {energy:10.4g} MeV{al_tag} ...", end=" ", flush=True)
         df = read_event_tree(root_file)
         if df.empty:
             print("EMPTY")
             continue
 
-        row = summarize(df, gas, particle, energy)
+        row = summarize(df, gas, particle, energy, al_mm)
         del df
         gc.collect()
 
@@ -284,7 +291,7 @@ def main():
         # Sort sensibly
         part_order = {"gamma": 0, "electron": 1, "neutron": 2, "proton": 3}
         summary_df["_pord"] = summary_df["particle"].map(part_order).fillna(99)
-        summary_df = summary_df.sort_values(["gas", "_pord", "energy_MeV"])
+        summary_df = summary_df.sort_values(["gas", "al_mm", "_pord", "energy_MeV"])
         summary_df = summary_df.drop(columns=["_pord"])
 
         out_csv = outdir / "summary.csv"

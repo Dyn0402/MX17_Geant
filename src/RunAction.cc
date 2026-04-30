@@ -93,7 +93,8 @@ void RunAction::BeginOfRunAction(const G4Run* run) {
     // Metadata branches (constant per file, useful after hadd)
     fImpl->evtTree->SetTitle(
         ("gas=" + fConfig.gas + "_particle=" + fConfig.particle +
-         "_E=" + std::to_string(fConfig.energy / MeV) + "MeV").c_str());
+         "_E=" + std::to_string(fConfig.energy / MeV) + "MeV" +
+         "_Al=" + std::to_string(fConfig.alThickness_mm) + "mm").c_str());
 
     // --- ClusterTree ---
     fImpl->clusTree = new TTree("ClusterTree", "Per-cluster ionization detail");
