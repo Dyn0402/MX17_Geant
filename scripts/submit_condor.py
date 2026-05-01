@@ -27,7 +27,7 @@ from pathlib import Path
 # ============================================================
 
 # GASES = ["ArCF4", "HeEth", "ArCO2", "ArCF4Iso", "NeIso", "NeCF4", "ArCF4CO2", "PureCF4"]
-GASES = ["PureCF4"]
+GASES = ["ArCF4"]
 
 # Al shielding scan: thicknesses in mm (0 = no shielding baseline).
 # Applied only to SHIELDING_GAS when --shielding flag is used.

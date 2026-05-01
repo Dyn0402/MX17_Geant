@@ -54,6 +54,57 @@ Primary ionization N = Edep / W, with Poisson sampling of the remainder.
 
 ---
 
+## Aluminium shielding
+
+An optional Al slab can be placed upstream of the detector to study shielding
+effects on the gamma/neutron sensitivity. The slab spans the full detector XY
+area (40×40 cm) and is centred 2 cm + half-thickness upstream of the Mylar
+window front face (i.e. its back face is exactly 2 cm from the Mylar).
+
+When shielding is enabled the world volume automatically expands upstream to
+accommodate the slab + a 0.5 cm clearance margin.
+
+### Single-job usage
+
+Pass `-a <mm>` to set the Al thickness in mm (`0` or omitted = no shielding):
+
+```bash
+# 1 mm Al upstream
+build/mm_sim -g ArCF4 -p gamma -e 1.0 -n 10000 -o /tmp/test_al1mm -a 1
+
+# 4 mm Al upstream
+build/mm_sim -g ArCF4 -p gamma -e 1.0 -n 10000 -o /tmp/test_al4mm -a 4
+```
+
+### HTCondor shielding scan
+
+`submit_condor.py` has a `--shielding` flag that appends Al-shielding jobs to
+the normal submission. The shielding gas and thicknesses are controlled by two
+constants at the top of the script:
+
+```python
+SHIELDING_GAS     = "ArCF4"       # gas used for shielding scan
+AL_THICKNESSES_MM = [1, 4]        # 0 mm baseline is always included
+```
+
+Submit the baseline + shielding scan together:
+
+```bash
+python3 scripts/submit_condor.py \
+    --outdir /eos/experiment/ntof/data/x17/mm_sim_results \
+    --nevents 50000 \
+    --shielding
+```
+
+With `--shielding`, the script automatically adds a 0 mm baseline for
+`SHIELDING_GAS` if it is not already included in the gas list, so you always
+get a matched no-shield reference at the same statistics.
+
+Output files for shielded jobs get an `_Al<N>mm` suffix in their tag, e.g.
+`ArCF4_gamma_1p0MeV_Al1mm.root`.
+
+---
+
 ## Quick start on lxplus
 
 ```bash
@@ -116,7 +167,7 @@ runs `hadd` to merge them.
 ## Submitting a subset (testing)
 
 ```bash
-# One gas, one particle, two energies
+# One gas, one particle — dry run first
 python3 scripts/submit_condor.py \
     --gases ArCF4 \
     --particles gamma \
@@ -124,6 +175,15 @@ python3 scripts/submit_condor.py \
     --flavour longlunch \
     --outdir /tmp/mm_test \
     --dry-run   # remove --dry-run to actually submit
+
+# With shielding scan (ArCF4, 0 + 1 + 4 mm Al)
+python3 scripts/submit_condor.py \
+    --gases ArCF4 \
+    --particles gamma \
+    --nevents 5000 \
+    --outdir /tmp/mm_test \
+    --shielding \
+    --dry-run
 ```
 
 ---
