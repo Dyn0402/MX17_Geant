@@ -77,7 +77,10 @@ def parse_args():
 def load_summary(path: str) -> pd.DataFrame:
     df = pd.read_csv(path)
     if "al_mm" not in df.columns:
-        df["al_mm"] = 0.0  # backward compat: old summaries have no Al column
+        df["al_mm"] = 0.0
+    if "primInDrift_fraction" not in df.columns:
+        # Older summaries: use efficiency as best available proxy
+        df["primInDrift_fraction"] = df["efficiency"]
     return df
 
 
@@ -347,8 +350,9 @@ def fig_nprim_distributions_from_root(rootdir: Path, outdir: Path, df_summary: p
 
 def fig_shielding_comparison(df: pd.DataFrame, outdir: Path):
     """
-    For each gas that has runs with Al shielding, produce a comparison plot:
-    one panel per particle type, one curve per Al thickness (0, 1, 4 mm).
+    For each gas that has runs with Al shielding, produce a 2-row comparison:
+      Row 1: mean primary ion pairs vs energy (log-log), one curve per Al thickness.
+      Row 2: primary-in-drift fraction vs energy (log-x, linear-y 0–1).
     Saved to shielding_comparison.pdf.
     """
     shielded_gases = df[df["al_mm"] > 0]["gas"].unique()
@@ -361,15 +365,17 @@ def fig_shielding_comparison(df: pd.DataFrame, outdir: Path):
             sub = df[df["gas"] == gas].copy()
             al_thicknesses = sorted(sub["al_mm"].unique())
 
-            particles = [p for p in ["gamma", "electron", "neutron"]
+            particles = [p for p in ["gamma", "electron", "neutron", "proton", "muon"]
                          if p in sub["particle"].unique()]
-            fig, axes = plt.subplots(1, len(particles),
-                                     figsize=(6 * len(particles), 5), sharey=False)
-            if len(particles) == 1:
-                axes = [axes]
+            ncols = len(particles)
+            fig, axes_grid = plt.subplots(2, ncols,
+                                          figsize=(6 * ncols, 10),
+                                          sharey=False, squeeze=False)
 
-            for ax, particle in zip(axes, particles):
+            for col, particle in enumerate(particles):
                 psub = sub[sub["particle"] == particle].copy()
+                ax_top = axes_grid[0][col]
+                ax_bot = axes_grid[1][col]
                 clip_low = 0.01
 
                 for al_mm in al_thicknesses:
@@ -377,33 +383,49 @@ def fig_shielding_comparison(df: pd.DataFrame, outdir: Path):
                     g = psub[np.isclose(psub["al_mm"], al_mm)].sort_values("energy_MeV")
                     if g.empty:
                         continue
-
-                    means = g["nPrimDrift_mean"].clip(lower=clip_low)
-                    sem   = g["nPrimDrift_std"] / np.sqrt(g["n_events"])
-                    band_lo = (g["nPrimDrift_mean"] - sem).clip(lower=clip_low)
-                    band_hi = (g["nPrimDrift_mean"] + sem).clip(lower=clip_low)
-
                     color = AL_COLORS.get(al_key, "grey")
                     style = AL_STYLES.get(al_key, "-")
                     label = AL_LABELS.get(al_key, f"{al_mm:g} mm Al")
 
-                    ax.fill_between(g["energy_MeV"].values, band_lo.values, band_hi.values,
-                                    alpha=0.2, color=color)
-                    ax.plot(g["energy_MeV"], means, style, color=color,
-                            label=label, linewidth=1.8, markersize=4)
+                    # --- top: mean primaries ---
+                    means = g["nPrimDrift_mean"].clip(lower=clip_low)
+                    sem   = g["nPrimDrift_std"] / np.sqrt(g["n_events"])
+                    band_lo = (g["nPrimDrift_mean"] - sem).clip(lower=clip_low)
+                    band_hi = (g["nPrimDrift_mean"] + sem).clip(lower=clip_low)
+                    ax_top.fill_between(g["energy_MeV"].values, band_lo.values,
+                                        band_hi.values, alpha=0.2, color=color)
+                    ax_top.plot(g["energy_MeV"], means, style, color=color,
+                                label=label, linewidth=1.8, markersize=4)
 
-                ax.set_xscale("log")
-                ax.set_yscale("log")
-                ax.set_xlabel("Particle energy [MeV]", fontsize=11)
-                ax.set_ylabel("Mean primary ion pairs in drift gap", fontsize=11)
-                ax.set_title(PARTICLE_TITLES.get(particle, particle), fontsize=12)
-                ax.legend(fontsize=9, loc="best")
-                ax.grid(True, which="both", alpha=0.3)
+                    # --- bottom: primary-in-drift fraction ---
+                    frac = g["primInDrift_fraction"]
+                    sem_frac = np.sqrt(frac * (1 - frac) / g["n_events"])
+                    ax_bot.fill_between(g["energy_MeV"].values,
+                                        (frac - sem_frac).clip(0).values,
+                                        (frac + sem_frac).clip(upper=1).values,
+                                        alpha=0.2, color=color)
+                    ax_bot.plot(g["energy_MeV"], frac, style, color=color,
+                                label=label, linewidth=1.8, markersize=4)
 
+                ax_top.set_xscale("log")
+                ax_top.set_yscale("log")
+                ax_top.set_xlabel("Particle energy [MeV]", fontsize=10)
+                ax_top.set_ylabel("Mean primary ion pairs in drift gap", fontsize=10)
+                ax_top.set_title(PARTICLE_TITLES.get(particle, particle), fontsize=11)
+                ax_top.legend(fontsize=8, loc="best")
+                ax_top.grid(True, which="both", alpha=0.3)
                 all_means = psub["nPrimDrift_mean"].clip(lower=clip_low)
                 if not all_means.empty:
-                    ax.set_ylim(bottom=max(0.01, all_means.min() * 0.3),
-                                top=all_means.max() * 3)
+                    ax_top.set_ylim(bottom=max(0.01, all_means.min() * 0.3),
+                                    top=all_means.max() * 3)
+
+                ax_bot.set_xscale("log")
+                ax_bot.set_ylim(0, 1.05)
+                ax_bot.set_xlabel("Particle energy [MeV]", fontsize=10)
+                ax_bot.set_ylabel("Fraction of primaries reaching drift", fontsize=10)
+                ax_bot.legend(fontsize=8, loc="best")
+                ax_bot.grid(True, which="both", alpha=0.3)
+                ax_bot.axhline(1.0, color="k", lw=0.6, ls="--", alpha=0.4)
 
             fig.suptitle(f"Al Shielding Effect — {GAS_LABELS.get(gas, gas)}\n"
                          f"(3 cm drift gap, Mylar window + 2 cm air gap + Al)",
@@ -413,6 +435,53 @@ def fig_shielding_comparison(df: pd.DataFrame, outdir: Path):
             plt.close(fig)
 
     print(f"  Saved: {out} ({len(shielded_gases)} gas(es))")
+
+
+def fig_efficiency_vs_energy(df: pd.DataFrame, outdir: Path):
+    """
+    Line plot of primary-in-drift fraction vs energy, one panel per particle,
+    one curve per gas.  Mirrors the sensitivity_vs_energy layout but shows
+    what fraction of events produce any ionisation in the drift.
+    """
+    particles = [p for p in ["gamma", "electron", "neutron", "proton", "muon"]
+                 if p in df["particle"].unique()]
+    fig, axes = plt.subplots(1, len(particles),
+                             figsize=(6 * len(particles), 5), sharey=False,
+                             squeeze=False)
+
+    for ax, particle in zip(axes[0], particles):
+        sub = df[df["particle"] == particle].copy()
+        for gas in sorted(sub["gas"].unique()):
+            g = sub[sub["gas"] == gas].sort_values("energy_MeV")
+            if g.empty:
+                continue
+            frac = g["primInDrift_fraction"]
+            sem  = np.sqrt(frac * (1 - frac) / g["n_events"])
+            color = GAS_COLORS.get(gas, "grey")
+            ax.fill_between(g["energy_MeV"].values,
+                            (frac - sem).clip(0).values,
+                            (frac + sem).clip(upper=1).values,
+                            alpha=0.2, color=color)
+            ax.plot(g["energy_MeV"], frac, "o-", color=color,
+                    label=GAS_LABELS.get(gas, gas), linewidth=1.8, markersize=4)
+
+        ax.set_xscale("log")
+        ax.set_ylim(0, 1.05)
+        ax.set_xlabel("Particle energy [MeV]", fontsize=11)
+        ax.set_ylabel("Fraction of primaries reaching drift", fontsize=11)
+        ax.set_title(PARTICLE_TITLES.get(particle, particle), fontsize=12)
+        ax.legend(fontsize=8, loc="best")
+        ax.grid(True, which="both", alpha=0.3)
+        ax.axhline(1.0, color="k", lw=0.6, ls="--", alpha=0.4)
+
+    fig.suptitle("Primary Transmission to Drift Gap\n"
+                 "(fraction of events with primary reaching drift volume)",
+                 fontsize=13)
+    plt.tight_layout()
+    out = outdir / "efficiency_vs_energy.pdf"
+    fig.savefig(out, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"  Saved: {out}")
 
 
 def main():
@@ -431,6 +500,7 @@ def main():
     print("\nGenerating plots...")
     fig_sensitivity_vs_energy(df_noshield, outdir)
     fig_efficiency(df_noshield, outdir)
+    fig_efficiency_vs_energy(df_noshield, outdir)
     fig_relative_sensitivity(df_noshield, outdir)
 
     fig_shielding_comparison(df, outdir)

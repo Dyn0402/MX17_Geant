@@ -24,6 +24,7 @@ import re
 import subprocess
 from pathlib import Path
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 try:
     import uproot
@@ -33,6 +34,21 @@ except ImportError:
     print("ERROR: uproot/numpy/pandas not found.")
     print("Source setup_lxplus.sh first, or: pip install uproot numpy pandas")
     sys.exit(1)
+
+try:
+    from tqdm import tqdm
+    _TQDM = True
+except ImportError:
+    _TQDM = False
+    print("Tip: install tqdm for progress bars:  pip install tqdm")
+
+
+def _tqdm_write(msg):
+    """Print without disrupting an active tqdm bar."""
+    if _TQDM:
+        tqdm.write(msg)
+    else:
+        print(msg)
 
 
 # Regex to parse job tag: gas_particle_energyMeV[_Al{mm}mm]
@@ -69,7 +85,7 @@ def find_root_files(indir: Path):
     return groups
 
 
-def hadd_group(key, files, merged_dir: Path, dry_run=False) -> Path:
+def hadd_group(key, files, merged_dir: Path, dry_run=False, quiet=False) -> Path:
     """Merge thread files into one file using hadd."""
     gas, particle, energy, al_mm = key
     e_str  = f"{energy:.6g}".replace(".", "p")
@@ -86,12 +102,12 @@ def hadd_group(key, files, merged_dir: Path, dry_run=False) -> Path:
         return outname
 
     cmd = ["hadd", "-f", str(outname)] + [str(f) for f in sorted(files)]
-    print(f"  hadd -> {outname.name}  ({len(files)} files)")
+    if not quiet:
+        print(f"  hadd -> {outname.name}  ({len(files)} files)")
     if not dry_run:
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:
-            print(f"  WARNING: hadd failed for {outname.name}")
-            print(result.stderr[:500])
+            _tqdm_write(f"  WARNING: hadd failed for {outname.name}\n{result.stderr[:500]}")
             return None
     return outname
 
@@ -149,6 +165,7 @@ def summarize(df: pd.DataFrame, gas: str, particle: str, energy: float,
         "al_mm":     al_mm,
         "n_events":  n,
         "efficiency": eff,
+        "primInDrift_fraction": float(df["primInDrift"].mean()),
         # Drift
         "nPrimDrift_mean":         s_np["mean"],
         "nPrimDrift_median":       s_np["median"],
@@ -207,6 +224,8 @@ def parse_args():
                    help="Also write cluster position CSV (can be large)")
     p.add_argument("--dry-run",  action="store_true",
                    help="Print what would be done without doing it")
+    p.add_argument("--workers", type=int, default=4,
+                   help="Number of parallel workers for hadd and file reading (default: 4)")
     return p.parse_args()
 
 
@@ -231,11 +250,21 @@ def main():
     # hadd
     merged = {}
     if not args.no_hadd:
-        print("\n--- Merging thread files ---")
-        for key, files in sorted(groups.items()):
-            mf = hadd_group(key, files, merged_dir, dry_run=args.dry_run)
-            if mf:
-                merged[key] = mf
+        print(f"\n--- Merging thread files (workers={args.workers}) ---")
+        keys_files = sorted(groups.items())
+        with ThreadPoolExecutor(max_workers=args.workers) as pool:
+            future_to_key = {
+                pool.submit(hadd_group, key, files, merged_dir, args.dry_run, _TQDM): key
+                for key, files in keys_files
+            }
+            it = as_completed(future_to_key)
+            if _TQDM:
+                it = tqdm(it, total=len(future_to_key), desc="hadd", unit="job")
+            for fut in it:
+                key = future_to_key[fut]
+                mf = fut.result()
+                if mf:
+                    merged[key] = mf
     else:
         for key, files in groups.items():
             # Assume single file or already merged
@@ -245,45 +274,64 @@ def main():
         print("\nDry run complete.")
         return
 
-    # Read and summarise
-    print("\n--- Computing summaries ---")
+    # Read and summarise in parallel
+    print(f"\n--- Computing summaries (workers={args.workers}) ---")
     summary_rows = []
     out_clus = outdir / "clusters_sample.csv"
     if args.clusters and out_clus.exists():
         out_clus.unlink()
     cluster_rows_written = 0
 
-    for key in sorted(merged.keys()):
+    valid_keys = [k for k in sorted(merged.keys())
+                  if merged[k] and merged[k].exists()]
+
+    def _summarize_one(key):
         gas, particle, energy, al_mm = key
         root_file = merged[key]
-        if not root_file or not root_file.exists():
-            continue
-
-        al_tag = f"  Al={al_mm:g}mm" if al_mm > 0 else ""
-        print(f"  {gas:12s} {particle:10s} {energy:10.4g} MeV{al_tag} ...", end=" ", flush=True)
         df = read_event_tree(root_file)
         if df.empty:
-            print("EMPTY")
-            continue
-
+            return key, None, pd.DataFrame()
         row = summarize(df, gas, particle, energy, al_mm)
         del df
         gc.collect()
+        cdf = collect_clusters(root_file, gas, particle, energy) if args.clusters else pd.DataFrame()
+        return key, row, cdf
 
+    results = {}
+    with ThreadPoolExecutor(max_workers=args.workers) as pool:
+        future_to_key = {pool.submit(_summarize_one, key): key for key in valid_keys}
+        it = as_completed(future_to_key)
+        if _TQDM:
+            it = tqdm(it, total=len(future_to_key), desc="summarise", unit="file")
+        for fut in it:
+            key = future_to_key[fut]
+            gas, particle, energy, al_mm = key
+            al_tag = f"  Al={al_mm:g}mm" if al_mm > 0 else ""
+            try:
+                rkey, row, cdf = fut.result()
+                results[rkey] = (row, cdf)
+                if not _TQDM:
+                    if row:
+                        print(f"  {gas:12s} {particle:10s} {energy:10.4g} MeV{al_tag}"
+                              f"  n={row['n_events']}  eff={row['efficiency']:.3f}"
+                              f"  <Nprim_drift>={row['nPrimDrift_mean']:.1f}")
+                    else:
+                        print(f"  {gas:12s} {particle:10s} {energy:10.4g} MeV{al_tag}  EMPTY")
+            except Exception as exc:
+                _tqdm_write(f"  ERROR {gas} {particle} {energy:.4g} MeV{al_tag}: {exc}")
+
+    # Collect results in sorted order
+    for key in valid_keys:
+        if key not in results:
+            continue
+        row, cdf = results[key]
         if row:
             summary_rows.append(row)
-            print(f"n={row['n_events']}  eff={row['efficiency']:.3f}"
-                  f"  <Nprim_drift>={row['nPrimDrift_mean']:.1f}")
-
-        if args.clusters:
-            cdf = collect_clusters(root_file, gas, particle, energy)
-            if not cdf.empty:
-                write_header = cluster_rows_written == 0
-                cdf.to_csv(out_clus, mode="a", index=False,
-                           header=write_header, float_format="%.5g")
-                cluster_rows_written += len(cdf)
-            del cdf
-            gc.collect()
+        if args.clusters and not cdf.empty:
+            write_header = cluster_rows_written == 0
+            cdf.to_csv(out_clus, mode="a", index=False,
+                       header=write_header, float_format="%.5g")
+            cluster_rows_written += len(cdf)
 
     # Write summary CSV
     if summary_rows:
