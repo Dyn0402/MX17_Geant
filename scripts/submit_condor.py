@@ -32,7 +32,7 @@ GASES = ["ArCF4"]
 # Al shielding scan: thicknesses in mm (0 = no shielding baseline).
 # Applied only to SHIELDING_GAS when --shielding flag is used.
 SHIELDING_GAS        = "ArCF4"
-AL_THICKNESSES_MM    = [1, 4]  # 0 mm (no shield) is always included
+AL_THICKNESSES_MM    = [1, 2, 4]  # 0 mm (no shield) is always included
 
 # Energies in MeV for each particle type
 PARTICLE_ENERGIES = {
