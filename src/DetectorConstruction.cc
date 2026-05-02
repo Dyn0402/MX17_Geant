@@ -254,13 +254,16 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
     G4double alThickness = fConfig.alThickness_mm * mm;
     G4double alGap       = 2.0 * cm;  // air gap between Al back face and Mylar front
 
-    // World half-sizes: expand upstream when Al shielding is present
+    // World half-sizes: must include the gun at z = -10 cm.
+    // worldZ/2 = (totalZ + upstreamMargin + 2.5cm)/2 must exceed 10 cm,
+    // so upstreamMargin > 2*10cm - totalZ - 2.5cm ≈ 14.5 cm.
     G4double totalZ = (tMylar + tAlWin + tKapCath + tCuCath +
                        tDrift + tMesh + tAmp +
                        tKapAno + tCuAno);
-    G4double upstreamMargin = (alThickness > 0)
-        ? (alGap + alThickness + 0.5*cm)
-        : 2.5*cm;
+    G4double gunZ = 10.0 * cm;  // matches PrimaryGeneratorAction
+    G4double minUpstreamForGun = 2.0*gunZ - totalZ - 2.5*cm;
+    G4double upstreamMargin = std::max(alGap + alThickness + 0.5*cm,
+                                       minUpstreamForGun);
     G4double worldZ = totalZ + upstreamMargin + 2.5*cm;
 
     // ---- World volume ----
@@ -355,6 +358,9 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
     } else {
         G4cout << "  Al shielding  : none" << G4endl;
     }
+    G4cout << "  World Z half  : " << worldZ/2/cm << " cm "
+           << "(gun at -10 cm is " << (worldZ/2 > 10.0*cm ? "INSIDE" : "OUTSIDE") << " world)"
+           << G4endl;
     G4cout << "================================\n" << G4endl;
 
     return worldPV;

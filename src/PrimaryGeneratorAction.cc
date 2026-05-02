@@ -43,9 +43,7 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(const SimConfig& cfg)
     fGun->SetParticleDefinition(particle);
     fGun->SetParticleEnergy(cfg.energy);
     fGun->SetParticleMomentumDirection(G4ThreeVector(0, 0, 1));  // along +z
-    // Start 2 mm before the detector front face
-    // World extends from -worldZ/2, detector starts at -totalZ/2 ~ -16 mm
-    // Just fire from -10 cm, which is safely in the world air gap
+    // Gun at z = -10 cm; world is expanded in DetectorConstruction to include this position.
     fGun->SetParticlePosition(G4ThreeVector(0, 0, -10.0 * cm));
 }
 
