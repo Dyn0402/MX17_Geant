@@ -43,6 +43,14 @@ except ImportError:
     print("Tip: install tqdm for progress bars:  pip install tqdm")
 
 
+def _tqdm_write(msg):
+    """Print without disrupting an active tqdm bar."""
+    if _TQDM:
+        tqdm.write(msg)
+    else:
+        print(msg)
+
+
 # Regex to parse job tag: gas_particle_energyMeV[_Al{mm}mm]
 TAG_RE = re.compile(
     r"^(?P<gas>ArCF4CO2|ArCF4Iso|ArCF4|HeEth|ArCO2|NeIso|NeCF4|PureCF4)"
@@ -77,7 +85,7 @@ def find_root_files(indir: Path):
     return groups
 
 
-def hadd_group(key, files, merged_dir: Path, dry_run=False) -> Path:
+def hadd_group(key, files, merged_dir: Path, dry_run=False, quiet=False) -> Path:
     """Merge thread files into one file using hadd."""
     gas, particle, energy, al_mm = key
     e_str  = f"{energy:.6g}".replace(".", "p")
@@ -94,12 +102,12 @@ def hadd_group(key, files, merged_dir: Path, dry_run=False) -> Path:
         return outname
 
     cmd = ["hadd", "-f", str(outname)] + [str(f) for f in sorted(files)]
-    print(f"  hadd -> {outname.name}  ({len(files)} files)")
+    if not quiet:
+        print(f"  hadd -> {outname.name}  ({len(files)} files)")
     if not dry_run:
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:
-            print(f"  WARNING: hadd failed for {outname.name}")
-            print(result.stderr[:500])
+            _tqdm_write(f"  WARNING: hadd failed for {outname.name}\n{result.stderr[:500]}")
             return None
     return outname
 
@@ -157,6 +165,7 @@ def summarize(df: pd.DataFrame, gas: str, particle: str, energy: float,
         "al_mm":     al_mm,
         "n_events":  n,
         "efficiency": eff,
+        "primInDrift_fraction": float(df["primInDrift"].mean()),
         # Drift
         "nPrimDrift_mean":         s_np["mean"],
         "nPrimDrift_median":       s_np["median"],
@@ -245,7 +254,7 @@ def main():
         keys_files = sorted(groups.items())
         with ThreadPoolExecutor(max_workers=args.workers) as pool:
             future_to_key = {
-                pool.submit(hadd_group, key, files, merged_dir, args.dry_run): key
+                pool.submit(hadd_group, key, files, merged_dir, args.dry_run, _TQDM): key
                 for key, files in keys_files
             }
             it = as_completed(future_to_key)
@@ -301,14 +310,15 @@ def main():
             try:
                 rkey, row, cdf = fut.result()
                 results[rkey] = (row, cdf)
-                if row:
-                    print(f"  {gas:12s} {particle:10s} {energy:10.4g} MeV{al_tag}"
-                          f"  n={row['n_events']}  eff={row['efficiency']:.3f}"
-                          f"  <Nprim_drift>={row['nPrimDrift_mean']:.1f}")
-                else:
-                    print(f"  {gas:12s} {particle:10s} {energy:10.4g} MeV{al_tag}  EMPTY")
+                if not _TQDM:
+                    if row:
+                        print(f"  {gas:12s} {particle:10s} {energy:10.4g} MeV{al_tag}"
+                              f"  n={row['n_events']}  eff={row['efficiency']:.3f}"
+                              f"  <Nprim_drift>={row['nPrimDrift_mean']:.1f}")
+                    else:
+                        print(f"  {gas:12s} {particle:10s} {energy:10.4g} MeV{al_tag}  EMPTY")
             except Exception as exc:
-                print(f"  {gas:12s} {particle:10s} {energy:10.4g} MeV{al_tag}  ERROR: {exc}")
+                _tqdm_write(f"  ERROR {gas} {particle} {energy:.4g} MeV{al_tag}: {exc}")
 
     # Collect results in sorted order
     for key in valid_keys:
