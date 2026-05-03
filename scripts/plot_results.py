@@ -350,14 +350,25 @@ def fig_nprim_distributions_from_root(rootdir: Path, outdir: Path, df_summary: p
 
 def fig_shielding_comparison(df: pd.DataFrame, outdir: Path):
     """
-    For each gas that has runs with Al shielding, produce a 2-row comparison:
-      Row 1: mean primary ion pairs vs energy (log-log), one curve per Al thickness.
-      Row 2: primary-in-drift fraction vs energy (log-x, linear-y 0–1).
-    Saved to shielding_comparison.pdf.
+    For each gas with Al shielding runs, produce a 4-row comparison per page:
+      Row 0: mean primary ion pairs, log y-axis
+      Row 1: primary-in-drift fraction, y fixed 0–1
+      Row 2: mean primary ion pairs, linear y-axis
+      Row 3: primary-in-drift fraction, y-max scaled to data
+    X-axis: linear for electrons, log for all others.
+    Neutron columns in rows 1–3 have x lower-limit set to 1e-2 MeV.
     """
     shielded_gases = df[df["al_mm"] > 0]["gas"].unique()
     if len(shielded_gases) == 0:
         return
+
+    def _xaxis(ax, particle, first_row):
+        if particle == "electron":
+            ax.set_xscale("linear")
+        else:
+            ax.set_xscale("log")
+            if particle == "neutron" and not first_row:
+                ax.set_xlim(left=1e-2)
 
     out = outdir / "shielding_comparison.pdf"
     with PdfPages(out) as pdf:
@@ -368,15 +379,17 @@ def fig_shielding_comparison(df: pd.DataFrame, outdir: Path):
             particles = [p for p in ["gamma", "electron", "neutron", "proton", "muon"]
                          if p in sub["particle"].unique()]
             ncols = len(particles)
-            fig, axes_grid = plt.subplots(2, ncols,
-                                          figsize=(6 * ncols, 10),
+            fig, axes_grid = plt.subplots(4, ncols,
+                                          figsize=(6 * ncols, 20),
                                           sharey=False, squeeze=False)
 
             for col, particle in enumerate(particles):
                 psub = sub[sub["particle"] == particle].copy()
-                ax_top = axes_grid[0][col]
-                ax_bot = axes_grid[1][col]
+                ax0, ax1, ax2, ax3 = (axes_grid[r][col] for r in range(4))
                 clip_low = 0.01
+
+                all_means_raw = []
+                all_fracs     = []
 
                 for al_mm in al_thicknesses:
                     al_key = int(round(al_mm))
@@ -387,45 +400,69 @@ def fig_shielding_comparison(df: pd.DataFrame, outdir: Path):
                     style = AL_STYLES.get(al_key, "-")
                     label = AL_LABELS.get(al_key, f"{al_mm:g} mm Al")
 
-                    # --- top: mean primaries ---
-                    means = g["nPrimDrift_mean"].clip(lower=clip_low)
+                    raw   = g["nPrimDrift_mean"]
                     sem   = g["nPrimDrift_std"] / np.sqrt(g["n_events"])
-                    band_lo = (g["nPrimDrift_mean"] - sem).clip(lower=clip_low)
-                    band_hi = (g["nPrimDrift_mean"] + sem).clip(lower=clip_low)
-                    ax_top.fill_between(g["energy_MeV"].values, band_lo.values,
-                                        band_hi.values, alpha=0.2, color=color)
-                    ax_top.plot(g["energy_MeV"], means, style, color=color,
+                    frac  = g["primInDrift_fraction"]
+                    sem_f = np.sqrt(frac * (1 - frac) / g["n_events"])
+
+                    all_means_raw.extend(raw.values)
+                    all_fracs.extend(frac.values)
+
+                    # rows 0 & 2: mean primaries (log-clipped vs raw)
+                    for ax, mn, blo, bhi in [
+                        (ax0, raw.clip(lower=clip_low),
+                              (raw - sem).clip(lower=clip_low),
+                              (raw + sem).clip(lower=clip_low)),
+                        (ax2, raw,
+                              (raw - sem).clip(lower=0),
+                              (raw + sem)),
+                    ]:
+                        ax.fill_between(g["energy_MeV"].values, blo.values,
+                                        bhi.values, alpha=0.2, color=color)
+                        ax.plot(g["energy_MeV"], mn, style, color=color,
                                 label=label, linewidth=1.8, markersize=4)
 
-                    # --- bottom: primary-in-drift fraction ---
-                    frac = g["primInDrift_fraction"]
-                    sem_frac = np.sqrt(frac * (1 - frac) / g["n_events"])
-                    ax_bot.fill_between(g["energy_MeV"].values,
-                                        (frac - sem_frac).clip(0).values,
-                                        (frac + sem_frac).clip(upper=1).values,
+                    # rows 1 & 3: fraction
+                    for ax in (ax1, ax3):
+                        ax.fill_between(g["energy_MeV"].values,
+                                        (frac - sem_f).clip(0).values,
+                                        (frac + sem_f).clip(upper=1).values,
                                         alpha=0.2, color=color)
-                    ax_bot.plot(g["energy_MeV"], frac, style, color=color,
+                        ax.plot(g["energy_MeV"], frac, style, color=color,
                                 label=label, linewidth=1.8, markersize=4)
 
-                ax_top.set_xscale("log")
-                ax_top.set_yscale("log")
-                ax_top.set_xlabel("Particle energy [MeV]", fontsize=10)
-                ax_top.set_ylabel("Mean primary ion pairs in drift gap", fontsize=10)
-                ax_top.set_title(PARTICLE_TITLES.get(particle, particle), fontsize=11)
-                ax_top.legend(fontsize=8, loc="best")
-                ax_top.grid(True, which="both", alpha=0.3)
-                all_means = psub["nPrimDrift_mean"].clip(lower=clip_low)
-                if not all_means.empty:
-                    ax_top.set_ylim(bottom=max(0.01, all_means.min() * 0.3),
-                                    top=all_means.max() * 3)
+                # ---- axis formatting ----
+                title = PARTICLE_TITLES.get(particle, particle)
+                for row, ax in enumerate([ax0, ax1, ax2, ax3]):
+                    _xaxis(ax, particle, first_row=(row == 0))
+                    ax.set_xlabel("Particle energy [MeV]", fontsize=10)
+                    ax.set_title(title, fontsize=11)
+                    ax.legend(fontsize=8, loc="best")
+                    ax.grid(True, which="both", alpha=0.3)
 
-                ax_bot.set_xscale("log")
-                ax_bot.set_ylim(0, 1.05)
-                ax_bot.set_xlabel("Particle energy [MeV]", fontsize=10)
-                ax_bot.set_ylabel("Fraction of primaries reaching drift", fontsize=10)
-                ax_bot.legend(fontsize=8, loc="best")
-                ax_bot.grid(True, which="both", alpha=0.3)
-                ax_bot.axhline(1.0, color="k", lw=0.6, ls="--", alpha=0.4)
+                # row 0: log-y mean primaries
+                ax0.set_yscale("log")
+                ax0.set_ylabel("Mean primary ion pairs in drift gap", fontsize=10)
+                valid = [v for v in all_means_raw if v > 0]
+                if valid:
+                    ax0.set_ylim(bottom=max(clip_low, min(valid) * 0.3),
+                                 top=max(valid) * 3)
+
+                # row 1: fraction, fixed 0–1
+                ax1.set_ylim(0, 1.05)
+                ax1.set_ylabel("Fraction of primaries reaching drift", fontsize=10)
+                ax1.axhline(1.0, color="k", lw=0.6, ls="--", alpha=0.4)
+
+                # row 2: linear-y mean primaries
+                ax2.set_yscale("linear")
+                ax2.set_ylabel("Mean primary ion pairs in drift gap", fontsize=10)
+                if all_means_raw:
+                    ax2.set_ylim(bottom=0, top=max(all_means_raw) * 1.15)
+
+                # row 3: fraction, y-max from data
+                frac_max = max(all_fracs) if all_fracs else 1.0
+                ax3.set_ylim(0, max(frac_max * 1.15, 0.02))
+                ax3.set_ylabel("Fraction of primaries reaching drift", fontsize=10)
 
             fig.suptitle(f"Al Shielding Effect — {GAS_LABELS.get(gas, gas)}\n"
                          f"(3 cm drift gap, Mylar window + 2 cm air gap + Al)",
