@@ -205,6 +205,16 @@ void DetectorConstruction::DefineMaterials() {
         m->AddElement(elF, 4);
         fGasMaterials["PureCF4"] = m;
     }
+
+    // =====================================================
+    // Pure single-component gases (reuse component materials defined above)
+    // =====================================================
+    fGasMaterials["PureAr"]     = purAr;       // 1.782 mg/cm3
+    fGasMaterials["PureHe"]     = pureHe;      // 0.1786 mg/cm3
+    fGasMaterials["PureNe"]     = pureNe;      // 0.8999 mg/cm3
+    fGasMaterials["PureEthane"] = ethane;      // 1.356 mg/cm3
+    fGasMaterials["PureIso"]    = isobutane;   // 2.67 mg/cm3
+    fGasMaterials["PureCO2"]    = CO2;         // 1.977 mg/cm3
 }
 
 // ============================================================
@@ -212,7 +222,8 @@ G4Material* DetectorConstruction::GetGasMixture(const std::string& name) {
     auto it = fGasMaterials.find(name);
     if (it == fGasMaterials.end()) {
         throw std::runtime_error("Unknown gas mixture: " + name +
-            "\nAvailable: ArCF4, HeEth, ArCO2, ArCF4Iso, NeIso, NeCF4, ArCF4CO2, PureCF4");
+            "\nAvailable: ArCF4, HeEth, ArCO2, ArCF4Iso, NeIso, NeCF4, ArCF4CO2, "
+            "PureCF4, PureAr, PureHe, PureNe, PureEthane, PureIso, PureCO2");
     }
     return it->second;
 }

@@ -26,8 +26,11 @@ from pathlib import Path
 # SCAN GRID -- edit here to add/remove points
 # ============================================================
 
-# GASES = ["ArCF4", "HeEth", "ArCO2", "ArCF4Iso", "NeIso", "NeCF4", "ArCF4CO2", "PureCF4"]
-GASES = ["ArCF4"]
+# All available gases:
+# Mixtures : ArCF4, HeEth, ArCO2, ArCF4Iso, NeIso, NeCF4, ArCF4CO2, PureCF4
+# Pure gases: PureAr, PureHe, PureNe, PureEthane, PureIso, PureCO2, PureCF4
+# GASES = ["ArCF4"]
+GASES = ['PureAr', 'PureHe', 'PureNe', 'PureEthane', 'PureIso', 'PureCO2']
 
 # Al shielding scan: thicknesses in mm (0 = no shielding baseline).
 # Applied only to SHIELDING_GAS when --shielding flag is used.

@@ -34,6 +34,7 @@ except ImportError:
 
 # ---- Styling ----
 GAS_COLORS = {
+    # Mixtures
     "ArCF4":    "#1f77b4",
     "HeEth":    "#2ca02c",
     "ArCO2":    "#d62728",
@@ -42,8 +43,16 @@ GAS_COLORS = {
     "NeCF4":    "#8c564b",
     "ArCF4CO2": "#17becf",
     "PureCF4":  "#e377c2",
+    # Pure gases
+    "PureAr":     "#5ba3d9",
+    "PureHe":     "#55b96a",
+    "PureNe":     "#e8943a",
+    "PureEthane": "#b07dd4",
+    "PureIso":    "#a0633a",
+    "PureCO2":    "#cc4444",
 }
 GAS_LABELS = {
+    # Mixtures
     "ArCF4":    "Ar/CF₄ 90/10",
     "HeEth":    "He/C₂H₆ 96.5/3.5",
     "ArCO2":    "Ar/CO₂ 70/30",
@@ -52,7 +61,22 @@ GAS_LABELS = {
     "NeCF4":    "Ne/CF₄ 90/10",
     "ArCF4CO2": "Ar/CF₄/CO₂ 45/40/15",
     "PureCF4":  "Pure CF₄",
+    # Pure gases
+    "PureAr":     "Pure Ar",
+    "PureHe":     "Pure He",
+    "PureNe":     "Pure Ne",
+    "PureEthane": "Pure C₂H₆",
+    "PureIso":    "Pure iC₄H₁₀",
+    "PureCO2":    "Pure CO₂",
 }
+
+# Gas group membership (PureCF4 appears in both for comparison)
+MIXTURE_GASES = frozenset({
+    "ArCF4", "HeEth", "ArCO2", "ArCF4Iso", "NeIso", "NeCF4", "ArCF4CO2", "PureCF4",
+})
+PURE_GASES = frozenset({
+    "PureAr", "PureHe", "PureNe", "PureEthane", "PureIso", "PureCO2", "PureCF4",
+})
 PARTICLE_TITLES = {
     "gamma":    "Photons (γ)",
     "electron": "Electrons (e⁻)",
@@ -534,11 +558,32 @@ def main():
     # No-shielding subset for the standard sensitivity/efficiency plots
     df_noshield = df[df["al_mm"] == 0].copy()
 
-    print("\nGenerating plots...")
-    fig_sensitivity_vs_energy(df_noshield, outdir)
-    fig_efficiency(df_noshield, outdir)
-    fig_efficiency_vs_energy(df_noshield, outdir)
-    fig_relative_sensitivity(df_noshield, outdir)
+    # Split into mixture and pure-gas subsets
+    df_mix  = df_noshield[df_noshield["gas"].isin(MIXTURE_GASES)].copy()
+    df_pure = df_noshield[df_noshield["gas"].isin(PURE_GASES)].copy()
+
+    mix_outdir  = outdir / "mixtures"
+    pure_outdir = outdir / "pure_gases"
+    mix_outdir.mkdir(exist_ok=True)
+    pure_outdir.mkdir(exist_ok=True)
+
+    if not df_mix.empty:
+        print("\nGenerating mixture gas plots...")
+        fig_sensitivity_vs_energy(df_mix, mix_outdir)
+        fig_efficiency(df_mix, mix_outdir)
+        fig_efficiency_vs_energy(df_mix, mix_outdir)
+        fig_relative_sensitivity(df_mix, mix_outdir)
+    else:
+        print("\n(no mixture gas data — skipping mixture plots)")
+
+    if not df_pure.empty:
+        print("\nGenerating pure gas plots...")
+        fig_sensitivity_vs_energy(df_pure, pure_outdir)
+        fig_efficiency(df_pure, pure_outdir)
+        fig_efficiency_vs_energy(df_pure, pure_outdir)
+        fig_relative_sensitivity(df_pure, pure_outdir)
+    else:
+        print("\n(no pure gas data — skipping pure gas plots)")
 
     fig_shielding_comparison(df, outdir)
 

@@ -53,7 +53,8 @@ def _tqdm_write(msg):
 
 # Regex to parse job tag: gas_particle_energyMeV[_Al{mm}mm]
 TAG_RE = re.compile(
-    r"^(?P<gas>ArCF4CO2|ArCF4Iso|ArCF4|HeEth|ArCO2|NeIso|NeCF4|PureCF4)"
+    r"^(?P<gas>ArCF4CO2|ArCF4Iso|ArCF4|HeEth|ArCO2|NeIso|NeCF4"
+    r"|PureEthane|PureIso|PureCF4|PureCO2|PureAr|PureHe|PureNe)"
     r"_(?P<particle>gamma|electron|neutron|proton|muon)"
     r"_(?P<energy>[0-9ep.+-]+)MeV"
     r"(_Al(?P<al_mm>[0-9p]+)mm)?"

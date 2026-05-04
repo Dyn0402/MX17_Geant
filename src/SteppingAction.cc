@@ -46,6 +46,7 @@
 // Ar/CF4/CO2 45/40/15: ~34 eV. High CF4 fraction dominates; no Penning; CO2 adds mild quenching.
 //
 const std::map<std::string, double> SteppingAction::kWValues = {
+    // Mixtures
     {"ArCF4",    34.0},
     {"HeEth",    27.0},
     {"ArCO2",    27.0},
@@ -53,6 +54,14 @@ const std::map<std::string, double> SteppingAction::kWValues = {
     {"NeIso",    27.0},
     {"NeCF4",    30.0},     // Ne*(16.6 eV) > CF4 IE(10.1 eV): Penning active; ~30 eV estimate
     {"ArCF4CO2", 34.0},    // CF4-rich (40%); no Penning with Ar; CO2 mild quencher
+    // Pure gases (ICRU 31 / Sauli 1977 / Blum-Riegler-Rolandi)
+    {"PureCF4",    34.0},  // same as CF4-dominant mixture; no Penning
+    {"PureAr",     26.4},  // ICRU 31
+    {"PureHe",     41.3},  // ICRU 31
+    {"PureNe",     36.4},  // ICRU 31
+    {"PureEthane", 26.0},  // Sauli 1977; alkane ~26 eV
+    {"PureIso",    26.0},  // isobutane alkane; similar to ethane
+    {"PureCO2",    33.0},  // CO2 ~33 eV (Strickler 1968)
 };
 
 SteppingAction::SteppingAction(const SimConfig& cfg, EventAction* eventAction)
