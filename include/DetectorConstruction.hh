@@ -23,14 +23,17 @@ public:
     // Accessors used by analysis
     G4LogicalVolume* GetDriftGasLV()  const { return fDriftGasLV; }
     G4LogicalVolume* GetAmpGasLV()    const { return fAmpGasLV; }
+    G4double         GetHe3GasCenterZ() const { return fHe3GasCenterZ; }
 
 private:
     void DefineMaterials();
     G4Material* GetGasMixture(const std::string& name);
-
     const SimConfig& fConfig;
-    G4LogicalVolume* fDriftGasLV = nullptr;
-    G4LogicalVolume* fAmpGasLV   = nullptr;
+    G4LogicalVolume* fDriftGasLV  = nullptr;
+    G4LogicalVolume* fAmpGasLV    = nullptr;
+    G4LogicalVolume* fHe3GasLV    = nullptr;
+
+    G4double fHe3GasCenterZ = 0.0; // z position of He-3 gas centre [G4 length units]
 
     // Material cache
     std::map<std::string, G4Material*> fGasMaterials;

@@ -1,19 +1,17 @@
 // DetectorConstruction.cc
-// Full Micromegas detector geometry:
-//   Gas window   : 40 um Mylar + 0.1 um Al
-//   Drift cathode: 50 um Kapton + 9 um Cu
-//   Drift volume : 3 cm gas
-//   Micromesh    : 30 um stainless steel (woven: 18 um wire, 45 um hole, 63 um pitch -> ~51% open)
-//   Amp volume   : 150 um gas
-//   Anode PCB    : 50 um Kapton + 9 um Cu (readout)
-// Transverse area: 40 cm x 40 cm (your actual detector size)
+//
+// Vacuum mode  : Micromegas detector in vacuum, optional Al shielding upstream.
+// Full-exp mode: He-3 target → air → Micromegas → PCB stack → air →
+//                scintillator wall → air → 4-layer liquid scintillator stack.
 
 #include "DetectorConstruction.hh"
 
 #include "G4NistManager.hh"
 #include "G4Material.hh"
 #include "G4Element.hh"
+#include "G4Isotope.hh"
 #include "G4Box.hh"
+#include "G4Tubs.hh"
 #include "G4LogicalVolume.hh"
 #include "G4PVPlacement.hh"
 #include "G4SystemOfUnits.hh"
@@ -21,13 +19,12 @@
 #include "G4VisAttributes.hh"
 #include "G4Color.hh"
 #include "G4SDManager.hh"
-#include "G4Region.hh"
-#include "G4ProductionCuts.hh"
 #include "G4UserLimits.hh"
 
 #include "SensitiveDetector.hh"
 
 #include <stdexcept>
+#include <algorithm>
 
 // ============================================================
 DetectorConstruction::DetectorConstruction(const SimConfig& cfg)
@@ -37,184 +34,193 @@ DetectorConstruction::DetectorConstruction(const SimConfig& cfg)
 void DetectorConstruction::DefineMaterials() {
     G4NistManager* nist = G4NistManager::Instance();
 
-    // ----- Elements -----
+    // ── Elements ────────────────────────────────────────────
     G4Element* elH  = nist->FindOrBuildElement("H");
     G4Element* elC  = nist->FindOrBuildElement("C");
     G4Element* elN  = nist->FindOrBuildElement("N");
     G4Element* elO  = nist->FindOrBuildElement("O");
+    G4Element* elSi = nist->FindOrBuildElement("Si");
+    G4Element* elCl = nist->FindOrBuildElement("Cl");
     G4Element* elAr = nist->FindOrBuildElement("Ar");
     G4Element* elNe = nist->FindOrBuildElement("Ne");
     G4Element* elHe = nist->FindOrBuildElement("He");
     G4Element* elF  = nist->FindOrBuildElement("F");
 
-    // =====================================================
-    // Pure component gases (building blocks)
-    // Densities at STP (273.15 K, 1 atm) from NIST/PDG
-    // =====================================================
+    // ── Detector gas building-block materials ────────────────
+    // (identical to original)
 
-    // Isobutane C4H10: 2.67 kg/m3
-    G4Material* isobutane = new G4Material("Isobutane", 2.67e-3 * g/cm3, 2,
+    G4Material* isobutane = new G4Material("Isobutane", 2.67e-3*g/cm3, 2,
                                             kStateGas, 293.15*kelvin, 1*atmosphere);
     isobutane->AddElement(elC, 4);
     isobutane->AddElement(elH, 10);
 
-    // Ethane C2H6: 1.356 kg/m3
-    G4Material* ethane = new G4Material("Ethane", 1.356e-3 * g/cm3, 2,
+    G4Material* ethane = new G4Material("Ethane", 1.356e-3*g/cm3, 2,
                                          kStateGas, 293.15*kelvin, 1*atmosphere);
     ethane->AddElement(elC, 2);
     ethane->AddElement(elH, 6);
 
-    // CO2: 1.977 kg/m3
-    G4Material* CO2 = new G4Material("CO2_gas", 1.977e-3 * g/cm3, 2,
+    G4Material* CO2 = new G4Material("CO2_gas", 1.977e-3*g/cm3, 2,
                                       kStateGas, 293.15*kelvin, 1*atmosphere);
     CO2->AddElement(elC, 1);
     CO2->AddElement(elO, 2);
 
-    // CF4 (tetrafluoromethane): 3.72 kg/m3
-    G4Material* CF4 = new G4Material("CF4_gas", 3.72e-3 * g/cm3, 2,
+    G4Material* CF4 = new G4Material("CF4_gas", 3.72e-3*g/cm3, 2,
                                       kStateGas, 293.15*kelvin, 1*atmosphere);
     CF4->AddElement(elC, 1);
     CF4->AddElement(elF, 4);
 
-    // Pure Ar: 1.782 kg/m3
-    G4Material* purAr = new G4Material("PureArgon", 1.782e-3 * g/cm3, 1,
+    G4Material* purAr = new G4Material("PureArgon", 1.782e-3*g/cm3, 1,
                                         kStateGas, 293.15*kelvin, 1*atmosphere);
     purAr->AddElement(elAr, 1);
 
-    // Pure He: 0.1786 kg/m3
-    G4Material* pureHe = new G4Material("PureHe", 0.1786e-3 * g/cm3, 1,
+    G4Material* pureHe = new G4Material("PureHe", 0.1786e-3*g/cm3, 1,
                                          kStateGas, 293.15*kelvin, 1*atmosphere);
     pureHe->AddElement(elHe, 1);
 
-    // Pure Ne: 0.900 kg/m3
-    G4Material* pureNe = new G4Material("PureNe", 0.8999e-3 * g/cm3, 1,
+    G4Material* pureNe = new G4Material("PureNe", 0.8999e-3*g/cm3, 1,
                                          kStateGas, 293.15*kelvin, 1*atmosphere);
     pureNe->AddElement(elNe, 1);
 
-    // =====================================================
-    // Gas mixture 1: Ar/CF4 90/10 vol%
-    // Density: weighted sum of component densities (ideal mixing)
-    // =====================================================
+    // ── Gas mixtures ─────────────────────────────────────────
     {
         G4double fAr=0.90, fCF4=0.10;
         G4double rho = fAr*1.782e-3 + fCF4*3.72e-3;
-        G4Material* m = new G4Material("ArCF4", rho*g/cm3, 2,
-                                        kStateGas, 293.15*kelvin, 1*atmosphere);
-        m->AddMaterial(purAr, fAr);
-        m->AddMaterial(CF4,   fCF4);
+        G4Material* m = new G4Material("ArCF4", rho*g/cm3, 2, kStateGas, 293.15*kelvin, 1*atmosphere);
+        m->AddMaterial(purAr, fAr); m->AddMaterial(CF4, fCF4);
         fGasMaterials["ArCF4"] = m;
     }
-
-    // =====================================================
-    // Gas mixture 2: He/Ethane 96.5/3.5 vol%
-    // Low-Z, low-density -- good for minimising gamma sensitivity
-    // Penning transfer from He metastables into ethane lowers W
-    // =====================================================
     {
         G4double fHe=0.965, fEth=0.035;
         G4double rho = fHe*0.1786e-3 + fEth*1.356e-3;
-        G4Material* m = new G4Material("HeEth", rho*g/cm3, 2,
-                                        kStateGas, 293.15*kelvin, 1*atmosphere);
-        m->AddMaterial(pureHe, fHe);
-        m->AddMaterial(ethane,  fEth);
+        G4Material* m = new G4Material("HeEth", rho*g/cm3, 2, kStateGas, 293.15*kelvin, 1*atmosphere);
+        m->AddMaterial(pureHe, fHe); m->AddMaterial(ethane, fEth);
         fGasMaterials["HeEth"] = m;
     }
-
-    // =====================================================
-    // Gas mixture 3: Ar/CO2 70/30 vol%
-    // Classic stable Micromegas mixture
-    // =====================================================
     {
         G4double fAr=0.70, fCO2=0.30;
         G4double rho = fAr*1.782e-3 + fCO2*1.977e-3;
-        G4Material* m = new G4Material("ArCO2", rho*g/cm3, 2,
-                                        kStateGas, 293.15*kelvin, 1*atmosphere);
-        m->AddMaterial(purAr, fAr);
-        m->AddMaterial(CO2,   fCO2);
+        G4Material* m = new G4Material("ArCO2", rho*g/cm3, 2, kStateGas, 293.15*kelvin, 1*atmosphere);
+        m->AddMaterial(purAr, fAr); m->AddMaterial(CO2, fCO2);
         fGasMaterials["ArCO2"] = m;
     }
-
-    // =====================================================
-    // Gas mixture 4: Ar/CF4/Isobutane 88/10/2 vol%
-    // Fast drift + good quenching
-    // =====================================================
     {
         G4double fAr=0.88, fCF4=0.10, fIso=0.02;
         G4double rho = fAr*1.782e-3 + fCF4*3.72e-3 + fIso*2.67e-3;
-        // 3-component mixture
-        G4Material* m = new G4Material("ArCF4Iso", rho*g/cm3, 3,
-                                        kStateGas, 293.15*kelvin, 1*atmosphere);
-        m->AddMaterial(purAr,     fAr);
-        m->AddMaterial(CF4,       fCF4);
-        m->AddMaterial(isobutane, fIso);
+        G4Material* m = new G4Material("ArCF4Iso", rho*g/cm3, 3, kStateGas, 293.15*kelvin, 1*atmosphere);
+        m->AddMaterial(purAr, fAr); m->AddMaterial(CF4, fCF4); m->AddMaterial(isobutane, fIso);
         fGasMaterials["ArCF4Iso"] = m;
     }
-
-    // =====================================================
-    // Gas mixture 5: Ne/Isobutane 95/5 vol%
-    // Moderate Z, good Penning, potential gamma-flash middle ground
-    // =====================================================
     {
         G4double fNe=0.95, fIso=0.05;
         G4double rho = fNe*0.8999e-3 + fIso*2.67e-3;
-        G4Material* m = new G4Material("NeIso", rho*g/cm3, 2,
-                                        kStateGas, 293.15*kelvin, 1*atmosphere);
-        m->AddMaterial(pureNe,    fNe);
-        m->AddMaterial(isobutane, fIso);
+        G4Material* m = new G4Material("NeIso", rho*g/cm3, 2, kStateGas, 293.15*kelvin, 1*atmosphere);
+        m->AddMaterial(pureNe, fNe); m->AddMaterial(isobutane, fIso);
         fGasMaterials["NeIso"] = m;
     }
-
-    // =====================================================
-    // Gas mixture 6: Ne/CF4 90/10 vol%
-    // Strong Penning (Ne* 16.6 eV > CF4 IE 10.1 eV); fast drift
-    // =====================================================
     {
         G4double fNe=0.90, fCF4=0.10;
         G4double rho = fNe*0.8999e-3 + fCF4*3.72e-3;
-        G4Material* m = new G4Material("NeCF4", rho*g/cm3, 2,
-                                        kStateGas, 293.15*kelvin, 1*atmosphere);
-        m->AddMaterial(pureNe, fNe);
-        m->AddMaterial(CF4,    fCF4);
+        G4Material* m = new G4Material("NeCF4", rho*g/cm3, 2, kStateGas, 293.15*kelvin, 1*atmosphere);
+        m->AddMaterial(pureNe, fNe); m->AddMaterial(CF4, fCF4);
         fGasMaterials["NeCF4"] = m;
     }
-
-    // =====================================================
-    // Gas mixture 7: Ar/CF4/CO2 45/40/15 vol%
-    // High CF4 fraction for fast drift; CO2 as additional quencher
-    // =====================================================
     {
         G4double fAr=0.45, fCF4=0.40, fCO2=0.15;
         G4double rho = fAr*1.782e-3 + fCF4*3.72e-3 + fCO2*1.977e-3;
-        G4Material* m = new G4Material("ArCF4CO2", rho*g/cm3, 3,
-                                        kStateGas, 293.15*kelvin, 1*atmosphere);
-        m->AddMaterial(purAr, fAr);
-        m->AddMaterial(CF4,   fCF4);
-        m->AddMaterial(CO2,   fCO2);
+        G4Material* m = new G4Material("ArCF4CO2", rho*g/cm3, 3, kStateGas, 293.15*kelvin, 1*atmosphere);
+        m->AddMaterial(purAr, fAr); m->AddMaterial(CF4, fCF4); m->AddMaterial(CO2, fCO2);
         fGasMaterials["ArCF4CO2"] = m;
     }
-
-    // =====================================================
-    // Gas mixture 8: Pure CF4 100 vol%
-    // Density: 3.72 kg/m3 (NIST)
-    // Very fast drift velocity; high primary ionization yield
-    // =====================================================
     {
-        G4Material* m = new G4Material("PureCF4", 3.72e-3 * g/cm3, 2,
-                                        kStateGas, 293.15*kelvin, 1*atmosphere);
-        m->AddElement(elC, 1);
-        m->AddElement(elF, 4);
+        G4Material* m = new G4Material("PureCF4", 3.72e-3*g/cm3, 2, kStateGas, 293.15*kelvin, 1*atmosphere);
+        m->AddElement(elC, 1); m->AddElement(elF, 4);
         fGasMaterials["PureCF4"] = m;
     }
+    fGasMaterials["PureAr"]     = purAr;
+    fGasMaterials["PureHe"]     = pureHe;
+    fGasMaterials["PureNe"]     = pureNe;
+    fGasMaterials["PureEthane"] = ethane;
+    fGasMaterials["PureIso"]    = isobutane;
+    fGasMaterials["PureCO2"]    = CO2;
 
-    // =====================================================
-    // Pure single-component gases (reuse component materials defined above)
-    // =====================================================
-    fGasMaterials["PureAr"]     = purAr;       // 1.782 mg/cm3
-    fGasMaterials["PureHe"]     = pureHe;      // 0.1786 mg/cm3
-    fGasMaterials["PureNe"]     = pureNe;      // 0.8999 mg/cm3
-    fGasMaterials["PureEthane"] = ethane;      // 1.356 mg/cm3
-    fGasMaterials["PureIso"]    = isobutane;   // 2.67 mg/cm3
-    fGasMaterials["PureCO2"]    = CO2;         // 1.977 mg/cm3
+    // ── He-3 gas at 300 bar ──────────────────────────────────
+    // Isotopically pure He-3 (not natural helium) — critical for n-capture cross section.
+    // Density from ideal gas law: rho = P*M / (R*T)
+    //   = (300 * 101325 Pa) * (3.016e-3 kg/mol) / (8.314 J/mol/K * 293.15 K)
+    //   = 37.6 kg/m3 = 0.0376 g/cm3
+    {
+        G4Isotope* isoHe3 = new G4Isotope("He3_iso", 2, 3, 3.0160293*g/mole);
+        G4Element* elHe3  = new G4Element("Helium3_elem", "3He", 1);
+        elHe3->AddIsotope(isoHe3, 1.0);
+        G4Material* m = new G4Material("He3Gas_300bar", 37.6e-3*g/cm3, 1,
+                                        kStateGas, 293.15*kelvin, 300*atmosphere);
+        m->AddElement(elHe3, 1);
+        fGasMaterials["He3Gas_300bar"] = m;
+    }
+
+    // ── CFRP: carbon-fibre reinforced polymer ────────────────
+    // 70% C-fibre (pure C, 1.75 g/cm3) + 30% epoxy (C2H4O, 1.2 g/cm3) by volume.
+    // Stated overall density 1.55 g/cm3. Mass fractions computed from volume fractions.
+    {
+        G4Material* m = new G4Material("CFRP", 1.55*g/cm3, 3);
+        m->AddElement(elC, 0.8968);
+        m->AddElement(elH, 0.0207);
+        m->AddElement(elO, 0.0826);
+        fGasMaterials["CFRP"] = m;
+    }
+
+    // ── Resistive paste (Saral Carbon 700A analogue) ─────────
+    // Carbon black in organic binder (approx. carbon-loaded acrylic).
+    // Composition: C 65%, H 8%, O 27% by mass; density 1.4 g/cm3.
+    {
+        G4Material* m = new G4Material("ResistivePaste", 1.4*g/cm3, 3);
+        m->AddElement(elC, 0.65);
+        m->AddElement(elH, 0.08);
+        m->AddElement(elO, 0.27);
+        fGasMaterials["ResistivePaste"] = m;
+    }
+
+    // ── FR4 epoxy-glass PCB ──────────────────────────────────
+    // 60% SiO2 glass + 40% C11H12O3 epoxy by weight; density 1.85 g/cm3.
+    {
+        G4Material* m = new G4Material("FR4", 1.85*g/cm3, 4);
+        m->AddElement(elSi, 0.2805);
+        m->AddElement(elO,  0.4195);
+        m->AddElement(elC,  0.2750);
+        m->AddElement(elH,  0.0250);
+        fGasMaterials["FR4"] = m;
+    }
+
+    // ── Rohacell 51 PMI foam ─────────────────────────────────
+    // Polymethacrylimide (C4H5NO), density 0.052 g/cm3.
+    {
+        G4Material* m = new G4Material("Rohacell51", 0.052*g/cm3, 4);
+        m->AddElement(elC, 0.5783);
+        m->AddElement(elH, 0.0602);
+        m->AddElement(elN, 0.1687);
+        m->AddElement(elO, 0.1928);
+        fGasMaterials["Rohacell51"] = m;
+    }
+
+    // ── Linear Alkylbenzene liquid scintillator ───────────────
+    // JUNO recipe: pure LAB (C18H30) with PPO/Bis-MSB fluors (<0.3% — ignored).
+    // Density 0.86 g/cm3.
+    {
+        G4Material* m = new G4Material("LAB_LiqScint", 0.86*g/cm3, 2);
+        m->AddElement(elC, 0.8780);
+        m->AddElement(elH, 0.1220);
+        fGasMaterials["LAB_LiqScint"] = m;
+    }
+
+    // ── PVC black tape ───────────────────────────────────────
+    // (C2H3Cl)n, density 1.3 g/cm3.
+    {
+        G4Material* m = new G4Material("PVC_tape", 1.3*g/cm3, 3);
+        m->AddElement(elC,  0.3843);
+        m->AddElement(elH,  0.0480);
+        m->AddElement(elCl, 0.5677);
+        fGasMaterials["PVC_tape"] = m;
+    }
 }
 
 // ============================================================
@@ -234,166 +240,323 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
 
     G4NistManager* nist = G4NistManager::Instance();
 
-    // ---- Materials ----
-    G4Material* matAir     = nist->FindOrBuildMaterial("G4_AIR");
-    G4Material* matMylar   = nist->FindOrBuildMaterial("G4_MYLAR");
-    G4Material* matAl      = nist->FindOrBuildMaterial("G4_Al");
-    G4Material* matKapton  = nist->FindOrBuildMaterial("G4_KAPTON");
-    G4Material* matCu      = nist->FindOrBuildMaterial("G4_Cu");
-    G4Material* matSteel   = nist->FindOrBuildMaterial("G4_STAINLESS-STEEL");
-    G4Material* matGas     = GetGasMixture(fConfig.gas);
+    G4Material* matAir    = nist->FindOrBuildMaterial("G4_AIR");
+    G4Material* matMylar  = nist->FindOrBuildMaterial("G4_MYLAR");
+    G4Material* matAl     = nist->FindOrBuildMaterial("G4_Al");
+    G4Material* matKapton = nist->FindOrBuildMaterial("G4_KAPTON");
+    G4Material* matCu     = nist->FindOrBuildMaterial("G4_Cu");
+    G4Material* matSteel  = nist->FindOrBuildMaterial("G4_STAINLESS-STEEL");
+    G4Material* matGas    = GetGasMixture(fConfig.gas);
 
-    // ---- Geometry parameters ----
-    // Transverse size: actual 40x40 cm detector
+    // Full-experiment structural materials
+    G4Material* matHe3      = fGasMaterials.at("He3Gas_300bar");
+    G4Material* matCFRP     = fGasMaterials.at("CFRP");
+    G4Material* matResPaste = fGasMaterials.at("ResistivePaste");
+    G4Material* matFR4      = fGasMaterials.at("FR4");
+    G4Material* matRohacell = fGasMaterials.at("Rohacell51");
+    G4Material* matLAB      = fGasMaterials.at("LAB_LiqScint");
+    G4Material* matPVC      = fGasMaterials.at("PVC_tape");
+    G4Material* matPlScint  = nist->FindOrBuildMaterial("G4_PLASTIC_SC_VINYLTOLUENE");
+
+    // ── Transverse size ──────────────────────────────────────
     G4double detXY = 40.0 * cm;
 
-    // Layer thicknesses (along z = beam direction)
-    G4double tMylar   = 40.0  * um;   // gas window foil
-    G4double tAlWin   = 0.1   * um;   // Al coating on gas window
-    G4double tKapCath = 50.0  * um;   // drift cathode kapton
-    G4double tCuCath  = 9.0   * um;   // drift cathode copper
-    G4double tDrift   = 3.0   * cm;   // drift gap (gas)
-    // Micromesh: woven SS, 18 um wire diameter, 30 um total thickness after flattening
-    // We model as a uniform thin SS sheet (effective thickness 30 um)
-    // Optical transparency ~51% -> effective density reduction handled via thickness only
-    G4double tMesh    = 30.0  * um;
-    G4double tAmp     = 150.0 * um;   // amplification gap (gas)
-    G4double tKapAno  = 50.0  * um;   // anode PCB kapton
-    G4double tCuAno   = 9.0   * um;   // anode copper
+    // ── Micromegas layer thicknesses (both modes) ────────────
+    G4double tMylar    = 40.0  * um;
+    G4double tAlWin    = 0.1   * um;
+    G4double tKapCath  = 50.0  * um;
+    G4double tCuCath   = 9.0   * um;
+    G4double tDrift    = 3.0   * cm;
+    G4double tMesh     = 30.0  * um;
+    G4double tAmp      = 150.0 * um;
+    G4double tResPaste = 100.0 * um;   // resistive paste (both modes)
+    G4double mmTotalZ = tMylar + tAlWin + tKapCath + tCuCath +
+                        tDrift + tMesh + tAmp + tResPaste;
 
-    // Al shielding layer (placed 2 cm upstream of Mylar window)
-    G4double alThickness = fConfig.alThickness_mm * mm;
-    G4double alGap       = 2.0 * cm;  // air gap between Al back face and Mylar front
+    // ── Vis attributes ───────────────────────────────────────
+    auto visMylar     = new G4VisAttributes(G4Color(0.7, 0.9, 0.7, 0.5));
+    auto visAl        = new G4VisAttributes(G4Color(0.7, 0.7, 0.7, 0.8));
+    auto visKapton    = new G4VisAttributes(G4Color(0.9, 0.7, 0.0, 0.7));
+    auto visCu        = new G4VisAttributes(G4Color(0.8, 0.4, 0.1, 0.8));
+    auto visDrift     = new G4VisAttributes(G4Color(0.2, 0.5, 1.0, 0.3));
+    auto visMesh      = new G4VisAttributes(G4Color(0.5, 0.5, 0.5, 0.9));
+    auto visAmp       = new G4VisAttributes(G4Color(1.0, 0.3, 0.3, 0.3));
+    auto visResPaste  = new G4VisAttributes(G4Color(0.2, 0.2, 0.2, 0.8));
+    auto visHe3       = new G4VisAttributes(G4Color(0.6, 0.9, 1.0, 0.4));
+    auto visCFRP      = new G4VisAttributes(G4Color(0.15, 0.15, 0.15, 0.9));
+    auto visFR4       = new G4VisAttributes(G4Color(0.2, 0.6, 0.2, 0.8));
+    auto visRohacell  = new G4VisAttributes(G4Color(0.9, 0.9, 0.6, 0.5));
+    auto visScint     = new G4VisAttributes(G4Color(0.9, 0.9, 0.2, 0.7));
+    auto visLAB       = new G4VisAttributes(G4Color(0.3, 0.8, 0.9, 0.4));
 
-    // World half-sizes: must include the gun at z = -10 cm.
-    // worldZ/2 = (totalZ + upstreamMargin + 2.5cm)/2 must exceed 10 cm,
-    // so upstreamMargin > 2*10cm - totalZ - 2.5cm ≈ 14.5 cm.
-    G4double totalZ = (tMylar + tAlWin + tKapCath + tCuCath +
-                       tDrift + tMesh + tAmp +
-                       tKapAno + tCuAno);
-    G4double gunZ = 10.0 * cm;  // matches PrimaryGeneratorAction
-    G4double minUpstreamForGun = 2.0*gunZ - totalZ - 2.5*cm;
-    G4double upstreamMargin = std::max(alGap + alThickness + 0.5*cm,
-                                       minUpstreamForGun);
-    G4double worldZ = totalZ + upstreamMargin + 2.5*cm;
+    // ── Build world volume ───────────────────────────────────
+    G4LogicalVolume*   worldLV = nullptr;
+    G4VPhysicalVolume* worldPV = nullptr;
 
-    // ---- World volume ----
-    G4Box* worldSolid = new G4Box("World", detXY/2 + 2*cm, detXY/2 + 2*cm, worldZ/2);
-    G4LogicalVolume* worldLV = new G4LogicalVolume(worldSolid, matAir, "World");
-    G4VPhysicalVolume* worldPV = new G4PVPlacement(nullptr, G4ThreeVector(),
-                                                    worldLV, "World", nullptr, false, 0, true);
-    worldLV->SetVisAttributes(G4VisAttributes::GetInvisible());
+    if (fConfig.mode == SimMode::kVacuum) {
 
-    // ---- Al shielding slab (placed before detector stack) ----
-    // Position: back face sits 2 cm upstream of the Mylar window front face.
-    // Detector stack front face is at z = -totalZ/2.
-    if (alThickness > 0) {
-        G4double alZCenter = -totalZ/2.0 - alGap - alThickness/2.0;
-        G4Box* alBox = new G4Box("AlShield", detXY/2, detXY/2, alThickness/2);
-        G4LogicalVolume* alLV = new G4LogicalVolume(alBox, matAl, "AlShield");
-        auto visAlShield = new G4VisAttributes(G4Color(0.75, 0.75, 0.75, 0.9));
-        visAlShield->SetForceSolid(true);
-        alLV->SetVisAttributes(visAlShield);
-        new G4PVPlacement(nullptr, G4ThreeVector(0, 0, alZCenter),
-                          alLV, "AlShield", worldLV, false, 0, true);
+        // ======================================================
+        // VACUUM MODE
+        // ======================================================
+        G4double alThickness = fConfig.alThickness_mm * mm;
+        G4double alGap       = 2.0 * cm;
+
+        G4double gunZ = 10.0 * cm;
+        G4double minUpstream = 2.0*gunZ - mmTotalZ - 2.5*cm;
+        G4double upstreamMargin = std::max(alGap + alThickness + 0.5*cm, minUpstream);
+        G4double worldZ = mmTotalZ + upstreamMargin + 2.5*cm;
+
+        G4Box* worldSolid = new G4Box("World", detXY/2+2*cm, detXY/2+2*cm, worldZ/2);
+        worldLV = new G4LogicalVolume(worldSolid, matAir, "World");
+        worldPV = new G4PVPlacement(nullptr, G4ThreeVector(), worldLV, "World", nullptr, false, 0, true);
+        worldLV->SetVisAttributes(G4VisAttributes::GetInvisible());
+
+        // Al shielding upstream
+        if (alThickness > 0) {
+            G4double alZCenter = -mmTotalZ/2.0 - alGap - alThickness/2.0;
+            G4Box* alBox = new G4Box("AlShield", detXY/2, detXY/2, alThickness/2);
+            G4LogicalVolume* alLV = new G4LogicalVolume(alBox, matAl, "AlShield");
+            auto visAlShield = new G4VisAttributes(G4Color(0.75, 0.75, 0.75, 0.9));
+            visAlShield->SetForceSolid(true);
+            alLV->SetVisAttributes(visAlShield);
+            new G4PVPlacement(nullptr, G4ThreeVector(0,0,alZCenter),
+                              alLV, "AlShield", worldLV, false, 0, true);
+        }
+
+        G4cout << "\n=== Vacuum mode geometry ===" << G4endl;
+        G4cout << "  Gas       : " << fConfig.gas
+               << " (rho = " << matGas->GetDensity()/(mg/cm3) << " mg/cm3)" << G4endl;
+        if (alThickness > 0)
+            G4cout << "  Al shield : " << fConfig.alThickness_mm << " mm" << G4endl;
+
+    } else {
+
+        // ======================================================
+        // FULL EXPERIMENT MODE
+        // ======================================================
+
+        // He-3 capsule dimensions.
+        // The cylinder AXIS is along world Y (perpendicular to the beam).
+        // The beam (+z) passes through the CURVED surface, traversing 2×he3R = 5 cm of gas.
+        // cfrpT_capsule is fixed at the specified 0.9 mm; the configurable cfrpT below
+        // applies only to the liquid-scintillator cell walls.
+        G4double he3R          = 2.5  * cm;    // He-3 gas radius
+        G4double he3HalfL      = 7.5  * cm;    // He-3 gas half-length along capsule axis (Y)
+        G4double alWallT       = 0.5  * mm;    // Al capsule wall
+        G4double cfrpT_capsule = 0.9  * mm;    // CFRP capsule wall (fixed)
+        G4double cfrpT         = fConfig.cfrpThickness_mm * mm;  // LS cell CFRP (configurable)
+
+        // Radii (xz-plane, along beam direction)
+        G4double alR   = he3R + alWallT;
+        G4double cfrpR = he3R + alWallT + cfrpT_capsule;  // = 26.4 mm
+
+        // Half-lengths along capsule axis (Y)
+        G4double alHalfL   = he3HalfL + alWallT;
+        G4double cfrpHalfL = he3HalfL + alWallT + cfrpT_capsule;
+
+        // Along beam (Z): the capsule spans ±cfrpR around its centre
+        G4double capsuleZExtent = 2.0 * cfrpR;
+
+        G4double airGap1 = 200.0 * mm;
+
+        // PCB layer thicknesses
+        G4double tPCB_Kap      = 50.0  * um;
+        G4double tPCB_Cu       = 26.0  * um;  // ×4
+        G4double tPCB_FR4      = 100.0 * um;  // ×4
+        G4double tPCB_Rohacell = 5.0   * mm;
+        G4double tPCB_AlFoil   = 50.0  * um;
+        G4double pcbTotalZ = tPCB_Kap + 4*(tPCB_Cu + tPCB_FR4) + tPCB_Rohacell + tPCB_AlFoil;
+
+        G4double airGap2 = 20.0 * mm;
+
+        // Scintillator wall
+        G4double tBlackTape   = 165.0 * um;
+        G4double tPlScint     = 3.0   * mm;
+        G4double tScintAlFoil = 50.0  * um;
+        G4double scintWallZ   = 2*tBlackTape + tPlScint + tScintAlFoil;
+
+        G4double airGap3 = 20.0 * mm;
+
+        // LS stack: CFRP | LS1 | CFRP | LS2 | CFRP | LS3 | CFRP | LS4 | CFRP
+        G4double tLS      = 15.0 * mm;
+        G4double lsStackZ = 5*cfrpT + 4*tLS;
+
+        G4double totalFullZ = capsuleZExtent + airGap1 + mmTotalZ + pcbTotalZ
+                            + airGap2 + scintWallZ + airGap3 + lsStackZ;
+
+        G4double worldZ = totalFullZ + 2.0*cm;  // 1 cm clearance each side
+
+        G4Box* worldSolid = new G4Box("World", detXY/2+2*cm, detXY/2+2*cm, worldZ/2);
+        worldLV = new G4LogicalVolume(worldSolid, matAir, "World");
+        worldPV = new G4PVPlacement(nullptr, G4ThreeVector(), worldLV, "World", nullptr, false, 0, true);
+        worldLV->SetVisAttributes(G4VisAttributes::GetInvisible());
+
+        // ── He-3 pressurised capsule (nested cylinders, axis along Y) ──
+        // The capsule centre is placed so its upstream CFRP face sits at z = -totalFullZ/2.
+        // Rotation: local Z (G4Tubs axis) → world Y via rotateX(-90°).
+        // Daughters (Al, He3) inherit the rotation from their parent and need no extra rotation.
+        G4double capsuleZCenter = -totalFullZ/2.0 + cfrpR;
+
+        fHe3GasCenterZ = capsuleZCenter;  // He-3 gas is centred in the capsule
+
+        G4RotationMatrix* capRot = new G4RotationMatrix();
+        capRot->rotateX(-90.*deg);  // local z → world y
+
+        // CFRP outer shell
+        G4Tubs* cfrpSolid = new G4Tubs("He3Capsule_CFRP", 0, cfrpR, cfrpHalfL, 0, 360.*deg);
+        G4LogicalVolume* cfrpLV = new G4LogicalVolume(cfrpSolid, matCFRP, "He3Capsule_CFRP");
+        cfrpLV->SetVisAttributes(visCFRP);
+        new G4PVPlacement(capRot, G4ThreeVector(0,0,capsuleZCenter),
+                          cfrpLV, "He3Capsule_CFRP", worldLV, false, 0, true);
+
+        // Al inner shell (daughter of CFRP — no additional rotation needed)
+        G4Tubs* alSolid = new G4Tubs("He3Capsule_Al", 0, alR, alHalfL, 0, 360.*deg);
+        G4LogicalVolume* alLV = new G4LogicalVolume(alSolid, matAl, "He3Capsule_Al");
+        alLV->SetVisAttributes(visAl);
+        new G4PVPlacement(nullptr, G4ThreeVector(), alLV, "He3Capsule_Al", cfrpLV, false, 0, true);
+
+        // He-3 gas (daughter of Al shell)
+        G4Tubs* he3Solid = new G4Tubs("He3Gas", 0, he3R, he3HalfL, 0, 360.*deg);
+        fHe3GasLV = new G4LogicalVolume(he3Solid, matHe3, "He3Gas");
+        fHe3GasLV->SetVisAttributes(visHe3);
+        new G4PVPlacement(nullptr, G4ThreeVector(), fHe3GasLV, "He3Gas", alLV, false, 0, true);
+
+        G4cout << "\n=== Full-experiment geometry ===" << G4endl;
+        G4cout << "  He-3 capsule: r=" << he3R/cm << " cm (5 cm gas along beam)"
+               << ", L=" << 2*he3HalfL/cm << " cm along Y"
+               << ", 300 bar" << G4endl;
+        G4cout << "  Capsule walls: Al " << alWallT/mm << " mm + CFRP "
+               << cfrpT_capsule/mm << " mm" << G4endl;
+        G4cout << "  He-3 gas centre z = " << fHe3GasCenterZ/cm << " cm" << G4endl;
+        G4cout << "  LS cell CFRP walls: " << cfrpT/mm << " mm" << G4endl;
+        G4cout << "  Total stack Z : " << totalFullZ/mm << " mm" << G4endl;
+
+        // ── PlaceSlab for downstream layers ──────────────────
+        // zFront starts right after the capsule (capsule rear face)
+        G4double zFrontFull = -totalFullZ/2.0 + capsuleZExtent;
+
+        auto PlaceSlabFull = [&](const std::string& name, G4double thickness,
+                                  G4Material* mat, G4VisAttributes* vis,
+                                  G4LogicalVolume*& outLV) {
+            G4double zCenter = zFrontFull + thickness/2.0;
+            G4Box* solid = new G4Box(name, detXY/2, detXY/2, thickness/2);
+            outLV = new G4LogicalVolume(solid, mat, name);
+            if (vis) outLV->SetVisAttributes(vis);
+            new G4PVPlacement(nullptr, G4ThreeVector(0,0,zCenter),
+                              outLV, name, worldLV, false, 0, true);
+            zFrontFull += thickness;
+        };
+        G4LogicalVolume* dummyLV = nullptr;
+
+        // Air gap 1
+        PlaceSlabFull("AirGap1", airGap1, matAir, nullptr, dummyLV);
+
+        // ── Micromegas (in-order) ─────────────────────────────
+        PlaceSlabFull("GasWindow_Mylar",    tMylar,    matMylar,   visMylar,  dummyLV);
+        PlaceSlabFull("GasWindow_Al",       tAlWin,    matAl,      visAl,     dummyLV);
+        PlaceSlabFull("DriftCathode_Kapton",tKapCath,  matKapton,  visKapton, dummyLV);
+        PlaceSlabFull("DriftCathode_Cu",    tCuCath,   matCu,      visCu,     dummyLV);
+        PlaceSlabFull("DriftGas",           tDrift,    matGas,     visDrift,  fDriftGasLV);
+        PlaceSlabFull("Micromesh",          tMesh,     matSteel,   visMesh,   dummyLV);
+        PlaceSlabFull("AmpGas",             tAmp,      matGas,     visAmp,    fAmpGasLV);
+        PlaceSlabFull("ResistivePaste",     tResPaste, matResPaste,visResPaste,dummyLV);
+
+        // ── PCB stack ─────────────────────────────────────────
+        PlaceSlabFull("PCB_Kapton",   tPCB_Kap,     matKapton,  visKapton, dummyLV);
+        PlaceSlabFull("PCB_Cu_1",     tPCB_Cu,      matCu,      visCu,     dummyLV);
+        PlaceSlabFull("PCB_FR4_1",    tPCB_FR4,     matFR4,     visFR4,    dummyLV);
+        PlaceSlabFull("PCB_Cu_2",     tPCB_Cu,      matCu,      visCu,     dummyLV);
+        PlaceSlabFull("PCB_FR4_2",    tPCB_FR4,     matFR4,     visFR4,    dummyLV);
+        PlaceSlabFull("PCB_Cu_3",     tPCB_Cu,      matCu,      visCu,     dummyLV);
+        PlaceSlabFull("PCB_FR4_3",    tPCB_FR4,     matFR4,     visFR4,    dummyLV);
+        PlaceSlabFull("PCB_Cu_4",     tPCB_Cu,      matCu,      visCu,     dummyLV);
+        PlaceSlabFull("PCB_FR4_4",    tPCB_FR4,     matFR4,     visFR4,    dummyLV);
+        PlaceSlabFull("PCB_Rohacell", tPCB_Rohacell,matRohacell,visRohacell,dummyLV);
+        PlaceSlabFull("PCB_AlFoil",   tPCB_AlFoil,  matAl,      visAl,     dummyLV);
+
+        // Air gap 2
+        PlaceSlabFull("AirGap2", airGap2, matAir, nullptr, dummyLV);
+
+        // ── Scintillator wall ─────────────────────────────────
+        PlaceSlabFull("ScintWall_BlackTape1", tBlackTape,   matPVC,      nullptr,   dummyLV);
+        PlaceSlabFull("PlasticScint",         tPlScint,     matPlScint,  visScint,  dummyLV);
+        PlaceSlabFull("ScintWall_BlackTape2", tBlackTape,   matPVC,      nullptr,   dummyLV);
+        PlaceSlabFull("ScintWall_AlFoil",     tScintAlFoil, matAl,       visAl,     dummyLV);
+
+        // Air gap 3
+        PlaceSlabFull("AirGap3", airGap3, matAir, nullptr, dummyLV);
+
+        // ── Liquid scintillator stack ─────────────────────────
+        PlaceSlabFull("LS_CFRP_1",  cfrpT, matCFRP, visCFRP, dummyLV);
+        PlaceSlabFull("LiqScint_1", tLS,   matLAB,  visLAB,  dummyLV);
+        PlaceSlabFull("LS_CFRP_2",  cfrpT, matCFRP, visCFRP, dummyLV);
+        PlaceSlabFull("LiqScint_2", tLS,   matLAB,  visLAB,  dummyLV);
+        PlaceSlabFull("LS_CFRP_3",  cfrpT, matCFRP, visCFRP, dummyLV);
+        PlaceSlabFull("LiqScint_3", tLS,   matLAB,  visLAB,  dummyLV);
+        PlaceSlabFull("LS_CFRP_4",  cfrpT, matCFRP, visCFRP, dummyLV);
+        PlaceSlabFull("LiqScint_4", tLS,   matLAB,  visLAB,  dummyLV);
+        PlaceSlabFull("LS_CFRP_5",  cfrpT, matCFRP, visCFRP, dummyLV);
+
+        return worldPV;
     }
 
-    // ---- Helper: place a flat slab at z_center ----
-    // All layers stacked along z.  We track the front face z as we go.
-    // Convention: beam enters at -z, layers stacked in +z direction.
-    G4double zFront = -totalZ / 2.0;
+    // ======================================================
+    // Shared: place Micromegas layers in vacuum mode
+    // (Full mode already placed them above and returned.)
+    // ======================================================
+
+    G4double zFront = -mmTotalZ / 2.0;
 
     auto PlaceSlab = [&](const std::string& name, G4double thickness,
                           G4Material* mat, G4VisAttributes* vis,
-                          G4LogicalVolume*& outLV) -> G4double {
-        G4double zCenter = zFront + thickness / 2.0;
+                          G4LogicalVolume*& outLV) {
+        G4double zCenter = zFront + thickness/2.0;
         G4Box* solid = new G4Box(name, detXY/2, detXY/2, thickness/2);
         outLV = new G4LogicalVolume(solid, mat, name);
         if (vis) outLV->SetVisAttributes(vis);
-        new G4PVPlacement(nullptr, G4ThreeVector(0, 0, zCenter),
+        new G4PVPlacement(nullptr, G4ThreeVector(0,0,zCenter),
                           outLV, name, worldLV, false, 0, true);
         zFront += thickness;
-        return zCenter;
     };
-
-    // Vis attributes
-    auto visMylar  = new G4VisAttributes(G4Color(0.7, 0.9, 0.7, 0.5));
-    auto visAl     = new G4VisAttributes(G4Color(0.7, 0.7, 0.7, 0.8));
-    auto visKapton = new G4VisAttributes(G4Color(0.9, 0.7, 0.0, 0.7));
-    auto visCu     = new G4VisAttributes(G4Color(0.8, 0.4, 0.1, 0.8));
-    auto visDrift  = new G4VisAttributes(G4Color(0.2, 0.5, 1.0, 0.3));
-    auto visMesh   = new G4VisAttributes(G4Color(0.5, 0.5, 0.5, 0.9));
-    auto visAmp    = new G4VisAttributes(G4Color(1.0, 0.3, 0.3, 0.3));
-
-    // Dummy LV for layers we don't care about scoring
     G4LogicalVolume* dummyLV = nullptr;
 
-    // === Place layers ===
+    PlaceSlab("GasWindow_Mylar",     tMylar,    matMylar,    visMylar,   dummyLV);
+    PlaceSlab("GasWindow_Al",        tAlWin,    matAl,       visAl,      dummyLV);
+    PlaceSlab("DriftCathode_Kapton", tKapCath,  matKapton,   visKapton,  dummyLV);
+    PlaceSlab("DriftCathode_Cu",     tCuCath,   matCu,       visCu,      dummyLV);
+    PlaceSlab("DriftGas",            tDrift,    matGas,      visDrift,   fDriftGasLV);
+    PlaceSlab("Micromesh",           tMesh,     matSteel,    visMesh,    dummyLV);
+    PlaceSlab("AmpGas",              tAmp,      matGas,      visAmp,     fAmpGasLV);
+    PlaceSlab("ResistivePaste",      tResPaste, matResPaste, visResPaste,dummyLV);
 
-    // 1. Gas window: Mylar 40 um
-    PlaceSlab("GasWindow_Mylar", tMylar, matMylar, visMylar, dummyLV);
-
-    // 2. Gas window: Al 0.1 um
-    PlaceSlab("GasWindow_Al", tAlWin, matAl, visAl, dummyLV);
-
-    // 3. Drift cathode: Kapton 50 um
-    PlaceSlab("DriftCathode_Kapton", tKapCath, matKapton, visKapton, dummyLV);
-
-    // 4. Drift cathode: Cu 9 um
-    PlaceSlab("DriftCathode_Cu", tCuCath, matCu, visCu, dummyLV);
-
-    // 5. Drift gas volume: 3 cm  <-- PRIMARY SCORING VOLUME
-    PlaceSlab("DriftGas", tDrift, matGas, visDrift, fDriftGasLV);
-
-    // 6. Micromesh: SS 30 um
-    PlaceSlab("Micromesh", tMesh, matSteel, visMesh, dummyLV);
-
-    // 7. Amplification gas: 150 um  <-- SECONDARY SCORING VOLUME
-    PlaceSlab("AmpGas", tAmp, matGas, visAmp, fAmpGasLV);
-
-    // 8. Anode: Kapton 50 um
-    PlaceSlab("Anode_Kapton", tKapAno, matKapton, visKapton, dummyLV);
-
-    // 9. Anode: Cu 9 um
-    PlaceSlab("Anode_Cu", tCuAno, matCu, visCu, dummyLV);
-
-    G4cout << "\n=== Detector geometry built ===" << G4endl;
-    G4cout << "  Gas mixture   : " << fConfig.gas << " (rho = "
-           << matGas->GetDensity() / (mg/cm3) << " mg/cm3)" << G4endl;
-    G4cout << "  Drift gap     : " << tDrift / cm << " cm" << G4endl;
-    G4cout << "  Amp gap       : " << tAmp   / um << " um" << G4endl;
-    G4cout << "  Total det. Z  : " << totalZ / mm << " mm" << G4endl;
-    if (alThickness > 0) {
-        G4cout << "  Al shielding  : " << fConfig.alThickness_mm << " mm "
-               << "(back face " << alGap/cm << " cm upstream of Mylar)" << G4endl;
-    } else {
-        G4cout << "  Al shielding  : none" << G4endl;
-    }
-    G4cout << "  World Z half  : " << worldZ/2/cm << " cm "
-           << "(gun at -10 cm is " << (worldZ/2 > 10.0*cm ? "INSIDE" : "OUTSIDE") << " world)"
-           << G4endl;
-    G4cout << "================================\n" << G4endl;
+    G4cout << "  Gas mixture  : " << fConfig.gas
+           << " (rho = " << matGas->GetDensity()/(mg/cm3) << " mg/cm3)" << G4endl;
+    G4cout << "  Drift gap    : " << tDrift/cm << " cm" << G4endl;
+    G4cout << "  Amp gap      : " << tAmp/um << " um" << G4endl;
+    G4cout << "=================================\n" << G4endl;
 
     return worldPV;
 }
 
 // ============================================================
 void DetectorConstruction::ConstructSDandField() {
-    // Sensitive detector for drift gas
     SensitiveDetector* driftSD = new SensitiveDetector("DriftGasSD", "DriftGasHits",
                                                          "DriftGas", fConfig);
     G4SDManager::GetSDMpointer()->AddNewDetector(driftSD);
     SetSensitiveDetector(fDriftGasLV, driftSD);
 
-    // Sensitive detector for amp gas
     SensitiveDetector* ampSD = new SensitiveDetector("AmpGasSD", "AmpGasHits",
                                                        "AmpGas", fConfig);
     G4SDManager::GetSDMpointer()->AddNewDetector(ampSD);
     SetSensitiveDetector(fAmpGasLV, ampSD);
 
-    // Set step size limit in gas volumes to improve ionization tracking
-    // (allow Geant4 to create steps fine enough to resolve primary ionization clusters)
-    G4UserLimits* stepLimit = new G4UserLimits(100 * um);  // max step in gas
-    fDriftGasLV->SetUserLimits(stepLimit);
-    fAmpGasLV->SetUserLimits(stepLimit);
+    G4UserLimits* gasStepLimit = new G4UserLimits(100*um);
+    fDriftGasLV->SetUserLimits(gasStepLimit);
+    fAmpGasLV->SetUserLimits(gasStepLimit);
+
+    // He-3 gas: coarser step limit (not a cluster-scoring volume)
+    if (fHe3GasLV) {
+        fHe3GasLV->SetUserLimits(new G4UserLimits(1.0*mm));
+    }
 }
+

@@ -5,8 +5,10 @@
 #include <string>
 #include "G4SystemOfUnits.hh"
 
+enum class SimMode { kVacuum, kFullExperiment };
+
 struct SimConfig {
-    std::string gas;            // Gas mixture name: ArIso, HeEth, NeCO2, ArCO2, PurAr
+    std::string gas;            // Gas mixture name
     std::string particle;       // Particle type: gamma, neutron, electron, proton, muon
     double      energy;         // Beam energy [Geant4 internal units = MeV]
     int         nEvents;        // Number of primary events
@@ -14,5 +16,7 @@ struct SimConfig {
     long        seed;           // Random seed
     int         nThreads;       // MT threads
     bool        verbose;        // Verbose flag
-    double      alThickness_mm; // Al shielding thickness [mm], 0 = no shielding
+    double      alThickness_mm; // Al shielding thickness [mm], 0 = no shielding (vacuum mode only)
+    SimMode     mode            = SimMode::kVacuum;
+    double      cfrpThickness_mm = 1.5; // CFRP wall thickness [mm] for He-3 capsule and LS cells
 };

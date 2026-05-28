@@ -1,21 +1,22 @@
 // ActionInitialization.cc
 
 #include "ActionInitialization.hh"
+#include "DetectorConstruction.hh"
 #include "PrimaryGeneratorAction.hh"
 #include "RunAction.hh"
 #include "EventAction.hh"
 #include "SteppingAction.hh"
 
-ActionInitialization::ActionInitialization(const SimConfig& cfg)
-    : G4VUserActionInitialization(), fConfig(cfg) {}
+ActionInitialization::ActionInitialization(const SimConfig& cfg,
+                                            const DetectorConstruction* detCon)
+    : G4VUserActionInitialization(), fConfig(cfg), fDetCon(detCon) {}
 
 void ActionInitialization::BuildForMaster() const {
-    // RunAction for master thread (handles file open/close)
     SetUserAction(new RunAction(fConfig, true));
 }
 
 void ActionInitialization::Build() const {
-    SetUserAction(new PrimaryGeneratorAction(fConfig));
+    SetUserAction(new PrimaryGeneratorAction(fConfig, fDetCon));
 
     auto* runAction   = new RunAction(fConfig, false);
     auto* eventAction = new EventAction(fConfig, runAction);

@@ -1,12 +1,6 @@
 // RunAction.cc
-// Output strategy:
-//   Compiled with ROOT -> writes two TTrees per run:
-//     EventTree  : one entry per event  (aggregates)
-//     ClusterTree: one entry per ionization cluster (full spatial detail)
-//   Without ROOT  -> two CSV files (same columns).
-//
-// File naming: <outFile>_<threadID>.root  (merged by collect_results.py)
-// For MT mode each worker writes its own file to avoid ROOT thread contention.
+// Writes ROOT TTrees (or CSV fallback) per worker thread.
+// In full-experiment mode, EventTree gains per-layer edep and transmission branches.
 
 #include "RunAction.hh"
 #include "G4Run.hh"
@@ -23,21 +17,27 @@
 #include "TTree.h"
 #endif
 
-// ---- Internal state per RunAction instance ----
 struct RunAction::Impl {
 #ifdef USE_ROOT
-    TFile* rootFile   = nullptr;
-    TTree* evtTree    = nullptr;
-    TTree* clusTree   = nullptr;
+    TFile* rootFile  = nullptr;
+    TTree* evtTree   = nullptr;
+    TTree* clusTree  = nullptr;
 
-    // Event branch buffers
+    // EventTree buffers — always present
     Int_t    br_eventID;
     Double_t br_edepDrift, br_edepAmp;
     Int_t    br_nPrimDrift, br_nPrimAmp;
     Int_t    br_nClusDrift, br_nClusAmp;
     Bool_t   br_primInDrift, br_primInAmp;
 
-    // Cluster branch buffers
+    // EventTree buffers — full-experiment mode only
+    Double_t br_edepHe3Gas, br_edepResistPaste, br_edepPCB;
+    Double_t br_edepScintWall;
+    Double_t br_edepLS1, br_edepLS2, br_edepLS3, br_edepLS4;
+    Bool_t   br_primInHe3Gas, br_primInPCB, br_primInScintWall;
+    Bool_t   br_primInLS1, br_primInLS2, br_primInLS3, br_primInLS4;
+
+    // ClusterTree buffers
     Int_t    cb_eventID, cb_trackID, cb_parentID, cb_nPrimary;
     Double_t cb_x, cb_y, cb_z, cb_edep, cb_ke;
     Char_t   cb_volume[32];
@@ -61,14 +61,14 @@ void RunAction::BeginOfRunAction(const G4Run* run) {
     fSumEdepDrift = fSumNprimDrift = 0.0;
     fSumEdepAmp   = fSumNprimAmp  = 0.0;
 
-    // Master thread in MT mode does not write data
     if (fIsMaster) return;
 
-    // Build filename: outFile_t<threadID>.root or .csv
     std::ostringstream ss;
     ss << fConfig.outFile;
     int tid = G4Threading::G4GetThreadId();
     if (tid >= 0) ss << "_t" << tid;
+
+    bool isFull = (fConfig.mode == SimMode::kFullExperiment);
 
 #ifdef USE_ROOT
     std::string fname = ss.str() + ".root";
@@ -78,49 +78,74 @@ void RunAction::BeginOfRunAction(const G4Run* run) {
         return;
     }
 
-    // --- EventTree ---
+    std::string tag = "gas=" + fConfig.gas
+                    + "_particle=" + fConfig.particle
+                    + "_E=" + std::to_string(fConfig.energy/MeV) + "MeV"
+                    + (isFull ? "_mode=full" : "_Al=" + std::to_string(fConfig.alThickness_mm) + "mm");
+
+    // ── EventTree ─────────────────────────────────────────
     fImpl->evtTree = new TTree("EventTree", "Per-event summary");
+    fImpl->evtTree->SetTitle(tag.c_str());
+
     fImpl->evtTree->Branch("eventID",    &fImpl->br_eventID);
-    fImpl->evtTree->Branch("edepDrift",  &fImpl->br_edepDrift);   // eV
-    fImpl->evtTree->Branch("edepAmp",    &fImpl->br_edepAmp);     // eV
-    fImpl->evtTree->Branch("nPrimDrift", &fImpl->br_nPrimDrift);  // ion pairs
+    fImpl->evtTree->Branch("edepDrift",  &fImpl->br_edepDrift);    // eV
+    fImpl->evtTree->Branch("edepAmp",    &fImpl->br_edepAmp);      // eV
+    fImpl->evtTree->Branch("nPrimDrift", &fImpl->br_nPrimDrift);
     fImpl->evtTree->Branch("nPrimAmp",   &fImpl->br_nPrimAmp);
-    fImpl->evtTree->Branch("nClusDrift", &fImpl->br_nClusDrift);  // n steps
+    fImpl->evtTree->Branch("nClusDrift", &fImpl->br_nClusDrift);
     fImpl->evtTree->Branch("nClusAmp",   &fImpl->br_nClusAmp);
     fImpl->evtTree->Branch("primInDrift",&fImpl->br_primInDrift);
     fImpl->evtTree->Branch("primInAmp",  &fImpl->br_primInAmp);
 
-    // Metadata branches (constant per file, useful after hadd)
-    fImpl->evtTree->SetTitle(
-        ("gas=" + fConfig.gas + "_particle=" + fConfig.particle +
-         "_E=" + std::to_string(fConfig.energy / MeV) + "MeV" +
-         "_Al=" + std::to_string(fConfig.alThickness_mm) + "mm").c_str());
+    if (isFull) {
+        fImpl->evtTree->Branch("edepHe3Gas",      &fImpl->br_edepHe3Gas);      // eV
+        fImpl->evtTree->Branch("edepResistPaste",  &fImpl->br_edepResistPaste); // eV
+        fImpl->evtTree->Branch("edepPCB",          &fImpl->br_edepPCB);         // eV
+        fImpl->evtTree->Branch("edepScintWall",    &fImpl->br_edepScintWall);   // eV
+        fImpl->evtTree->Branch("edepLS1",          &fImpl->br_edepLS1);         // eV
+        fImpl->evtTree->Branch("edepLS2",          &fImpl->br_edepLS2);
+        fImpl->evtTree->Branch("edepLS3",          &fImpl->br_edepLS3);
+        fImpl->evtTree->Branch("edepLS4",          &fImpl->br_edepLS4);
+        fImpl->evtTree->Branch("primInHe3Gas",     &fImpl->br_primInHe3Gas);
+        fImpl->evtTree->Branch("primInPCB",        &fImpl->br_primInPCB);
+        fImpl->evtTree->Branch("primInScintWall",  &fImpl->br_primInScintWall);
+        fImpl->evtTree->Branch("primInLS1",        &fImpl->br_primInLS1);
+        fImpl->evtTree->Branch("primInLS2",        &fImpl->br_primInLS2);
+        fImpl->evtTree->Branch("primInLS3",        &fImpl->br_primInLS3);
+        fImpl->evtTree->Branch("primInLS4",        &fImpl->br_primInLS4);
+    }
 
-    // --- ClusterTree ---
+    // ── ClusterTree ───────────────────────────────────────
     fImpl->clusTree = new TTree("ClusterTree", "Per-cluster ionization detail");
-    fImpl->clusTree->Branch("eventID",   &fImpl->cb_eventID);
-    fImpl->clusTree->Branch("trackID",   &fImpl->cb_trackID);
-    fImpl->clusTree->Branch("parentID",  &fImpl->cb_parentID);
-    fImpl->clusTree->Branch("x",         &fImpl->cb_x);           // mm
-    fImpl->clusTree->Branch("y",         &fImpl->cb_y);           // mm
-    fImpl->clusTree->Branch("z",         &fImpl->cb_z);           // mm
-    fImpl->clusTree->Branch("edep",      &fImpl->cb_edep);        // eV
-    fImpl->clusTree->Branch("nPrimary",  &fImpl->cb_nPrimary);    // ion pairs
-    fImpl->clusTree->Branch("ke",        &fImpl->cb_ke);          // MeV
-    fImpl->clusTree->Branch("volume",    fImpl->cb_volume,  "volume[32]/C");
-    fImpl->clusTree->Branch("particle",  fImpl->cb_particle,"particle[32]/C");
-    fImpl->clusTree->SetTitle(fImpl->evtTree->GetTitle());
+    fImpl->clusTree->SetTitle(tag.c_str());
+    fImpl->clusTree->Branch("eventID",  &fImpl->cb_eventID);
+    fImpl->clusTree->Branch("trackID",  &fImpl->cb_trackID);
+    fImpl->clusTree->Branch("parentID", &fImpl->cb_parentID);
+    fImpl->clusTree->Branch("x",        &fImpl->cb_x);
+    fImpl->clusTree->Branch("y",        &fImpl->cb_y);
+    fImpl->clusTree->Branch("z",        &fImpl->cb_z);
+    fImpl->clusTree->Branch("edep",     &fImpl->cb_edep);
+    fImpl->clusTree->Branch("nPrimary", &fImpl->cb_nPrimary);
+    fImpl->clusTree->Branch("ke",       &fImpl->cb_ke);
+    fImpl->clusTree->Branch("volume",   fImpl->cb_volume,  "volume[32]/C");
+    fImpl->clusTree->Branch("particle", fImpl->cb_particle,"particle[32]/C");
 
     G4cout << "RunAction: Opened " << fname << G4endl;
 
 #else
-    // CSV fallback
     std::string evtFname  = ss.str() + "_events.csv";
     std::string clusFname = ss.str() + "_clusters.csv";
 
     fImpl->evtFile.open(evtFname);
     fImpl->evtFile << "eventID,edepDrift_eV,edepAmp_eV,nPrimDrift,nPrimAmp,"
-                      "nClusDrift,nClusAmp,primInDrift,primInAmp\n";
+                      "nClusDrift,nClusAmp,primInDrift,primInAmp";
+    if (isFull) {
+        fImpl->evtFile << ",edepHe3Gas_eV,edepResistPaste_eV,edepPCB_eV"
+                          ",edepScintWall_eV,edepLS1_eV,edepLS2_eV,edepLS3_eV,edepLS4_eV"
+                          ",primInHe3Gas,primInPCB,primInScintWall"
+                          ",primInLS1,primInLS2,primInLS3,primInLS4";
+    }
+    fImpl->evtFile << "\n";
 
     fImpl->clusFile.open(clusFname);
     fImpl->clusFile << "eventID,trackID,parentID,x_mm,y_mm,z_mm,"
@@ -146,13 +171,13 @@ void RunAction::EndOfRunAction(const G4Run* run) {
 #endif
     }
 
-    // Print run summary from master (or sequential mode)
     if (fIsMaster || !G4Threading::IsMultithreadedApplication()) {
         G4int nev = run->GetNumberOfEvent();
         G4cout << "\n========= Run Summary =========" << G4endl;
+        G4cout << "  Mode     : " << (fConfig.mode == SimMode::kFullExperiment ? "full-experiment" : "vacuum") << G4endl;
         G4cout << "  Gas      : " << fConfig.gas      << G4endl;
         G4cout << "  Particle : " << fConfig.particle << G4endl;
-        G4cout << "  Energy   : " << fConfig.energy / MeV << " MeV" << G4endl;
+        G4cout << "  Energy   : " << fConfig.energy/MeV << " MeV" << G4endl;
         G4cout << "  Events   : " << nev << G4endl;
         if (fTotalEvents > 0) {
             G4cout << std::fixed << std::setprecision(2);
@@ -167,17 +192,17 @@ void RunAction::EndOfRunAction(const G4Run* run) {
 
 // ============================================================
 void RunAction::RecordEvent(const EventData& data) {
-    // Accumulate for summary
     fTotalEvents++;
     fSumEdepDrift  += data.edepDrift;
     fSumNprimDrift += data.nPrimaryDrift;
     fSumEdepAmp    += data.edepAmp;
     fSumNprimAmp   += data.nPrimaryAmp;
 
+    bool isFull = (fConfig.mode == SimMode::kFullExperiment);
+
 #ifdef USE_ROOT
     if (!fImpl->evtTree) return;
 
-    // Fill EventTree
     fImpl->br_eventID    = data.eventID;
     fImpl->br_edepDrift  = data.edepDrift;
     fImpl->br_edepAmp    = data.edepAmp;
@@ -187,9 +212,26 @@ void RunAction::RecordEvent(const EventData& data) {
     fImpl->br_nClusAmp   = static_cast<int>(data.ampClusters.size());
     fImpl->br_primInDrift = data.primaryInDrift;
     fImpl->br_primInAmp   = data.primaryInAmp;
+
+    if (isFull) {
+        fImpl->br_edepHe3Gas      = data.edepHe3Gas;
+        fImpl->br_edepResistPaste = data.edepResistPaste;
+        fImpl->br_edepPCB         = data.edepPCB;
+        fImpl->br_edepScintWall   = data.edepScintWall;
+        fImpl->br_edepLS1         = data.edepLS1;
+        fImpl->br_edepLS2         = data.edepLS2;
+        fImpl->br_edepLS3         = data.edepLS3;
+        fImpl->br_edepLS4         = data.edepLS4;
+        fImpl->br_primInHe3Gas    = data.primInHe3Gas;
+        fImpl->br_primInPCB       = data.primInPCB;
+        fImpl->br_primInScintWall = data.primInScintWall;
+        fImpl->br_primInLS1       = data.primInLS1;
+        fImpl->br_primInLS2       = data.primInLS2;
+        fImpl->br_primInLS3       = data.primInLS3;
+        fImpl->br_primInLS4       = data.primInLS4;
+    }
     fImpl->evtTree->Fill();
 
-    // Fill ClusterTree -- drift then amp
     auto fillClusters = [&](const std::vector<IonizationCluster>& clusters) {
         for (const auto& c : clusters) {
             fImpl->cb_eventID  = data.eventID;
@@ -211,12 +253,29 @@ void RunAction::RecordEvent(const EventData& data) {
     fillClusters(data.ampClusters);
 
 #else
-    // CSV fallback
     fImpl->evtFile << data.eventID << ","
-                   << data.edepDrift    << "," << data.edepAmp    << ","
+                   << data.edepDrift     << "," << data.edepAmp     << ","
                    << data.nPrimaryDrift << "," << data.nPrimaryAmp << ","
                    << data.driftClusters.size() << "," << data.ampClusters.size() << ","
-                   << data.primaryInDrift << "," << data.primaryInAmp << "\n";
+                   << data.primaryInDrift << "," << data.primaryInAmp;
+    if (isFull) {
+        fImpl->evtFile << "," << data.edepHe3Gas
+                       << "," << data.edepResistPaste
+                       << "," << data.edepPCB
+                       << "," << data.edepScintWall
+                       << "," << data.edepLS1
+                       << "," << data.edepLS2
+                       << "," << data.edepLS3
+                       << "," << data.edepLS4
+                       << "," << data.primInHe3Gas
+                       << "," << data.primInPCB
+                       << "," << data.primInScintWall
+                       << "," << data.primInLS1
+                       << "," << data.primInLS2
+                       << "," << data.primInLS3
+                       << "," << data.primInLS4;
+    }
+    fImpl->evtFile << "\n";
 
     auto writeClusters = [&](const std::vector<IonizationCluster>& clusters) {
         for (const auto& c : clusters) {

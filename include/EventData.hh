@@ -20,21 +20,36 @@ struct IonizationCluster {
 struct EventData {
     int eventID = -1;
 
-    // Total energy deposition per volume
+    // ── Micromegas gas scoring (both modes) ─────────────────────────────
     double edepDrift = 0.0;  // [eV]
     double edepAmp   = 0.0;  // [eV]
 
-    // Primary ionization cluster list (one per ionizing step in gas)
     std::vector<IonizationCluster> driftClusters;
     std::vector<IonizationCluster> ampClusters;
 
-    // Aggregate primary ion pair counts
-    int nPrimaryDrift = 0;
-    int nPrimaryAmp   = 0;
-
-    // Did primary particle enter each volume?
+    int  nPrimaryDrift = 0;
+    int  nPrimaryAmp   = 0;
     bool primaryInDrift = false;
     bool primaryInAmp   = false;
+
+    // ── Full-experiment per-layer edep [eV] (kFullExperiment mode only) ─
+    double edepHe3Gas      = 0.0;  // He-3 gas volume
+    double edepResistPaste = 0.0;  // resistive paste (100 µm, behind amp gas)
+    double edepPCB         = 0.0;  // PCB stack total
+    double edepScintWall   = 0.0;  // plastic scintillator bar
+    double edepLS1         = 0.0;  // liquid scintillator layer 1
+    double edepLS2         = 0.0;
+    double edepLS3         = 0.0;
+    double edepLS4         = 0.0;
+
+    // ── Transmission flags (did primary particle reach each subsystem?) ─
+    bool primInHe3Gas    = false;
+    bool primInPCB       = false;
+    bool primInScintWall = false;
+    bool primInLS1       = false;
+    bool primInLS2       = false;
+    bool primInLS3       = false;
+    bool primInLS4       = false;
 
     void Reset() {
         eventID = -1;
@@ -43,5 +58,10 @@ struct EventData {
         primaryInDrift = primaryInAmp = false;
         driftClusters.clear();
         ampClusters.clear();
+
+        edepHe3Gas = edepResistPaste = edepPCB = edepScintWall = 0.0;
+        edepLS1 = edepLS2 = edepLS3 = edepLS4 = 0.0;
+        primInHe3Gas = primInPCB = primInScintWall = false;
+        primInLS1 = primInLS2 = primInLS3 = primInLS4 = false;
     }
 };

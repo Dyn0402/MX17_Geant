@@ -1,28 +1,143 @@
 # Micromegas GEANT4 Sensitivity Simulation
 ## n_TOF X17 group — Dylan Neff
 
-Simulates primary ionization and energy deposition in a 40×40 cm Micromegas
-detector for the X17 sensitivity study. Fires gammas, electrons, and neutrons
-across a wide energy range through five candidate gas mixtures.
+Two simulation modes share the same binary:
+
+- **Vacuum mode** (default): Micromegas detector in vacuum with optional Al
+  shielding upstream. Pencil beam from z = −10 cm. Used for detector sensitivity
+  and gas-mixture comparison studies.
+- **Full-experiment mode** (`-m full`): Complete material stack from He-3 target
+  through Micromegas to the liquid-scintillator veto wall. Particles originate at
+  the centre of the He-3 gas volume (simulating capture or scatter products).
 
 ---
 
-## Detector geometry (front to back, beam along +z)
+## Vacuum mode geometry (front to back, beam along +z)
 
-| Layer              | Material        | Thickness  |
-|--------------------|-----------------|------------|
-| Gas window foil    | Mylar (PET)     | 40 µm      |
-| Gas window coat    | Aluminium       | 0.1 µm     |
-| Drift cathode      | Kapton          | 50 µm      |
-| Drift cathode Cu   | Copper          | 9 µm       |
-| **Drift gas**      | **active gas**  | **3 cm**   |
-| Micromesh          | Stainless steel | 30 µm      |
-| **Amp gas**        | **active gas**  | **150 µm** |
-| Anode              | Kapton          | 50 µm      |
-| Anode Cu           | Copper          | 9 µm       |
+| Layer              | Material        | Thickness  | Geant4 volume name    |
+|--------------------|-----------------|------------|-----------------------|
+| Gas window foil    | Mylar (PET)     | 40 µm      | `GasWindow_Mylar`     |
+| Gas window coat    | Aluminium       | 0.1 µm     | `GasWindow_Al`        |
+| Drift cathode      | Kapton          | 50 µm      | `DriftCathode_Kapton` |
+| Drift cathode Cu   | Copper          | 9 µm       | `DriftCathode_Cu`     |
+| **Drift gas**      | **active gas**  | **3 cm**   | **`DriftGas`**        |
+| Micromesh          | Stainless steel | 30 µm      | `Micromesh`           |
+| **Amp gas**        | **active gas**  | **150 µm** | **`AmpGas`**          |
+| Resistive paste    | Carbon/acrylic  | 100 µm     | `ResistivePaste`      |
 
-Mesh parameters (woven SS bulk Micromegas): wire Ø 18 µm, hole 45 µm,
-pitch 63 µm, total flattened thickness ~30 µm.
+Mesh parameters: wire Ø 18 µm, hole 45 µm, pitch 63 µm, flattened ~30 µm.
+
+The anode Kapton and Cu layers are part of the PCB stack (not duplicated here).
+
+Optional Al shielding slab (`-a <mm>`) placed 2 cm upstream of the Mylar window.
+
+---
+
+## Full-experiment geometry (front to back, beam along +z)
+
+### He-3 pressurised target
+
+The capsule is a **5 cm-diameter, 15 cm-long cylinder** with its long axis along
+**Y (perpendicular to the beam)**. The beam travels along +Z and passes through
+the curved surface, crossing **5 cm of He-3 gas** (the diameter).
+
+Along the beam direction the material layers encountered are:
+
+| Layer             | Material                   | Thickness along beam | Geant4 volume name |
+|-------------------|----------------------------|----------------------|--------------------|
+| CFRP curved wall  | C-fibre/epoxy (1.55 g/cm³) | 0.9 mm (fixed)       | `He3Capsule_CFRP`  |
+| Al curved wall    | Aluminium                  | 0.5 mm               | `He3Capsule_Al`    |
+| **He-3 gas**      | **³He at 300 bar**         | **5 cm (diameter)**  | **`He3Gas`**       |
+| Al curved wall    | Aluminium                  | 0.5 mm               | (same LV, exit)    |
+| CFRP curved wall  | C-fibre/epoxy              | 0.9 mm               | (same LV, exit)    |
+
+The capsule endcaps (along Y) are also modelled as 0.5 mm Al + 0.9 mm CFRP.
+Total capsule Z-extent along beam: 2 × (25 + 0.5 + 0.9) mm = **52.8 mm**.
+
+The CFRP capsule wall thickness is hardcoded at 0.9 mm (separate from the
+configurable `-c <mm>` parameter which applies only to the LS cell walls).
+
+He-3 density: ~37.6 mg/cm³ (ideal gas law at 300 atm, 293 K).
+Gun fires along +z from the centre of the He-3 gas volume.
+
+### Air gap 1
+
+| Layer   | Material | Thickness |
+|---------|----------|-----------|
+| Air gap | Air      | 20 cm     |
+
+### Micromegas detector (same layers as vacuum mode)
+
+| Layer              | Material        | Thickness  | Geant4 volume name    |
+|--------------------|-----------------|------------|-----------------------|
+| Gas window foil    | Mylar (PET)     | 40 µm      | `GasWindow_Mylar`     |
+| Gas window coat    | Aluminium       | 0.1 µm     | `GasWindow_Al`        |
+| Drift cathode      | Kapton          | 50 µm      | `DriftCathode_Kapton` |
+| Drift cathode Cu   | Copper          | 9 µm       | `DriftCathode_Cu`     |
+| **Drift gas**      | **active gas**  | **3 cm**   | **`DriftGas`**        |
+| Micromesh          | Stainless steel | 30 µm      | `Micromesh`           |
+| **Amp gas**        | **active gas**  | **150 µm** | **`AmpGas`**          |
+| Resistive paste    | Carbon/acrylic (Saral 700A) | 100 µm | `ResistivePaste` |
+
+Resistive paste definition: 65% C / 8% H / 27% O by mass, 1.4 g/cm³
+(carbon-loaded acrylic binder approximation).
+
+### PCB stack
+
+| Layer        | Material                          | Thickness  | Geant4 volume name |
+|--------------|-----------------------------------|------------|--------------------|
+| Kapton       | Kapton (polyimide)                | 50 µm      | `PCB_Kapton`       |
+| Copper       | Copper                            | 26 µm      | `PCB_Cu_1`         |
+| FR4          | Epoxy-glass (1.85 g/cm³)          | 100 µm     | `PCB_FR4_1`        |
+| Copper       | Copper                            | 26 µm      | `PCB_Cu_2`         |
+| FR4          | Epoxy-glass                       | 100 µm     | `PCB_FR4_2`        |
+| Copper       | Copper                            | 26 µm      | `PCB_Cu_3`         |
+| FR4          | Epoxy-glass                       | 100 µm     | `PCB_FR4_3`        |
+| Copper       | Copper                            | 26 µm      | `PCB_Cu_4`         |
+| FR4          | Epoxy-glass                       | 100 µm     | `PCB_FR4_4`        |
+| Rohacell 51  | PMI foam C₄H₅NO (0.052 g/cm³)    | 5 mm       | `PCB_Rohacell`     |
+| Al foil      | Aluminium                         | 50 µm      | `PCB_AlFoil`       |
+
+FR4 definition: 60% SiO₂ glass + 40% epoxy (C₁₁H₁₂O₃) by mass.
+Rohacell 51 definition: C₄H₅NO, density 0.052 g/cm³.
+
+### Air gap 2
+
+| Layer   | Material | Thickness |
+|---------|----------|-----------|
+| Air gap | Air      | 2 cm      |
+
+### Scintillator wall
+
+| Layer          | Material                        | Thickness | Geant4 volume name      |
+|----------------|---------------------------------|-----------|-------------------------|
+| Black tape     | PVC (C₂H₃Cl, 1.3 g/cm³)        | 165 µm    | `ScintWall_BlackTape1`  |
+| **Scint. bar** | **PVT plastic (G4_PLASTIC_SC_VINYLTOLUENE, 1.032 g/cm³)** | **3 mm** | **`PlasticScint`** |
+| Black tape     | PVC                             | 165 µm    | `ScintWall_BlackTape2`  |
+| Al foil        | Aluminium                       | 50 µm     | `ScintWall_AlFoil`      |
+
+### Air gap 3
+
+| Layer   | Material | Thickness |
+|---------|----------|-----------|
+| Air gap | Air      | 2 cm      |
+
+### Liquid scintillator stack (4 × 1.5 cm layers)
+
+| Layer           | Material                              | Thickness | Geant4 volume name |
+|-----------------|---------------------------------------|-----------|--------------------|
+| CFRP front wall | C-fibre/epoxy (1.55 g/cm³)            | 1.5 mm †  | `LS_CFRP_1`        |
+| **LS layer 1**  | **LAB (C₁₈H₃₀, 0.86 g/cm³)**         | **1.5 cm**| **`LiqScint_1`**   |
+| CFRP separator  | C-fibre/epoxy                         | 1.5 mm †  | `LS_CFRP_2`        |
+| **LS layer 2**  | **LAB**                               | **1.5 cm**| **`LiqScint_2`**   |
+| CFRP separator  | C-fibre/epoxy                         | 1.5 mm †  | `LS_CFRP_3`        |
+| **LS layer 3**  | **LAB**                               | **1.5 cm**| **`LiqScint_3`**   |
+| CFRP separator  | C-fibre/epoxy                         | 1.5 mm †  | `LS_CFRP_4`        |
+| **LS layer 4**  | **LAB**                               | **1.5 cm**| **`LiqScint_4`**   |
+| CFRP back wall  | C-fibre/epoxy                         | 1.5 mm †  | `LS_CFRP_5`        |
+
+LAB definition: C₁₈H₃₀ (JUNO recipe), ignoring PPO/Bis-MSB fluors (<0.3% by mass).
+† Same CFRP thickness as the He-3 capsule walls; both set by `-c <mm>`.
 
 ---
 
@@ -46,144 +161,262 @@ W-values from ICRU 31 + Penning-transfer corrections (Sauli 1977, Biagi).
 
 - **EM**: `G4EmStandardPhysics_option4` (Livermore models below 100 keV,
   accurate photoelectric + Auger + delta-ray production)
-- **Hadronic**: `FTFP_BERT_HP` (full high-precision neutron data below 20 MeV)
+- **Hadronic**: `FTFP_BERT_HP` (full high-precision neutron data below 20 MeV,
+  includes He-3(n,p)T capture cross section)
 - **Production cuts**: 10 µm for e±, 100 µm for γ/p
-- **Step limit**: 100 µm max step in gas volumes
+- **Step limits**: 100 µm in Micromegas gas volumes; 1 mm in He-3 gas
 
 Primary ionization N = Edep / W, with Poisson sampling of the remainder.
 
 ---
 
-## Aluminium shielding
-
-An optional Al slab can be placed upstream of the detector to study shielding
-effects on the gamma/neutron sensitivity. The slab spans the full detector XY
-area (40×40 cm) and is centred 2 cm + half-thickness upstream of the Mylar
-window front face (i.e. its back face is exactly 2 cm from the Mylar).
-
-When shielding is enabled the world volume automatically expands upstream to
-accommodate the slab + a 0.5 cm clearance margin.
-
-### Single-job usage
-
-Pass `-a <mm>` to set the Al thickness in mm (`0` or omitted = no shielding):
+## Quick start
 
 ```bash
-# 1 mm Al upstream
+# Build on lxplus
+source scripts/setup_lxplus.sh
+bash scripts/build.sh
+
+# Vacuum mode — 1 MeV gammas, ArCF4, 1000 events
+build/mm_sim -g ArCF4 -p gamma -e 1.0 -n 1000 -o /tmp/test_vacuum
+
+# Full-experiment mode — 3 MeV electrons from He-3 centre
+build/mm_sim -m full -g ArCF4 -p electron -e 3.0 -n 10000 -o /tmp/test_full
+
+# Full mode — tritons (He-3 capture product), 1 MeV
+build/mm_sim -m full -g HeEth -p triton -e 1.0 -n 50000 -o /tmp/test_triton
+
+# Vacuum mode with Al shielding
 build/mm_sim -g ArCF4 -p gamma -e 1.0 -n 10000 -o /tmp/test_al1mm -a 1
-
-# 4 mm Al upstream
-build/mm_sim -g ArCF4 -p gamma -e 1.0 -n 10000 -o /tmp/test_al4mm -a 4
 ```
-
-### HTCondor shielding scan
-
-`submit_condor.py` has a `--shielding` flag that appends Al-shielding jobs to
-the normal submission. The shielding gas and thicknesses are controlled by two
-constants at the top of the script:
-
-```python
-SHIELDING_GAS     = "ArCF4"       # gas used for shielding scan
-AL_THICKNESSES_MM = [1, 4]        # 0 mm baseline is always included
-```
-
-Submit the baseline + shielding scan together:
-
-```bash
-python3 scripts/submit_condor.py \
-    --outdir /eos/experiment/ntof/data/x17/mm_sim_results \
-    --nevents 50000 \
-    --shielding
-```
-
-With `--shielding`, the script automatically adds a 0 mm baseline for
-`SHIELDING_GAS` if it is not already included in the gas list, so you always
-get a matched no-shield reference at the same statistics.
-
-Output files for shielded jobs get an `_Al<N>mm` suffix in their tag, e.g.
-`ArCF4_gamma_1p0MeV_Al1mm.root`.
 
 ---
 
-## Quick start on lxplus
+## Command-line options
 
-```bash
-# 1. Clone / copy the code to your lxplus home or EOS
-cd ~/mm_sim   # or wherever you put the code
-
-# 2. Source Geant4 + ROOT from CVMFS
-source scripts/setup_lxplus.sh
-
-# 3. Build
-bash scripts/build.sh
-
-# 4. Quick test (1000 events)
-build/mm_sim -g ArCF4 -p gamma -e 1.0 -n 1000 -o /tmp/test_mm -v
-
-# 5. Submit full scan to HTCondor
-python3 scripts/submit_condor.py \
-    --outdir /eos/experiment/ntof/data/x17/mm_sim_results \
-    --nevents 50000
-
-# 6. Monitor
-condor_q
-
-# 7. After completion: merge + summarise
-python3 scripts/collect_results.py \
-    --indir /eos/experiment/ntof/data/x17/mm_sim_results \
-    --clusters
-
-# 8. Plot
-python3 scripts/plot_results.py \
-    --summary /eos/experiment/ntof/data/x17/mm_sim_results/summary/summary.csv \
-    --rootdir /eos/experiment/ntof/data/x17/mm_sim_results/summary/merged
-```
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-g <gas>`    | `ArCF4`   | Detector gas mixture (see table above) |
+| `-p <particle>` | `gamma` | `gamma`, `neutron`, `electron`, `proton`, `muon`, `muon+`, `pion`, `alpha`, `triton` |
+| `-e <MeV>`    | `1.0`     | Primary particle energy |
+| `-n <N>`      | `10000`   | Number of events |
+| `-o <path>`   | `mm_output` | Output file base (no extension) |
+| `-s <seed>`   | time-based | Random seed |
+| `-t <N>`      | `1`       | MT threads |
+| `-m <mode>`   | `vacuum`  | `vacuum` or `full` |
+| `-a <mm>`     | `0`       | Al shielding upstream (vacuum mode only) |
+| `-c <mm>`     | `1.5`     | CFRP wall thickness for LS cell walls (full mode only; capsule wall is fixed at 0.9 mm) |
+| `-v`          | off       | Verbose event printout |
 
 ---
 
 ## Output format
 
-Each job writes (ROOT TTree):
+Each job writes ROOT TTrees (CSV fallback if ROOT unavailable).
 
 **`EventTree`** (one entry per event):
-- `eventID`, `edepDrift` [eV], `edepAmp` [eV]
-- `nPrimDrift`, `nPrimAmp` — primary ion pairs
-- `nClusDrift`, `nClusAmp` — number of ionising steps
-- `primInDrift`, `primInAmp` — did the primary traverse the volume?
 
-**`ClusterTree`** (one entry per ionising step):
-- `eventID`, `trackID`, `parentID`
-- `x`, `y`, `z` [mm] — step midpoint position
-- `edep` [eV], `nPrimary` — energy and ion pairs this step
-- `ke` [MeV] — particle kinetic energy
-- `volume` — `DriftGas` or `AmpGas`
-- `particle` — particle name
+| Branch | Units | Description |
+|--------|-------|-------------|
+| `eventID` | — | Event number |
+| `edepDrift` | eV | Energy in drift gas |
+| `edepAmp` | eV | Energy in amp gas |
+| `nPrimDrift`, `nPrimAmp` | — | Primary ion pairs |
+| `nClusDrift`, `nClusAmp` | — | Ionising steps |
+| `primInDrift`, `primInAmp` | bool | Primary reached volume? |
+| *(full mode only)* | | |
+| `edepHe3Gas` | eV | Energy in He-3 gas |
+| `edepResistPaste` | eV | Energy in resistive paste |
+| `edepPCB` | eV | Total energy in PCB stack |
+| `edepScintWall` | eV | Energy in plastic scintillator bar |
+| `edepLS1`–`edepLS4` | eV | Energy per liquid-scintillator layer |
+| `primInHe3Gas` | bool | Primary reached He-3? |
+| `primInPCB` | bool | Primary reached PCB? |
+| `primInScintWall` | bool | Primary reached plastic scint.? |
+| `primInLS1`–`primInLS4` | bool | Primary reached each LS layer? |
 
-In MT mode, each thread writes `<outfile>_t<N>.root`; `collect_results.py`
-runs `hadd` to merge them.
+**`ClusterTree`** (one entry per ionising step in gas, both modes):
+`eventID`, `trackID`, `parentID`, `x/y/z` [mm], `edep` [eV], `nPrimary`,
+`ke` [MeV], `volume` (`DriftGas`/`AmpGas`), `particle`
+
+In MT mode each thread writes `<outfile>_t<N>.root`; `collect_results.py`
+merges them with `hadd`.
 
 ---
 
-## Submitting a subset (testing)
+## Aluminium shielding (vacuum mode)
+
+Pass `-a <mm>` to place an Al slab 2 cm upstream of the Mylar window.
+The world volume expands automatically to accommodate it.
 
 ```bash
-# One gas, one particle — dry run first
-python3 scripts/submit_condor.py \
-    --gases ArCF4 \
-    --particles gamma \
-    --nevents 5000 \
-    --flavour longlunch \
-    --outdir /tmp/mm_test \
-    --dry-run   # remove --dry-run to actually submit
+build/mm_sim -g ArCF4 -p gamma -e 1.0 -n 10000 -o /tmp/al1mm -a 1
+build/mm_sim -g ArCF4 -p gamma -e 1.0 -n 10000 -o /tmp/al4mm -a 4
+```
 
-# With shielding scan (ArCF4, 0 + 1 + 4 mm Al)
+HTCondor shielding scan via `submit_condor.py --shielding` (see script header).
+
+---
+
+## HTCondor submission
+
+```bash
+# Full sensitivity scan (vacuum mode)
 python3 scripts/submit_condor.py \
-    --gases ArCF4 \
-    --particles gamma \
-    --nevents 5000 \
-    --outdir /tmp/mm_test \
-    --shielding \
-    --dry-run
+    --outdir /eos/experiment/ntof/data/x17/mm_sim_results \
+    --nevents 50000
+
+# After jobs finish: merge + summarise
+python3 scripts/collect_results.py \
+    --indir /eos/experiment/ntof/data/x17/mm_sim_results
+
+# Plot
+python3 scripts/plot_results.py \
+    --summary /eos/experiment/ntof/data/x17/mm_sim_results/summary/summary.csv
+```
+
+---
+
+## Running the full-experiment stack on lxplus
+
+### 1. Build (same as vacuum mode)
+
+```bash
+ssh lxplus.cern.ch
+cd ~/mm_sim          # or wherever you checked out the code
+source scripts/setup_lxplus.sh
+bash scripts/build.sh
+```
+
+### 2. Single test job
+
+The primary particles in full-experiment mode represent products generated
+inside the He-3 gas — typically a **triton** (T, 2.73 MeV) and a **proton**
+(p, 0.57 MeV) from the ³He(n,p)T capture reaction, or electrons/gammas from
+downstream backgrounds.
+
+```bash
+OUTDIR=/eos/experiment/ntof/data/x17/mm_sim_results/full
+
+# Triton at 2.73 MeV (He-3 capture product), ArCF4 gas, 10000 events
+build/mm_sim -m full -g ArCF4 -p triton -e 2.73 -n 10000 \
+    -o ${OUTDIR}/full_ArCF4_triton_2p73MeV
+
+# Proton at 0.57 MeV
+build/mm_sim -m full -g ArCF4 -p proton -e 0.57 -n 10000 \
+    -o ${OUTDIR}/full_ArCF4_proton_0p57MeV
+
+# Electron energy scan — check transmission to liquid scintillator
+build/mm_sim -m full -g ArCF4 -p electron -e 5.0 -n 10000 \
+    -o ${OUTDIR}/full_ArCF4_electron_5MeV
+```
+
+### 3. HTCondor energy scan
+
+`submit_condor.py` is written for the vacuum sensitivity scan. For the
+full-experiment mode, submit jobs directly with a short loop:
+
+```bash
+#!/bin/bash
+# submit_full_scan.sh
+# Scans electron energies from 1–20 MeV to study LS transmission
+
+OUTDIR=/eos/experiment/ntof/data/x17/mm_sim_results/full
+NEVENTS=50000
+GAS=ArCF4
+
+mkdir -p ${OUTDIR}
+
+for ENERGY in 1.0 2.0 3.0 5.0 7.0 10.0 15.0 20.0; do
+    TAG=full_${GAS}_electron_${ENERGY}MeV
+    cat > /tmp/job_${TAG}.sub << EOF
+executable  = build/mm_sim
+arguments   = -m full -g ${GAS} -p electron -e ${ENERGY} -n ${NEVENTS} -o ${OUTDIR}/${TAG}
+output      = logs/${TAG}.out
+error       = logs/${TAG}.err
+log         = logs/${TAG}.log
++JobFlavour = "longlunch"
+queue
+EOF
+    condor_submit /tmp/job_${TAG}.sub
+done
+```
+
+```bash
+mkdir -p logs
+bash submit_full_scan.sh
+condor_q
+```
+
+To scan multiple particles (e.g. triton + proton + electron):
+
+```bash
+for PARTICLE in triton proton electron; do
+    for ENERGY in 1.0 2.0 5.0 10.0; do
+        # ... same pattern, adjust -e and -p
+    done
+done
+```
+
+### 4. Merge and inspect results
+
+Per-thread ROOT files are merged the same way as vacuum mode:
+
+```bash
+# Merge threads (if -t > 1 was used)
+hadd full_ArCF4_electron_5MeV.root \
+    ${OUTDIR}/full_ArCF4_electron_5MeV_t*.root
+
+# Or use the existing collection script (reads EventTree automatically)
+python3 scripts/collect_results.py --indir ${OUTDIR}
+```
+
+### 5. Reading the full-experiment output in ROOT/Python
+
+The `EventTree` gains extra branches in full mode. Key questions and how to
+answer them:
+
+**Did electrons of a given energy reach the liquid scintillator?**
+
+```python
+import uproot, numpy as np
+
+f = uproot.open("full_ArCF4_electron_5MeV.root")
+t = f["EventTree"]
+df = t.arrays(["primInLS1", "primInLS2", "primInLS3", "primInLS4",
+               "edepLS1",   "edepLS2",   "edepLS3",   "edepLS4"],
+              library="pd")
+
+print("Transmission to LS1:", df["primInLS1"].mean())
+print("Transmission to LS4:", df["primInLS4"].mean())
+print("Mean edep in LS1 (eV):", df.loc[df.primInLS1, "edepLS1"].mean())
+```
+
+**Energy budget across layers:**
+
+```python
+cols = ["edepDrift", "edepAmp", "edepPCB", "edepScintWall",
+        "edepLS1", "edepLS2", "edepLS3", "edepLS4"]
+means = df[cols].mean()
+print(means / 1e6)   # convert eV → MeV
+```
+
+**Transmission fraction vs energy (after collecting multiple jobs):**
+
+```python
+import glob, uproot, pandas as pd
+
+rows = []
+for fname in glob.glob("full_ArCF4_electron_*MeV.root"):
+    energy = float(fname.split("electron_")[1].replace("MeV.root",""))
+    t = uproot.open(fname)["EventTree"]
+    arr = t.arrays(["primInLS1","primInLS4"], library="np")
+    rows.append({"energy_MeV": energy,
+                 "trans_LS1": arr["primInLS1"].mean(),
+                 "trans_LS4": arr["primInLS4"].mean()})
+
+df = pd.DataFrame(rows).sort_values("energy_MeV")
+print(df)
 ```
 
 ---
@@ -193,20 +426,20 @@ python3 scripts/submit_condor.py \
 ```
 mm_sim/
 ├── CMakeLists.txt
-├── mm_sim.cc               Main entry point
+├── mm_sim.cc                   Main entry point (-m vacuum | full)
 ├── include/
-│   ├── SimConfig.hh        Shared config struct
+│   ├── SimConfig.hh            Config struct + SimMode enum
 │   ├── DetectorConstruction.hh
 │   ├── PhysicsList.hh
 │   ├── ActionInitialization.hh
 │   ├── PrimaryGeneratorAction.hh
-│   ├── EventData.hh        IonizationCluster + EventData structs
+│   ├── EventData.hh            IonizationCluster + EventData structs
 │   ├── EventAction.hh
-│   ├── SteppingAction.hh   W-value ionization scoring
-│   ├── RunAction.hh        ROOT TTree / CSV output
+│   ├── SteppingAction.hh       W-value ionization + per-layer edep
+│   ├── RunAction.hh            ROOT TTree / CSV output
 │   └── SensitiveDetector.hh
 ├── src/
-│   ├── DetectorConstruction.cc  All 9 layers, 5 gas mixtures
+│   ├── DetectorConstruction.cc Both mode geometries + all materials
 │   ├── PhysicsList.cc
 │   ├── ActionInitialization.cc
 │   ├── PrimaryGeneratorAction.cc
@@ -217,36 +450,39 @@ mm_sim/
 ├── macros/
 │   └── run_default.mac
 └── scripts/
-    ├── setup_lxplus.sh     Sources G4 11.2 + ROOT from CVMFS
-    ├── build.sh            CMake build
-    ├── submit_condor.py    Submits full gas×particle×energy matrix
-    ├── collect_results.py  hadd + uproot summary CSV
-    └── plot_results.py     matplotlib sensitivity plots
+    ├── setup_lxplus.sh
+    ├── build.sh
+    ├── submit_condor.py
+    ├── collect_results.py
+    └── plot_results.py
 ```
 
 ---
 
 ## Notes and caveats
 
-1. **Primary ionization model**: Geant4 uses continuous energy loss (Bethe-Bloch),
-   not cluster-by-cluster generation. The `N = Edep/W` conversion gives the
-   *expectation value* of primary ion pairs per step, with Poisson fluctuations
-   on the remainder. For cross-gas comparisons this is consistent. For absolute
-   counts vs Garfield++ Heed, expect ~10-20% differences due to Fano factor
-   and discrete cluster statistics not modelled here.
+1. **Primary ionization model**: Geant4 uses continuous energy loss, not
+   cluster-by-cluster generation. `N = Edep/W` with Poisson fluctuations is
+   the standard approach; expect ~10–20% difference vs Garfield++/Heed absolute
+   counts due to Fano factor and discrete cluster statistics.
 
-2. **Neutron sensitivity**: For thermal/epithermal neutrons, the dominant process
-   is nuclear elastic scattering producing short-range recoil nuclei. Geant4 HP
-   handles this correctly. Gas compositions with H (ethane, isobutane) will show
-   additional proton-recoil sensitivity.
+2. **He-3 isotope**: The He-3 target is defined using `G4Isotope` (A=3, Z=2),
+   not natural helium. Geant4 HP physics includes the He-3(n,p)T thermal capture
+   cross section via the high-precision neutron data library.
 
-3. **Gamma sensitivity**: Dominated by photoelectric effect at low E and Compton
-   at high E. Ar K-edge at 3.2 keV will be visible as a jump in ArCF4/ArCO2/ArCF4Iso.
-   He/Eth has very low Z so photoelectric cross-section is tiny; CF4 adds F (Z=9).
+3. **Gun position in full mode**: Particles originate at the geometric centre of
+   the He-3 gas volume. This simulates products of a neutron capture or scatter
+   event (e.g. triton + proton from ³He(n,p)T). Neutron transport to the target
+   is not simulated; fire the relevant secondary particles directly.
 
-4. **CF4 note**: CF4 is electronegative (attaches electrons at high concentrations)
-   but at 10% it's primarily a quencher. The W-value is elevated vs pure Ar.
+4. **Neutron sensitivity**: For thermal/epithermal neutrons, nuclear elastic
+   scattering produces short-range recoil nuclei. Gas mixtures with H (ethane,
+   isobutane) show additional proton-recoil sensitivity.
 
-5. **Step size**: 100 µm limit in gas. For very low-energy electrons (< 10 keV)
-   where ranges are < 100 µm, Geant4 will automatically use shorter steps.
-   Reduce to 10 µm if you want finer z-resolution in the cluster tree.
+5. **Step size**: 100 µm limit in Micromegas gas; 1 mm in He-3 gas. Reduce the
+   He-3 limit if you need spatial detail of tracks within the target.
+
+6. **Liquid scintillator optical photons**: LAB is defined for dE/dx transport
+   only. To simulate scintillation photon yield and propagation, optical material
+   properties (refractive index, absorption/emission spectra) must be added and
+   `G4OpticalPhysics` registered in `PhysicsList`.

@@ -1,6 +1,9 @@
 // PrimaryGeneratorAction.cc
+// Vacuum mode      : pencil beam at z = -10 cm, along +z.
+// Full-experiment  : pencil beam from the centre of the He-3 gas volume, along +z.
 
 #include "PrimaryGeneratorAction.hh"
+#include "DetectorConstruction.hh"
 
 #include "G4Event.hh"
 #include "G4ParticleTable.hh"
@@ -11,12 +14,12 @@
 #include <stdexcept>
 #include <map>
 
-PrimaryGeneratorAction::PrimaryGeneratorAction(const SimConfig& cfg)
-    : G4VUserPrimaryGeneratorAction(), fConfig(cfg) {
+PrimaryGeneratorAction::PrimaryGeneratorAction(const SimConfig& cfg,
+                                               const DetectorConstruction* detCon)
+    : G4VUserPrimaryGeneratorAction(), fConfig(cfg), fDetCon(detCon) {
 
     fGun = std::make_unique<G4ParticleGun>(1);
 
-    // Map config string to G4 particle name
     static const std::map<std::string, std::string> particleMap = {
         {"gamma",    "gamma"},
         {"neutron",  "neutron"},
@@ -26,12 +29,13 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(const SimConfig& cfg)
         {"muon+",    "mu+"},
         {"pion",     "pi-"},
         {"alpha",    "alpha"},
+        {"triton",   "triton"},
     };
 
     auto it = particleMap.find(cfg.particle);
     if (it == particleMap.end()) {
         throw std::runtime_error("Unknown particle: " + cfg.particle +
-            "\nAvailable: gamma, neutron, electron, proton, muon, muon+, pion, alpha");
+            "\nAvailable: gamma, neutron, electron, proton, muon, muon+, pion, alpha, triton");
     }
 
     G4ParticleTable* ptable = G4ParticleTable::GetParticleTable();
@@ -42,9 +46,16 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(const SimConfig& cfg)
 
     fGun->SetParticleDefinition(particle);
     fGun->SetParticleEnergy(cfg.energy);
-    fGun->SetParticleMomentumDirection(G4ThreeVector(0, 0, 1));  // along +z
-    // Gun at z = -10 cm; world is expanded in DetectorConstruction to include this position.
-    fGun->SetParticlePosition(G4ThreeVector(0, 0, -10.0 * cm));
+    fGun->SetParticleMomentumDirection(G4ThreeVector(0, 0, 1));
+
+    // Gun position: He-3 gas centre in full mode, fixed z = -10 cm in vacuum mode.
+    // DetectorConstruction::Construct() is called before Build(), so
+    // GetHe3GasCenterZ() is valid here.
+    G4double gunZ = -10.0 * cm;
+    if (cfg.mode == SimMode::kFullExperiment && fDetCon) {
+        gunZ = fDetCon->GetHe3GasCenterZ();
+    }
+    fGun->SetParticlePosition(G4ThreeVector(0, 0, gunZ));
 }
 
 void PrimaryGeneratorAction::GeneratePrimaries(G4Event* event) {
