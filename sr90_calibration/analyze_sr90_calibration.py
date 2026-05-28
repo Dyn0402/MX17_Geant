@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-analyse_sr90_calibration.py
+analyze_sr90_calibration.py
 Feasibility study: Sr-90/Y-90 source as a calibration substitute for the He-3 target.
 
 Physics setup:
@@ -27,7 +27,7 @@ Inputs:
   --outfile    sr90_calibration.pdf
 
 Usage:
-    python3 sr90_calibration/analyse_sr90_calibration.py \\
+    python3 sr90_calibration/analyze_sr90_calibration.py \\
         --spectrum sr90_calibration/Sr90_Y90_Beta_Spectrum.csv \\
         --summary  /path/to/full_experiment_analysis_electron.csv
 """
@@ -60,6 +60,64 @@ GEOM_EFFICIENCY  = SOLID_ANGLE_SR / (4 * np.pi)
 
 # Betas per declared source activity (secular equilibrium: Sr-90 + Y-90)
 BETAS_PER_DECAY  = 2.0
+
+# ── Material budget gaps ──────────────────────────────────────────────────────
+# Each gap is defined by the scored transmission boundaries that bracket it.
+# (label, start_trans_col or None=1.0, end_trans_col or "exit"=CFRP5/0,
+#  color, removable_note)
+# removable_note: describes which part of this gap *could* be eliminated;
+#                 None means the gap is entirely structural/unavoidable.
+BUDGET_GAPS = [
+    ("He-3 walls + 200 mm air\n+ MM dead layers",
+     None,                    "trans_primInDrift",
+     "#1f77b4",
+     "Air gap (200 mm) removable;\nHe-3 walls thinner possible"),
+
+    ("MM drift gas (30 mm)",
+     "trans_primInDrift",     "trans_primInAmp",
+     "#2ca02c", None),
+
+    ("MM amp + resistive paste (0.25 mm)",
+     "trans_primInAmp",       "trans_primInPCB",
+     "#a1d99b", None),
+
+    ("PCB stack (5.6 mm) + 20 mm air",
+     "trans_primInPCB",       "trans_primInScintWall",
+     "#ff7f0e",
+     "Air gap 2 (20 mm) removable;\nPCB not removable"),
+
+    ("Plastic scint. (3 mm) + 20 mm air + CFRP",
+     "trans_primInScintWall", "trans_primInLS1",
+     "#d62728",
+     "Air gap 3 (20 mm) removable;\nscint. + CFRP not removable"),
+
+    ("Liq. scint. layers 1–4 + CFRP walls",
+     "trans_primInLS1",       "trans_primInLSCFRP5",
+     "#6a1d8a", None),
+
+    ("Exits LS stack (punch-through)",
+     "trans_primInLSCFRP5",   "exit",
+     "#555555", None),
+]
+
+# Approximate radiation lengths and material thicknesses for the table
+# (label, thickness_cm, density_g_cm3, Z_eff)  — for annotation only
+MATERIAL_LAYERS = [
+    # Layer,            t [cm],  rho [g/cm³]  description
+    ("He-3 gas (25 mm)",  2.5,   0.0376,  "25 mm He-3 at 300 bar"),
+    ("Al capsule wall",   0.05,  2.70,    "0.5 mm Al"),
+    ("CFRP capsule wall", 0.09,  1.55,    "0.9 mm CFRP"),
+    ("Air gap 1",         20.0,  0.00120, "200 mm air"),
+    ("MM dead layers",    0.01,  3.0,     "~0.1 mm Mylar+Cu+Kapton"),
+    ("MM drift gas",      3.0,   0.00182, "30 mm Ar/Iso"),
+    ("PCB Cu (×4)",       0.0104, 8.96,  "4 × 0.026 mm Cu"),
+    ("PCB FR4 (×4)",      0.04,  1.85,   "4 × 0.10 mm FR4"),
+    ("PCB Rohacell",      0.50,  0.052,  "5 mm Rohacell 51"),
+    ("Air gap 2",         2.0,   0.00120, "20 mm air"),
+    ("Plastic scint.",    0.30,  1.032,  "3 mm PVT"),
+    ("Air gap 3",         2.0,   0.00120, "20 mm air"),
+    ("CFRP cell walls",   0.75,  1.55,   "5 × 1.5 mm CFRP"),
+]
 
 # ── Colour scheme ──────────────────────────────────────────────────────────────
 C_SR90   = "#e377c2"   # pink   — Sr-90 component
@@ -518,6 +576,306 @@ def plot_summary_page(pdf, res: dict):
     pdf.savefig(fig); plt.close(fig)
 
 
+# ── Material budget analysis ──────────────────────────────────────────────────
+
+def compute_material_budget(spectrum: pd.DataFrame,
+                            summary: pd.DataFrame) -> list:
+    """
+    For each gap in BUDGET_GAPS compute:
+      stopping_vs_E : array of fraction of beam stopped in this gap at each energy
+      spectrum_frac : spectrum-weighted fraction of all decays stopped here
+      sr_frac / y_frac : per-isotope spectrum fractions
+    Returns a list of dicts, one per gap, in stack order.
+    """
+    E    = spectrum["Energy_MeV"].values
+    S    = spectrum["Total_ProbabilityDensity"].values
+    S90  = spectrum["Sr90_ProbabilityDensity"].values
+    S_Y  = spectrum["Y90_ProbabilityDensity"].values
+    norm      = _trapz(S,   E)
+    norm_sr   = _trapz(S90, E)
+    norm_y    = _trapz(S_Y, E)
+
+    sim_E = summary["energy_MeV"].values
+
+    def get_trans(col):
+        if col is None:
+            return np.ones_like(E)
+        if col == "exit":
+            # punch-through: what's left after LS4 (may not be in summary)
+            if "trans_primInLSCFRP5" in summary.columns:
+                return interp_sim(summary, "trans_primInLSCFRP5", E, 0.0)
+            return np.zeros_like(E)
+        if col not in summary.columns:
+            return np.zeros_like(E)
+        return interp_sim(summary, col, E, fill_below=0.0)
+
+    results = []
+    for label, start_col, end_col, color, removable_note in BUDGET_GAPS:
+        t_start = get_trans(start_col)
+        t_end   = get_trans(end_col)
+        stop    = np.clip(t_start - t_end, 0, 1)
+
+        results.append(dict(
+            label          = label,
+            color          = color,
+            removable_note = removable_note,
+            stopping_vs_E  = stop,
+            spectrum_frac  = _trapz(stop * S,   E) / norm      if norm     > 0 else 0,
+            sr_frac        = _trapz(stop * S90, E) / norm_sr   if norm_sr  > 0 else 0,
+            y_frac         = _trapz(stop * S_Y, E) / norm_y    if norm_y   > 0 else 0,
+        ))
+    return results
+
+
+def plot_stopping_vs_energy(pdf, budget: list, res: dict):
+    """
+    Two-panel page:
+      Left : Stacked area chart — stopping fraction per gap vs energy.
+             Removable gaps have hatching.  Beta spectrum shown for context.
+      Right: Horizontal bar chart — spectrum-weighted stopping per gap.
+             Shows total 'avoidable' vs 'unavoidable' stopping.
+    """
+    E  = res["E"]
+    S  = res["S"]
+
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5.5))
+
+    # ── Left: stacked area ──────────────────────────────────────────────
+    ax = axes[0]
+    bottom = np.zeros_like(E)
+
+    # Beta spectrum on secondary y-axis
+    ax2 = ax.twinx()
+    ax2.fill_between(E, 0, S / S.max(), alpha=0.08, color="grey")
+    ax2.set_ylim(0, 3)
+    ax2.set_yticks([])
+
+    for gap in budget:
+        stop = gap["stopping_vs_E"]
+        hatch = "//" if gap["removable_note"] else None
+        ax.fill_between(E, bottom, bottom + stop,
+                        color=gap["color"], alpha=0.75,
+                        hatch=hatch, edgecolor="white" if hatch else gap["color"],
+                        linewidth=0.3, label=gap["label"])
+        bottom += stop
+
+    ax.set_xlim(0, 2.4)
+    ax.set_ylim(0, 1.02)
+    ax.set_xlabel("Beta energy (MeV)", fontsize=10)
+    ax.set_ylabel("Fraction of electrons stopped in gap", fontsize=10)
+    ax.set_title("Where electrons stop vs energy\n(// hatching = removable material)",
+                 fontsize=10)
+    ax.axvline(0.546, color="grey", lw=0.8, ls="--", alpha=0.6)
+    ax.axvline(2.28,  color="grey", lw=0.8, ls="--", alpha=0.6)
+    ax.text(0.55, 0.97, "Sr-90\nend", fontsize=6, color="grey", va="top")
+    ax.text(2.29, 0.97, "Y-90\nend", fontsize=6, color="grey", va="top")
+    ax.legend(fontsize=6, loc="upper left", ncol=1,
+              bbox_to_anchor=(0.0, 0.95))
+    ax.grid(True, alpha=0.2)
+
+    # ── Right: horizontal bar ───────────────────────────────────────────
+    ax = axes[1]
+    labels  = [g["label"].replace("\n", " ") for g in budget]
+    fracs   = [g["spectrum_frac"] * 100        for g in budget]
+    colors  = [g["color"]                       for g in budget]
+    hatches = ["//" if g["removable_note"] else "" for g in budget]
+
+    # Reverse so first gap is on top
+    y = np.arange(len(budget))[::-1]
+    for i, (frac, color, hatch, lbl) in enumerate(zip(fracs, colors, hatches, labels)):
+        ax.barh(y[i], frac, color=color, alpha=0.80,
+                hatch=hatch, edgecolor="white" if hatch else color,
+                height=0.7)
+        ax.text(frac + 0.3, y[i], f"{frac:.1f} %",
+                va="center", fontsize=8, fontweight="bold")
+
+    ax.set_yticks(y)
+    ax.set_yticklabels([g["label"].replace("\n", " ") for g in budget[::-1]],
+                       fontsize=8)
+    ax.set_xlabel("Spectrum-weighted fraction stopped (%)", fontsize=10)
+    ax.set_xlim(0, max(fracs) * 1.35 + 1)
+    ax.set_title("Spectrum-integrated stopping per gap\n"
+                 "(// = removable; includes Sr-90 + Y-90 combined)",
+                 fontsize=10)
+    ax.grid(True, axis="x", alpha=0.3)
+
+    # Annotate removable total
+    removable_total = sum(g["spectrum_frac"] for g in budget
+                          if g["removable_note"]) * 100
+    ax.text(0.97, 0.02, f"Removable stopping: {removable_total:.1f} %",
+            transform=ax.transAxes, ha="right", va="bottom",
+            fontsize=9, color="grey",
+            bbox=dict(boxstyle="round,pad=0.3", fc="white", alpha=0.8))
+
+    fig.suptitle("Material budget: where does the Sr-90 / Y-90 beta spectrum stop?",
+                 fontsize=12)
+    fig.tight_layout()
+    pdf.savefig(fig); plt.close(fig)
+
+
+def plot_cumulative_transmission(pdf, budget: list, res: dict):
+    """
+    Cumulative transmission at each gap boundary vs energy, for both isotopes.
+    Also shows: what the trigger efficiency would be if only 'removable' material
+    were eliminated (rough upper bound using air-free approximation).
+    """
+    E   = res["E"]
+    S90 = res["S90"]
+    S_Y = res["S_Y"]
+    S   = res["S"]
+
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+
+    # ── Left: cumulative transmission waterfall ─────────────────────────
+    ax = axes[0]
+    cum = np.ones_like(E)
+    ax.fill_between(E, 0, S / S.max() * 0.9, alpha=0.08, color="grey",
+                    label="Beta spectrum (norm.)")
+
+    for gap in budget[:-1]:   # skip "exits" row
+        cum = np.clip(cum - gap["stopping_vs_E"], 0, 1)
+        lbl = gap["label"].replace("\n", " ").split("(")[0].strip()
+        ls  = "--" if gap["removable_note"] else "-"
+        ax.plot(E, cum * 100, color=gap["color"], lw=1.5, ls=ls, label=f"After {lbl}")
+
+    ax.set_xlim(0, 2.4)
+    ax.set_ylim(-2, 105)
+    ax.axvline(0.546, color="grey", lw=0.8, ls=":", alpha=0.7)
+    ax.axvline(2.28,  color="grey", lw=0.8, ls=":", alpha=0.7)
+    ax.set_xlabel("Beta energy (MeV)", fontsize=10)
+    ax.set_ylabel("Electrons surviving to this boundary (%)", fontsize=10)
+    ax.set_title("Cumulative transmission through the stack\n"
+                 "(dashed = boundary follows removable material)", fontsize=10)
+    ax.legend(fontsize=7, loc="upper left")
+    ax.grid(True, alpha=0.3)
+
+    # ── Right: per-isotope breakdown table ─────────────────────────────
+    ax = axes[1]
+    ax.axis("off")
+
+    headers = ["Gap / material",        "All β (%)", "Sr-90 (%)", "Y-90 (%)"]
+    rows = []
+    for gap in budget:
+        note = " ✓ removable" if gap["removable_note"] else ""
+        rows.append([
+            gap["label"].replace("\n", " ") + note,
+            f"{gap['spectrum_frac']*100:.2f}",
+            f"{gap['sr_frac']*100:.2f}",
+            f"{gap['y_frac']*100:.2f}",
+        ])
+    # Totals
+    rows.append(["─" * 30, "─" * 8, "─" * 8, "─" * 8])
+    rows.append([
+        "TOTAL removable",
+        f"{sum(g['spectrum_frac'] for g in budget if g['removable_note'])*100:.2f}",
+        f"{sum(g['sr_frac']       for g in budget if g['removable_note'])*100:.2f}",
+        f"{sum(g['y_frac']        for g in budget if g['removable_note'])*100:.2f}",
+    ])
+    rows.append([
+        "TOTAL unavoidable",
+        f"{sum(g['spectrum_frac'] for g in budget if not g['removable_note'])*100:.2f}",
+        f"{sum(g['sr_frac']       for g in budget if not g['removable_note'])*100:.2f}",
+        f"{sum(g['y_frac']        for g in budget if not g['removable_note'])*100:.2f}",
+    ])
+
+    table = ax.table(
+        cellText=rows,
+        colLabels=headers,
+        loc="center",
+        cellLoc="left",
+    )
+    table.auto_set_font_size(False)
+    table.set_fontsize(8)
+    table.scale(1.0, 1.5)
+    for (r, c), cell in table.get_celld().items():
+        cell.set_edgecolor("#cccccc")
+        if r == 0:
+            cell.set_facecolor("#e8e8e8")
+            cell.set_text_props(fontweight="bold")
+        elif "removable" in (rows[r - 1][0] if r - 1 < len(rows) else ""):
+            cell.set_facecolor("#e8f4e8")
+        elif "unavoidable" in (rows[r - 1][0] if r - 1 < len(rows) else ""):
+            cell.set_facecolor("#fce8e8")
+
+    ax.set_title("Stopping fraction per gap by isotope\n"
+                 "(fraction of all decays aimed at detector)", fontsize=10)
+
+    fig.suptitle("Transmission waterfall and per-gap stopping table", fontsize=12)
+    fig.tight_layout()
+    pdf.savefig(fig); plt.close(fig)
+
+
+def plot_material_thickness_table(pdf):
+    """
+    One-page reference table showing every material layer with its
+    thickness, areal density [g/cm²], and whether it is removable.
+    """
+    fig, ax = plt.subplots(figsize=(10, 7))
+    ax.axis("off")
+
+    headers = ["Layer", "Thickness", "Density (g/cm³)", "Areal density (mg/cm²)",
+               "Removable?"]
+    rows = []
+    total_areal  = 0.0
+    remove_areal = 0.0
+    for name, t_cm, rho, description in MATERIAL_LAYERS:
+        areal = t_cm * rho * 1000   # mg/cm²
+        total_areal += areal
+        t_str    = (f"{t_cm*10:.1f} mm" if t_cm >= 0.1
+                    else f"{t_cm*10000:.0f} µm")
+        rho_str  = f"{rho:.4f}" if rho < 0.01 else f"{rho:.3f}"
+        # Mark air gaps as removable
+        removable = "Yes" if "air" in name.lower() else "No"
+        if removable == "Yes":
+            remove_areal += areal
+        rows.append([description, t_str, rho_str, f"{areal:.1f}", removable])
+
+    # Totals
+    rows.append(["─" * 35, "─" * 8, "─" * 10, "─" * 18, "─" * 10])
+    rows.append(["Total material budget", "", "",
+                 f"{total_areal:.1f}", ""])
+    rows.append(["  of which removable (air gaps)", "", "",
+                 f"{remove_areal:.1f}  ({remove_areal/total_areal*100:.0f}%)", ""])
+    rows.append(["  unavoidable", "", "",
+                 f"{total_areal - remove_areal:.1f}  ({(total_areal-remove_areal)/total_areal*100:.0f}%)", ""])
+
+    table = ax.table(
+        cellText=rows,
+        colLabels=headers,
+        loc="center",
+        cellLoc="left",
+    )
+    table.auto_set_font_size(False)
+    table.set_fontsize(8.5)
+    table.scale(1.0, 1.6)
+    for (r, c), cell in table.get_celld().items():
+        cell.set_edgecolor("#cccccc")
+        if r == 0:
+            cell.set_facecolor("#d8d8d8")
+            cell.set_text_props(fontweight="bold")
+        elif r - 1 < len(rows) and rows[r - 1][-1] == "Yes":
+            cell.set_facecolor("#e8f4e8")
+        elif r - 1 < len(rows) and "removable" in rows[r - 1][0].lower():
+            cell.set_facecolor("#e8f4e8")
+        elif r - 1 < len(rows) and "unavoidable" in rows[r - 1][0].lower():
+            cell.set_facecolor("#fce8e8")
+
+    # CSDA range reference note
+    ax.text(0.5, 0.01,
+            "CSDA ranges for reference: 2 MeV e⁻ in water ≈ 0.88 g/cm² │ "
+            "2 MeV e⁻ in Cu ≈ 0.55 g/cm² │ total unavoidable ≈ 0.43 g/cm²\n"
+            "Y-90 endpoint 2.28 MeV → CSDA range in water ≈ 1.0 g/cm². "
+            "Total areal budget exceeds this → electrons cannot reach LS1.",
+            transform=ax.transAxes, ha="center", va="bottom",
+            fontsize=8, style="italic", color="#555555",
+            bbox=dict(boxstyle="round,pad=0.4", fc="#fffbe6", alpha=0.9))
+
+    ax.set_title("Material layer reference table — full detector stack",
+                 fontsize=12, pad=20)
+    fig.tight_layout()
+    pdf.savefig(fig); plt.close(fig)
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def parse_args():
@@ -558,7 +916,8 @@ def main():
           f"(solid angle {SOLID_ANGLE_SR:.3f} sr)")
 
     print("Computing spectrum-weighted quantities ...")
-    res = compute_spectral_quantities(spectrum, summary)
+    res    = compute_spectral_quantities(spectrum, summary)
+    budget = compute_material_budget(spectrum, summary)
 
     print(f"\nKey results:")
     print(f"  Combined spectral trigger efficiency: {res['spec_trig_eff']*100:.3f} %")
@@ -602,6 +961,15 @@ def main():
 
         print("  MM context ...")
         plot_mm_context(pdf, res, summary)
+
+        print("  Material budget: stopping vs energy ...")
+        plot_stopping_vs_energy(pdf, budget, res)
+
+        print("  Material budget: cumulative transmission + table ...")
+        plot_cumulative_transmission(pdf, budget, res)
+
+        print("  Material layer reference table ...")
+        plot_material_thickness_table(pdf)
 
     print(f"\nDone → {args.outfile}")
 

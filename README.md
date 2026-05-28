@@ -469,6 +469,49 @@ print(df)
 
 ---
 
+## Sr-90/Y-90 calibration feasibility
+
+`sr90_calibration/analyse_sr90_calibration.py` evaluates using an Sr-90/Y-90
+source in place of the He-3 target to calibrate the detector system.
+
+**Physics:** Sr-90 (Emax = 0.546 MeV) and Y-90 (Emax = 2.28 MeV) in secular
+equilibrium emit two betas per decay. The script convolves the measured beta
+spectrum with the simulated detector response to give spectrum-weighted
+observables.
+
+**Inputs required:**
+- `sr90_calibration/Sr90_Y90_Beta_Spectrum.csv` — beta spectrum (shipped)
+- `full_experiment_analysis_electron.csv` — simulation summary from
+  `analyse_full_experiment.py` (run that first)
+
+**Usage:**
+
+```bash
+python3 sr90_calibration/analyze_sr90_calibration.py \
+    --spectrum sr90_calibration/Sr90_Y90_Beta_Spectrum.csv \
+    --summary  /afs/cern.ch/user/d/dneff/x17/mm_sim_results/full_stack/full_experiment_analysis_electron.csv \
+    --outfile  /afs/cern.ch/user/d/dneff/x17/mm_sim_results/full_stack/sr90_calibration.pdf
+```
+
+**Output PDF pages:**
+
+| Page | Content |
+|------|---------|
+| 1 | Text summary: efficiencies, mean signals, rate estimates |
+| 2 | Beta spectrum (Sr-90 / Y-90 / total) with trigger acceptance highlighted |
+| 3 | Electron fate vs energy: miss / contained / punch-through (pie + curve) |
+| 4 | Energy deposition in plastic scint. and LS1 for triggered events |
+| 5 | Trigger rate vs source activity (log-log) + per-isotope efficiency bars |
+| 6 | MM drift gas signal for triggered events; Sr-90/Y-90 range vs experiment range |
+
+**Key outputs reported:**
+- Geometric efficiency (~14% — detector is large relative to source distance)
+- Spectral trigger efficiency per isotope (Sr-90 ≈ 0%, Y-90 small %)
+- Combined trigger rate at typical source activities (μCi → mCi range)
+- Mean energy deposition in plastic scint. and LS1 for triggered events
+
+---
+
 ## File structure
 
 ```
@@ -497,14 +540,17 @@ mm_sim/
 │   └── SensitiveDetector.cc
 ├── macros/
 │   └── run_default.mac
-└── scripts/
-    ├── setup_lxplus.sh
-    ├── build.sh
-    ├── submit_condor.py        Vacuum-mode sensitivity scan
-    ├── submit_condor_full.py   Full-experiment stack scan (electrons 0.1–12 MeV)
-    ├── collect_results.py      Merge vacuum-mode results + summary CSV
-    ├── plot_results.py         Vacuum-mode sensitivity plots
-    └── analyse_full_experiment.py  Full-experiment transmission + calorimetry + angles
+├── scripts/
+│   ├── setup_lxplus.sh
+│   ├── build.sh
+│   ├── submit_condor.py           Vacuum-mode sensitivity scan
+│   ├── submit_condor_full.py      Full-experiment stack scan (e±, 0.1–18 MeV, 217 pts)
+│   ├── collect_results.py         Merge vacuum-mode results + summary CSV
+│   ├── plot_results.py            Vacuum-mode sensitivity plots
+│   └── analyze_full_experiment.py Full-experiment transmission + calorimetry + angles
+└── sr90_calibration/
+    ├── Sr90_Y90_Beta_Spectrum.csv  Measured beta spectrum (1000 points, 0–2.3 MeV)
+    └── analyse_sr90_calibration.py Sr-90/Y-90 calibration feasibility analysis
 ```
 
 ---
