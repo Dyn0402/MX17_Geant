@@ -60,7 +60,73 @@ SIMPLIFIED_LAYERS = [
     ("edepDrift",     "primInDrift",     "MM drift gas",   "#2ca02c"),
     ("edepScintWall", "primInScintWall", "Plastic scint.", "#d62728"),
     ("edepLS1",       "primInLS1",       "Liq. scint. 1",  "#6a1d8a"),
-    ("edepLS2",       "primInLS2",       "Liq. scint. 2",  "#9b59b6"),
+    ("edepLS4",       "primInLS4",       "Liq. scint. 4",  "#d7bde2"),
+]
+
+# Coarse grouping: aggregate detector subsystems
+# (label, color, [edep branches to sum], trans_col for entry transmission)
+COARSE_GROUPS = [
+    ("He-3 target",        "#1f77b4",
+     ["edepHe3Gas"],
+     "primInHe3Gas"),
+    ("Micromegas (all)",   "#2ca02c",
+     ["edepDrift", "edepAmp", "edepResistPaste"],
+     "primInDrift"),
+    ("PCB stack",          "#ff7f0e",
+     ["edepPCB"],
+     "primInPCB"),
+    ("Plastic scint.",     "#d62728",
+     ["edepScintWall"],
+     "primInScintWall"),
+    ("Liquid scint. (all)","#6a1d8a",
+     ["edepLS1", "edepLS2", "edepLS3", "edepLS4"],
+     "primInLS1"),
+]
+
+# Cumulative path from gun (He-3 centre, z = 0) to entry face of each
+# scored volume [mm].  Used for survival-vs-path plots.
+# He-3 gas radius 25 mm + exit wall (Al 0.5 + CFRP 0.9) + 200 mm air
+# + MM dead layers (~0.1 mm) → drift gas entry ≈ 226.5 mm.
+SURVIVAL_COLS = [
+    # (trans_col,        z_entry_mm, label)
+    ("primInHe3Gas",       25.0,   "He-3 exit"),
+    ("primInDrift",       226.5,   "MM drift"),
+    ("primInAmp",         256.5,   "MM amp"),
+    ("primInPCB",         256.8,   "PCB"),
+    ("primInScintWall",   282.6,   "Plastic scint."),
+    ("primInLS1",         307.3,   "LS1"),
+    ("primInLS2",         323.8,   "LS2"),
+    ("primInLS3",         340.3,   "LS3"),
+    ("primInLS4",         356.8,   "LS4"),
+]
+LS4_EXIT_MM = 371.8   # end of LS4 (LS_CFRP_5 skipped — not scored)
+
+SURVIVAL_ENERGIES_MEV = [1.0, 3.0, 5.0, 10.0, 16.5]
+
+# Schematic stack for the diagram strip.
+# (z_start_mm, z_end_mm, face_color, text_color, label)
+# Air gaps are omitted — they take the figure background color.
+DETECTOR_STACK = [
+    ( 0.0,   25.0,  "#1f77b4", "white",  "He-3 gas"),   # He-3 gas (half-diameter)
+    (25.0,   25.5,  "#aec7e8", "black",  ""),            # Al capsule wall
+    (25.5,   26.4,  "#555555", "white",  ""),            # CFRP capsule wall
+    # 26.4 – 226.4  Air gap 1 (background)
+    (226.4,  226.5, "#c7e9c0", "black",  ""),            # MM dead layers (Mylar+cathode)
+    (226.5,  256.5, "#2ca02c", "white",  "Drift"),       # Drift gas  30 mm
+    (256.5,  256.55,"#808080", "white",  ""),            # Micromesh
+    (256.55, 257.0, "#74c476", "black",  ""),            # Amp gas + resistive paste
+    (257.0,  262.6, "#ff7f0e", "black",  "PCB"),         # PCB stack  5.6 mm
+    # 262.6 – 282.6  Air gap 2 (background)
+    (282.6,  285.8, "#d62728", "white",  "Scint."),      # Plastic scint. wall  3.2 mm
+    # 285.8 – 305.8  Air gap 3 (background)
+    (305.8,  307.3, "#555555", "white",  ""),            # CFRP  1.5 mm
+    (307.3,  322.3, "#6a1d8a", "white",  "LS 1"),        # Liq. scint. 1  15 mm
+    (322.3,  323.8, "#555555", "white",  ""),            # CFRP
+    (323.8,  338.8, "#9b59b6", "white",  "LS 2"),        # Liq. scint. 2
+    (338.8,  340.3, "#555555", "white",  ""),            # CFRP
+    (340.3,  355.3, "#bb8fce", "black",  "LS 3"),        # Liq. scint. 3
+    (355.3,  356.8, "#555555", "white",  ""),            # CFRP
+    (356.8,  371.8, "#d7bde2", "black",  "LS 4"),        # Liq. scint. 4
 ]
 
 # Line style per particle
@@ -547,6 +613,201 @@ def plot_angular_resolution(pdf: PdfPages, all_groups: dict, step: int = 10):
     pdf.savefig(fig); plt.close(fig)
 
 
+# ── Coarse grouped plots ──────────────────────────────────────────────────────
+
+def _coarse_legend(ax, loc="lower right"):
+    handles = [mpatches.Patch(color=color, label=label)
+               for (label, color, _, _) in COARSE_GROUPS]
+    return ax.legend(handles=handles, loc=loc, fontsize=8,
+                     title="Group", title_fontsize=8)
+
+
+def plot_transmission_coarse(pdf: PdfPages, summaries: dict):
+    fig, ax = plt.subplots(figsize=(8, 5))
+    for (label, color, _edep_brs, trans_col) in COARSE_GROUPS:
+        col = f"trans_{trans_col}"
+        for particle, summary in summaries.items():
+            if col not in summary.columns:
+                continue
+            pst = PARTICLE_STYLES.get(particle, {"ls": "-", "lw": 1.8})
+            ax.plot(summary["energy_MeV"].values, summary[col].values,
+                    color=color, ls=pst["ls"], lw=pst["lw"])
+    ax.set_ylim(-0.02, 1.05)
+    ax.axhline(1.0, color="grey", lw=0.6, ls=":")
+    ax.set_ylabel("Transmission fraction", fontsize=11)
+    _set_xaxis(ax)
+    ax.set_title("Transmission by detector group", fontsize=12)
+    ax.grid(True, alpha=0.3)
+    leg1 = _coarse_legend(ax, loc="lower right")
+    ax.add_artist(leg1)
+    _particle_legend(ax, summaries, loc="center right")
+    fig.tight_layout()
+    pdf.savefig(fig); plt.close(fig)
+
+
+def plot_edep_coarse(pdf: PdfPages, summaries: dict):
+    fig, ax = plt.subplots(figsize=(8, 5))
+    for (label, color, edep_brs, _trans_col) in COARSE_GROUPS:
+        for particle, summary in summaries.items():
+            cols = [f"edep_{b}" for b in edep_brs if f"edep_{b}" in summary.columns]
+            if not cols:
+                continue
+            total = sum(summary[c] for c in cols)
+            if total.max() < 1e-8:
+                continue
+            pst = PARTICLE_STYLES.get(particle, {"ls": "-", "lw": 1.8})
+            ax.plot(summary["energy_MeV"].values, total.values,
+                    color=color, ls=pst["ls"], lw=pst["lw"])
+    ax.set_yscale("log")
+    ax.set_ylabel("Mean energy deposition (MeV / primary)", fontsize=11)
+    _set_xaxis(ax)
+    ax.set_title("Energy deposition by detector group", fontsize=12)
+    ax.grid(True, which="both", alpha=0.3)
+    leg1 = _coarse_legend(ax, loc="upper left")
+    ax.add_artist(leg1)
+    _particle_legend(ax, summaries, loc="lower right")
+    fig.tight_layout()
+    pdf.savefig(fig); plt.close(fig)
+
+
+# ── Survival vs path-length plots ─────────────────────────────────────────────
+
+def _draw_stack_diagram(ax, xlim):
+    """
+    Thin schematic of the detector stack sharing the path-length x-axis.
+    Air gaps take the figure background colour (drawn as nothing).
+    Very thin layers get a minimum display width so they remain visible.
+    """
+    MIN_VIS_MM = 1.8   # minimum drawn width [mm] for thin layers
+
+    ax.set_facecolor(ax.get_figure().get_facecolor())
+
+    for (z0, z1, fc, tc, label) in DETECTOR_STACK:
+        w_real = z1 - z0
+        w_draw = max(w_real, MIN_VIS_MM)
+        zc     = (z0 + z1) / 2                     # keep block centred on true position
+        rect   = mpatches.Rectangle(
+            (zc - w_draw / 2, 0.04), w_draw, 0.92,
+            facecolor=fc, edgecolor="white", linewidth=0.5, zorder=2)
+        ax.add_patch(rect)
+
+        if label and w_draw >= 3.0:
+            rot = 0 if w_draw >= 14 else 90
+            fs  = 7.0 if w_draw >= 14 else 5.5
+            ax.text(zc, 0.5, label,
+                    ha="center", va="center",
+                    fontsize=fs, color=tc, rotation=rot,
+                    fontweight="bold", zorder=3, clip_on=True)
+
+    # Beam-direction arrow at the left
+    ax.annotate("", xy=(xlim[0] + 12, 0.5), xytext=(xlim[0] + 1, 0.5),
+                arrowprops=dict(arrowstyle="-|>", color="#666666", lw=1.0),
+                zorder=4)
+    ax.text(xlim[0] + 0.5, 0.5, "beam", fontsize=5.5, color="#666666",
+            ha="left", va="center", style="italic")
+
+    ax.set_xlim(*xlim)
+    ax.set_ylim(0, 1)
+    ax.set_autoscale_on(False)
+    for sp in ax.spines.values():
+        sp.set_visible(False)
+    ax.tick_params(left=False, bottom=False,
+                   labelleft=False, labelbottom=False)
+
+
+def plot_survival(pdf: PdfPages, all_summaries: dict):
+    """
+    Top row: thin schematic of the detector stack (shared x-axis).
+    Then one row per particle: survival S(z) and loss rate −dS/dz.
+    """
+    n_par  = len(all_summaries)
+    XLIM   = (0.0, LS4_EXIT_MM + 6)
+    DIAG_H = 0.22   # height ratio of diagram row relative to data rows
+
+    fig = plt.figure(figsize=(12, 1.1 + 4.5 * n_par))
+    gs  = fig.add_gridspec(
+        n_par + 1, 2,
+        height_ratios=[DIAG_H] + [1.0] * n_par,
+        hspace=0.06, wspace=0.30,
+    )
+
+    ax_diag = fig.add_subplot(gs[0, :])
+    _draw_stack_diagram(ax_diag, xlim=XLIM)
+
+    snap_colors = cm.plasma(np.linspace(0.1, 0.85, len(SURVIVAL_ENERGIES_MEV)))
+
+    for row_idx, (particle, summary) in enumerate(all_summaries.items()):
+        ax_s = fig.add_subplot(gs[row_idx + 1, 0], sharex=ax_diag)
+        ax_l = fig.add_subplot(gs[row_idx + 1, 1], sharex=ax_diag)
+
+        plab     = PARTICLE_STYLES.get(particle, {}).get("label", particle)
+        avail_en = summary["energy_MeV"].values
+
+        for e_target, color in zip(SURVIVAL_ENERGIES_MEV, snap_colors):
+            idx      = np.argmin(np.abs(avail_en - e_target))
+            e_actual = avail_en[idx]
+            row_data = summary.iloc[idx]
+
+            z_pts, s_pts = [0.0], [1.0]
+            for (trans_col, z_entry, _lbl) in SURVIVAL_COLS:
+                col = f"trans_{trans_col}"
+                if col in summary.columns:
+                    val = row_data[col]
+                    if not np.isnan(val):
+                        z_pts.append(z_entry)
+                        s_pts.append(float(val))
+
+            z_pts = np.array(z_pts)
+            s_pts = np.array(s_pts)
+            lbl   = f"{e_actual:.3g} MeV"
+
+            ax_s.plot(z_pts, s_pts, color=color, lw=1.6,
+                      marker="o", ms=4, label=lbl)
+
+            dz   = np.diff(z_pts)
+            ds   = np.diff(s_pts)
+            loss = -ds / dz
+            z_mid = 0.5 * (z_pts[:-1] + z_pts[1:])
+            ax_l.plot(z_mid, loss, color=color, lw=1.5,
+                      marker="o", ms=4, label=lbl)
+
+        # Shared boundary guides on both panels
+        for (_, z_entry, _) in SURVIVAL_COLS:
+            ax_s.axvline(z_entry, color="lightgrey", lw=0.7, ls=":", zorder=0)
+            ax_l.axvline(z_entry, color="lightgrey", lw=0.7, ls=":", zorder=0)
+        ax_s.axvline(LS4_EXIT_MM, color="lightgrey", lw=0.7, ls=":", zorder=0)
+        ax_l.axvline(LS4_EXIT_MM, color="lightgrey", lw=0.7, ls=":", zorder=0)
+
+        ax_s.set_ylabel("Survival fraction", fontsize=10)
+        ax_s.set_title(f"{plab} — Survival", fontsize=11)
+        ax_s.set_ylim(-0.02, 1.08)
+        ax_s.axhline(1.0, color="grey", lw=0.6, ls=":")
+        ax_s.legend(title="E₀", fontsize=8, title_fontsize=8, loc="upper right")
+        ax_s.grid(True, alpha=0.3)
+
+        ax_l.set_ylabel("Loss rate  −dS/dz  (mm⁻¹)", fontsize=10)
+        ax_l.set_title(f"{plab} — Loss rate", fontsize=11)
+        ax_l.set_ylim(bottom=0)
+        ax_l.legend(title="E₀", fontsize=8, title_fontsize=8)
+        ax_l.grid(True, alpha=0.3)
+
+        # x labels only on the bottom data row
+        is_bottom = (row_idx == n_par - 1)
+        if is_bottom:
+            ax_s.set_xlabel("Path from gun (mm)", fontsize=10)
+            ax_l.set_xlabel("Path from gun (mm)", fontsize=10)
+        else:
+            plt.setp(ax_s.get_xticklabels(), visible=False)
+            plt.setp(ax_l.get_xticklabels(), visible=False)
+
+    ax_diag.set_xlim(*XLIM)
+
+    fig.suptitle("Primary particle survival vs cumulative path through the stack",
+                 fontsize=12)
+    fig.savefig(pdf, format="pdf", bbox_inches="tight")
+    plt.close(fig)
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 def parse_args():
@@ -617,19 +878,26 @@ def main():
 
         print("  Transmission (all layers) ...")
         plot_transmission(pdf, all_summaries)
-        print("  Transmission (simplified) ...")
+        print("  Transmission (simplified: drift / plastic scint. / LS1 / LS4) ...")
         plot_transmission_simple(pdf, all_summaries)
+        print("  Transmission (coarse: detector groups) ...")
+        plot_transmission_coarse(pdf, all_summaries)
 
         print("  Edep (all layers) ...")
         plot_edep(pdf, all_summaries)
         print("  Edep (simplified) ...")
         plot_edep_simple(pdf, all_summaries)
+        print("  Edep (coarse: detector groups) ...")
+        plot_edep_coarse(pdf, all_summaries)
 
         print("  Calorimetry ...")
         plot_calorimetry(pdf, all_summaries)
 
         print("  Containment ...")
         plot_containment(pdf, all_summaries)
+
+        print("  Survival vs path length ...")
+        plot_survival(pdf, all_summaries)
 
         print("  Layer profiles ...")
         plot_layer_profiles(pdf, all_groups, SNAPSHOT_ENERGIES)
