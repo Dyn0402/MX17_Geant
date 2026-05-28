@@ -24,6 +24,7 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(const SimConfig& cfg,
         {"gamma",    "gamma"},
         {"neutron",  "neutron"},
         {"electron", "e-"},
+        {"positron", "e+"},
         {"proton",   "proton"},
         {"muon",     "mu-"},
         {"muon+",    "mu+"},
@@ -35,7 +36,7 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(const SimConfig& cfg,
     auto it = particleMap.find(cfg.particle);
     if (it == particleMap.end()) {
         throw std::runtime_error("Unknown particle: " + cfg.particle +
-            "\nAvailable: gamma, neutron, electron, proton, muon, muon+, pion, alpha, triton");
+            "\nAvailable: gamma, neutron, electron, positron, proton, muon, muon+, pion, alpha, triton");
     }
 
     G4ParticleTable* ptable = G4ParticleTable::GetParticleTable();

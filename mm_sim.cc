@@ -27,7 +27,7 @@ void PrintUsage() {
     std::cerr << "  -g <gas>         Gas: ArCF4, ArIso, HeEth, ArCO2, ArCF4Iso, NeIso, NeCF4,\n";
     std::cerr << "                       ArCF4CO2, PureCF4, PureAr, PureHe, PureNe,\n";
     std::cerr << "                       PureEthane, PureIso, PureCO2  (default: ArCF4)\n";
-    std::cerr << "  -p <particle>    gamma, neutron, electron, proton, muon, muon+,\n";
+    std::cerr << "  -p <particle>    gamma, neutron, electron, positron, proton, muon, muon+,\n";
     std::cerr << "                   pion, alpha, triton  (default: gamma)\n";
     std::cerr << "  -e <energy>      Particle energy [MeV]  (default: 1.0)\n";
     std::cerr << "  -n <nevents>     Number of events  (default: 10000)\n";

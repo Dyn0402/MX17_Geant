@@ -37,12 +37,13 @@ def _logspace(lo, hi, n):
     return [round(10 ** (la + i * (lb - la) / (n - 1)), 8) for i in range(n)]
 
 
-# 200 log-spaced electron energies, 0.1–12 MeV
-ELECTRON_ENERGIES = _logspace(0.1, 12.0, 200)
+# 200 log-spaced lepton energies, 0.1–18 MeV
+LEPTON_ENERGIES = _logspace(0.1, 18.0, 200)
 
 PARTICLE_ENERGIES = {
-    # Main scan — electron transmission study
-    "electron": ELECTRON_ENERGIES,
+    # Main scan — electron and positron transmission/calorimetry study
+    "electron": LEPTON_ENERGIES,
+    "positron": LEPTON_ENERGIES,  # same range; positrons annihilate at end of range
 
     # He-3(n,p)T capture products for thermal neutrons (E_n ≈ 25 meV):
     #   KE_triton ≈ Q × M_p/(M_p+M_T) = 0.764 × 1/4 = 0.191 MeV
@@ -59,6 +60,7 @@ GASES_DEFAULT = ["ArIso"]
 NEVENTS_DEFAULT = 50000
 NEVENTS_SCALE = {
     "electron": 1,
+    "positron": 1,
     "triton":   1,
     "proton":   1,
 }
@@ -251,9 +253,8 @@ def main():
             print(f"  {make_tag(gas, particle, energy)}  ({nevents} events)")
         if len(jobs) > 10:
             print(f"  ... and {len(jobs)-10} more")
-        # Print electron energy range summary
-        e_vals = PARTICLE_ENERGIES["electron"]
-        print(f"\nElectron energies: {e_vals[0]:.4f} – {e_vals[-1]:.4f} MeV "
+        e_vals = LEPTON_ENERGIES
+        print(f"\nLepton energies: {e_vals[0]:.4f} – {e_vals[-1]:.4f} MeV "
               f"({len(e_vals)} log-spaced points)")
         return
 
