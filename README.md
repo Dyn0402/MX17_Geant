@@ -313,50 +313,53 @@ build/mm_sim -m full -g ArCF4 -p electron -e 5.0 -n 10000 \
 
 ### 3. HTCondor energy scan
 
-`submit_condor.py` is written for the vacuum sensitivity scan. For the
-full-experiment mode, submit jobs directly with a short loop:
+Use `scripts/submit_condor_full.py`, which mirrors the structure of the
+vacuum-mode `submit_condor.py`.
+
+**Default scan:**
+- **Electrons**: 200 log-spaced points, 0.1–12 MeV (~2.4 % step per point)
+- **Triton**: 9 points, 0.191–5 MeV (He-3 capture product: KE ≈ 0.191 MeV for thermal n)
+- **Proton**: 7 points, 0.573–5 MeV (He-3 capture product: KE ≈ 0.573 MeV for thermal n)
 
 ```bash
-#!/bin/bash
-# submit_full_scan.sh
-# Scans electron energies from 1–20 MeV to study LS transmission
+# Dry run first — prints job list without submitting
+python3 scripts/submit_condor_full.py \
+    --outdir /eos/user/d/dneff/mx17_geant_sim_results/full \
+    --jobdir /afs/cern.ch/user/d/dneff/condor/mx17_geant_full \
+    --nevents 50000 \
+    --dry-run
 
-OUTDIR=/eos/experiment/ntof/data/x17/mm_sim_results/full
-NEVENTS=50000
-GAS=ArCF4
+# Submit for real
+python3 scripts/submit_condor_full.py \
+    --outdir /eos/user/d/dneff/mx17_geant_sim_results/full \
+    --jobdir /afs/cern.ch/user/d/dneff/condor/mx17_geant_full \
+    --nevents 50000
 
-mkdir -p ${OUTDIR}
-
-for ENERGY in 1.0 2.0 3.0 5.0 7.0 10.0 15.0 20.0; do
-    TAG=full_${GAS}_electron_${ENERGY}MeV
-    cat > /tmp/job_${TAG}.sub << EOF
-executable  = build/mm_sim
-arguments   = -m full -g ${GAS} -p electron -e ${ENERGY} -n ${NEVENTS} -o ${OUTDIR}/${TAG}
-output      = logs/${TAG}.out
-error       = logs/${TAG}.err
-log         = logs/${TAG}.log
-+JobFlavour = "longlunch"
-queue
-EOF
-    condor_submit /tmp/job_${TAG}.sub
-done
-```
-
-```bash
-mkdir -p logs
-bash submit_full_scan.sh
 condor_q
 ```
 
-To scan multiple particles (e.g. triton + proton + electron):
+To restrict to specific gases or particles:
 
 ```bash
-for PARTICLE in triton proton electron; do
-    for ENERGY in 1.0 2.0 5.0 10.0; do
-        # ... same pattern, adjust -e and -p
-    done
-done
+python3 scripts/submit_condor_full.py \
+    --gases ArCF4 HeEth \
+    --particles electron \
+    --nevents 50000 \
+    --outdir /eos/user/d/dneff/mx17_geant_sim_results/full
 ```
+
+Key options (see `--help` for full list):
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--outdir` | EOS path | Where ROOT files are written |
+| `--jobdir` | AFS path | Condor submit file, wrapper, and logs (must be AFS) |
+| `--nevents` | 50000 | Events per job |
+| `--gases` | `ArCF4` | Space-separated gas list |
+| `--particles` | all | `electron`, `triton`, `proton` |
+| `--cfrp` | 1.5 | LS cell CFRP wall thickness [mm] |
+| `--flavour` | `workday` | Condor job flavour (~8 h; use `longlunch` for tests) |
+| `--dry-run` | off | Print jobs without submitting |
 
 ### 4. Merge and inspect results
 
@@ -452,7 +455,8 @@ mm_sim/
 └── scripts/
     ├── setup_lxplus.sh
     ├── build.sh
-    ├── submit_condor.py
+    ├── submit_condor.py        Vacuum-mode sensitivity scan
+    ├── submit_condor_full.py   Full-experiment stack scan (electrons 0.1–12 MeV)
     ├── collect_results.py
     └── plot_results.py
 ```
