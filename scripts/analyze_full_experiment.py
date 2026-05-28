@@ -250,11 +250,8 @@ def find_snapshot_files(groups: dict, target_energies: list) -> dict:
 
 STYLE = dict(linewidth=1.6, marker="none")
 
-def _log_xaxis(ax, xlabel="Electron energy (MeV)"):
-    ax.set_xscale("log")
+def _set_xaxis(ax, xlabel="Electron energy (MeV)"):
     ax.set_xlabel(xlabel, fontsize=11)
-    ax.xaxis.set_major_formatter(matplotlib.ticker.ScalarFormatter())
-    ax.xaxis.get_major_formatter().set_scientific(False)
 
 
 def plot_transmission(pdf: PdfPages, summary: pd.DataFrame):
@@ -268,7 +265,7 @@ def plot_transmission(pdf: PdfPages, summary: pd.DataFrame):
 
     ax.set_ylim(-0.02, 1.05)
     ax.set_ylabel("Transmission fraction", fontsize=11)
-    _log_xaxis(ax)
+    _set_xaxis(ax)
     ax.set_title("Fraction of electrons reaching each layer", fontsize=12)
     ax.legend(fontsize=8, ncol=2, loc="lower right")
     ax.axhline(1.0, color="grey", lw=0.6, ls="--")
@@ -293,7 +290,7 @@ def plot_edep(pdf: PdfPages, summary: pd.DataFrame):
 
     ax.set_yscale("log")
     ax.set_ylabel("Mean energy deposition (MeV/electron)", fontsize=11)
-    _log_xaxis(ax)
+    _set_xaxis(ax)
     ax.set_title("Mean energy deposited per layer (averaged over all events)", fontsize=12)
     ax.legend(fontsize=8, ncol=2, loc="upper left")
     ax.grid(True, which="both", alpha=0.3)
@@ -319,7 +316,7 @@ def plot_calorimetry(pdf: PdfPages, summary: pd.DataFrame):
                 color="#9467bd", ecolor="#c5b0d5", capsize=2, label="Mean ± 1σ")
     # Ideal line (slope=1 if no upstream losses)
     ax.plot(en, en, "k--", lw=0.8, label="E_dep = E_initial")
-    ax.set_xscale("log"); ax.set_yscale("log")
+    ax.set_yscale("log")
     ax.set_xlabel("Initial electron energy (MeV)", fontsize=10)
     ax.set_ylabel("Total LS edep (MeV)", fontsize=10)
     ax.set_title("LS calorimeter response", fontsize=11)
@@ -331,7 +328,6 @@ def plot_calorimetry(pdf: PdfPages, summary: pd.DataFrame):
     linearity = mean / en
     ax.plot(en, linearity, "o-", ms=3, lw=1.4, color="#9467bd")
     ax.axhline(1.0, color="k", lw=0.8, ls="--")
-    ax.set_xscale("log")
     ax.set_ylim(0, 1.1)
     ax.set_xlabel("Initial electron energy (MeV)", fontsize=10)
     ax.set_ylabel("E_dep(LS) / E_initial", fontsize=10)
@@ -346,7 +342,6 @@ def plot_calorimetry(pdf: PdfPages, summary: pd.DataFrame):
         # Only for events that reach LS
         resolution = res_std / res_mean
         ax.plot(en, resolution * 100, "o-", ms=3, lw=1.4, color="#d62728")
-        ax.set_xscale("log")
         ax.set_xlabel("Initial electron energy (MeV)", fontsize=10)
         ax.set_ylabel("σ/μ  (%)", fontsize=10)
         ax.set_title("LS energy resolution\n(events reaching LS1)", fontsize=11)
@@ -377,7 +372,7 @@ def plot_containment(pdf: PdfPages, summary: pd.DataFrame):
             ax.plot(en, summary[col].values, label=label, color=color, lw=1.8)
     ax.set_ylim(-0.02, 1.05)
     ax.set_ylabel("Fraction of electrons", fontsize=10)
-    _log_xaxis(ax)
+    _set_xaxis(ax)
     ax.set_title("LS layer entry fractions", fontsize=11)
     ax.legend(fontsize=9)
     ax.grid(True, which="both", alpha=0.3)
@@ -402,7 +397,7 @@ def plot_containment(pdf: PdfPages, summary: pd.DataFrame):
         ax.axhline(1.0, color="grey", lw=0.7, ls=":")
         ax.set_ylim(-0.05, 1.2)
         ax.set_ylabel("Fraction / ratio", fontsize=10)
-        _log_xaxis(ax)
+        _set_xaxis(ax)
         ax.set_title("Containment quality\n(high linearity = well contained)", fontsize=11)
         ax.legend(fontsize=9)
         ax.grid(True, which="both", alpha=0.3)
@@ -560,9 +555,8 @@ def plot_angular_resolution(pdf: PdfPages, groups: dict,
     ax.plot(en_vals, theta_highland_rad * 1000, "k--", lw=1,
             label=f"Highland (x/X₀≈{x_over_X0})")
 
-    ax.set_xscale("log")
     ax.set_ylabel("RMS polar angle (mrad)", fontsize=11)
-    _log_xaxis(ax)
+    _set_xaxis(ax)
     ax.set_title("Angular resolution from MS in upstream material\n"
                  "(reconstructed from straight-line fit in MM drift gas)",
                  fontsize=11)

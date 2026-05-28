@@ -368,7 +368,7 @@ Key options (see `--help` for full list):
 python3 scripts/analyze_full_experiment.py \
     --indir  /eos/user/d/dneff/mx17_geant_sim_results/full \
     --gas    ArIso \
-    --outfile full_experiment_analysis.pdf
+    --outfile /afs/cern.ch/user/d/dneff/x17/mm_sim_results/full_stack/full_experiment_analysis.pdf
 ```
 
 This produces a multi-page PDF and a summary CSV with the following plots:
@@ -392,7 +392,7 @@ Skip the angular analysis if the ClusterTree files are large or not merged:
 
 ```bash
 python3 scripts/analyze_full_experiment.py \
-    --indir /eos/.../full --outfile results.pdf --no-angular
+    --indir /eos/.../full --outfile /afs/cern.ch/user/d/dneff/x17/mm_sim_results/full_stack/results.pdf --no-angular
 ```
 
 Key options:
