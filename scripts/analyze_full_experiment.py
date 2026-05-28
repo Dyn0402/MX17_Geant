@@ -774,32 +774,70 @@ def plot_edep_coarse(pdf: PdfPages, summaries: dict):
 def _draw_stack_diagram(ax, xlim):
     """
     Thin schematic of the detector stack sharing the path-length x-axis.
-    Air gaps take the figure background colour (drawn as nothing).
-    Very thin layers get a minimum display width so they remain visible.
+    Air gaps take the figure background colour.  Very thin layers get a
+    minimum display width.  Group labels with brackets appear above the blocks.
     """
-    MIN_VIS_MM = 1.8   # minimum drawn width [mm] for thin layers
+    MIN_VIS_MM = 1.8
 
     ax.set_facecolor(ax.get_figure().get_facecolor())
 
+    # ── Material blocks ───────────────────────────────────────────────────
     for (z0, z1, fc, tc, label) in DETECTOR_STACK:
         w_real = z1 - z0
         w_draw = max(w_real, MIN_VIS_MM)
-        zc     = (z0 + z1) / 2                     # keep block centred on true position
+        zc     = (z0 + z1) / 2
         rect   = mpatches.Rectangle(
-            (zc - w_draw / 2, 0.04), w_draw, 0.92,
+            (zc - w_draw / 2, 0.04), w_draw, 0.72,
             facecolor=fc, edgecolor="white", linewidth=0.5, zorder=2)
         ax.add_patch(rect)
 
         if label and w_draw >= 3.0:
             rot = 0 if w_draw >= 14 else 90
             fs  = 7.0 if w_draw >= 14 else 5.5
-            ax.text(zc, 0.5, label,
+            ax.text(zc, 0.40, label,
                     ha="center", va="center",
                     fontsize=fs, color=tc, rotation=rot,
                     fontweight="bold", zorder=3, clip_on=True)
 
+    # ── Group labels with brackets above the blocks ───────────────────────
+    # (z_start_mm, z_end_mm, label text)
+    GROUPS = [
+        (0.0,   26.4,  "Target"),
+        (226.4, 257.0, "Micromegas"),
+        (282.6, 285.8, "Scint.\nWall"),
+        (305.8, 371.8, "Liquid Scint.\nCalorimeter"),
+    ]
+    bracket_y = 0.82   # top of bracket bar (in axes data coords)
+    tick_h    = 0.07   # downward tick at each bracket end
+    label_y   = 0.92   # text sits above the bracket bar
+
+    for z0_g, z1_g, lbl in GROUPS:
+        z0_c = max(z0_g, xlim[0])
+        z1_c = min(z1_g, xlim[1])
+        if z1_c <= z0_c:
+            continue
+        # horizontal bar
+        ax.plot([z0_c, z1_c], [bracket_y, bracket_y],
+                color="#444444", lw=1.1, clip_on=False, zorder=4)
+        # end ticks pointing down toward the block
+        for xv in (z0_c, z1_c):
+            ax.plot([xv, xv], [bracket_y - tick_h, bracket_y],
+                    color="#444444", lw=1.1, clip_on=False, zorder=4)
+        # label
+        ax.text((z0_c + z1_c) / 2, label_y, lbl,
+                ha="center", va="bottom", fontsize=7.0,
+                fontweight="bold", color="#222222",
+                clip_on=False, zorder=5)
+
+    # ── Beam arrow ────────────────────────────────────────────────────────
+    ax.annotate("", xy=(xlim[0] + 14, 0.40), xytext=(xlim[0] + 1, 0.40),
+                arrowprops=dict(arrowstyle="-|>", color="#666666", lw=1.0),
+                zorder=6)
+    ax.text(xlim[0] + 0.5, 0.40, "beam", fontsize=5.5, color="#666666",
+            ha="left", va="center", style="italic")
+
     ax.set_xlim(*xlim)
-    ax.set_ylim(0, 1)
+    ax.set_ylim(0, 1.0)
     ax.set_autoscale_on(False)
     for sp in ax.spines.values():
         sp.set_visible(False)
@@ -809,39 +847,29 @@ def _draw_stack_diagram(ax, xlim):
 
 def plot_survival(pdf: PdfPages, all_summaries: dict):
     """
-    Top row: thin schematic of the detector stack (shared x-axis).
-    Then one row per particle: survival S(z) and loss rate −dS/dz.
+    Two-page layout:
+      Page 1 – detector diagram + full-width cumulative survival step function.
+      Page 2 – detector diagram + full-width loss-rate (−dS/dz) plot.
+
+    Both pages share the path-length x-axis with the diagram so that material
+    blocks align with the data.  All particles are overlaid on each panel:
+    solid = electron, dashed = positron.
     """
-    n_par  = len(all_summaries)
-    XLIM   = (0.0, LS4_EXIT_MM + 6)
-    DIAG_H = 0.22   # height ratio of diagram row relative to data rows
-
-    fig = plt.figure(figsize=(12, 1.1 + 4.5 * n_par))
-    gs  = fig.add_gridspec(
-        n_par + 1, 2,
-        height_ratios=[DIAG_H] + [1.0] * n_par,
-        hspace=0.06, wspace=0.30,
-    )
-
-    ax_diag = fig.add_subplot(gs[0, :])
-    _draw_stack_diagram(ax_diag, xlim=XLIM)
-
+    XLIM        = (0.0, LS4_EXIT_MM + 6)
+    DIAG_H      = 0.38   # height ratio: diagram row relative to data row
     snap_colors = cm.plasma(np.linspace(0.1, 0.85, len(SURVIVAL_ENERGIES_MEV)))
 
-    for row_idx, (particle, summary) in enumerate(all_summaries.items()):
-        ax_s = fig.add_subplot(gs[row_idx + 1, 0], sharex=ax_diag)
-        ax_l = fig.add_subplot(gs[row_idx + 1, 1], sharex=ax_diag)
-
-        plab     = PARTICLE_STYLES.get(particle, {}).get("label", particle)
-        avail_en = summary["energy_MeV"].values
-
-        for e_target, color in zip(SURVIVAL_ENERGIES_MEV, snap_colors):
-            idx      = np.argmin(np.abs(avail_en - e_target))
-            e_actual = avail_en[idx]
+    # ── Pre-compute z/s arrays for every (particle, energy) combination ───
+    all_curves = {}   # (particle, e_target) → (e_actual, z_pts, s_pts)
+    for particle, summary in all_summaries.items():
+        avail = summary["energy_MeV"].values
+        for e_target in SURVIVAL_ENERGIES_MEV:
+            idx      = np.argmin(np.abs(avail - e_target))
+            e_actual = avail[idx]
             row_data = summary.iloc[idx]
 
             z_pts, s_pts = [0.0], [1.0]
-            for (trans_col, z_entry, _lbl) in SURVIVAL_COLS:
+            for (trans_col, z_entry, _) in SURVIVAL_COLS:
                 col = f"trans_{trans_col}"
                 if col in summary.columns:
                     val = row_data[col]
@@ -849,55 +877,90 @@ def plot_survival(pdf: PdfPages, all_summaries: dict):
                         z_pts.append(z_entry)
                         s_pts.append(float(val))
 
-            z_pts = np.array(z_pts)
-            s_pts = np.array(s_pts)
-            lbl   = f"{e_actual:.3g} MeV"
+            all_curves[(particle, e_target)] = (
+                e_actual, np.array(z_pts), np.array(s_pts))
 
-            ax_s.plot(z_pts, s_pts, color=color, lw=1.6,
-                      marker="o", ms=4, label=lbl)
+    def _boundary_guides(ax):
+        for (_, z_entry, _) in SURVIVAL_COLS:
+            ax.axvline(z_entry, color="lightgrey", lw=0.7, ls=":", zorder=0)
+        ax.axvline(LS4_EXIT_MM, color="lightgrey", lw=0.7, ls=":", zorder=0)
 
+    def _make_legend(ax, particles):
+        """Combined legend: colour = energy, linestyle = particle."""
+        handles = []
+        for color, e in zip(snap_colors, SURVIVAL_ENERGIES_MEV):
+            handles.append(mlines.Line2D([], [], color=color, lw=2,
+                                         label=f"{e:.3g} MeV"))
+        handles.append(mlines.Line2D([], [], color="k", ls="-",  lw=1.5,
+                                     label="e⁻  (solid)"))
+        if "positron" in particles:
+            handles.append(mlines.Line2D([], [], color="k", ls="--", lw=1.5,
+                                         label="e⁺  (dashed)"))
+        ax.legend(handles=handles, fontsize=7.5, ncol=2, loc="upper right")
+
+    # ── Page 1: cumulative survival ───────────────────────────────────────
+    fig1 = plt.figure(figsize=(12, 5.5))
+    gs1  = fig1.add_gridspec(2, 1, height_ratios=[DIAG_H, 1.0], hspace=0.05)
+
+    ax_diag1 = fig1.add_subplot(gs1[0])
+    _draw_stack_diagram(ax_diag1, xlim=XLIM)
+
+    ax_s = fig1.add_subplot(gs1[1], sharex=ax_diag1)
+
+    for particle, summary in all_summaries.items():
+        pst = PARTICLE_STYLES.get(particle, {"ls": "-", "lw": 1.8})
+        for color, e_target in zip(snap_colors, SURVIVAL_ENERGIES_MEV):
+            e_actual, z_pts, s_pts = all_curves[(particle, e_target)]
+            # Extend to right edge so the last step is visible
+            z_ext = np.append(z_pts, XLIM[1])
+            s_ext = np.append(s_pts, s_pts[-1])
+            ax_s.step(z_ext, s_ext, where="post",
+                      color=color, ls=pst["ls"], lw=pst["lw"])
+
+    _boundary_guides(ax_s)
+    ax_s.set_ylim(-0.02, 1.06)
+    ax_s.axhline(1.0, color="grey", lw=0.6, ls=":")
+    ax_s.set_ylabel("Cumulative survival fraction", fontsize=11)
+    ax_s.set_xlabel("Path from gun (mm)", fontsize=11)
+    ax_s.grid(True, alpha=0.3)
+    _make_legend(ax_s, list(all_summaries.keys()))
+
+    fig1.suptitle("Primary particle survival through the detector stack",
+                  fontsize=12, y=1.01)
+    fig1.savefig(pdf, format="pdf", bbox_inches="tight")
+    plt.close(fig1)
+
+    # ── Page 2: loss rate ─────────────────────────────────────────────────
+    fig2 = plt.figure(figsize=(12, 5.5))
+    gs2  = fig2.add_gridspec(2, 1, height_ratios=[DIAG_H, 1.0], hspace=0.05)
+
+    ax_diag2 = fig2.add_subplot(gs2[0])
+    _draw_stack_diagram(ax_diag2, xlim=XLIM)
+
+    ax_l = fig2.add_subplot(gs2[1], sharex=ax_diag2)
+
+    for particle, summary in all_summaries.items():
+        pst = PARTICLE_STYLES.get(particle, {"ls": "-", "lw": 1.8})
+        for color, e_target in zip(snap_colors, SURVIVAL_ENERGIES_MEV):
+            e_actual, z_pts, s_pts = all_curves[(particle, e_target)]
             dz   = np.diff(z_pts)
             ds   = np.diff(s_pts)
             loss = -ds / dz
             z_mid = 0.5 * (z_pts[:-1] + z_pts[1:])
-            ax_l.plot(z_mid, loss, color=color, lw=1.5,
-                      marker="o", ms=4, label=lbl)
+            ax_l.plot(z_mid, loss, color=color, ls=pst["ls"], lw=pst["lw"],
+                      marker="o", ms=4)
 
-        # Shared boundary guides on both panels
-        for (_, z_entry, _) in SURVIVAL_COLS:
-            ax_s.axvline(z_entry, color="lightgrey", lw=0.7, ls=":", zorder=0)
-            ax_l.axvline(z_entry, color="lightgrey", lw=0.7, ls=":", zorder=0)
-        ax_s.axvline(LS4_EXIT_MM, color="lightgrey", lw=0.7, ls=":", zorder=0)
-        ax_l.axvline(LS4_EXIT_MM, color="lightgrey", lw=0.7, ls=":", zorder=0)
+    _boundary_guides(ax_l)
+    ax_l.set_ylim(bottom=0)
+    ax_l.set_ylabel("Loss rate  −dS/dz  (mm⁻¹)", fontsize=11)
+    ax_l.set_xlabel("Path from gun (mm)", fontsize=11)
+    ax_l.grid(True, alpha=0.3)
+    _make_legend(ax_l, list(all_summaries.keys()))
 
-        ax_s.set_ylabel("Survival fraction", fontsize=10)
-        ax_s.set_title(f"{plab} — Survival", fontsize=11)
-        ax_s.set_ylim(-0.02, 1.08)
-        ax_s.axhline(1.0, color="grey", lw=0.6, ls=":")
-        ax_s.legend(title="E₀", fontsize=8, title_fontsize=8, loc="upper right")
-        ax_s.grid(True, alpha=0.3)
-
-        ax_l.set_ylabel("Loss rate  −dS/dz  (mm⁻¹)", fontsize=10)
-        ax_l.set_title(f"{plab} — Loss rate", fontsize=11)
-        ax_l.set_ylim(bottom=0)
-        ax_l.legend(title="E₀", fontsize=8, title_fontsize=8)
-        ax_l.grid(True, alpha=0.3)
-
-        # x labels only on the bottom data row
-        is_bottom = (row_idx == n_par - 1)
-        if is_bottom:
-            ax_s.set_xlabel("Path from gun (mm)", fontsize=10)
-            ax_l.set_xlabel("Path from gun (mm)", fontsize=10)
-        else:
-            plt.setp(ax_s.get_xticklabels(), visible=False)
-            plt.setp(ax_l.get_xticklabels(), visible=False)
-
-    ax_diag.set_xlim(*XLIM)
-
-    fig.suptitle("Primary particle survival vs cumulative path through the stack",
-                 fontsize=12)
-    fig.savefig(pdf, format="pdf", bbox_inches="tight")
-    plt.close(fig)
+    fig2.suptitle("Primary particle loss rate through the detector stack",
+                  fontsize=12, y=1.01)
+    fig2.savefig(pdf, format="pdf", bbox_inches="tight")
+    plt.close(fig2)
 
 
 # ── Trigger and calorimetry plots ────────────────────────────────────────────
