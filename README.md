@@ -362,7 +362,51 @@ Key options (see `--help` for full list):
 | `--flavour` | `workday` | Condor job flavour (~8 h; use `longlunch` for tests) |
 | `--dry-run` | off | Print jobs without submitting |
 
-### 4. Merge and inspect results
+### 4. Run the analysis script
+
+```bash
+python3 scripts/analyze_full_experiment.py \
+    --indir  /eos/user/d/dneff/mx17_geant_sim_results/full \
+    --gas    ArIso \
+    --outfile full_experiment_analysis.pdf
+```
+
+This produces a multi-page PDF and a summary CSV with the following plots:
+
+| Page | Content |
+|------|---------|
+| 1 | Transmission fraction per layer vs energy |
+| 2 | Mean energy deposition per layer vs energy |
+| 3 | LS calorimeter response, linearity, and energy resolution |
+| 4 | Containment analysis (enters LS1, linearity ratio) |
+| 5 | Layer-by-layer edep bar chart at 0.5, 1, 3, 5, 10 MeV |
+| 6 | Angular distributions in MM drift gas at selected energies |
+| 7 | Angular resolution (RMS) vs energy + Highland formula reference |
+
+The angular analysis reads the `ClusterTree` and reconstructs a straight-line
+fit to the primary electron track in the drift gas. The RMS polar angle gives
+the angular uncertainty introduced by multiple scattering in the upstream
+material (He-3 capsule walls, air, MM dead layers).
+
+Skip the angular analysis if the ClusterTree files are large or not merged:
+
+```bash
+python3 scripts/analyze_full_experiment.py \
+    --indir /eos/.../full --outfile results.pdf --no-angular
+```
+
+Key options:
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--indir` | required | Directory containing ROOT files |
+| `--gas` | `ArIso` | Gas tag in filenames |
+| `--particle` | `electron` | Particle tag in filenames |
+| `--outfile` | `full_experiment_analysis.pdf` | Output PDF |
+| `--angular-step` | `10` | Process every Nth energy for RMS plot (lower = slower) |
+| `--no-angular` | off | Skip angular analysis entirely |
+
+### 5. Merge and inspect results
 
 Per-thread ROOT files are merged the same way as vacuum mode:
 
@@ -458,8 +502,9 @@ mm_sim/
     ├── build.sh
     ├── submit_condor.py        Vacuum-mode sensitivity scan
     ├── submit_condor_full.py   Full-experiment stack scan (electrons 0.1–12 MeV)
-    ├── collect_results.py
-    └── plot_results.py
+    ├── collect_results.py      Merge vacuum-mode results + summary CSV
+    ├── plot_results.py         Vacuum-mode sensitivity plots
+    └── analyse_full_experiment.py  Full-experiment transmission + calorimetry + angles
 ```
 
 ---
