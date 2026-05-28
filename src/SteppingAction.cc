@@ -27,6 +27,7 @@ const std::map<std::string, double> SteppingAction::kWValues = {
     {"NeIso",    27.0},
     {"NeCF4",    30.0},
     {"ArCF4CO2", 34.0},
+    {"ArIso",    26.0},   // Ar/iC4H10 95/5; mild Penning (Ar* 11.55 eV > iso IE 10.6 eV)
     {"PureCF4",  34.0},
     {"PureAr",   26.4},
     {"PureHe",   41.3},

@@ -143,15 +143,16 @@ LAB definition: C₁₈H₃₀ (JUNO recipe), ignoring PPO/Bis-MSB fluors (<0.3%
 
 ## Gas mixtures
 
-| Tag        | Composition              | W-value |
-|------------|--------------------------|---------|
-| `ArCF4`    | Ar/CF₄ 90/10             | 34 eV   |
-| `HeEth`    | He/C₂H₆ 96.5/3.5        | 27 eV   |
-| `ArCO2`    | Ar/CO₂ 70/30             | 27 eV   |
-| `ArCF4Iso` | Ar/CF₄/iC₄H₁₀ 88/10/2   | 33 eV   |
-| `NeIso`    | Ne/iC₄H₁₀ 95/5           | 27 eV   |
-| `NeCF4`    | Ne/CF₄ 90/10             | 30 eV   |
-| `ArCF4CO2` | Ar/CF₄/CO₂ 45/40/15      | 34 eV   |
+| Tag        | Composition              | W-value | Notes                          |
+|------------|--------------------------|---------|--------------------------------|
+| `ArCF4`    | Ar/CF₄ 90/10             | 34 eV   |                                |
+| `ArIso`    | Ar/iC₄H₁₀ 95/5           | 26 eV   | Classic MM gas; mild Penning   |
+| `HeEth`    | He/C₂H₆ 96.5/3.5        | 27 eV   | Low-Z, strong Penning          |
+| `ArCO2`    | Ar/CO₂ 70/30             | 27 eV   |                                |
+| `ArCF4Iso` | Ar/CF₄/iC₄H₁₀ 88/10/2   | 33 eV   |                                |
+| `NeIso`    | Ne/iC₄H₁₀ 95/5           | 27 eV   | Penning active                 |
+| `NeCF4`    | Ne/CF₄ 90/10             | 30 eV   | Penning active                 |
+| `ArCF4CO2` | Ar/CF₄/CO₂ 45/40/15      | 34 eV   |                                |
 
 W-values from ICRU 31 + Penning-transfer corrections (Sauli 1977, Biagi).
 

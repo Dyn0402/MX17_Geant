@@ -52,8 +52,8 @@ PARTICLE_ENERGIES = {
     "proton":  [0.573, 0.75, 1.0, 1.5, 2.0, 3.0, 5.0],
 }
 
-# Default gas list — use ArCF4 for initial scan; add others as needed
-GASES_DEFAULT = ["ArCF4"]
+# Default gas list
+GASES_DEFAULT = ["ArIso"]
 
 # Events per job (no multiplier for full-mode particles)
 NEVENTS_DEFAULT = 50000

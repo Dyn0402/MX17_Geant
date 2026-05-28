@@ -24,7 +24,7 @@
 void PrintUsage() {
     std::cerr << "Usage: mm_sim [options] [macro_file]\n";
     std::cerr << "Options:\n";
-    std::cerr << "  -g <gas>         Gas: ArCF4, HeEth, ArCO2, ArCF4Iso, NeIso, NeCF4,\n";
+    std::cerr << "  -g <gas>         Gas: ArCF4, ArIso, HeEth, ArCO2, ArCF4Iso, NeIso, NeCF4,\n";
     std::cerr << "                       ArCF4CO2, PureCF4, PureAr, PureHe, PureNe,\n";
     std::cerr << "                       PureEthane, PureIso, PureCO2  (default: ArCF4)\n";
     std::cerr << "  -p <particle>    gamma, neutron, electron, proton, muon, muon+,\n";

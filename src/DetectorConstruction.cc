@@ -136,6 +136,22 @@ void DetectorConstruction::DefineMaterials() {
         m->AddElement(elC, 1); m->AddElement(elF, 4);
         fGasMaterials["PureCF4"] = m;
     }
+
+    // =====================================================
+    // Gas mixture 8b: Ar/Isobutane 95/5 vol%
+    // Classic Micromegas mixture: isobutane quenches UV photons and
+    // provides mild Penning transfer (Ar* 11.55 eV > isobutane IE 10.6 eV).
+    // W-value ~26 eV (close to pure Ar; Sauli 1977).
+    // =====================================================
+    {
+        G4double fAr=0.95, fIso=0.05;
+        G4double rho = fAr*1.782e-3 + fIso*2.67e-3;
+        G4Material* m = new G4Material("ArIso", rho*g/cm3, 2, kStateGas, 293.15*kelvin, 1*atmosphere);
+        m->AddMaterial(purAr,     fAr);
+        m->AddMaterial(isobutane, fIso);
+        fGasMaterials["ArIso"] = m;
+    }
+
     fGasMaterials["PureAr"]     = purAr;
     fGasMaterials["PureHe"]     = pureHe;
     fGasMaterials["PureNe"]     = pureNe;
@@ -228,7 +244,7 @@ G4Material* DetectorConstruction::GetGasMixture(const std::string& name) {
     auto it = fGasMaterials.find(name);
     if (it == fGasMaterials.end()) {
         throw std::runtime_error("Unknown gas mixture: " + name +
-            "\nAvailable: ArCF4, HeEth, ArCO2, ArCF4Iso, NeIso, NeCF4, ArCF4CO2, "
+            "\nAvailable: ArCF4, ArIso, HeEth, ArCO2, ArCF4Iso, NeIso, NeCF4, ArCF4CO2, "
             "PureCF4, PureAr, PureHe, PureNe, PureEthane, PureIso, PureCO2");
     }
     return it->second;
