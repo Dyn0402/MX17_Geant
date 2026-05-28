@@ -41,6 +41,7 @@ struct EventData {
     double edepLS2         = 0.0;
     double edepLS3         = 0.0;
     double edepLS4         = 0.0;
+    double edepLSCFRP      = 0.0;  // total edep in all 5 LS cell CFRP walls [eV]
 
     // ── Transmission flags (did primary particle reach each subsystem?) ─
     bool primInHe3Gas    = false;
@@ -50,6 +51,7 @@ struct EventData {
     bool primInLS2       = false;
     bool primInLS3       = false;
     bool primInLS4       = false;
+    bool primInLSCFRP5   = false;  // entered back wall → exited LS stack
 
     void Reset() {
         eventID = -1;
@@ -60,8 +62,8 @@ struct EventData {
         ampClusters.clear();
 
         edepHe3Gas = edepResistPaste = edepPCB = edepScintWall = 0.0;
-        edepLS1 = edepLS2 = edepLS3 = edepLS4 = 0.0;
+        edepLS1 = edepLS2 = edepLS3 = edepLS4 = edepLSCFRP = 0.0;
         primInHe3Gas = primInPCB = primInScintWall = false;
-        primInLS1 = primInLS2 = primInLS3 = primInLS4 = false;
+        primInLS1 = primInLS2 = primInLS3 = primInLS4 = primInLSCFRP5 = false;
     }
 };

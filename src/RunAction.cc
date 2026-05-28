@@ -36,6 +36,8 @@ struct RunAction::Impl {
     Double_t br_edepLS1, br_edepLS2, br_edepLS3, br_edepLS4;
     Bool_t   br_primInHe3Gas, br_primInPCB, br_primInScintWall;
     Bool_t   br_primInLS1, br_primInLS2, br_primInLS3, br_primInLS4;
+    Double_t br_edepLSCFRP;
+    Bool_t   br_primInLSCFRP5;
 
     // ClusterTree buffers
     Int_t    cb_eventID, cb_trackID, cb_parentID, cb_nPrimary;
@@ -113,6 +115,8 @@ void RunAction::BeginOfRunAction(const G4Run* run) {
         fImpl->evtTree->Branch("primInLS2",        &fImpl->br_primInLS2);
         fImpl->evtTree->Branch("primInLS3",        &fImpl->br_primInLS3);
         fImpl->evtTree->Branch("primInLS4",        &fImpl->br_primInLS4);
+        fImpl->evtTree->Branch("edepLSCFRP",       &fImpl->br_edepLSCFRP);      // eV
+        fImpl->evtTree->Branch("primInLSCFRP5",    &fImpl->br_primInLSCFRP5);
     }
 
     // ── ClusterTree ───────────────────────────────────────
@@ -143,7 +147,8 @@ void RunAction::BeginOfRunAction(const G4Run* run) {
         fImpl->evtFile << ",edepHe3Gas_eV,edepResistPaste_eV,edepPCB_eV"
                           ",edepScintWall_eV,edepLS1_eV,edepLS2_eV,edepLS3_eV,edepLS4_eV"
                           ",primInHe3Gas,primInPCB,primInScintWall"
-                          ",primInLS1,primInLS2,primInLS3,primInLS4";
+                          ",primInLS1,primInLS2,primInLS3,primInLS4"
+                          ",edepLSCFRP_eV,primInLSCFRP5";
     }
     fImpl->evtFile << "\n";
 
@@ -229,6 +234,8 @@ void RunAction::RecordEvent(const EventData& data) {
         fImpl->br_primInLS2       = data.primInLS2;
         fImpl->br_primInLS3       = data.primInLS3;
         fImpl->br_primInLS4       = data.primInLS4;
+        fImpl->br_edepLSCFRP      = data.edepLSCFRP;
+        fImpl->br_primInLSCFRP5   = data.primInLSCFRP5;
     }
     fImpl->evtTree->Fill();
 
@@ -273,7 +280,9 @@ void RunAction::RecordEvent(const EventData& data) {
                        << "," << data.primInLS1
                        << "," << data.primInLS2
                        << "," << data.primInLS3
-                       << "," << data.primInLS4;
+                       << "," << data.primInLS4
+                       << "," << data.edepLSCFRP
+                       << "," << data.primInLSCFRP5;
     }
     fImpl->evtFile << "\n";
 

@@ -148,4 +148,13 @@ void SteppingAction::UserSteppingAction(const G4Step* step) {
         if (isPrimary) data.primInLS4 = true;
         return;
     }
+
+    // LS cell CFRP walls (LS_CFRP_1 … LS_CFRP_5)
+    // edepLSCFRP accumulates all dead-wall losses.
+    // primInLSCFRP5 flags primary particles that exit LS4 through the back wall.
+    if (volName.size() >= 8 && volName.substr(0, 8) == "LS_CFRP_") {
+        data.edepLSCFRP += edep/eV;
+        if (isPrimary && volName == "LS_CFRP_5") data.primInLSCFRP5 = true;
+        return;
+    }
 }

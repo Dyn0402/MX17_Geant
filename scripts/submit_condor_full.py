@@ -37,8 +37,17 @@ def _logspace(lo, hi, n):
     return [round(10 ** (la + i * (lb - la) / (n - 1)), 8) for i in range(n)]
 
 
-# 200 log-spaced lepton energies, 0.1–18 MeV
-LEPTON_ENERGIES = _logspace(0.1, 18.0, 200)
+# 200 log-spaced lepton energies, 0.1–18 MeV, plus exact round numbers.
+# The log grid already covers the range densely; the round-number extras
+# guarantee there are exact integer/half-integer points for clean plot labels.
+_log_grid   = _logspace(0.1, 18.0, 200)
+_round_grid = [0.5] + list(range(1, 19))          # 0.5, 1, 2, …, 18
+# Merge: drop a round number if a log point is already within 0.1 % of it
+# (only catches the 18.0 endpoint which is exact in both grids).
+_tol = 0.001
+_extras = [r for r in _round_grid
+           if not any(abs(r - x) / r < _tol for x in _log_grid)]
+LEPTON_ENERGIES = sorted(_log_grid + _extras)
 
 PARTICLE_ENERGIES = {
     # Main scan — electron and positron transmission/calorimetry study
@@ -253,9 +262,8 @@ def main():
             print(f"  {make_tag(gas, particle, energy)}  ({nevents} events)")
         if len(jobs) > 10:
             print(f"  ... and {len(jobs)-10} more")
-        e_vals = LEPTON_ENERGIES
-        print(f"\nLepton energies: {e_vals[0]:.4f} – {e_vals[-1]:.4f} MeV "
-              f"({len(e_vals)} log-spaced points)")
+        print(f"\nLepton energies: {LEPTON_ENERGIES[0]:.4f} – {LEPTON_ENERGIES[-1]:.4f} MeV "
+              f"({len(LEPTON_ENERGIES)} points: 200 log-spaced + {len(_extras)} round-number extras)")
         return
 
     wrapper  = write_wrapper(job_dir, exe, setup_script, args.cfrp)
