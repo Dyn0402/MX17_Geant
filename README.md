@@ -522,18 +522,22 @@ at 0.546 MeV Sr-90 endpoint, 2.28 MeV Y-90 endpoint, and round numbers).
 ### 3. Analyse
 
 ```bash
-# Full stack analysis (transmission, edep, angular) with sr90 prefix
+# Step A — Stack analysis on the sr90 ROOT files.
+# Produces sr90_stack_analysis.pdf AND sr90_stack_analysis_electron.csv
+# (one CSV per particle; the electron CSV is used in Step B).
 python3 scripts/analyze_full_experiment.py \
     --indir   /eos/user/d/dneff/mx17_geant_sim_results/sr90 \
     --prefix  sr90 \
     --gas ArIso --particles electron positron \
-    --outfile sr90_stack_analysis.pdf --workers 16
+    --outfile /afs/cern.ch/user/d/dneff/x17/mm_sim_results/sr90_calibration/sr90_stack_analysis.pdf --workers 16
 
-# Sr-90 feasibility convolution (spectrum × simulation)
+# Step B — Feasibility convolution: fold the Sr-90/Y-90 beta spectrum
+# against the per-energy summary table produced by Step A.
+# --summary is the *_electron.csv written next to the PDF above.
 python3 sr90_calibration/analyze_sr90_calibration.py \
     --spectrum sr90_calibration/Sr90_Y90_Beta_Spectrum.csv \
-    --summary  sr90_stack_analysis_electron.csv \
-    --outfile  sr90_calibration/sr90_calibration.pdf
+    --summary  /afs/cern.ch/user/d/dneff/x17/mm_sim_results/sr90_calibration/sr90_stack_analysis_electron.csv \
+    --outfile  /afs/cern.ch/user/d/dneff/x17/mm_sim_results/sr90_calibration/sr90_calibration.pdf
 ```
 
 ---

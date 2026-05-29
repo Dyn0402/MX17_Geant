@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 analyze_sr90_calibration.py
-Feasibility study: Sr-90/Y-90 source as a calibration substitute for the He-3 target.
+Feasibility study: Sr-90/Y-90 beta source for detector calibration.
 
 Physics setup:
   • Sr-90 (t½ = 28.8 yr) → Y-90 + β⁻  (Emax = 0.546 MeV)
@@ -10,10 +10,10 @@ Physics setup:
   so the source produces 2A β⁻/s for a declared activity A.
 
 Source placement:
-  Source replaces the He-3 target at the same z-position (gun position).
-  Electrons are emitted isotropically; only those aimed at the detector
-  contribute.  Geometric efficiency is computed from the solid angle of the
-  40×40 cm Micromegas face at 226.5 mm from the source.
+  Source is placed at the same z-position as the (absent) He-3 target.
+  The He-3 capsule is NOT present; electrons travel 226.5 mm of air before
+  reaching the Micromegas entrance.  Geometric efficiency is computed from
+  the solid angle of the 40×40 cm Micromegas face at 226.5 mm from the source.
 
 Trigger condition:
   Coincidence between plastic scintillator AND liquid scintillator layer 1.
@@ -68,10 +68,10 @@ BETAS_PER_DECAY  = 2.0
 # removable_note: describes which part of this gap *could* be eliminated;
 #                 None means the gap is entirely structural/unavoidable.
 BUDGET_GAPS = [
-    ("He-3 walls + 200 mm air\n+ MM dead layers",
+    ("200 mm air\n+ MM dead layers",
      None,                    "trans_primInDrift",
      "#1f77b4",
-     "Air gap (200 mm) removable;\nHe-3 walls thinner possible"),
+     "Air gap (200 mm) removable"),
 
     ("MM drift gas (30 mm)",
      "trans_primInDrift",     "trans_primInAmp",
@@ -104,10 +104,9 @@ BUDGET_GAPS = [
 # (label, thickness_cm, density_g_cm3, Z_eff)  — for annotation only
 MATERIAL_LAYERS = [
     # Layer,            t [cm],  rho [g/cm³]  description
-    ("He-3 gas (25 mm)",  2.5,   0.0376,  "25 mm He-3 at 300 bar"),
-    ("Al capsule wall",   0.05,  2.70,    "0.5 mm Al"),
-    ("CFRP capsule wall", 0.09,  1.55,    "0.9 mm CFRP"),
-    ("Air gap 1",         20.0,  0.00120, "200 mm air"),
+    # Note: He-3 gas and capsule walls are ABSENT in the Sr-90 calibration setup.
+    # The source sits in air; the path to the MM entrance is 226.5 mm of air.
+    ("Air gap (source→MM)", 20.0,  0.00120, "200 mm air  (He-3 capsule absent)"),
     ("MM dead layers",    0.01,  3.0,     "~0.1 mm Mylar+Cu+Kapton"),
     ("MM drift gas",      3.0,   0.00182, "30 mm Ar/Iso"),
     ("PCB Cu (×4)",       0.0104, 8.96,  "4 × 0.026 mm Cu"),
@@ -127,14 +126,11 @@ C_SCINT  = "#d62728"   # red    — plastic scintillator
 C_LS1    = "#6a1d8a"   # purple — LS layer 1
 C_TRIG   = "#2ca02c"   # green  — trigger efficiency
 
-E_LO, E_HI = 4.0, 16.5   # physical electron range from He-3 experiment [MeV]
+# Beta spectrum endpoints — used for axis annotations
+E_SR90 = 0.546   # Sr-90 beta endpoint [MeV]
+E_Y90  = 2.28    # Y-90 beta endpoint  [MeV]
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-
-def _add_energy_lines(ax):
-    """Mark the He-3 experiment electron range (for reference only)."""
-    for e in (E_LO, E_HI):
-        ax.axvline(e, color="lightgrey", lw=0.8, ls="--", zorder=0)
 
 
 def _trapz(y, x):
@@ -481,26 +477,23 @@ def plot_mm_context(pdf, res: dict, summary: pd.DataFrame):
     ax.set_title("MM drift gas signal for triggered events", fontsize=11)
     ax.grid(True, alpha=0.3)
 
-    # Right: compare Sr-90 beta range to the He-3 experiment electron range
+    # Right: LS1 transmission vs energy with Sr-90/Y-90 endpoints marked
     ax2 = axes[1]
-    # Full simulation range
     E_sim  = summary["energy_MeV"].values
     f_ls1  = summary["trans_primInLS1"].values if "trans_primInLS1" in summary.columns \
               else np.zeros(len(E_sim))
     ax2.plot(E_sim, f_ls1 * 100, color=C_LS1, lw=1.8, label="LS1 transmission (simulation)")
 
-    # Shade the Sr-90/Y-90 beta energy range
-    ax2.axvspan(0, 2.3, alpha=0.12, color=C_TOTAL, label="Sr-90/Y-90 range (0–2.3 MeV)")
-    ax2.axvspan(E_LO, E_HI, alpha=0.10, color="#ff7f0e",
-                label=f"He-3 experiment range ({E_LO}–{E_HI} MeV)")
-    ax2.axvline(2.28, color=C_Y90, lw=1.0, ls="--", label="Y-90 endpoint 2.28 MeV")
-    ax2.axvline(0.546, color=C_SR90, lw=1.0, ls="--", label="Sr-90 endpoint 0.546 MeV")
+    ax2.axvspan(0, E_Y90 + 0.05, alpha=0.10, color=C_TOTAL,
+                label=f"Sr-90/Y-90 beta range (0–{E_Y90} MeV)")
+    ax2.axvline(E_Y90,  color=C_Y90,  lw=1.0, ls="--", label=f"Y-90 endpoint {E_Y90} MeV")
+    ax2.axvline(E_SR90, color=C_SR90, lw=1.0, ls="--", label=f"Sr-90 endpoint {E_SR90} MeV")
 
-    ax2.set_xlim(0, 18)
+    ax2.set_xlim(0, min(E_sim.max() * 1.05, 3.5))
     ax2.set_ylim(-2, 105)
     ax2.set_xlabel("Electron energy (MeV)", fontsize=10)
     ax2.set_ylabel("LS1 transmission (%)", fontsize=10)
-    ax2.set_title("Sr-90/Y-90 range vs full-experiment coverage", fontsize=11)
+    ax2.set_title("LS1 transmission across the Sr-90/Y-90 beta spectrum", fontsize=11)
     ax2.legend(fontsize=8)
     ax2.grid(True, alpha=0.3)
 
@@ -860,12 +853,12 @@ def plot_material_thickness_table(pdf):
         elif r - 1 < len(rows) and "unavoidable" in rows[r - 1][0].lower():
             cell.set_facecolor("#fce8e8")
 
-    # CSDA range reference note
+    # CSDA range reference note (He-3 capsule absent — source sits in air)
     ax.text(0.5, 0.01,
             "CSDA ranges for reference: 2 MeV e⁻ in water ≈ 0.88 g/cm² │ "
-            "2 MeV e⁻ in Cu ≈ 0.55 g/cm² │ total unavoidable ≈ 0.43 g/cm²\n"
+            "2 MeV e⁻ in Cu ≈ 0.55 g/cm²\n"
             "Y-90 endpoint 2.28 MeV → CSDA range in water ≈ 1.0 g/cm². "
-            "Total areal budget exceeds this → electrons cannot reach LS1.",
+            "He-3 capsule is absent; 200 mm air gap has negligible areal density.",
             transform=ax.transAxes, ha="center", va="bottom",
             fontsize=8, style="italic", color="#555555",
             bbox=dict(boxstyle="round,pad=0.4", fc="#fffbe6", alpha=0.9))

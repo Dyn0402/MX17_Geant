@@ -418,11 +418,34 @@ def _set_xaxis(ax, xlabel="Electron energy (MeV)"):
 
 # ── Plot functions ────────────────────────────────────────────────────────────
 
+def _active_trans_cols(summaries: dict) -> set:
+    """
+    Return the set of transmission column names that have at least one
+    non-zero value across all particles and energies.  Columns that are
+    uniformly zero indicate a volume that does not exist in the geometry
+    (e.g. He3Gas in the sr90 calibration mode) and should be hidden.
+    """
+    active = set()
+    for summary in summaries.values():
+        for col in summary.columns:
+            if col.startswith("trans_") and summary[col].max() > 1e-6:
+                active.add(col)
+    return active
+
+
+def _has_target(summaries: dict) -> bool:
+    """True if the He-3 target volume was present in the simulation."""
+    return "trans_primInHe3Gas" in _active_trans_cols(summaries)
+
+
 def _plot_transmission_on(ax, summaries: dict, layer_list: list):
+    active = _active_trans_cols(summaries)
     for (_, primin_br, label, color) in layer_list:
         if not primin_br:
             continue
         col = f"trans_{primin_br}"
+        if col not in active:
+            continue   # volume absent in this geometry (e.g. He-3 in sr90 mode)
         for particle, summary in summaries.items():
             if col not in summary.columns:
                 continue
@@ -771,17 +794,22 @@ def plot_angular_resolution(pdf: PdfPages, all_groups: dict, step: int = 10,
 
 # ── Coarse grouped plots ──────────────────────────────────────────────────────
 
-def _coarse_legend(ax, loc="lower right"):
+def _coarse_legend(ax, summaries: dict, loc="lower right"):
+    active = _active_trans_cols(summaries)
     handles = [mpatches.Patch(color=color, label=label)
-               for (label, color, _, _) in COARSE_GROUPS]
+               for (label, color, _, trans_col) in COARSE_GROUPS
+               if f"trans_{trans_col}" in active]
     return ax.legend(handles=handles, loc=loc, fontsize=8,
                      title="Group", title_fontsize=8)
 
 
 def plot_transmission_coarse(pdf: PdfPages, summaries: dict):
+    active = _active_trans_cols(summaries)
     fig, ax = plt.subplots(figsize=(8, 5))
     for (label, color, _edep_brs, trans_col) in COARSE_GROUPS:
         col = f"trans_{trans_col}"
+        if col not in active:
+            continue
         for particle, summary in summaries.items():
             if col not in summary.columns:
                 continue
@@ -794,7 +822,7 @@ def plot_transmission_coarse(pdf: PdfPages, summaries: dict):
     _set_xaxis(ax)
     ax.set_title("Transmission by detector group", fontsize=12)
     ax.grid(True, alpha=0.3)
-    leg1 = _coarse_legend(ax, loc="lower right")
+    leg1 = _coarse_legend(ax, summaries, loc="lower right")
     ax.add_artist(leg1)
     _particle_legend(ax, summaries, loc="center right")
     fig.tight_layout()
@@ -802,8 +830,11 @@ def plot_transmission_coarse(pdf: PdfPages, summaries: dict):
 
 
 def plot_edep_coarse(pdf: PdfPages, summaries: dict):
+    active = _active_trans_cols(summaries)
     fig, ax = plt.subplots(figsize=(8, 5))
-    for (label, color, edep_brs, _trans_col) in COARSE_GROUPS:
+    for (label, color, edep_brs, trans_col) in COARSE_GROUPS:
+        if f"trans_{trans_col}" not in active:
+            continue
         for particle, summary in summaries.items():
             cols = [f"edep_{b}" for b in edep_brs if f"edep_{b}" in summary.columns]
             if not cols:
@@ -828,11 +859,14 @@ def plot_edep_coarse(pdf: PdfPages, summaries: dict):
 
 # ── Survival vs path-length plots ─────────────────────────────────────────────
 
-def _draw_stack_diagram(ax, xlim):
+def _draw_stack_diagram(ax, xlim, skip_target: bool = False):
     """
     Thin schematic of the detector stack sharing the path-length x-axis.
     Air gaps take the figure background colour.  Very thin layers get a
     minimum display width.  Group labels with brackets appear above the blocks.
+
+    skip_target: if True, the He-3 target blocks (z < 26.4 mm) are omitted,
+                 e.g. for the sr90 calibration mode where the target is absent.
     """
     MIN_VIS_MM = 1.8
 
@@ -840,6 +874,8 @@ def _draw_stack_diagram(ax, xlim):
 
     # ── Material blocks ───────────────────────────────────────────────────
     for (z0, z1, fc, tc, label) in DETECTOR_STACK:
+        if skip_target and z1 <= 26.4:   # He-3 gas, Al wall, CFRP wall
+            continue
         w_real = z1 - z0
         w_draw = max(w_real, MIN_VIS_MM)
         zc     = (z0 + z1) / 2
@@ -860,7 +896,7 @@ def _draw_stack_diagram(ax, xlim):
     # (z_start_mm, z_end_mm, label text)
     GROUPS = [
         (0.0,   26.4,  "Target"),
-        (226.4, 257.0, "Micromegas"),
+        (226.4, 262.6, "Micromegas"),
         (282.6, 285.8, "Scint.\nWall"),
         (305.8, 371.8, "Liquid Scint.\nCalorimeter"),
     ]
@@ -869,6 +905,8 @@ def _draw_stack_diagram(ax, xlim):
     label_y   = 0.92   # text sits above the bracket bar
 
     for z0_g, z1_g, lbl in GROUPS:
+        if skip_target and lbl == "Target":
+            continue
         z0_c = max(z0_g, xlim[0])
         z1_c = min(z1_g, xlim[1])
         if z1_c <= z0_c:
@@ -885,13 +923,6 @@ def _draw_stack_diagram(ax, xlim):
                 ha="center", va="bottom", fontsize=7.0,
                 fontweight="bold", color="#222222",
                 clip_on=False, zorder=5)
-
-    # ── Beam arrow ────────────────────────────────────────────────────────
-    ax.annotate("", xy=(xlim[0] + 14, 0.40), xytext=(xlim[0] + 1, 0.40),
-                arrowprops=dict(arrowstyle="-|>", color="#666666", lw=1.0),
-                zorder=6)
-    ax.text(xlim[0] + 0.5, 0.40, "beam", fontsize=5.5, color="#666666",
-            ha="left", va="center", style="italic")
 
     ax.set_xlim(*xlim)
     ax.set_ylim(0, 1.0)
@@ -916,6 +947,12 @@ def plot_survival(pdf: PdfPages, all_summaries: dict):
     DIAG_H      = 0.38   # height ratio: diagram row relative to data row
     snap_colors = cm.plasma(np.linspace(0.1, 0.85, len(SURVIVAL_ENERGIES_MEV)))
 
+    # Detect whether the He-3 target was present in the simulation.
+    # In sr90 mode trans_primInHe3Gas is always 0 — skip it to avoid a false
+    # immediate drop to 0 in the survival curve.
+    skip_target  = not _has_target(all_summaries)
+    active_tcols = _active_trans_cols(all_summaries)
+
     # ── Pre-compute z/s arrays for every (particle, energy) combination ───
     all_curves = {}   # (particle, e_target) → (e_actual, z_pts, s_pts)
     for particle, summary in all_summaries.items():
@@ -928,6 +965,8 @@ def plot_survival(pdf: PdfPages, all_summaries: dict):
             z_pts, s_pts = [0.0], [1.0]
             for (trans_col, z_entry, _) in SURVIVAL_COLS:
                 col = f"trans_{trans_col}"
+                if col not in active_tcols:
+                    continue   # volume absent in this geometry
                 if col in summary.columns:
                     val = row_data[col]
                     if not np.isnan(val):
@@ -953,14 +992,14 @@ def plot_survival(pdf: PdfPages, all_summaries: dict):
         if "positron" in particles:
             handles.append(mlines.Line2D([], [], color="k", ls="--", lw=1.5,
                                          label="e⁺  (dashed)"))
-        ax.legend(handles=handles, fontsize=7.5, ncol=2, loc="upper right")
+        ax.legend(handles=handles, fontsize=7.5, ncol=2, loc="center left")
 
     # ── Page 1: cumulative survival ───────────────────────────────────────
     fig1 = plt.figure(figsize=(12, 5.5))
     gs1  = fig1.add_gridspec(2, 1, height_ratios=[DIAG_H, 1.0], hspace=0.05)
 
     ax_diag1 = fig1.add_subplot(gs1[0])
-    _draw_stack_diagram(ax_diag1, xlim=XLIM)
+    _draw_stack_diagram(ax_diag1, xlim=XLIM, skip_target=skip_target)
 
     ax_s = fig1.add_subplot(gs1[1], sharex=ax_diag1)
 
@@ -992,7 +1031,7 @@ def plot_survival(pdf: PdfPages, all_summaries: dict):
     gs2  = fig2.add_gridspec(2, 1, height_ratios=[DIAG_H, 1.0], hspace=0.05)
 
     ax_diag2 = fig2.add_subplot(gs2[0])
-    _draw_stack_diagram(ax_diag2, xlim=XLIM)
+    _draw_stack_diagram(ax_diag2, xlim=XLIM, skip_target=skip_target)
 
     ax_l = fig2.add_subplot(gs2[1], sharex=ax_diag2)
 
