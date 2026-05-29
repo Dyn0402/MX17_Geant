@@ -102,7 +102,8 @@ void SteppingAction::UserSteppingAction(const G4Step* step) {
     }
 
     // ── Full-experiment extra volumes: per-layer edep only ───
-    if (fConfig.mode != SimMode::kFullExperiment) return;
+    // Applies to both full-experiment and sr90-calibration modes.
+    if (fConfig.mode == SimMode::kVacuum) return;
 
     if (volName == "ResistivePaste") {
         data.edepResistPaste += edep/eV;
