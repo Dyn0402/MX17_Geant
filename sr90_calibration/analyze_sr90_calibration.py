@@ -277,15 +277,14 @@ def plot_spectrum_overview(pdf, res: dict):
     ax.grid(True, alpha=0.3)
     ax.set_xlim(0, 2.5)
 
-    # Bottom: trigger fraction overlaid
+    ax.set_ylim(bottom=0)
+
+    # Bottom: trigger fraction
     ax2 = axes[1]
     ax2.plot(E, f_trig * 100, color=C_TRIG, lw=1.6)
-    ax2.axhline(res["spec_trig_eff"] * 100, color="k", lw=1.0, ls="--",
-                label=f"Spectrum-weighted: {res['spec_trig_eff']*100:.1f} %")
     ax2.set_xlabel("Beta energy (MeV)", fontsize=11)
     ax2.set_ylabel("Trigger fraction (%)", fontsize=11)
-    ax2.set_ylim(-2, 105)
-    ax2.legend(fontsize=9)
+    ax2.set_ylim(bottom=0)
     ax2.grid(True, alpha=0.3)
 
     fig.tight_layout()
@@ -311,7 +310,7 @@ def plot_fate_breakdown(pdf, res: dict):
     ax.set_xlabel("Beta energy (MeV)", fontsize=10)
     ax.set_ylabel("Fraction of electrons", fontsize=10)
     ax.set_title("Electron fate vs. energy\n(given electron reaches detector)", fontsize=11)
-    ax.legend(fontsize=9)
+    ax.legend(fontsize=9, loc="lower left")
     ax.grid(True, alpha=0.3)
 
     # Right: pie chart of spectrum-integrated fate
@@ -366,29 +365,40 @@ def plot_triggered_edep(pdf, res: dict):
     ax.legend(handles=[l1, l2], fontsize=8, loc="upper left")
     ax.grid(True, alpha=0.3)
 
-    # Right: spectrum-weighted edep distributions (approximate via energy-binned means)
+    # Right: LS1 energy scale comparison — Y-90 triggered vs signal electrons.
+    # Hardcoded from full-experiment simulation (ArIso, full stack, electron).
+    _LS1_Y90_KEV   = res["mean_ls1_trig"] * 1000          # from sr90 simulation
+    _LS1_5MEV_KEV  = 1985.4    # mean edep in LS1 at 5 MeV  (full-stack CSV)
+    _LS1_16MEV_KEV = 2783.4    # mean edep in LS1 at 16 MeV (full-stack CSV)
+    _THRESH_KEV    = 500.0     # rough LS1 trigger threshold for signal electrons
+
     ax2 = axes[1]
-    # Effective triggered spectrum (normalise to 1)
-    norm = np.trapz(S_trig, E)
-    if norm > 0:
-        w = S_trig / norm
-        # Accumulate spectrum-weighted average edep in plastic scint [keV]
-        ax2.plot(E, res["f_scint"] * 1000 * w / w.max(),
-                 color=C_SCINT, lw=1.4, label="Plastic scint. response (a.u.)")
-        ax2.plot(E, res["f_ls1"] * w / (res["f_ls1"] * w).max() if (res["f_ls1"]*w).max() > 0 else w*0,
-                 color=C_LS1,   lw=1.4, ls="--", label="LS1 response (a.u.)")
-        ax2.fill_between(E, 0, w / w.max(), alpha=0.12, color="grey",
-                         label="Triggered β spectrum (a.u.)")
-    ax2.axvline(res["eff_E_trig"], color="k", lw=1.0, ls=":",
-                label=f"Eff. trigger energy {res['eff_E_trig']*1000:.0f} keV")
-    ax2.set_xlim(0, 2.5)
-    ax2.set_ylim(0, 1.15)
-    ax2.set_xlabel("Beta energy (MeV)", fontsize=10)
-    ax2.set_ylabel("Normalised response / spectrum", fontsize=10)
-    ax2.set_title("Spectrum-weighted detector response\n(triggered events only)",
+    categories  = ["Y-90 triggered\n(Sr-90 cal.)",
+                   "5 MeV\nsignal e⁻", "16 MeV\nsignal e⁻"]
+    values      = [_LS1_Y90_KEV, _LS1_5MEV_KEV, _LS1_16MEV_KEV]
+    bar_colors  = [C_Y90, "#ff7f0e", "#d62728"]
+
+    bars = ax2.bar(categories, values, color=bar_colors, alpha=0.85, width=0.5)
+    for bar, val in zip(bars, values):
+        ax2.text(bar.get_x() + bar.get_width() / 2,
+                 val * 1.04, f"{val:.0f} keV",
+                 ha="center", va="bottom", fontsize=9, fontweight="bold")
+
+    ax2.axhline(_THRESH_KEV, color="k", lw=1.2, ls="--",
+                label=f"Estimated threshold ≈ {_THRESH_KEV:.0f} keV")
+    ax2.set_ylabel("Mean LS1 energy deposition (keV)", fontsize=10)
+    ax2.set_title("LS1 energy scale: calibration vs signal\n"
+                  "Y-90 deposits ~60× less than 5 MeV signal",
                   fontsize=11)
-    ax2.legend(fontsize=8)
-    ax2.grid(True, alpha=0.3)
+    ax2.set_ylim(bottom=0)
+    ax2.legend(fontsize=9)
+    ax2.grid(True, axis="y", alpha=0.3)
+
+    # Annotate the mismatch ratio
+    ratio = _LS1_5MEV_KEV / max(_LS1_Y90_KEV, 1)
+    ax2.annotate(f"×{ratio:.0f}", xy=(0.5, _LS1_Y90_KEV), xytext=(0.5, _LS1_5MEV_KEV / 2),
+                 fontsize=10, color="#333333", ha="center",
+                 arrowprops=dict(arrowstyle="<->", color="#555555", lw=1.0))
 
     fig.suptitle("Scintillator signals for Sr-90/Y-90 triggered events", fontsize=12)
     fig.tight_layout()
@@ -536,19 +546,13 @@ def plot_summary_page(pdf, res: dict):
         (f"  Y-90 endpoint           2.28  MeV", False),
         (f"  Betas per decay (equil) {BETAS_PER_DECAY:.0f}  (one per isotope)", False),
         ("", False),
-        ("─── Geometry (open / uncollimated) ─────────────────", False),
+        ("─── Geometry ────────────────────────────────────────", False),
         (f"  Source-to-MM distance   {SOURCE_TO_MM_CM:.1f} cm", False),
         (f"  Detector area           40 × 40 cm", False),
-        (f"  Solid angle             {SOLID_ANGLE_SR:.3f} sr", False),
-        (f"  Geometric efficiency    {GEOM_EFFICIENCY*100:.1f} %", False),
-        ("", False),
-        ("─── Geometry (collimated, see rate page) ────────────", False),
-        (f"  Aperture radius         {COLLIMATOR_RADIUS_MM:.0f} mm", False),
-        (f"  Collimator depth        {COLLIMATOR_LENGTH_MM:.0f} mm plastic", False),
-        (f"  Source-to-aperture      {COLLIMATOR_LENGTH_MM+COLLIMATOR_GAP_MM:.0f} mm", False),
-        (f"  Half-angle              {col_deg:.1f}°", False),
-        (f"  Collimated solid angle  {col_sr:.4f} sr", False),
-        (f"  Collimated geom. eff.   {col_eff*100:.3f} %", False),
+        (f"  Geometric eff. (open)   {GEOM_EFFICIENCY*100:.1f} %  "
+         f"(solid angle {SOLID_ANGLE_SR:.3f} sr)", False),
+        (f"  Geometric eff. (collimated)  {col_eff*100:.3f} %  "
+         f"({col_deg:.1f}° half-angle, r={COLLIMATOR_RADIUS_MM:.0f}mm L={COLLIMATOR_LENGTH_MM:.0f}mm)", False),
         ("", False),
         ("─── Spectral trigger efficiency ─────────────────────", False),
         (f"  Sr-90 alone             {res['spec_trig_sr']*100:.3f} %", False),
