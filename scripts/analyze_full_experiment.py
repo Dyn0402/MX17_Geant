@@ -149,16 +149,17 @@ def parse_energy(tag: str):
     return float(m.group(1).replace("p", ".")) if m else None
 
 
-def group_files(indir: str, gas: str, particle: str) -> dict:
-    """energy_MeV → [root file paths]"""
+def group_files(indir: str, gas: str, particle: str,
+                prefix: str = "full") -> dict:
+    """energy_MeV → [root file paths].  prefix selects 'full' or 'sr90' runs."""
     groups = defaultdict(list)
-    for f in sorted(Path(indir).glob(f"full_{gas}_{particle}_*.root")):
+    for f in sorted(Path(indir).glob(f"{prefix}_{gas}_{particle}_*.root")):
         base   = re.sub(r"_t\d+$", "", f.stem)
         energy = parse_energy(base)
         if energy is not None:
             groups[energy].append(str(f))
     if not groups:
-        print(f"  No files found for {gas}/{particle} in {indir}")
+        print(f"  No files found for {prefix}/{gas}/{particle} in {indir}")
     return dict(sorted(groups.items()))
 
 
@@ -1220,6 +1221,9 @@ def parse_args():
                    help="Skip angular analysis (faster)")
     p.add_argument("--workers", type=int, default=None,
                    help="Parallel worker processes (default: all CPU cores)")
+    p.add_argument("--prefix", default="full",
+                   help="File prefix: 'full' for full-experiment run, "
+                        "'sr90' for Sr-90 calibration run")
     return p.parse_args()
 
 
@@ -1240,7 +1244,7 @@ def main():
 
     for particle in args.particles:
         print(f"\nLoading {particle} ...")
-        groups = group_files(args.indir, args.gas, particle)
+        groups = group_files(args.indir, args.gas, particle, prefix=args.prefix)
         if not groups:
             continue
         print(f"  {len(groups)} energy points: "

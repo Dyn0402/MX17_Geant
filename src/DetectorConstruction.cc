@@ -345,6 +345,125 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
         if (alThickness > 0)
             G4cout << "  Al shield : " << fConfig.alThickness_mm << " mm" << G4endl;
 
+    } else if (fConfig.mode == SimMode::kSr90Calibration) {
+
+        // ======================================================
+        // SR-90 CALIBRATION MODE
+        // Identical to the full experiment but the He-3 pressurised
+        // target and its Al/CFRP capsule are absent.  The source is
+        // placed in air at the same z-position as the He-3 gas centre.
+        // The combined air path from source to MM drift gas entry is
+        // 226.5 mm (= 25 mm He-3 gas + 1.4 mm walls + 200 mm gap 1
+        // + ~0.1 mm dead layers, all replaced by air).
+        // ======================================================
+
+        G4double cfrpT       = fConfig.cfrpThickness_mm * mm;
+        G4double airToMM     = 226.5 * mm;   // source → MM drift gas entry (all air)
+
+        // PCB layer thicknesses — identical to full mode
+        G4double tPCB_Kap      = 50.0  * um;
+        G4double tPCB_Cu       = 26.0  * um;
+        G4double tPCB_FR4      = 100.0 * um;
+        G4double tPCB_Rohacell = 5.0   * mm;
+        G4double tPCB_AlFoil   = 50.0  * um;
+        G4double pcbTotalZ = tPCB_Kap + 4*(tPCB_Cu + tPCB_FR4) + tPCB_Rohacell + tPCB_AlFoil;
+
+        G4double airGap2 = 20.0 * mm;
+
+        G4double tBlackTape   = 165.0 * um;
+        G4double tPlScint     = 3.0   * mm;
+        G4double tScintAlFoil = 50.0  * um;
+        G4double scintWallZ   = 2*tBlackTape + tPlScint + tScintAlFoil;
+
+        G4double airGap3 = 20.0 * mm;
+
+        G4double tLS      = 15.0 * mm;
+        G4double lsStackZ = 5*cfrpT + 4*tLS;
+
+        G4double totalSr90Z = airToMM + mmTotalZ + pcbTotalZ
+                            + airGap2 + scintWallZ + airGap3 + lsStackZ;
+
+        G4double worldZ = totalSr90Z + 2.0*cm;
+
+        G4Box* worldSolid = new G4Box("World", detXY/2+2*cm, detXY/2+2*cm, worldZ/2);
+        worldLV = new G4LogicalVolume(worldSolid, matAir, "World");
+        worldPV = new G4PVPlacement(nullptr, G4ThreeVector(), worldLV, "World", nullptr, false, 0, true);
+        worldLV->SetVisAttributes(G4VisAttributes::GetInvisible());
+
+        // Source is in air at the upstream face of the world volume.
+        // fHe3GasCenterZ stores the gun position (reuses the accessor name).
+        fHe3GasCenterZ = -totalSr90Z / 2.0;
+
+        G4cout << "\n=== Sr-90 calibration geometry ===" << G4endl;
+        G4cout << "  No He-3 target or capsule" << G4endl;
+        G4cout << "  Air source-to-MM : " << airToMM/mm << " mm" << G4endl;
+        G4cout << "  Source z = " << fHe3GasCenterZ/mm << " mm" << G4endl;
+        G4cout << "  Total stack Z : " << totalSr90Z/mm << " mm" << G4endl;
+
+        G4double zFrontSr90 = -totalSr90Z / 2.0;
+
+        auto PlaceSlabSr90 = [&](const std::string& name, G4double thickness,
+                                  G4Material* mat, G4VisAttributes* vis,
+                                  G4LogicalVolume*& outLV) {
+            G4double zCenter = zFrontSr90 + thickness/2.0;
+            G4Box* solid = new G4Box(name, detXY/2, detXY/2, thickness/2);
+            outLV = new G4LogicalVolume(solid, mat, name);
+            if (vis) outLV->SetVisAttributes(vis);
+            new G4PVPlacement(nullptr, G4ThreeVector(0,0,zCenter),
+                              outLV, name, worldLV, false, 0, true);
+            zFrontSr90 += thickness;
+        };
+        G4LogicalVolume* dummyLV = nullptr;
+
+        // Air gap from source to MM entrance (replaces He-3 target + gap 1)
+        PlaceSlabSr90("AirGap1", airToMM, matAir, nullptr, dummyLV);
+
+        // ── Micromegas (identical to full mode) ───────────────────────────
+        PlaceSlabSr90("GasWindow_Mylar",    tMylar,    matMylar,    visMylar,    dummyLV);
+        PlaceSlabSr90("GasWindow_Al",       tAlWin,    matAl,       visAl,       dummyLV);
+        PlaceSlabSr90("DriftCathode_Kapton",tKapCath,  matKapton,   visKapton,   dummyLV);
+        PlaceSlabSr90("DriftCathode_Cu",    tCuCath,   matCu,       visCu,       dummyLV);
+        PlaceSlabSr90("DriftGas",           tDrift,    matGas,      visDrift,    fDriftGasLV);
+        PlaceSlabSr90("Micromesh",          tMesh,     matSteel,    visMesh,     dummyLV);
+        PlaceSlabSr90("AmpGas",             tAmp,      matGas,      visAmp,      fAmpGasLV);
+        PlaceSlabSr90("ResistivePaste",     tResPaste, matResPaste, visResPaste, dummyLV);
+
+        // ── PCB stack ────────────────────────────────────────────────────
+        PlaceSlabSr90("PCB_Kapton",   tPCB_Kap,      matKapton,  visKapton,  dummyLV);
+        PlaceSlabSr90("PCB_Cu_1",     tPCB_Cu,       matCu,      visCu,      dummyLV);
+        PlaceSlabSr90("PCB_FR4_1",    tPCB_FR4,      matFR4,     visFR4,     dummyLV);
+        PlaceSlabSr90("PCB_Cu_2",     tPCB_Cu,       matCu,      visCu,      dummyLV);
+        PlaceSlabSr90("PCB_FR4_2",    tPCB_FR4,      matFR4,     visFR4,     dummyLV);
+        PlaceSlabSr90("PCB_Cu_3",     tPCB_Cu,       matCu,      visCu,      dummyLV);
+        PlaceSlabSr90("PCB_FR4_3",    tPCB_FR4,      matFR4,     visFR4,     dummyLV);
+        PlaceSlabSr90("PCB_Cu_4",     tPCB_Cu,       matCu,      visCu,      dummyLV);
+        PlaceSlabSr90("PCB_FR4_4",    tPCB_FR4,      matFR4,     visFR4,     dummyLV);
+        PlaceSlabSr90("PCB_Rohacell", tPCB_Rohacell, matRohacell,visRohacell,dummyLV);
+        PlaceSlabSr90("PCB_AlFoil",   tPCB_AlFoil,   matAl,      visAl,      dummyLV);
+
+        PlaceSlabSr90("AirGap2", airGap2, matAir, nullptr, dummyLV);
+
+        // ── Scintillator wall ─────────────────────────────────────────────
+        PlaceSlabSr90("ScintWall_BlackTape1", tBlackTape,   matPVC,     nullptr,  dummyLV);
+        PlaceSlabSr90("PlasticScint",         tPlScint,     matPlScint, visScint, dummyLV);
+        PlaceSlabSr90("ScintWall_BlackTape2", tBlackTape,   matPVC,     nullptr,  dummyLV);
+        PlaceSlabSr90("ScintWall_AlFoil",     tScintAlFoil, matAl,      visAl,    dummyLV);
+
+        PlaceSlabSr90("AirGap3", airGap3, matAir, nullptr, dummyLV);
+
+        // ── Liquid scintillator stack ────────────────────────────────────
+        PlaceSlabSr90("LS_CFRP_1",  cfrpT, matCFRP, visCFRP, dummyLV);
+        PlaceSlabSr90("LiqScint_1", tLS,   matLAB,  visLAB,  dummyLV);
+        PlaceSlabSr90("LS_CFRP_2",  cfrpT, matCFRP, visCFRP, dummyLV);
+        PlaceSlabSr90("LiqScint_2", tLS,   matLAB,  visLAB,  dummyLV);
+        PlaceSlabSr90("LS_CFRP_3",  cfrpT, matCFRP, visCFRP, dummyLV);
+        PlaceSlabSr90("LiqScint_3", tLS,   matLAB,  visLAB,  dummyLV);
+        PlaceSlabSr90("LS_CFRP_4",  cfrpT, matCFRP, visCFRP, dummyLV);
+        PlaceSlabSr90("LiqScint_4", tLS,   matLAB,  visLAB,  dummyLV);
+        PlaceSlabSr90("LS_CFRP_5",  cfrpT, matCFRP, visCFRP, dummyLV);
+
+        return worldPV;
+
     } else {
 
         // ======================================================

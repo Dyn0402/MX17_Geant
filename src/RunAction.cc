@@ -70,7 +70,8 @@ void RunAction::BeginOfRunAction(const G4Run* run) {
     int tid = G4Threading::G4GetThreadId();
     if (tid >= 0) ss << "_t" << tid;
 
-    bool isFull = (fConfig.mode == SimMode::kFullExperiment);
+    bool isFull = (fConfig.mode == SimMode::kFullExperiment ||
+                   fConfig.mode == SimMode::kSr90Calibration);
 
 #ifdef USE_ROOT
     std::string fname = ss.str() + ".root";
@@ -179,7 +180,9 @@ void RunAction::EndOfRunAction(const G4Run* run) {
     if (fIsMaster || !G4Threading::IsMultithreadedApplication()) {
         G4int nev = run->GetNumberOfEvent();
         G4cout << "\n========= Run Summary =========" << G4endl;
-        G4cout << "  Mode     : " << (fConfig.mode == SimMode::kFullExperiment ? "full-experiment" : "vacuum") << G4endl;
+        G4cout << "  Mode     : " << (fConfig.mode == SimMode::kFullExperiment ? "full-experiment" :
+                                      fConfig.mode == SimMode::kSr90Calibration ? "sr90-calibration" : "vacuum")
+               << G4endl;
         G4cout << "  Gas      : " << fConfig.gas      << G4endl;
         G4cout << "  Particle : " << fConfig.particle << G4endl;
         G4cout << "  Energy   : " << fConfig.energy/MeV << " MeV" << G4endl;
@@ -203,7 +206,8 @@ void RunAction::RecordEvent(const EventData& data) {
     fSumEdepAmp    += data.edepAmp;
     fSumNprimAmp   += data.nPrimaryAmp;
 
-    bool isFull = (fConfig.mode == SimMode::kFullExperiment);
+    bool isFull = (fConfig.mode == SimMode::kFullExperiment ||
+                   fConfig.mode == SimMode::kSr90Calibration);
 
 #ifdef USE_ROOT
     if (!fImpl->evtTree) return;

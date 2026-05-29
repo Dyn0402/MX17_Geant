@@ -5,7 +5,7 @@
 #include <string>
 #include "G4SystemOfUnits.hh"
 
-enum class SimMode { kVacuum, kFullExperiment };
+enum class SimMode { kVacuum, kFullExperiment, kSr90Calibration };
 
 struct SimConfig {
     std::string gas;            // Gas mixture name

@@ -469,6 +469,75 @@ print(df)
 
 ---
 
+## Sr-90/Y-90 calibration simulation (`-m sr90`)
+
+A dedicated simulation mode for evaluating an Sr-90/Y-90 beta source as a
+detector calibration tool.  Identical to the full-experiment mode **except
+the He-3 pressurised target and its Al/CFRP capsule are absent**.  The source
+sits in air at the former He-3 gas-centre position; the air path from source
+to the MM entrance is 226.5 mm (the same physical distance as in the full
+experiment, but previously occupied by He-3 gas + capsule walls + 200 mm air).
+
+| What changes vs `-m full` | Detail |
+|---------------------------|--------|
+| He-3 gas removed          | 25 mm at 37.6 mg/cm³ |
+| Al capsule wall removed   | 0.5 mm at 2.70 g/cm³ |
+| CFRP capsule wall removed | 0.9 mm at 1.55 g/cm³ |
+| Upstream material         | 226.5 mm of air only |
+| Downstream stack          | Unchanged: MM → PCB → scint. wall → LS |
+
+### 1. Build
+
+Same binary; the new mode is selected at run time:
+
+```bash
+source scripts/setup_lxplus.sh && bash scripts/build.sh
+
+# Quick test
+build/mm_sim -m sr90 -g ArIso -p electron -e 1.0 -n 1000 -o /tmp/sr90_test
+```
+
+### 2. Submit HTCondor scan
+
+Output files use the `sr90_` prefix and go into a separate EOS directory so
+they cannot be confused with full-experiment results.
+
+```bash
+# Dry run
+python3 scripts/submit_condor_sr90.py \
+    --outdir /eos/user/d/dneff/mx17_geant_sim_results/sr90 \
+    --jobdir /afs/cern.ch/user/d/dneff/condor/mx17_geant_sr90 \
+    --nevents 50000 --dry-run
+
+# Submit
+python3 scripts/submit_condor_sr90.py \
+    --outdir /eos/user/d/dneff/mx17_geant_sim_results/sr90 \
+    --jobdir /afs/cern.ch/user/d/dneff/condor/mx17_geant_sr90 \
+    --nevents 50000
+```
+
+Energy range: **0.1 – 3.0 MeV**, ~160 points (150 log-spaced + exact values
+at 0.546 MeV Sr-90 endpoint, 2.28 MeV Y-90 endpoint, and round numbers).
+
+### 3. Analyse
+
+```bash
+# Full stack analysis (transmission, edep, angular) with sr90 prefix
+python3 scripts/analyze_full_experiment.py \
+    --indir   /eos/user/d/dneff/mx17_geant_sim_results/sr90 \
+    --prefix  sr90 \
+    --gas ArIso --particles electron positron \
+    --outfile sr90_stack_analysis.pdf --workers 16
+
+# Sr-90 feasibility convolution (spectrum × simulation)
+python3 sr90_calibration/analyze_sr90_calibration.py \
+    --spectrum sr90_calibration/Sr90_Y90_Beta_Spectrum.csv \
+    --summary  sr90_stack_analysis_electron.csv \
+    --outfile  sr90_calibration/sr90_calibration.pdf
+```
+
+---
+
 ## Sr-90/Y-90 calibration feasibility
 
 `sr90_calibration/analyse_sr90_calibration.py` evaluates using an Sr-90/Y-90
@@ -545,6 +614,7 @@ mm_sim/
 │   ├── build.sh
 │   ├── submit_condor.py           Vacuum-mode sensitivity scan
 │   ├── submit_condor_full.py      Full-experiment stack scan (e±, 0.1–18 MeV, 217 pts)
+│   ├── submit_condor_sr90.py      Sr-90 calibration scan (-m sr90, 0.1–3.0 MeV, ~160 pts)
 │   ├── collect_results.py         Merge vacuum-mode results + summary CSV
 │   ├── plot_results.py            Vacuum-mode sensitivity plots
 │   └── analyze_full_experiment.py Full-experiment transmission + calorimetry + angles
