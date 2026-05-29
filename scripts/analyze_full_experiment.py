@@ -24,7 +24,18 @@ import re
 import sys
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from multiprocessing import get_context
 from pathlib import Path
+
+# Use 'spawn' start method for all worker pools.
+#
+# On Linux the default is 'fork', which copies the parent's memory including
+# any threading locks held by matplotlib, uproot, or Python internals at the
+# moment of fork().  Worker processes then inherit those locks in a locked
+# state and deadlock on the IPC queue semaphore.  'spawn' starts each worker
+# with a fresh Python interpreter, eliminating the inherited-lock problem at
+# the cost of ~1 s per-worker startup (negligible for our batch sizes).
+_MP_CTX = get_context("spawn")
 
 import numpy as np
 import matplotlib
@@ -176,31 +187,76 @@ def read_event_tree(files: list) -> pd.DataFrame:
 
 
 def read_cluster_tree(files: list, max_events: int = MAX_EVENTS_ANG) -> pd.DataFrame:
-    rows, seen = [], set()
+    """
+    Read DriftGas primary-track clusters for angular analysis.
+
+    Key performance constraints:
+      entry_stop  — read at most this many rows from the tree.  The ClusterTree
+                    contains entries from many volumes; DriftGas entries are
+                    roughly 1 in 5.  Reading max_events×1500 rows gives a large
+                    safety margin while avoiding loading the entire file (which
+                    can be 15 M+ rows and take hours on EOS).
+      Vectorised  — all filtering is done with numpy masks, no Python loops over
+                    individual rows.
+    """
+    # Upper bound on rows to read: ~1 500 total entries per event (generous)
+    entry_stop = max_events * 1500
+    collected  = []
+
     for fpath in files:
-        if len(seen) >= max_events:
+        n_so_far = (int(np.unique(np.vstack(collected)[:, 0]).shape[0])
+                    if collected else 0)
+        if n_so_far >= max_events:
             break
         try:
             with uproot.open(fpath) as f:
                 if "ClusterTree" not in f:
                     continue
-                t = f["ClusterTree"]
+                t    = f["ClusterTree"]
+                stop = min(t.num_entries, entry_stop)
+
                 a = t.arrays(["eventID", "trackID", "x", "y", "z", "volume"],
-                              library="np")
+                              entry_stop=stop, library="np")
+
+                # Decode volume column (fixed-length char array → str)
                 vols = a["volume"]
-                vol_str = (np.array([v.decode("ascii").rstrip("\x00") for v in vols])
-                           if vols.dtype.kind == "S" else vols.astype(str))
+                if vols.dtype.kind == "S":
+                    # Strip null bytes vectorised
+                    vol_str = np.frompyfunc(
+                        lambda v: v.split(b"\x00")[0].decode("ascii"), 1, 1
+                    )(vols).astype(str)
+                else:
+                    vol_str = vols.astype(str)
+
+                # Filter: DriftGas only, primary particle (trackID == 1)
                 mask = (vol_str == "DriftGas") & (a["trackID"] == 1)
-                for ev, x, y, z in zip(a["eventID"][mask], a["x"][mask],
-                                        a["y"][mask], a["z"][mask]):
-                    if ev not in seen:
-                        if len(seen) >= max_events:
-                            break
-                        seen.add(ev)
-                    rows.append({"eventID": ev, "x": x, "y": y, "z": z})
+                if not mask.any():
+                    continue
+
+                ev_f = a["eventID"][mask]
+                x_f  = a["x"][mask]
+                y_f  = a["y"][mask]
+                z_f  = a["z"][mask]
+
+                # Keep only the first max_events unique events
+                unique_ev = np.unique(ev_f)
+                n_needed  = max_events - n_so_far
+                if len(unique_ev) > n_needed:
+                    unique_ev = unique_ev[:n_needed]
+
+                keep = np.isin(ev_f, unique_ev)
+                if keep.any():
+                    collected.append(np.column_stack(
+                        [ev_f[keep], x_f[keep], y_f[keep], z_f[keep]]))
+
         except Exception as e:
             print(f"  Warning (clusters): {fpath}: {e}")
-    return pd.DataFrame(rows) if rows else pd.DataFrame(columns=["eventID","x","y","z"])
+
+    if not collected:
+        return pd.DataFrame(columns=["eventID", "x", "y", "z"])
+
+    arr = np.vstack(collected)
+    return pd.DataFrame(arr, columns=["eventID", "x", "y", "z"])
 
 
 # ── Summary computation ───────────────────────────────────────────────────────
@@ -277,7 +333,7 @@ def compute_summary(groups: dict, n_workers: int = None) -> pd.DataFrame:
     w     = n_workers or os.cpu_count()
     print(f"  {n} energy points — {min(w, n)} parallel workers")
     records = []
-    with ProcessPoolExecutor(max_workers=n_workers) as ex:
+    with ProcessPoolExecutor(max_workers=n_workers, mp_context=_MP_CTX) as ex:
         futures = {ex.submit(_summarise_one, item): item[0] for item in items}
         done = 0
         for fut in as_completed(futures):
@@ -612,13 +668,13 @@ def plot_angular_distributions(pdf: PdfPages, all_groups: dict,
     # Pre-fetch angles in parallel across all particles and snapshots
     print(f"  Loading angular data ({len(work)} cluster trees in parallel) ...")
     ang_cache = {}   # (particle, e_actual) → angles array
-    with ProcessPoolExecutor(max_workers=n_workers) as ex:
+    with ProcessPoolExecutor(max_workers=n_workers, mp_context=_MP_CTX) as ex:
         futures = {ex.submit(_angular_one, (e, f)): (p, e)
                    for p, e, f in work}
         for fut in as_completed(futures):
             p, e = futures[fut]
             try:
-                _, angles = fut.result()
+                _, angles = fut.result(timeout=300)   # 5-min cap per tree
             except Exception as err:
                 print(f"  Warning angular {p} {e:.3g} MeV: {err}")
                 angles = np.array([])
@@ -673,7 +729,7 @@ def plot_angular_resolution(pdf: PdfPages, all_groups: dict, step: int = 10,
     total_w = len(work)
     print(f"  Loading angular RMS data ({total_w} cluster trees in parallel) ...")
     ang_cache = {}   # (particle, energy) → angles
-    with ProcessPoolExecutor(max_workers=n_workers) as ex:
+    with ProcessPoolExecutor(max_workers=n_workers, mp_context=_MP_CTX) as ex:
         futures = {ex.submit(_angular_one, (e, f)): (p, e)
                    for p, e, f in work}
         done = 0
@@ -681,7 +737,7 @@ def plot_angular_resolution(pdf: PdfPages, all_groups: dict, step: int = 10,
             done += 1
             p, e = futures[fut]
             try:
-                _, angles = fut.result()
+                _, angles = fut.result(timeout=300)   # 5-min cap per tree
             except Exception as err:
                 print(f"  Warning angular RMS {p} {e:.4g} MeV: {err}")
                 angles = np.array([])
@@ -984,7 +1040,7 @@ def compute_trigger_fractions(groups: dict,
     items = [(e, f, thresh_scint_eV, thresh_ls1_eV) for e, f in groups.items()]
     n = len(items)
     result = {}
-    with ProcessPoolExecutor(max_workers=n_workers) as ex:
+    with ProcessPoolExecutor(max_workers=n_workers, mp_context=_MP_CTX) as ex:
         futures = {ex.submit(_trigger_one, a): a[0] for a in items}
         done = 0
         for fut in as_completed(futures):
