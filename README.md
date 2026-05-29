@@ -554,48 +554,62 @@ comparing transmission and energy deposition in `sr90` vs `sr90nomm`.
 
 ### 1. Build
 
-Same binary, mode selected at runtime:
+Same binary as `-m sr90`; no rebuild needed:
 
 ```bash
-build/mm_sim -m sr90nomm -g ArIso -p electron -e 1.0 -n 1000 -o /tmp/test_nomm
+# Quick test
+build/mm_sim -m sr90nomm -g ArIso -p electron -e 1.0 -n 1000 -o /tmp/sr90nomm_test
 ```
 
 ### 2. Submit HTCondor scan
 
-Use the same `submit_condor_sr90.py` script with `--mode sr90nomm`.  Output
-goes into a separate `_nomm` subdirectory automatically.
+Pass `--mode sr90nomm` to the same script used for sr90.  The script
+automatically appends `_nomm` to the `--outdir` and `--jobdir` paths, so
+output lands in `.../sr90_nomm` and never mixes with the sr90 results.
 
 ```bash
 # Dry run
 python3 scripts/submit_condor_sr90.py \
-    --mode sr90nomm \
-    --outdir /path/to/sr90 \
+    --mode    sr90nomm \
+    --outdir  /eos/user/d/dneff/mx17_geant_sim_results/sr90 \
+    --jobdir  /afs/cern.ch/user/d/dneff/condor/mx17_geant_sr90 \
     --nevents 50000 --dry-run
 
 # Submit
 python3 scripts/submit_condor_sr90.py \
-    --mode sr90nomm \
-    --outdir /path/to/sr90 \
+    --mode    sr90nomm \
+    --outdir  /eos/user/d/dneff/mx17_geant_sim_results/sr90 \
+    --jobdir  /afs/cern.ch/user/d/dneff/condor/mx17_geant_sr90 \
     --nevents 50000
 ```
 
+ROOT files are written to `/eos/user/d/dneff/mx17_geant_sim_results/sr90_nomm/`
+with the prefix `sr90nomm_`.
+
 ### 3. Analyse
 
-Use `analyze_full_experiment.py` with `--prefix sr90nomm`:
-
 ```bash
+# Step A — Stack analysis (same structure as sr90)
 python3 scripts/analyze_full_experiment.py \
-    --indir   /path/to/sr90_nomm \
+    --indir   /eos/user/d/dneff/mx17_geant_sim_results/sr90_nomm \
     --prefix  sr90nomm \
     --gas ArIso --particles electron positron \
-    --outfile sr90nomm_analysis.pdf --workers 16
+    --outfile /afs/cern.ch/user/d/dneff/x17/mm_sim_results/sr90_calibration/sr90nomm_stack_analysis.pdf \
+    --workers 16
+
+# Step B — Sr-90 feasibility with no-MM geometry
+python3 sr90_calibration/analyze_sr90_calibration.py \
+    --spectrum sr90_calibration/Sr90_Y90_Beta_Spectrum.csv \
+    --summary  /afs/cern.ch/user/d/dneff/x17/mm_sim_results/sr90_calibration/sr90nomm_stack_analysis_electron.csv \
+    --outfile  /afs/cern.ch/user/d/dneff/x17/mm_sim_results/sr90_calibration/sr90nomm_calibration.pdf
 ```
 
 ### 4. Compare sr90 vs sr90nomm
 
-The key comparison is transmission and edep with/without the MM stack.
 The difference in `trans_primInScintWall` between the two modes directly
 gives the fraction of electrons stopped by the Micromegas + PCB material.
+Compare the two `_electron.csv` files side by side or pass both PDFs to
+see the material budget contribution of the MM stack.
 
 ---
 

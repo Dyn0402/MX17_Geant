@@ -770,21 +770,23 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
 
 // ============================================================
 void DetectorConstruction::ConstructSDandField() {
-    SensitiveDetector* driftSD = new SensitiveDetector("DriftGasSD", "DriftGasHits",
-                                                         "DriftGas", fConfig);
-    G4SDManager::GetSDMpointer()->AddNewDetector(driftSD);
-    SetSensitiveDetector(fDriftGasLV, driftSD);
+    // Gas volumes are absent in kSr90NoMM mode — guard all LV pointers.
+    if (fDriftGasLV) {
+        SensitiveDetector* driftSD = new SensitiveDetector("DriftGasSD", "DriftGasHits",
+                                                             "DriftGas", fConfig);
+        G4SDManager::GetSDMpointer()->AddNewDetector(driftSD);
+        SetSensitiveDetector(fDriftGasLV, driftSD);
+        fDriftGasLV->SetUserLimits(new G4UserLimits(100*um));
+    }
 
-    SensitiveDetector* ampSD = new SensitiveDetector("AmpGasSD", "AmpGasHits",
-                                                       "AmpGas", fConfig);
-    G4SDManager::GetSDMpointer()->AddNewDetector(ampSD);
-    SetSensitiveDetector(fAmpGasLV, ampSD);
+    if (fAmpGasLV) {
+        SensitiveDetector* ampSD = new SensitiveDetector("AmpGasSD", "AmpGasHits",
+                                                           "AmpGas", fConfig);
+        G4SDManager::GetSDMpointer()->AddNewDetector(ampSD);
+        SetSensitiveDetector(fAmpGasLV, ampSD);
+        fAmpGasLV->SetUserLimits(new G4UserLimits(100*um));
+    }
 
-    G4UserLimits* gasStepLimit = new G4UserLimits(100*um);
-    fDriftGasLV->SetUserLimits(gasStepLimit);
-    fAmpGasLV->SetUserLimits(gasStepLimit);
-
-    // He-3 gas: coarser step limit (not a cluster-scoring volume)
     if (fHe3GasLV) {
         fHe3GasLV->SetUserLimits(new G4UserLimits(1.0*mm));
     }
