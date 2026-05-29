@@ -34,7 +34,7 @@ void PrintUsage() {
     std::cerr << "  -o <output>      Output file base name  (default: mm_output)\n";
     std::cerr << "  -s <seed>        Random seed  (default: time-based)\n";
     std::cerr << "  -t <nthreads>    MT threads  (default: 1)\n";
-    std::cerr << "  -m <mode>        vacuum | full | sr90  (default: vacuum)\n";
+    std::cerr << "  -m <mode>        vacuum | full | sr90 | sr90nomm  (default: vacuum)\n";
     std::cerr << "  -a <mm>          Al shielding [mm], vacuum mode only  (default: 0)\n";
     std::cerr << "  -c <mm>          CFRP wall thickness [mm] for LS cells, full mode only  (default: 1.5)\n";
     std::cerr << "  -v               Verbose output\n";
@@ -74,8 +74,10 @@ int main(int argc, char** argv) {
             std::string mode = argv[++i];
             if      (mode == "vacuum") config.mode = SimMode::kVacuum;
             else if (mode == "full")   config.mode = SimMode::kFullExperiment;
-            else if (mode == "sr90")   config.mode = SimMode::kSr90Calibration;
-            else { std::cerr << "Unknown mode: " << mode << " (use 'vacuum', 'full', or 'sr90')\n"; return 1; }
+            else if (mode == "sr90")    config.mode = SimMode::kSr90Calibration;
+            else if (mode == "sr90nomm") config.mode = SimMode::kSr90NoMM;
+            else { std::cerr << "Unknown mode: " << mode
+                             << " (use 'vacuum', 'full', 'sr90', or 'sr90nomm')\n"; return 1; }
         }
         else if (arg[0] != '-') macroFile = arg;
         else { std::cerr << "Unknown option: " << arg << "\n"; PrintUsage(); return 1; }
@@ -86,8 +88,9 @@ int main(int argc, char** argv) {
 
     std::cout << "=== Micromegas Simulation ===" << "\n";
     std::cout << "  Geant4 version : " << G4Version << "\n";
-    std::string modeStr = (config.mode == SimMode::kFullExperiment ? "full-experiment" :
-                           config.mode == SimMode::kSr90Calibration ? "sr90-calibration" : "vacuum");
+    std::string modeStr = (config.mode == SimMode::kFullExperiment  ? "full-experiment"    :
+                           config.mode == SimMode::kSr90Calibration ? "sr90-calibration"   :
+                           config.mode == SimMode::kSr90NoMM        ? "sr90-no-mm"         : "vacuum");
     std::cout << "  Mode           : " << modeStr << "\n";
     std::cout << "  Gas            : " << config.gas << "\n";
     std::cout << "  Particle       : " << config.particle << "\n";

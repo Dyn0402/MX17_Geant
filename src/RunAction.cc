@@ -31,8 +31,15 @@ struct RunAction::Impl {
     Bool_t   br_primInDrift, br_primInAmp;
 
     // EventTree buffers — full-experiment mode only
-    Double_t br_edepHe3Gas, br_edepResistPaste, br_edepPCB;
-    Double_t br_edepScintWall;
+    Double_t br_edepHe3Gas, br_edepResistPaste;
+    // MM dead layers
+    Double_t br_edepMylar, br_edepCathode, br_edepMicromesh;
+    // PCB aggregate + individual
+    Double_t br_edepPCB;
+    Double_t br_edepPCBKapton, br_edepPCBCu, br_edepPCBFR4,
+             br_edepPCBRohacell, br_edepPCBAlFoil;
+    // Scint wall components
+    Double_t br_edepScintWall, br_edepScintTape, br_edepScintAlFoil;
     Double_t br_edepLS1, br_edepLS2, br_edepLS3, br_edepLS4;
     Bool_t   br_primInHe3Gas, br_primInPCB, br_primInScintWall;
     Bool_t   br_primInLS1, br_primInLS2, br_primInLS3, br_primInLS4;
@@ -70,8 +77,9 @@ void RunAction::BeginOfRunAction(const G4Run* run) {
     int tid = G4Threading::G4GetThreadId();
     if (tid >= 0) ss << "_t" << tid;
 
-    bool isFull = (fConfig.mode == SimMode::kFullExperiment ||
-                   fConfig.mode == SimMode::kSr90Calibration);
+    bool isFull = (fConfig.mode == SimMode::kFullExperiment  ||
+                   fConfig.mode == SimMode::kSr90Calibration ||
+                   fConfig.mode == SimMode::kSr90NoMM);
 
 #ifdef USE_ROOT
     std::string fname = ss.str() + ".root";
@@ -101,10 +109,23 @@ void RunAction::BeginOfRunAction(const G4Run* run) {
     fImpl->evtTree->Branch("primInAmp",  &fImpl->br_primInAmp);
 
     if (isFull) {
-        fImpl->evtTree->Branch("edepHe3Gas",      &fImpl->br_edepHe3Gas);      // eV
-        fImpl->evtTree->Branch("edepResistPaste",  &fImpl->br_edepResistPaste); // eV
-        fImpl->evtTree->Branch("edepPCB",          &fImpl->br_edepPCB);         // eV
-        fImpl->evtTree->Branch("edepScintWall",    &fImpl->br_edepScintWall);   // eV
+        fImpl->evtTree->Branch("edepHe3Gas",      &fImpl->br_edepHe3Gas);
+        fImpl->evtTree->Branch("edepResistPaste", &fImpl->br_edepResistPaste);
+        // MM dead layers
+        fImpl->evtTree->Branch("edepMylar",       &fImpl->br_edepMylar);
+        fImpl->evtTree->Branch("edepCathode",     &fImpl->br_edepCathode);
+        fImpl->evtTree->Branch("edepMicromesh",   &fImpl->br_edepMicromesh);
+        // PCB aggregate + individual
+        fImpl->evtTree->Branch("edepPCB",         &fImpl->br_edepPCB);
+        fImpl->evtTree->Branch("edepPCBKapton",   &fImpl->br_edepPCBKapton);
+        fImpl->evtTree->Branch("edepPCBCu",       &fImpl->br_edepPCBCu);
+        fImpl->evtTree->Branch("edepPCBFR4",      &fImpl->br_edepPCBFR4);
+        fImpl->evtTree->Branch("edepPCBRohacell", &fImpl->br_edepPCBRohacell);
+        fImpl->evtTree->Branch("edepPCBAlFoil",   &fImpl->br_edepPCBAlFoil);
+        // Scint wall
+        fImpl->evtTree->Branch("edepScintWall",   &fImpl->br_edepScintWall);
+        fImpl->evtTree->Branch("edepScintTape",   &fImpl->br_edepScintTape);
+        fImpl->evtTree->Branch("edepScintAlFoil", &fImpl->br_edepScintAlFoil);
         fImpl->evtTree->Branch("edepLS1",          &fImpl->br_edepLS1);         // eV
         fImpl->evtTree->Branch("edepLS2",          &fImpl->br_edepLS2);
         fImpl->evtTree->Branch("edepLS3",          &fImpl->br_edepLS3);
@@ -145,8 +166,12 @@ void RunAction::BeginOfRunAction(const G4Run* run) {
     fImpl->evtFile << "eventID,edepDrift_eV,edepAmp_eV,nPrimDrift,nPrimAmp,"
                       "nClusDrift,nClusAmp,primInDrift,primInAmp";
     if (isFull) {
-        fImpl->evtFile << ",edepHe3Gas_eV,edepResistPaste_eV,edepPCB_eV"
-                          ",edepScintWall_eV,edepLS1_eV,edepLS2_eV,edepLS3_eV,edepLS4_eV"
+        fImpl->evtFile << ",edepHe3Gas_eV,edepResistPaste_eV"
+                          ",edepMylar_eV,edepCathode_eV,edepMicromesh_eV"
+                          ",edepPCB_eV,edepPCBKapton_eV,edepPCBCu_eV"
+                          ",edepPCBFR4_eV,edepPCBRohacell_eV,edepPCBAlFoil_eV"
+                          ",edepScintWall_eV,edepScintTape_eV,edepScintAlFoil_eV"
+                          ",edepLS1_eV,edepLS2_eV,edepLS3_eV,edepLS4_eV"
                           ",primInHe3Gas,primInPCB,primInScintWall"
                           ",primInLS1,primInLS2,primInLS3,primInLS4"
                           ",edepLSCFRP_eV,primInLSCFRP5";
@@ -180,8 +205,9 @@ void RunAction::EndOfRunAction(const G4Run* run) {
     if (fIsMaster || !G4Threading::IsMultithreadedApplication()) {
         G4int nev = run->GetNumberOfEvent();
         G4cout << "\n========= Run Summary =========" << G4endl;
-        G4cout << "  Mode     : " << (fConfig.mode == SimMode::kFullExperiment ? "full-experiment" :
-                                      fConfig.mode == SimMode::kSr90Calibration ? "sr90-calibration" : "vacuum")
+        G4cout << "  Mode     : " << (fConfig.mode == SimMode::kFullExperiment  ? "full-experiment"  :
+                                      fConfig.mode == SimMode::kSr90Calibration ? "sr90-calibration" :
+                                      fConfig.mode == SimMode::kSr90NoMM        ? "sr90-no-mm"       : "vacuum")
                << G4endl;
         G4cout << "  Gas      : " << fConfig.gas      << G4endl;
         G4cout << "  Particle : " << fConfig.particle << G4endl;
@@ -206,8 +232,9 @@ void RunAction::RecordEvent(const EventData& data) {
     fSumEdepAmp    += data.edepAmp;
     fSumNprimAmp   += data.nPrimaryAmp;
 
-    bool isFull = (fConfig.mode == SimMode::kFullExperiment ||
-                   fConfig.mode == SimMode::kSr90Calibration);
+    bool isFull = (fConfig.mode == SimMode::kFullExperiment  ||
+                   fConfig.mode == SimMode::kSr90Calibration ||
+                   fConfig.mode == SimMode::kSr90NoMM);
 
 #ifdef USE_ROOT
     if (!fImpl->evtTree) return;
@@ -225,8 +252,18 @@ void RunAction::RecordEvent(const EventData& data) {
     if (isFull) {
         fImpl->br_edepHe3Gas      = data.edepHe3Gas;
         fImpl->br_edepResistPaste = data.edepResistPaste;
+        fImpl->br_edepMylar       = data.edepMylar;
+        fImpl->br_edepCathode     = data.edepCathode;
+        fImpl->br_edepMicromesh   = data.edepMicromesh;
         fImpl->br_edepPCB         = data.edepPCB;
+        fImpl->br_edepPCBKapton   = data.edepPCBKapton;
+        fImpl->br_edepPCBCu       = data.edepPCBCu;
+        fImpl->br_edepPCBFR4      = data.edepPCBFR4;
+        fImpl->br_edepPCBRohacell = data.edepPCBRohacell;
+        fImpl->br_edepPCBAlFoil   = data.edepPCBAlFoil;
         fImpl->br_edepScintWall   = data.edepScintWall;
+        fImpl->br_edepScintTape   = data.edepScintTape;
+        fImpl->br_edepScintAlFoil = data.edepScintAlFoil;
         fImpl->br_edepLS1         = data.edepLS1;
         fImpl->br_edepLS2         = data.edepLS2;
         fImpl->br_edepLS3         = data.edepLS3;
@@ -272,8 +309,18 @@ void RunAction::RecordEvent(const EventData& data) {
     if (isFull) {
         fImpl->evtFile << "," << data.edepHe3Gas
                        << "," << data.edepResistPaste
+                       << "," << data.edepMylar
+                       << "," << data.edepCathode
+                       << "," << data.edepMicromesh
                        << "," << data.edepPCB
+                       << "," << data.edepPCBKapton
+                       << "," << data.edepPCBCu
+                       << "," << data.edepPCBFR4
+                       << "," << data.edepPCBRohacell
+                       << "," << data.edepPCBAlFoil
                        << "," << data.edepScintWall
+                       << "," << data.edepScintTape
+                       << "," << data.edepScintAlFoil
                        << "," << data.edepLS1
                        << "," << data.edepLS2
                        << "," << data.edepLS3

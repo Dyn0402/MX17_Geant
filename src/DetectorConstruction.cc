@@ -464,6 +464,101 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
 
         return worldPV;
 
+    } else if (fConfig.mode == SimMode::kSr90NoMM) {
+
+        // ======================================================
+        // SR-90 NO-MM MODE
+        // Identical to kSr90Calibration but the Micromegas and PCB
+        // are removed entirely.  The source sees only air, then the
+        // plastic scintillator tape directly.
+        //
+        // The air gap is set so that the physical source-to-scint
+        // distance is IDENTICAL to the full experiment: the MM and
+        // PCB material is simply replaced by air.  This lets us
+        // isolate the MM material budget contribution by comparing
+        // kSr90Calibration and kSr90NoMM simulation results.
+        // ======================================================
+
+        G4double cfrpT = fConfig.cfrpThickness_mm * mm;
+
+        // PCB thickness (needed only to compute the air-to-scint distance)
+        G4double tPCB_Kap_n      = 50.0  * um;
+        G4double tPCB_Cu_n       = 26.0  * um;
+        G4double tPCB_FR4_n      = 100.0 * um;
+        G4double tPCB_Rohacell_n = 5.0   * mm;
+        G4double tPCB_AlFoil_n   = 50.0  * um;
+        G4double pcbZ_n = tPCB_Kap_n + 4*(tPCB_Cu_n + tPCB_FR4_n)
+                        + tPCB_Rohacell_n + tPCB_AlFoil_n;
+
+        // Preserve source → scint tape distance = airToMM + mmTotal + PCB + air2
+        G4double airToScint = 226.5*mm + mmTotalZ + pcbZ_n + 20.0*mm;
+
+        G4double tBlackTape   = 165.0 * um;
+        G4double tPlScint     = 3.0   * mm;
+        G4double tScintAlFoil = 50.0  * um;
+        G4double scintWallZ   = 2*tBlackTape + tPlScint + tScintAlFoil;
+
+        G4double airGap3 = 20.0 * mm;
+        G4double tLS     = 15.0 * mm;
+        G4double lsStackZ = 5*cfrpT + 4*tLS;
+
+        G4double totalNoMMZ = airToScint + scintWallZ + airGap3 + lsStackZ;
+        G4double worldZ     = totalNoMMZ + 2.0*cm;
+
+        G4Box* worldSolid = new G4Box("World", detXY/2+2*cm, detXY/2+2*cm, worldZ/2);
+        worldLV = new G4LogicalVolume(worldSolid, matAir, "World");
+        worldPV = new G4PVPlacement(nullptr, G4ThreeVector(), worldLV, "World",
+                                    nullptr, false, 0, true);
+        worldLV->SetVisAttributes(G4VisAttributes::GetInvisible());
+
+        fHe3GasCenterZ = -totalNoMMZ / 2.0;  // gun at front of air gap
+
+        G4cout << "\n=== Sr-90 no-MM geometry ===" << G4endl;
+        G4cout << "  No Micromegas, no PCB" << G4endl;
+        G4cout << "  Air source-to-scint : " << airToScint/mm << " mm  "
+               << "(= sr90 air + MM + PCB + air2)" << G4endl;
+        G4cout << "  Source z = " << fHe3GasCenterZ/mm << " mm" << G4endl;
+        G4cout << "  Total stack Z : " << totalNoMMZ/mm << " mm" << G4endl;
+
+        G4double zFrontNoMM = -totalNoMMZ / 2.0;
+
+        auto PlaceSlabNoMM = [&](const std::string& name, G4double thickness,
+                                  G4Material* mat, G4VisAttributes* vis,
+                                  G4LogicalVolume*& outLV) {
+            G4double zCenter = zFrontNoMM + thickness/2.0;
+            G4Box* solid = new G4Box(name, detXY/2, detXY/2, thickness/2);
+            outLV = new G4LogicalVolume(solid, mat, name);
+            if (vis) outLV->SetVisAttributes(vis);
+            new G4PVPlacement(nullptr, G4ThreeVector(0,0,zCenter),
+                              outLV, name, worldLV, false, 0, true);
+            zFrontNoMM += thickness;
+        };
+        G4LogicalVolume* dummyLV = nullptr;
+
+        // Air from source to scintillator (replaces air + MM + PCB + air gap)
+        PlaceSlabNoMM("AirGap1", airToScint, matAir, nullptr, dummyLV);
+
+        // ── Scintillator wall ─────────────────────────────────────────────
+        PlaceSlabNoMM("ScintWall_BlackTape1", tBlackTape,   matPVC,     nullptr,  dummyLV);
+        PlaceSlabNoMM("PlasticScint",         tPlScint,     matPlScint, visScint, dummyLV);
+        PlaceSlabNoMM("ScintWall_BlackTape2", tBlackTape,   matPVC,     nullptr,  dummyLV);
+        PlaceSlabNoMM("ScintWall_AlFoil",     tScintAlFoil, matAl,      visAl,    dummyLV);
+
+        PlaceSlabNoMM("AirGap3", airGap3, matAir, nullptr, dummyLV);
+
+        // ── Liquid scintillator stack ────────────────────────────────────
+        PlaceSlabNoMM("LS_CFRP_1",  cfrpT, matCFRP, visCFRP, dummyLV);
+        PlaceSlabNoMM("LiqScint_1", tLS,   matLAB,  visLAB,  dummyLV);
+        PlaceSlabNoMM("LS_CFRP_2",  cfrpT, matCFRP, visCFRP, dummyLV);
+        PlaceSlabNoMM("LiqScint_2", tLS,   matLAB,  visLAB,  dummyLV);
+        PlaceSlabNoMM("LS_CFRP_3",  cfrpT, matCFRP, visCFRP, dummyLV);
+        PlaceSlabNoMM("LiqScint_3", tLS,   matLAB,  visLAB,  dummyLV);
+        PlaceSlabNoMM("LS_CFRP_4",  cfrpT, matCFRP, visCFRP, dummyLV);
+        PlaceSlabNoMM("LiqScint_4", tLS,   matLAB,  visLAB,  dummyLV);
+        PlaceSlabNoMM("LS_CFRP_5",  cfrpT, matCFRP, visCFRP, dummyLV);
+
+        return worldPV;
+
     } else {
 
         // ======================================================

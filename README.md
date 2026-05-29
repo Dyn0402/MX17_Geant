@@ -542,6 +542,63 @@ python3 sr90_calibration/analyze_sr90_calibration.py \
 
 ---
 
+## Sr-90 without Micromegas (`-m sr90nomm`)
+
+Identical to `-m sr90` but the Micromegas detector and PCB are removed entirely.
+The source sees **only air** between itself and the plastic scintillator.  The
+total source-to-scintillator distance is preserved (282.5 mm of air) so the
+geometry is directly comparable to the `-m sr90` results.
+
+**Purpose:** isolate the Micromegas + PCB material budget contribution by
+comparing transmission and energy deposition in `sr90` vs `sr90nomm`.
+
+### 1. Build
+
+Same binary, mode selected at runtime:
+
+```bash
+build/mm_sim -m sr90nomm -g ArIso -p electron -e 1.0 -n 1000 -o /tmp/test_nomm
+```
+
+### 2. Submit HTCondor scan
+
+Use the same `submit_condor_sr90.py` script with `--mode sr90nomm`.  Output
+goes into a separate `_nomm` subdirectory automatically.
+
+```bash
+# Dry run
+python3 scripts/submit_condor_sr90.py \
+    --mode sr90nomm \
+    --outdir /path/to/sr90 \
+    --nevents 50000 --dry-run
+
+# Submit
+python3 scripts/submit_condor_sr90.py \
+    --mode sr90nomm \
+    --outdir /path/to/sr90 \
+    --nevents 50000
+```
+
+### 3. Analyse
+
+Use `analyze_full_experiment.py` with `--prefix sr90nomm`:
+
+```bash
+python3 scripts/analyze_full_experiment.py \
+    --indir   /path/to/sr90_nomm \
+    --prefix  sr90nomm \
+    --gas ArIso --particles electron positron \
+    --outfile sr90nomm_analysis.pdf --workers 16
+```
+
+### 4. Compare sr90 vs sr90nomm
+
+The key comparison is transmission and edep with/without the MM stack.
+The difference in `trans_primInScintWall` between the two modes directly
+gives the fraction of electrons stopped by the Micromegas + PCB material.
+
+---
+
 ## Sr-90/Y-90 calibration feasibility
 
 `sr90_calibration/analyse_sr90_calibration.py` evaluates using an Sr-90/Y-90
@@ -618,7 +675,7 @@ mm_sim/
 │   ├── build.sh
 │   ├── submit_condor.py           Vacuum-mode sensitivity scan
 │   ├── submit_condor_full.py      Full-experiment stack scan (e±, 0.1–18 MeV, 217 pts)
-│   ├── submit_condor_sr90.py      Sr-90 calibration scan (-m sr90, 0.1–3.0 MeV, ~160 pts)
+│   ├── submit_condor_sr90.py      Sr-90 scan: --mode sr90 (with MM) or sr90nomm (no MM)
 │   ├── collect_results.py         Merge vacuum-mode results + summary CSV
 │   ├── plot_results.py            Vacuum-mode sensitivity plots
 │   └── analyze_full_experiment.py Full-experiment transmission + calorimetry + angles

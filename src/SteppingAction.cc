@@ -116,10 +116,43 @@ void SteppingAction::UserSteppingAction(const G4Step* step) {
         return;
     }
 
-    // PCB stack: aggregate all sublayers
+    // ── MM entrance / dead layers ─────────────────────────────────────────
+    if (volName == "GasWindow_Mylar") {
+        data.edepMylar += edep/eV;
+        return;
+    }
+    if (volName == "GasWindow_Al" ||
+        volName == "DriftCathode_Kapton" ||
+        volName == "DriftCathode_Cu") {
+        data.edepCathode += edep/eV;
+        return;
+    }
+    if (volName == "Micromesh") {
+        data.edepMicromesh += edep/eV;
+        return;
+    }
+
+    // ── PCB stack: aggregate + individual components ──────────────────────
     if (volName.size() >= 4 && volName.substr(0,4) == "PCB_") {
-        data.edepPCB += edep/eV;
+        data.edepPCB += edep/eV;          // keep aggregate
         if (isPrimary) data.primInPCB = true;
+        if      (volName == "PCB_Kapton")   data.edepPCBKapton   += edep/eV;
+        else if (volName.size() >= 7 &&
+                 volName.substr(0,6) == "PCB_Cu")   data.edepPCBCu       += edep/eV;
+        else if (volName.size() >= 8 &&
+                 volName.substr(0,7) == "PCB_FR4")  data.edepPCBFR4      += edep/eV;
+        else if (volName == "PCB_Rohacell") data.edepPCBRohacell += edep/eV;
+        else if (volName == "PCB_AlFoil")   data.edepPCBAlFoil   += edep/eV;
+        return;
+    }
+
+    // ── Scintillator wall components ──────────────────────────────────────
+    if (volName == "ScintWall_BlackTape1" || volName == "ScintWall_BlackTape2") {
+        data.edepScintTape += edep/eV;
+        return;
+    }
+    if (volName == "ScintWall_AlFoil") {
+        data.edepScintAlFoil += edep/eV;
         return;
     }
 

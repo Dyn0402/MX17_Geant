@@ -75,9 +75,12 @@ def parse_args():
         description="Submit Sr-90 calibration simulation to HTCondor",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--mode", default="sr90", choices=["sr90", "sr90nomm"],
+                   help="sr90: full stack with MM  |  sr90nomm: no MM or PCB")
     p.add_argument("--outdir",
                    default="/eos/user/d/dneff/mx17_geant_sim_results/sr90",
-                   help="Output directory for ROOT files (EOS)")
+                   help="Output directory for ROOT files (EOS); sr90nomm jobs "
+                        "go into a 'nomm' subdirectory automatically")
     p.add_argument("--jobdir",
                    default="/afs/cern.ch/user/d/dneff/condor/mx17_geant_sr90",
                    help="Condor submit files and logs (AFS)")
@@ -103,14 +106,14 @@ def find_exe():
     return None
 
 
-def make_tag(gas, particle, energy_mev):
+def make_tag(gas, particle, energy_mev, mode="sr90"):
     e_str = f"{energy_mev:.8g}MeV".replace(".", "p")
-    return f"sr90_{gas}_{particle}_{e_str}"
+    return f"{mode}_{gas}_{particle}_{e_str}"
 
 
 def write_wrapper(job_dir: Path, exe: str, setup_script: str,
-                  cfrp_mm: float) -> Path:
-    wrapper = job_dir / "run_sr90_job.sh"
+                  cfrp_mm: float, mode: str = "sr90") -> Path:
+    wrapper = job_dir / f"run_{mode}_job.sh"
     content = textwrap.dedent(f"""\
         #!/usr/bin/env bash
         set -e
@@ -119,14 +122,14 @@ def write_wrapper(job_dir: Path, exe: str, setup_script: str,
         GAS="$1"; PARTICLE="$2"; ENERGY="$3"
         NEVENTS="$4"; OUTFILE="$5"; SEED="$6"
 
-        echo "=== mm_sim sr90-calibration job ==="
+        echo "=== mm_sim {mode} job ==="
         echo "  Node     : $(hostname)"
         echo "  Gas      : $GAS  Particle : $PARTICLE"
         echo "  Energy   : $ENERGY MeV   Events : $NEVENTS"
-        echo "==================================="
+        echo "=========================="
 
         "{exe}" \\
-            -m sr90      \\
+            -m {mode}    \\
             -g "$GAS"    \\
             -p "$PARTICLE" \\
             -e "$ENERGY" \\
@@ -143,8 +146,8 @@ def write_wrapper(job_dir: Path, exe: str, setup_script: str,
 
 
 def write_submit(job_dir: Path, wrapper: Path, jobs: list,
-                 outdir: Path, flavour: str) -> Path:
-    submit_file = job_dir / "mm_sr90_scan.sub"
+                 outdir: Path, flavour: str, mode: str = "sr90") -> Path:
+    submit_file = job_dir / f"mm_{mode}_scan.sub"
     log_dir = job_dir / "logs"
     log_dir.mkdir(exist_ok=True)
 
@@ -168,7 +171,7 @@ def write_submit(job_dir: Path, wrapper: Path, jobs: list,
     ]
     rng = random.Random(42)
     for (gas, particle, energy, nevents) in jobs:
-        tag     = make_tag(gas, particle, energy)
+        tag     = make_tag(gas, particle, energy, mode)
         outfile = str(outdir / tag)
         seed    = rng.randint(1, 2**31 - 1)
         lines.append(f"  {gas}, {particle}, {energy}, {nevents}, {outfile}, {seed}, {tag}")
@@ -185,8 +188,11 @@ def main():
         print("ERROR: mm_sim not found. Build first: bash scripts/build.sh")
         sys.exit(1)
 
-    outdir  = Path(args.outdir)
-    job_dir = Path(args.jobdir)
+    mode    = args.mode
+    # sr90nomm output goes in a separate subdirectory automatically
+    base_outdir = Path(args.outdir)
+    outdir  = base_outdir if mode == "sr90" else base_outdir.parent / (base_outdir.name + "_nomm")
+    job_dir = Path(args.jobdir) if mode == "sr90" else Path(args.jobdir + "_nomm")
     outdir.mkdir(parents=True, exist_ok=True)
     job_dir.mkdir(parents=True, exist_ok=True)
 
@@ -204,6 +210,7 @@ def main():
 
     n_e = sum(1 for j in jobs if j[1] == "electron")
     n_p = sum(1 for j in jobs if j[1] == "positron")
+    print(f"Mode         : {mode}")
     print(f"Jobs to submit : {len(jobs)}")
     print(f"  Electrons    : {n_e}  Positrons : {n_p}")
     print(f"  Energy range : {LEPTON_ENERGIES[0]:.4f} – {LEPTON_ENERGIES[-1]:.4f} MeV"
@@ -213,15 +220,15 @@ def main():
     print(f"  Output       : {outdir}")
 
     if args.dry_run:
-        print("\n--- DRY RUN: first 8 jobs ---")
+        print(f"\n--- DRY RUN ({mode}): first 8 jobs ---")
         for g, p, e, n in jobs[:8]:
-            print(f"  {make_tag(g, p, e)}  ({n} events)")
+            print(f"  {make_tag(g, p, e, mode)}  ({n} events)")
         if len(jobs) > 8:
             print(f"  ... and {len(jobs)-8} more")
         return
 
-    wrapper  = write_wrapper(job_dir, exe, setup_script, args.cfrp)
-    sub_file = write_submit(job_dir, wrapper, jobs, outdir, args.flavour)
+    wrapper  = write_wrapper(job_dir, exe, setup_script, args.cfrp, mode)
+    sub_file = write_submit(job_dir, wrapper, jobs, outdir, args.flavour, mode)
 
     print(f"\nSubmit file : {sub_file}")
     ret = os.system(f"condor_submit {sub_file}")
@@ -232,12 +239,12 @@ def main():
     print("\nDone! Monitor with: condor_q")
     print(f"\nAfter completion, analyse with:")
     print(f"  python3 scripts/analyze_full_experiment.py \\")
-    print(f"      --indir {args.outdir} --prefix sr90 \\")
+    print(f"      --indir {outdir} --prefix {mode} \\")
     print(f"      --gas {args.gases[0]} --particles electron positron")
     print(f"\nThen run the Sr-90 calibration analysis:")
     print(f"  python3 sr90_calibration/analyze_sr90_calibration.py \\")
     print(f"      --spectrum sr90_calibration/Sr90_Y90_Beta_Spectrum.csv \\")
-    print(f"      --summary  /path/to/full_experiment_analysis_sr90_electron.csv")
+    print(f"      --summary  <outfile>_{mode}_electron.csv")
 
 
 if __name__ == "__main__":

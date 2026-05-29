@@ -69,6 +69,37 @@ LAYERS = [
     ("edepLS4",         "primInLS4",       "Liq. scint. 4",   "#d7bde2"),
 ]
 
+# Fully granular layer list — every individually scored material.
+# Used in detailed edep plots and for material budget analysis.
+# Aggregation into groups is done in Python via COARSE_GROUPS.
+DETAILED_LAYERS = [
+    # He-3 target
+    ("edepHe3Gas",       None,              "He-3 gas",          "#1f77b4"),
+    # MM entrance / dead layers
+    ("edepMylar",        None,              "MM Mylar window",   "#aec7e8"),
+    ("edepCathode",      None,              "MM cathode (Kap+Cu)","#9edae5"),
+    ("edepDrift",        "primInDrift",     "MM drift gas",      "#2ca02c"),
+    ("edepMicromesh",    None,              "MM micromesh",      "#969696"),
+    ("edepAmp",          "primInAmp",       "MM amp gas",        "#74c476"),
+    ("edepResistPaste",  None,              "Resistive paste",   "#a1d99b"),
+    # PCB individual
+    ("edepPCBKapton",    None,              "PCB Kapton",        "#ffbb78"),
+    ("edepPCBCu",        "primInPCB",       "PCB copper (×4)",   "#d55e00"),
+    ("edepPCBFR4",       None,              "PCB FR4 (×4)",      "#ff7f0e"),
+    ("edepPCBRohacell",  None,              "PCB Rohacell",      "#ffd700"),
+    ("edepPCBAlFoil",    None,              "PCB Al foil",       "#c7c7c7"),
+    # Scint wall
+    ("edepScintTape",    None,              "Scint. tape (×2)",  "#f7b6d2"),
+    ("edepScintWall",    "primInScintWall", "Plastic scint.",    "#d62728"),
+    ("edepScintAlFoil",  None,              "Scint. Al foil",    "#e8a09a"),
+    # LS layers
+    ("edepLS1",          "primInLS1",       "Liq. scint. 1",     "#6a1d8a"),
+    ("edepLS2",          "primInLS2",       "Liq. scint. 2",     "#9b59b6"),
+    ("edepLS3",          "primInLS3",       "Liq. scint. 3",     "#bb8fce"),
+    ("edepLS4",          "primInLS4",       "Liq. scint. 4",     "#d7bde2"),
+    ("edepLSCFRP",       None,              "LS CFRP walls",     "#555555"),
+]
+
 SIMPLIFIED_LAYERS = [
     ("edepDrift",     "primInDrift",     "MM drift gas",   "#2ca02c"),
     ("edepScintWall", "primInScintWall", "Plastic scint.", "#d62728"),
@@ -792,6 +823,65 @@ def plot_angular_resolution(pdf: PdfPages, all_groups: dict, step: int = 10,
     pdf.savefig(fig); plt.close(fig)
 
 
+# ── Detailed per-layer edep plot ─────────────────────────────────────────────
+
+def plot_edep_detailed(pdf: PdfPages, summaries: dict):
+    """
+    Energy deposition in every individually scored material layer.
+    Two panels stacked vertically so labels have room:
+      Top : MM + PCB region (from Mylar to PCB Al foil)
+      Bottom : scintillator + LS region
+    Aggregation (e.g. total PCB) is done here in Python from the granular
+    simulation branches.
+    """
+    mm_pcb_layers = [l for l in DETAILED_LAYERS
+                     if l[0] not in ("edepHe3Gas", "edepLS1", "edepLS2",
+                                     "edepLS3", "edepLS4", "edepLSCFRP",
+                                     "edepScintWall", "edepScintTape", "edepScintAlFoil")]
+    scint_ls_layers = [l for l in DETAILED_LAYERS
+                       if l[0] in ("edepScintTape", "edepScintWall", "edepScintAlFoil",
+                                   "edepLS1", "edepLS2", "edepLS3", "edepLS4", "edepLSCFRP")]
+
+    fig, axes = plt.subplots(2, 1, figsize=(10, 9), sharex=True)
+
+    for ax, layer_list, title in [
+        (axes[0], mm_pcb_layers,  "Energy deposition: MM entrance + PCB"),
+        (axes[1], scint_ls_layers,"Energy deposition: scintillator wall + LS stack"),
+    ]:
+        for (edep_br, _, label, color) in layer_list:
+            col = f"edep_{edep_br}"
+            for particle, summary in summaries.items():
+                if col not in summary.columns:
+                    continue
+                vals = summary[col].values
+                if np.nanmax(vals) < 1e-9:
+                    continue
+                pst = PARTICLE_STYLES.get(particle, {"ls": "-", "lw": 1.6})
+                ax.plot(summary["energy_MeV"].values, vals,
+                        color=color, ls=pst["ls"], lw=pst["lw"])
+
+        ax.set_yscale("log")
+        ax.set_ylabel("Mean edep (MeV / primary)", fontsize=10)
+        ax.set_title(title, fontsize=11)
+        ax.grid(True, which="both", alpha=0.3)
+
+        # Layer legend (color patches)
+        active = [l for l in layer_list
+                  if f"edep_{l[0]}" in next(iter(summaries.values())).columns
+                  and next(iter(summaries.values()))[f"edep_{l[0]}"].max() > 1e-9]
+        handles = [mpatches.Patch(color=l[3], label=l[2]) for l in active]
+        leg1 = ax.legend(handles=handles, fontsize=7, ncol=2, loc="upper left",
+                         title="Layer", title_fontsize=7)
+        ax.add_artist(leg1)
+        _particle_legend(ax, summaries, loc="lower right")
+
+    _set_xaxis(axes[1])
+    fig.suptitle("Granular energy deposition — all individually scored layers",
+                 fontsize=12)
+    fig.tight_layout()
+    pdf.savefig(fig); plt.close(fig)
+
+
 # ── Coarse grouped plots ──────────────────────────────────────────────────────
 
 def _coarse_legend(ax, summaries: dict, loc="lower right"):
@@ -1388,6 +1478,8 @@ def main():
         plot_edep_simple(pdf, all_summaries)
         print("  Edep (coarse: detector groups) ...")
         plot_edep_coarse(pdf, all_summaries)
+        print("  Edep (granular: every individual layer) ...")
+        plot_edep_detailed(pdf, all_summaries)
 
         print("  Trigger: plastic scint. + LS1 coincidence ...")
         plot_trigger(pdf, all_summaries, all_groups, n_workers=nw)

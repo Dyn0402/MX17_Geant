@@ -61,43 +61,53 @@ GEOM_EFFICIENCY  = SOLID_ANGLE_SR / (4 * np.pi)
 # Betas per declared source activity (secular equilibrium: Sr-90 + Y-90)
 BETAS_PER_DECAY  = 2.0
 
+# ── Collimated source defaults ────────────────────────────────────────────────
+# The source is placed inside a plastic collimator that restricts the emission
+# cone.  Adjust these if you know the exact collimator geometry.
+COLLIMATOR_RADIUS_MM = 5.0    # aperture half-diameter [mm]
+COLLIMATOR_LENGTH_MM = 20.0   # plastic depth along beam axis [mm]
+COLLIMATOR_GAP_MM    = 5.0    # air gap from source to collimator entrance [mm]
+SOURCE_ACTIVITY_BQ   = 2.0e6  # source activity [Bq] (2 MBq)
+
+
+def _collimator_efficiency(r_mm=COLLIMATOR_RADIUS_MM,
+                            l_mm=COLLIMATOR_LENGTH_MM,
+                            gap_mm=COLLIMATOR_GAP_MM):
+    """
+    Fraction of 4π captured by the collimated beam cone, plus the half-angle.
+    Model: point source at distance (gap_mm + l_mm) behind the aperture,
+    aperture radius r_mm.  All betas through the aperture are assumed to
+    reach the 40×40 cm detector (confirmed: beam cone ~r/d  ≪ 20 cm at 22 cm).
+    """
+    d_total_cm  = (l_mm + gap_mm) / 10.0        # source → aperture exit [cm]
+    theta_max   = np.arctan(r_mm / 10.0 / d_total_cm)   # half-angle [rad]
+    solid_angle = 2 * np.pi * (1 - np.cos(theta_max))   # [sr]
+    efficiency  = solid_angle / (4 * np.pi)
+    return efficiency, solid_angle, np.degrees(theta_max)
+
 # ── Material budget gaps ──────────────────────────────────────────────────────
-# Each gap is defined by the scored transmission boundaries that bracket it.
-# (label, start_trans_col or None=1.0, end_trans_col or "exit"=CFRP5/0,
-#  color, removable_note)
-# removable_note: describes which part of this gap *could* be eliminated;
-#                 None means the gap is entirely structural/unavoidable.
+# (label, start_trans_col or None=1.0, end_trans_col or "exit", color)
 BUDGET_GAPS = [
-    ("200 mm air\n+ MM dead layers",
-     None,                    "trans_primInDrift",
-     "#1f77b4",
-     "Air gap (200 mm) removable"),
+    ("200 mm air\n+ Drift window",
+     None,                    "trans_primInDrift",     "#1f77b4"),
 
     ("MM drift gas (30 mm)",
-     "trans_primInDrift",     "trans_primInAmp",
-     "#2ca02c", None),
+     "trans_primInDrift",     "trans_primInAmp",        "#2ca02c"),
 
-    ("MM amp + resistive paste (0.25 mm)",
-     "trans_primInAmp",       "trans_primInPCB",
-     "#a1d99b", None),
+    ("MM amp + resistive paste",
+     "trans_primInAmp",       "trans_primInPCB",        "#a1d99b"),
 
-    ("PCB stack (5.6 mm) + 20 mm air",
-     "trans_primInPCB",       "trans_primInScintWall",
-     "#ff7f0e",
-     "Air gap 2 (20 mm) removable;\nPCB not removable"),
+    ("MM PCB",
+     "trans_primInPCB",       "trans_primInScintWall",  "#ff7f0e"),
 
-    ("Plastic scint. (3 mm) + 20 mm air + CFRP",
-     "trans_primInScintWall", "trans_primInLS1",
-     "#d62728",
-     "Air gap 3 (20 mm) removable;\nscint. + CFRP not removable"),
+    ("Scint. Wall",
+     "trans_primInScintWall", "trans_primInLS1",        "#d62728"),
 
     ("Liq. scint. layers 1–4 + CFRP walls",
-     "trans_primInLS1",       "trans_primInLSCFRP5",
-     "#6a1d8a", None),
+     "trans_primInLS1",       "trans_primInLSCFRP5",    "#6a1d8a"),
 
-    ("Exits LS stack (punch-through)",
-     "trans_primInLSCFRP5",   "exit",
-     "#555555", None),
+    ("Exits LS stack",
+     "trans_primInLSCFRP5",   "exit",                   "#555555"),
 ]
 
 # Approximate radiation lengths and material thicknesses for the table
@@ -107,7 +117,7 @@ MATERIAL_LAYERS = [
     # Note: He-3 gas and capsule walls are ABSENT in the Sr-90 calibration setup.
     # The source sits in air; the path to the MM entrance is 226.5 mm of air.
     ("Air gap (source→MM)", 20.0,  0.00120, "200 mm air  (He-3 capsule absent)"),
-    ("MM dead layers",    0.01,  3.0,     "~0.1 mm Mylar+Cu+Kapton"),
+    ("Drift window",      0.01,  3.0,     "~0.1 mm Mylar+Cu+Kapton"),
     ("MM drift gas",      3.0,   0.00182, "30 mm Ar/Iso"),
     ("PCB Cu (×4)",       0.0104, 8.96,  "4 × 0.026 mm Cu"),
     ("PCB FR4 (×4)",      0.04,  1.85,   "4 × 0.10 mm FR4"),
@@ -249,17 +259,15 @@ def plot_spectrum_overview(pdf, res: dict):
     E, S, S90, S_Y = res["E"], res["S"], res["S90"], res["S_Y"]
     f_trig = res["f_trig"]
 
-    # Top: spectrum
+    # Top: spectrum — isotope fills kept transparent so trigger overlay is clear
     ax = axes[0]
-    ax.fill_between(E, S90, alpha=0.35, color=C_SR90, label="Sr-90")
-    ax.fill_between(E, S_Y, alpha=0.35, color=C_Y90,  label="Y-90")
+    ax.fill_between(E, S90, alpha=0.15, color=C_SR90, label="Sr-90")
+    ax.fill_between(E, S_Y, alpha=0.15, color=C_Y90,  label="Y-90")
     ax.plot(E, S,   color=C_TOTAL, lw=1.4, label="Total (Sr-90 + Y-90)")
 
-    # Shade the region where trigger fraction > 10 %
-    above = f_trig > 0.10
-    if above.any():
-        ax.fill_between(E, 0, S, where=above, alpha=0.18, color=C_TRIG,
-                        label=f"Trigger acceptance (f_trig > 10 %)")
+    # Solid green trigger acceptance overlaid on top
+    ax.fill_between(E, 0, S * f_trig, alpha=0.85, color=C_TRIG, zorder=4,
+                    label="Triggered fraction of spectrum")
 
     ax.axvline(0.546, color=C_SR90, lw=0.9, ls="--", label="Sr-90 endpoint 0.546 MeV")
     ax.axvline(2.28,  color=C_Y90,  lw=0.9, ls="--", label="Y-90 endpoint 2.28 MeV")
@@ -502,13 +510,25 @@ def plot_mm_context(pdf, res: dict, summary: pd.DataFrame):
     pdf.savefig(fig); plt.close(fig)
 
 
+def _write_lines(ax, lines, y_start=0.97):
+    y = y_start
+    for text, bold in lines:
+        fs = 13 if bold else 9
+        ax.text(0.05, y, text, transform=ax.transAxes,
+                fontsize=fs, fontweight="bold" if bold else "normal", va="top",
+                fontfamily="sans-serif" if bold else "monospace")
+        y -= 0.045 if bold else 0.038
+
+
 def plot_summary_page(pdf, res: dict):
-    """Text summary page with key numbers."""
+    """Page 1: source properties, geometry, spectral efficiency, triggered events."""
     fig = plt.figure(figsize=(9, 7))
     ax  = fig.add_axes([0, 0, 1, 1])
     ax.axis("off")
 
-    lines = [
+    col_eff, col_sr, col_deg = _collimator_efficiency()
+
+    _write_lines(ax, [
         ("Sr-90 / Y-90 Calibration Feasibility Summary", True),
         ("", False),
         ("─── Source properties ───────────────────────────────", False),
@@ -516,56 +536,86 @@ def plot_summary_page(pdf, res: dict):
         (f"  Y-90 endpoint           2.28  MeV", False),
         (f"  Betas per decay (equil) {BETAS_PER_DECAY:.0f}  (one per isotope)", False),
         ("", False),
-        ("─── Geometry ────────────────────────────────────────", False),
+        ("─── Geometry (open / uncollimated) ─────────────────", False),
         (f"  Source-to-MM distance   {SOURCE_TO_MM_CM:.1f} cm", False),
         (f"  Detector area           40 × 40 cm", False),
-        (f"  Geometric solid angle   {SOLID_ANGLE_SR:.3f} sr", False),
-        (f"  Geometric efficiency    {GEOM_EFFICIENCY*100:.1f} %  "
-         f"(fraction of 4π aimed at MM)", False),
+        (f"  Solid angle             {SOLID_ANGLE_SR:.3f} sr", False),
+        (f"  Geometric efficiency    {GEOM_EFFICIENCY*100:.1f} %", False),
+        ("", False),
+        ("─── Geometry (collimated, see rate page) ────────────", False),
+        (f"  Aperture radius         {COLLIMATOR_RADIUS_MM:.0f} mm", False),
+        (f"  Collimator depth        {COLLIMATOR_LENGTH_MM:.0f} mm plastic", False),
+        (f"  Source-to-aperture      {COLLIMATOR_LENGTH_MM+COLLIMATOR_GAP_MM:.0f} mm", False),
+        (f"  Half-angle              {col_deg:.1f}°", False),
+        (f"  Collimated solid angle  {col_sr:.4f} sr", False),
+        (f"  Collimated geom. eff.   {col_eff*100:.3f} %", False),
         ("", False),
         ("─── Spectral trigger efficiency ─────────────────────", False),
-        (f"  Sr-90 alone             {res['spec_trig_sr']*100:.3f} %  "
-         f"(nearly all stop before LS1)", False),
-        (f"  Y-90 alone              {res['spec_trig_y']*100:.2f} %", False),
+        (f"  Sr-90 alone             {res['spec_trig_sr']*100:.3f} %", False),
+        (f"  Y-90 alone              {res['spec_trig_y']*100:.3f} %", False),
         (f"  Combined (total)        {res['spec_trig_eff']*100:.3f} %", False),
         ("", False),
         ("─── Triggered event properties ──────────────────────", False),
-        (f"  Fraction contained in LS {res['spec_cont']*100:.2f} %  "
-         f"(of triggered)", False),
-        (f"  Effective trigger energy {res['eff_E_trig']*1000:.0f} keV  "
-         f"(spectrum-weighted, triggered subset)", False),
-        (f"  Mean edep plastic scint  {res['mean_scint_trig']*1000:.2f} keV  (triggered)", False),
-        (f"  Mean edep LS1            {res['mean_ls1_trig']*1000:.2f} keV  (triggered)", False),
-        (f"  Mean total LS edep       {res['mean_lstot_trig']*1000:.2f} keV  (triggered)", False),
+        (f"  Effective trigger energy {res['eff_E_trig']*1000:.0f} keV  (spectrum-weighted)", False),
+        (f"  Mean edep plastic scint  {res['mean_scint_trig']*1000:.2f} keV", False),
+        (f"  Mean edep LS1            {res['mean_ls1_trig']*1000:.2f} keV", False),
+        (f"  Mean total LS edep       {res['mean_lstot_trig']*1000:.2f} keV", False),
+    ])
+    pdf.savefig(fig); plt.close(fig)
+
+
+def plot_rate_page(pdf, res: dict):
+    """Page 2: rate estimates for our 2 MBq collimated source + feasibility notes."""
+    fig = plt.figure(figsize=(9, 7))
+    ax  = fig.add_axes([0, 0, 1, 1])
+    ax.axis("off")
+
+    col_eff, col_sr, col_deg = _collimator_efficiency()
+
+    # Rates for both open and collimated geometry
+    open_eff = GEOM_EFFICIENCY * res["spec_trig_eff"] * BETAS_PER_DECAY
+    col_total_eff = col_eff * res["spec_trig_eff"] * BETAS_PER_DECAY
+
+    rate_open_2mbq   = SOURCE_ACTIVITY_BQ * open_eff
+    rate_col_2mbq    = SOURCE_ACTIVITY_BQ * col_total_eff
+
+    lines = [
+        ("Rate Estimates and Feasibility", True),
         ("", False),
-        ("─── Rate estimates ──────────────────────────────────", False),
+        ("─── Our source: 2 MBq, collimated ──────────────────", False),
+        (f"  Activity                {SOURCE_ACTIVITY_BQ/1e6:.1f} MBq  = {SOURCE_ACTIVITY_BQ:.2e} Bq", False),
+        (f"  Collimated geom. eff.   {col_eff*100:.3f} %  ({col_deg:.1f}° half-angle)", False),
+        (f"  Spectral trigger eff.   {res['spec_trig_eff']*100:.3f} %", False),
+        (f"  Combined efficiency     {col_total_eff*100:.4f} %", False),
+        (f"  → Coincidence rate      {rate_col_2mbq:.2f} Hz", False),
+        (f"  → Events in 1 hour      {rate_col_2mbq*3600:.0f}", False),
+        ("", False),
+        ("─── Sensitivity to collimator geometry ─────────────", False),
     ]
-    # Rate for common activities
-    total_eff = GEOM_EFFICIENCY * res["spec_trig_eff"] * BETAS_PER_DECAY
-    for act_bq, name in [(3.7e4, "1 μCi"), (3.7e5, "10 μCi"),
-                          (3.7e6, "1 mCi"), (3.7e7, "10 mCi")]:
-        rate = act_bq * total_eff
-        lines.append((f"  {name:10s}  ({act_bq/1e3:>7.0f} kBq)  →  "
-                       f"{rate:.3f} Hz trigger", False))
+
+    for r_mm, l_mm in [(3, 20), (5, 20), (10, 20), (5, 10)]:
+        eff_c, _, deg_c = _collimator_efficiency(r_mm, l_mm, COLLIMATOR_GAP_MM)
+        rate_c = SOURCE_ACTIVITY_BQ * eff_c * res["spec_trig_eff"] * BETAS_PER_DECAY
+        lines.append((f"  r={r_mm:2.0f}mm L={l_mm:2.0f}mm  "
+                       f"θ={deg_c:.1f}°  → {rate_c:.3f} Hz  "
+                       f"({rate_c*3600:.0f} ev/hr)", False))
+
     lines += [
         ("", False),
+        ("─── Open source (no collimator) ─────────────────────", False),
+        (f"  Geometric eff.          {GEOM_EFFICIENCY*100:.1f} %", False),
+        (f"  → Rate @ 2 MBq          {rate_open_2mbq:.1f} Hz", False),
+        ("", False),
         ("─── Feasibility assessment ──────────────────────────", False),
-        ("  Sr-90 component:  Essentially NO electrons reach LS1.", False),
-        ("  Y-90 component:   Small fraction triggers; effective energy ~Y90/3.", False),
-        ("  Calibration use:  Possible for MM and plastic scint. alone (low threshold).", False),
-        ("  For LS stack:     Needs mCi-level source or dedicated geometry.", False),
-        ("  Angular tracking: Available for triggered subset (see simulation plots).", False),
+        ("  Sr-90 component:  Essentially none reach LS1.", False),
+        ("  Y-90 component:   Small fraction triggers (see spectral eff.).", False),
+        ("  Calibration use:  Trigger rate is feasible, but see energy", False),
+        ("                    mismatch plot — Y-90 deposits ~keV in LS1", False),
+        ("                    while signal electrons deposit ~MeV.", False),
+        ("  Angular tracking: Available for triggered subset.", False),
     ]
 
-    y = 0.97
-    for text, bold in lines:
-        weight = "bold" if bold else "normal"
-        fs     = 13 if bold else 9
-        ax.text(0.05, y, text, transform=ax.transAxes,
-                fontsize=fs, fontweight=weight, va="top",
-                fontfamily="monospace" if not bold else "sans-serif")
-        y -= 0.040 if bold else 0.038
-
+    _write_lines(ax, lines)
     pdf.savefig(fig); plt.close(fig)
 
 
@@ -603,16 +653,15 @@ def compute_material_budget(spectrum: pd.DataFrame,
         return interp_sim(summary, col, E, fill_below=0.0)
 
     results = []
-    for label, start_col, end_col, color, removable_note in BUDGET_GAPS:
+    for label, start_col, end_col, color in BUDGET_GAPS:
         t_start = get_trans(start_col)
         t_end   = get_trans(end_col)
         stop    = np.clip(t_start - t_end, 0, 1)
 
         results.append(dict(
-            label          = label,
-            color          = color,
-            removable_note = removable_note,
-            stopping_vs_E  = stop,
+            label         = label,
+            color         = color,
+            stopping_vs_E = stop,
             spectrum_frac  = _trapz(stop * S,   E) / norm      if norm     > 0 else 0,
             sr_frac        = _trapz(stop * S90, E) / norm_sr   if norm_sr  > 0 else 0,
             y_frac         = _trapz(stop * S_Y, E) / norm_y    if norm_y   > 0 else 0,
@@ -645,10 +694,8 @@ def plot_stopping_vs_energy(pdf, budget: list, res: dict):
 
     for gap in budget:
         stop = gap["stopping_vs_E"]
-        hatch = "//" if gap["removable_note"] else None
         ax.fill_between(E, bottom, bottom + stop,
-                        color=gap["color"], alpha=0.75,
-                        hatch=hatch, edgecolor="white" if hatch else gap["color"],
+                        color=gap["color"], alpha=0.80,
                         linewidth=0.3, label=gap["label"])
         bottom += stop
 
@@ -656,8 +703,7 @@ def plot_stopping_vs_energy(pdf, budget: list, res: dict):
     ax.set_ylim(0, 1.02)
     ax.set_xlabel("Beta energy (MeV)", fontsize=10)
     ax.set_ylabel("Fraction of electrons stopped in gap", fontsize=10)
-    ax.set_title("Where electrons stop vs energy\n(// hatching = removable material)",
-                 fontsize=10)
+    ax.set_title("Where electrons stop vs energy", fontsize=10)
     ax.axvline(0.546, color="grey", lw=0.8, ls="--", alpha=0.6)
     ax.axvline(2.28,  color="grey", lw=0.8, ls="--", alpha=0.6)
     ax.text(0.55, 0.97, "Sr-90\nend", fontsize=6, color="grey", va="top")
@@ -668,17 +714,14 @@ def plot_stopping_vs_energy(pdf, budget: list, res: dict):
 
     # ── Right: horizontal bar ───────────────────────────────────────────
     ax = axes[1]
-    labels  = [g["label"].replace("\n", " ") for g in budget]
-    fracs   = [g["spectrum_frac"] * 100        for g in budget]
-    colors  = [g["color"]                       for g in budget]
-    hatches = ["//" if g["removable_note"] else "" for g in budget]
+    labels = [g["label"].replace("\n", " ") for g in budget]
+    fracs  = [g["spectrum_frac"] * 100        for g in budget]
+    colors = [g["color"]                       for g in budget]
 
     # Reverse so first gap is on top
     y = np.arange(len(budget))[::-1]
-    for i, (frac, color, hatch, lbl) in enumerate(zip(fracs, colors, hatches, labels)):
-        ax.barh(y[i], frac, color=color, alpha=0.80,
-                hatch=hatch, edgecolor="white" if hatch else color,
-                height=0.7)
+    for i, (frac, color, lbl) in enumerate(zip(fracs, colors, labels)):
+        ax.barh(y[i], frac, color=color, alpha=0.80, height=0.7)
         ax.text(frac + 0.3, y[i], f"{frac:.1f} %",
                 va="center", fontsize=8, fontweight="bold")
 
@@ -687,18 +730,9 @@ def plot_stopping_vs_energy(pdf, budget: list, res: dict):
                        fontsize=8)
     ax.set_xlabel("Spectrum-weighted fraction stopped (%)", fontsize=10)
     ax.set_xlim(0, max(fracs) * 1.35 + 1)
-    ax.set_title("Spectrum-integrated stopping per gap\n"
-                 "(// = removable; includes Sr-90 + Y-90 combined)",
+    ax.set_title("Spectrum-integrated stopping per gap\n(Sr-90 + Y-90 combined)",
                  fontsize=10)
     ax.grid(True, axis="x", alpha=0.3)
-
-    # Annotate removable total
-    removable_total = sum(g["spectrum_frac"] for g in budget
-                          if g["removable_note"]) * 100
-    ax.text(0.97, 0.02, f"Removable stopping: {removable_total:.1f} %",
-            transform=ax.transAxes, ha="right", va="bottom",
-            fontsize=9, color="grey",
-            bbox=dict(boxstyle="round,pad=0.3", fc="white", alpha=0.8))
 
     fig.suptitle("Material budget: where does the Sr-90 / Y-90 beta spectrum stop?",
                  fontsize=12)
@@ -728,8 +762,7 @@ def plot_cumulative_transmission(pdf, budget: list, res: dict):
     for gap in budget[:-1]:   # skip "exits" row
         cum = np.clip(cum - gap["stopping_vs_E"], 0, 1)
         lbl = gap["label"].replace("\n", " ").split("(")[0].strip()
-        ls  = "--" if gap["removable_note"] else "-"
-        ax.plot(E, cum * 100, color=gap["color"], lw=1.5, ls=ls, label=f"After {lbl}")
+        ax.plot(E, cum * 100, color=gap["color"], lw=1.5, label=f"After {lbl}")
 
     ax.set_xlim(0, 2.4)
     ax.set_ylim(-2, 105)
@@ -737,8 +770,7 @@ def plot_cumulative_transmission(pdf, budget: list, res: dict):
     ax.axvline(2.28,  color="grey", lw=0.8, ls=":", alpha=0.7)
     ax.set_xlabel("Beta energy (MeV)", fontsize=10)
     ax.set_ylabel("Electrons surviving to this boundary (%)", fontsize=10)
-    ax.set_title("Cumulative transmission through the stack\n"
-                 "(dashed = boundary follows removable material)", fontsize=10)
+    ax.set_title("Cumulative transmission through the stack", fontsize=10)
     ax.legend(fontsize=7, loc="upper left")
     ax.grid(True, alpha=0.3)
 
@@ -746,30 +778,15 @@ def plot_cumulative_transmission(pdf, budget: list, res: dict):
     ax = axes[1]
     ax.axis("off")
 
-    headers = ["Gap / material",        "All β (%)", "Sr-90 (%)", "Y-90 (%)"]
+    headers = ["Gap / material", "All β (%)", "Sr-90 (%)", "Y-90 (%)"]
     rows = []
     for gap in budget:
-        note = " ✓ removable" if gap["removable_note"] else ""
         rows.append([
-            gap["label"].replace("\n", " ") + note,
+            gap["label"].replace("\n", " "),
             f"{gap['spectrum_frac']*100:.2f}",
             f"{gap['sr_frac']*100:.2f}",
             f"{gap['y_frac']*100:.2f}",
         ])
-    # Totals
-    rows.append(["─" * 30, "─" * 8, "─" * 8, "─" * 8])
-    rows.append([
-        "TOTAL removable",
-        f"{sum(g['spectrum_frac'] for g in budget if g['removable_note'])*100:.2f}",
-        f"{sum(g['sr_frac']       for g in budget if g['removable_note'])*100:.2f}",
-        f"{sum(g['y_frac']        for g in budget if g['removable_note'])*100:.2f}",
-    ])
-    rows.append([
-        "TOTAL unavoidable",
-        f"{sum(g['spectrum_frac'] for g in budget if not g['removable_note'])*100:.2f}",
-        f"{sum(g['sr_frac']       for g in budget if not g['removable_note'])*100:.2f}",
-        f"{sum(g['y_frac']        for g in budget if not g['removable_note'])*100:.2f}",
-    ])
 
     table = ax.table(
         cellText=rows,
@@ -785,10 +802,6 @@ def plot_cumulative_transmission(pdf, budget: list, res: dict):
         if r == 0:
             cell.set_facecolor("#e8e8e8")
             cell.set_text_props(fontweight="bold")
-        elif "removable" in (rows[r - 1][0] if r - 1 < len(rows) else ""):
-            cell.set_facecolor("#e8f4e8")
-        elif "unavoidable" in (rows[r - 1][0] if r - 1 < len(rows) else ""):
-            cell.set_facecolor("#fce8e8")
 
     ax.set_title("Stopping fraction per gap by isotope\n"
                  "(fraction of all decays aimed at detector)", fontsize=10)
@@ -806,31 +819,19 @@ def plot_material_thickness_table(pdf):
     fig, ax = plt.subplots(figsize=(10, 7))
     ax.axis("off")
 
-    headers = ["Layer", "Thickness", "Density (g/cm³)", "Areal density (mg/cm²)",
-               "Removable?"]
+    headers = ["Layer", "Thickness", "Density (g/cm³)", "Areal density (mg/cm²)"]
     rows = []
-    total_areal  = 0.0
-    remove_areal = 0.0
+    total_areal = 0.0
     for name, t_cm, rho, description in MATERIAL_LAYERS:
         areal = t_cm * rho * 1000   # mg/cm²
         total_areal += areal
-        t_str    = (f"{t_cm*10:.1f} mm" if t_cm >= 0.1
-                    else f"{t_cm*10000:.0f} µm")
-        rho_str  = f"{rho:.4f}" if rho < 0.01 else f"{rho:.3f}"
-        # Mark air gaps as removable
-        removable = "Yes" if "air" in name.lower() else "No"
-        if removable == "Yes":
-            remove_areal += areal
-        rows.append([description, t_str, rho_str, f"{areal:.1f}", removable])
+        t_str   = (f"{t_cm*10:.1f} mm" if t_cm >= 0.1
+                   else f"{t_cm*10000:.0f} µm")
+        rho_str = f"{rho:.4f}" if rho < 0.01 else f"{rho:.3f}"
+        rows.append([description, t_str, rho_str, f"{areal:.1f}"])
 
-    # Totals
-    rows.append(["─" * 35, "─" * 8, "─" * 10, "─" * 18, "─" * 10])
-    rows.append(["Total material budget", "", "",
-                 f"{total_areal:.1f}", ""])
-    rows.append(["  of which removable (air gaps)", "", "",
-                 f"{remove_areal:.1f}  ({remove_areal/total_areal*100:.0f}%)", ""])
-    rows.append(["  unavoidable", "", "",
-                 f"{total_areal - remove_areal:.1f}  ({(total_areal-remove_areal)/total_areal*100:.0f}%)", ""])
+    rows.append(["─" * 35, "─" * 8, "─" * 10, "─" * 18])
+    rows.append(["Total material budget", "", "", f"{total_areal:.1f}"])
 
     table = ax.table(
         cellText=rows,
@@ -846,12 +847,6 @@ def plot_material_thickness_table(pdf):
         if r == 0:
             cell.set_facecolor("#d8d8d8")
             cell.set_text_props(fontweight="bold")
-        elif r - 1 < len(rows) and rows[r - 1][-1] == "Yes":
-            cell.set_facecolor("#e8f4e8")
-        elif r - 1 < len(rows) and "removable" in rows[r - 1][0].lower():
-            cell.set_facecolor("#e8f4e8")
-        elif r - 1 < len(rows) and "unavoidable" in rows[r - 1][0].lower():
-            cell.set_facecolor("#fce8e8")
 
     # CSDA range reference note (He-3 capsule absent — source sits in air)
     ax.text(0.5, 0.01,
@@ -869,6 +864,135 @@ def plot_material_thickness_table(pdf):
     pdf.savefig(fig); plt.close(fig)
 
 
+# ── Calibration energy-mismatch plot ─────────────────────────────────────────
+
+def plot_edep_comparison(pdf, res: dict, full_summary_path: str):
+    """
+    Show the calibration energy-mismatch problem:
+      Y-90 triggered electrons deposit only ~keV in LS1,
+      while real signal electrons (4–16 MeV) deposit ~MeV.
+    Setting a trigger threshold at the Y-90 level would admit
+    a huge background rate in the actual experiment.
+
+    Loads per-energy mean edep from the full-experiment simulation CSV.
+    """
+    try:
+        import csv as _csv
+        with open(full_summary_path) as f:
+            fs = list(_csv.DictReader(f))
+    except Exception as e:
+        print(f"  Warning: could not load full summary {full_summary_path}: {e}")
+        return
+
+    # Find closest rows to 4.5 MeV and 15 MeV
+    def closest(target):
+        return min(fs, key=lambda r: abs(float(r["energy_MeV"]) - target))
+
+    r4  = closest(4.5)
+    r15 = closest(15.0)
+    e4  = float(r4["energy_MeV"])
+    e15 = float(r15["energy_MeV"])
+
+    # Grab mean edep values [MeV]
+    def get(row, col):
+        return float(row.get(col, 0) or 0)
+
+    edep_keys = ["edep_edepScintWall", "edep_edepLS1",
+                 "edep_edepLS2", "edep_edepLS3", "edep_edepLS4"]
+    labels_det = ["Plastic\nscint.", "LS 1", "LS 2", "LS 3", "LS 4"]
+
+    vals_sr90 = [res["mean_scint_trig"] * 1000,      # keV
+                 res["mean_ls1_trig"]   * 1000, 0, 0, 0]   # LS2-4 not scored in sr90
+
+    vals_4mev  = [get(r4,  k) * 1000 for k in edep_keys]
+    vals_15mev = [get(r15, k) * 1000 for k in edep_keys]
+
+    x   = np.arange(len(labels_det))
+    w   = 0.26
+
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5.5))
+
+    # ── Left: per-detector mean edep ─────────────────────────────────────
+    ax = axes[0]
+    b1 = ax.bar(x - w,  vals_sr90,  w, label=f"Sr-90/Y-90  (triggered, Y-90-weighted)",
+                color=C_Y90,  alpha=0.85)
+    b2 = ax.bar(x,      vals_4mev,  w, label=f"{e4:.1f} MeV electrons (signal low end)",
+                color="#ff7f0e", alpha=0.85)
+    b3 = ax.bar(x + w,  vals_15mev, w, label=f"{e15:.1f} MeV electrons (signal high end)",
+                color="#d62728", alpha=0.85)
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels_det, fontsize=10)
+    ax.set_ylabel("Mean energy deposition (keV)", fontsize=10)
+    ax.set_yscale("log")
+    ax.set_ylim(bottom=0.1)
+    ax.set_title("Energy deposition per detector layer\n"
+                 "Sr-90/Y-90 triggered events vs signal electrons", fontsize=11)
+    ax.legend(fontsize=8)
+    ax.grid(True, axis="y", which="both", alpha=0.3)
+
+    # Annotate ratio
+    if vals_sr90[1] > 0 and vals_4mev[1] > 0:
+        ratio4  = vals_4mev[1]  / vals_sr90[1]
+        ratio15 = vals_15mev[1] / vals_sr90[1]
+        ax.text(x[1] + w / 2, vals_15mev[1] * 1.4,
+                f"×{ratio4:.0f} vs\nSr-90/Y-90",
+                ha="center", fontsize=7, color="#ff7f0e")
+        ax.text(x[1] + w, vals_15mev[1] * 3,
+                f"×{ratio15:.0f} vs\nSr-90/Y-90",
+                ha="center", fontsize=7, color="#d62728")
+
+    # ── Right: the mismatch problem visualised ────────────────────────────
+    ax2 = axes[1]
+
+    # Schematic: show three "thresholds" as horizontal bands
+    sr90_ls1  = res["mean_ls1_trig"] * 1000       # keV
+    sig4_ls1  = vals_4mev[1]                       # keV
+    sig15_ls1 = vals_15mev[1]                      # keV
+
+    energies = [sr90_ls1, sig4_ls1, sig15_ls1]
+    colors_e = [C_Y90, "#ff7f0e", "#d62728"]
+    labels_e = [
+        f"Sr-90/Y-90 triggered\n({sr90_ls1:.1f} keV in LS1)",
+        f"{e4:.1f} MeV signal\n({sig4_ls1:.0f} keV in LS1)",
+        f"{e15:.1f} MeV signal\n({sig15_ls1:.0f} keV in LS1)",
+    ]
+
+    ypos = [0.75, 0.45, 0.15]
+    ax2.set_xlim(0, max(energies) * 1.4)
+    ax2.set_ylim(0, 1)
+    ax2.axis("off")
+
+    for e_val, color, lbl, yp in zip(energies, colors_e, labels_e, ypos):
+        # Horizontal bar
+        ax2.barh(yp, e_val, height=0.12,
+                 color=color, alpha=0.85, left=0,
+                 transform=ax2.transData)
+        ax2.text(e_val + max(energies) * 0.03, yp,
+                 f"{e_val:.1f} keV",
+                 va="center", fontsize=9, fontweight="bold", color=color)
+        ax2.text(-max(energies) * 0.02, yp, lbl,
+                 va="center", ha="right", fontsize=8, color="#333333",
+                 transform=ax2.transData)
+
+    # Threshold line at Y-90 level
+    ax2.axvline(sr90_ls1, color=C_Y90, lw=1.5, ls="--", alpha=0.7,
+                transform=ax2.get_xaxis_transform(), zorder=5)
+    ax2.text(sr90_ls1 + max(energies) * 0.01, 1.02,
+             "← calibration\nthreshold",
+             va="bottom", fontsize=7, color=C_Y90,
+             transform=ax2.get_xaxis_transform())
+
+    ax2.set_title("Mismatch in LS1 energy scale\n"
+                  "Calibrating to Y-90 sets threshold far below signal",
+                  fontsize=11)
+
+    fig.suptitle("Calibration energy-mismatch: Sr-90/Y-90 vs signal electrons",
+                 fontsize=12)
+    fig.tight_layout()
+    pdf.savefig(fig); plt.close(fig)
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def parse_args():
@@ -879,7 +1003,11 @@ def parse_args():
                    default=str(Path(__file__).parent / "Sr90_Y90_Beta_Spectrum.csv"),
                    help="Beta spectrum CSV")
     p.add_argument("--summary",  required=True,
-                   help="Simulation summary CSV (from analyse_full_experiment.py, electron)")
+                   help="Sr-90 simulation summary CSV (from analyze_full_experiment.py, "
+                        "electron, --prefix sr90)")
+    p.add_argument("--full-summary", default=None,
+                   help="Full-experiment simulation summary CSV for energy comparison "
+                        "(from analyze_full_experiment.py, electron, --prefix full)")
     p.add_argument("--outfile",
                    default=str(Path(__file__).parent / "sr90_calibration.pdf"),
                    help="Output PDF")
@@ -912,14 +1040,15 @@ def main():
     res    = compute_spectral_quantities(spectrum, summary)
     budget = compute_material_budget(spectrum, summary)
 
+    col_eff, col_sr, col_deg = _collimator_efficiency()
+    rate_collimated = SOURCE_ACTIVITY_BQ * col_eff * res["spec_trig_eff"] * BETAS_PER_DECAY
+
     print(f"\nKey results:")
     print(f"  Combined spectral trigger efficiency: {res['spec_trig_eff']*100:.3f} %")
-    print(f"  Sr-90 trigger efficiency:             {res['spec_trig_sr']*100:.4f} %")
-    print(f"  Y-90 trigger efficiency:              {res['spec_trig_y']*100:.3f} %")
-    print(f"  Total efficiency (geom × spectral):   "
-          f"{GEOM_EFFICIENCY * res['spec_trig_eff'] * BETAS_PER_DECAY * 100:.4f} %")
-    print(f"  Trigger rate @ 1 mCi:                 "
-          f"{3.7e6 * BETAS_PER_DECAY * GEOM_EFFICIENCY * res['spec_trig_eff']:.2f} Hz")
+    print(f"  Collimated geom. eff. (r={COLLIMATOR_RADIUS_MM:.0f}mm, L={COLLIMATOR_LENGTH_MM:.0f}mm): "
+          f"{col_eff*100:.3f} %  ({col_deg:.1f}° half-angle)")
+    print(f"  Coincidence rate @ {SOURCE_ACTIVITY_BQ/1e6:.1f} MBq collimated: "
+          f"{rate_collimated:.3f} Hz  ({rate_collimated*3600:.0f} ev/hr)")
 
     print(f"\nWriting {args.outfile} ...")
     with PdfPages(args.outfile) as pdf:
@@ -929,16 +1058,17 @@ def main():
         fig.text(0.5, 0.65, "Sr-90 / Y-90 Calibration Feasibility",
                  ha="center", fontsize=18, fontweight="bold")
         fig.text(0.5, 0.48,
-                 f"Spectral trigger efficiency (combined): "
-                 f"{res['spec_trig_eff']*100:.3f} %\n"
-                 f"Geometric efficiency: {GEOM_EFFICIENCY*100:.1f} %\n"
-                 f"Rate @ 1 mCi: "
-                 f"{3.7e6*BETAS_PER_DECAY*GEOM_EFFICIENCY*res['spec_trig_eff']:.2f} Hz",
+                 f"Spectral trigger efficiency: {res['spec_trig_eff']*100:.3f} %\n"
+                 f"Collimated rate @ {SOURCE_ACTIVITY_BQ/1e6:.0f} MBq: "
+                 f"{rate_collimated:.3f} Hz  ({rate_collimated*3600:.0f} ev/hr)",
                  ha="center", fontsize=11, color="grey")
         pdf.savefig(fig); plt.close(fig)
 
-        print("  Summary page ...")
+        print("  Summary page 1 (physics + geometry) ...")
         plot_summary_page(pdf, res)
+
+        print("  Summary page 2 (rates + feasibility) ...")
+        plot_rate_page(pdf, res)
 
         print("  Beta spectrum overview ...")
         plot_spectrum_overview(pdf, res)
@@ -949,11 +1079,17 @@ def main():
         print("  Triggered energy deposition ...")
         plot_triggered_edep(pdf, res)
 
-        print("  Rate estimates ...")
+        print("  Rate estimates (log-log) ...")
         plot_rate_estimate(pdf, res)
 
         print("  MM context ...")
         plot_mm_context(pdf, res, summary)
+
+        if args.full_summary:
+            print("  Calibration energy mismatch ...")
+            plot_edep_comparison(pdf, res, args.full_summary)
+        else:
+            print("  (skipping energy mismatch — no --full-summary provided)")
 
         print("  Material budget: stopping vs energy ...")
         plot_stopping_vs_energy(pdf, budget, res)
