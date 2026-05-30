@@ -558,105 +558,108 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
 
     // ═══════════════════════════════════════════════════════════
     // LS CALIBRATION MODE
-    // Source capsule → air → 1 LS layer → air → 1 back scint bar.
-    // Goal: calibrate LS and back scint independently with sealed sources.
+    // Bare source gun → air gap → 1 LS layer only.
+    // No source capsule, no back scint.
     // ═══════════════════════════════════════════════════════════
-    // else kLSCalib
+    if (fConfig.mode == SimMode::kLSCalib) {
 
-    G4double tCapMylar  = fConfig.source_cap_mylar_um  * um;
-    G4double tCapCarbon = fConfig.source_cap_carbon_um * um;
-    G4double tCapAl     = fConfig.source_cap_al_um     * um;
-    G4double tCapTape   = fConfig.source_cap_tape_um   * um;
-    G4double capTotalZ  = tCapMylar + tCapCarbon + tCapAl + tCapTape;
+        G4double airToLS  = fConfig.source_to_det_mm * mm;
+        // LS: CFRP_front | InnerCFRP | Al | LAB | InnerCFRP | Al | CFRP_back
+        G4double lsZ    = 2*tLSCfrp + 2*(tLSInnerCfrp + tLSInnerAl) + tLS;
+        G4double totalZ = airToLS + lsZ;
 
-    G4double airToLS   = fConfig.source_to_ls_mm   * mm;
-    G4double airLSBack = fConfig.gap_ls_to_back_mm * mm;
+        G4double lsHX = 22.5*cm;  // 45×45 cm LS face
+        G4double lsHY = 22.5*cm;
 
-    // LS: 1 layer only (front CFRP | inner CFRP | Al | LAB | inner CFRP | Al | back CFRP)
-    G4double lsSingleZ = 2*tLSCfrp + 2*(tLSInnerCfrp + tLSInnerAl) + tLS;
+        auto* worldSolid = new G4Box("World", lsHX+2*cm, lsHY+2*cm, (totalZ+2*cm)/2);
+        worldLV = new G4LogicalVolume(worldSolid, matAir, "World");
+        worldPV = new G4PVPlacement(nullptr, G4ThreeVector(), worldLV, "World", nullptr, false, 0, true);
+        worldLV->SetVisAttributes(G4VisAttributes::GetInvisible());
 
-    // Back scint: tape | Al foil | PVT | Al foil | tape
-    G4double tBscTape = fConfig.backscint_tape_um * um;
-    G4double tBscAl   = fConfig.backscint_al_um   * um;
+        fHe3GasCenterZ = -totalZ / 2.0;  // gun at front of world
+
+        G4cout << "\n=== LS Calibration geometry ===" << G4endl;
+        G4cout << "  Source-to-LS air gap: " << airToLS/mm << " mm" << G4endl;
+        G4cout << "  LS: " << tLS/cm << " cm LAB,  CFRP walls " << fConfig.cfrpThickness_mm << " mm" << G4endl;
+        G4cout << "  Total Z: " << totalZ/mm << " mm" << G4endl;
+
+        G4double zF = -totalZ / 2.0;
+
+        auto Place = [&](const std::string& name, G4double t,
+                          G4Material* mat, G4VisAttributes* vis, G4LogicalVolume*& out) {
+            out = MakeSlab(name, t, lsHX, lsHY, mat, vis);
+            new G4PVPlacement(nullptr, G4ThreeVector(0,0,zF+t/2), out, name, worldLV, false, 0, true);
+            zF += t;
+        };
+        G4LogicalVolume* dL = nullptr;
+
+        Place("AirGap1",       airToLS,      matAir,  nullptr,  dL);
+        Place("LS_CFRP_1",     tLSCfrp,      matCFRP, visCFRP,  dL);
+        Place("LS_InnerCFRP_1",tLSInnerCfrp, matCFRP, visCFRP,  dL);
+        Place("LS_Al_1",       tLSInnerAl,   matAl,   visAl,    dL);
+        Place("LiqScint_1",    tLS,          matLAB,  visLAB,   dL);
+        Place("LS_InnerCFRP_2",tLSInnerCfrp, matCFRP, visCFRP,  dL);
+        Place("LS_Al_2",       tLSInnerAl,   matAl,   visAl,    dL);
+        Place("LS_CFRP_2",     tLSCfrp,      matCFRP, visCFRP,  dL);
+
+        return worldPV;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // BACK SCINT CALIBRATION MODE
+    // Bare source gun → air gap → 1 back scint bar only.
+    // No source capsule, no LS layer.
+    // ═══════════════════════════════════════════════════════════
+    // else kBackScintCalib
+
+    G4double airToBSc = fConfig.source_to_det_mm * mm;
+    G4double tBscTape = fConfig.backscint_tape_um  * um;
+    G4double tBscAl   = fConfig.backscint_al_um    * um;
     G4double tBscPVT  = fConfig.backscint_thick_cm * cm;
-    G4double backScintZ = 2*tBscTape + 2*tBscAl + tBscPVT;
+    G4double bscZ     = 2*tBscTape + 2*tBscAl + tBscPVT;
+    G4double totalZ   = airToBSc + bscZ;
 
-    G4double totalLSCalibZ = capTotalZ + airToLS + lsSingleZ + airLSBack + backScintZ;
-    G4double worldHalfXY   = 25.0 * cm;   // 50×50 cm face, contains 45×45 cm LS
+    G4double bsHX = fConfig.backscint_u_cm/2 * cm;  // 15 cm half-width (30 cm total)
+    G4double bsHY = fConfig.backscint_v_cm/2 * cm;  // 10 cm half-height (20 cm total)
 
-    auto* worldSolid = new G4Box("World", worldHalfXY, worldHalfXY, (totalLSCalibZ+2*cm)/2);
+    auto* worldSolid = new G4Box("World", bsHX+2*cm, bsHY+2*cm, (totalZ+2*cm)/2);
     worldLV = new G4LogicalVolume(worldSolid, matAir, "World");
     worldPV = new G4PVPlacement(nullptr, G4ThreeVector(), worldLV, "World", nullptr, false, 0, true);
     worldLV->SetVisAttributes(G4VisAttributes::GetInvisible());
 
-    fHe3GasCenterZ = -totalLSCalibZ / 2.0;  // gun position (reusing accessor)
+    fHe3GasCenterZ = -totalZ / 2.0;
 
-    G4cout << "\n=== LS Calibration geometry ===" << G4endl;
-    G4cout << "  Source capsule total: " << capTotalZ/um << " um" << G4endl;
-    G4cout << "  Air source-to-LS: " << airToLS/mm << " mm" << G4endl;
-    G4cout << "  LS: " << tLS/cm << " cm LAB + CFRP/liner walls" << G4endl;
-    G4cout << "  Air LS-to-back: " << airLSBack/mm << " mm" << G4endl;
-    G4cout << "  Back scint: " << tBscPVT/cm << " cm PVT ("
-           << fConfig.backscint_u_cm << "×" << fConfig.backscint_v_cm << " cm)" << G4endl;
-    G4cout << "  Total Z: " << totalLSCalibZ/mm << " mm" << G4endl;
+    G4cout << "\n=== Back Scint Calibration geometry ===" << G4endl;
+    G4cout << "  Source-to-scint air gap: " << airToBSc/mm << " mm" << G4endl;
+    G4cout << "  Back scint: " << tBscPVT/cm << " cm PVT, "
+           << fConfig.backscint_u_cm << "×" << fConfig.backscint_v_cm << " cm face" << G4endl;
+    G4cout << "  Total Z: " << totalZ/mm << " mm" << G4endl;
 
-    G4double zF = -totalLSCalibZ / 2.0;
+    G4double zF = -totalZ / 2.0;
 
-    // Face half-sizes for each detector layer
-    G4double lsHX = 22.5*cm;  // 45 cm LS face
-    G4double lsHY = 22.5*cm;
-    G4double bsHX = fConfig.backscint_u_cm/2 * cm;  // 30 cm
-    G4double bsHY = fConfig.backscint_v_cm/2 * cm;  // 20 cm
+    auto visBscPVT = new G4VisAttributes(G4Color(0.9, 0.5, 0.1, 0.8));
 
-    auto PlaceLS = [&](const std::string& name, G4double t,
-                        G4Material* mat, G4VisAttributes* vis, G4LogicalVolume*& out) {
-        out = MakeSlab(name, t, lsHX, lsHY, mat, vis);
-        new G4PVPlacement(nullptr, G4ThreeVector(0,0,zF+t/2), out, name, worldLV, false, 0, true);
-        zF += t;
-    };
-    auto PlaceSrc = [&](const std::string& name, G4double t,
-                         G4Material* mat, G4VisAttributes* vis, G4LogicalVolume*& out) {
-        out = MakeSlab(name, t, detXY/2, detXY/2, mat, vis);
-        new G4PVPlacement(nullptr, G4ThreeVector(0,0,zF+t/2), out, name, worldLV, false, 0, true);
-        zF += t;
-    };
-    auto PlaceBS = [&](const std::string& name, G4double t,
-                        G4Material* mat, G4VisAttributes* vis, G4LogicalVolume*& out) {
+    auto PlaceB = [&](const std::string& name, G4double t,
+                       G4Material* mat, G4VisAttributes* vis, G4LogicalVolume*& out) {
         out = MakeSlab(name, t, bsHX, bsHY, mat, vis);
         new G4PVPlacement(nullptr, G4ThreeVector(0,0,zF+t/2), out, name, worldLV, false, 0, true);
         zF += t;
     };
-
     G4LogicalVolume* dL = nullptr;
 
-    // Source capsule (thin layers between source and detector)
-    if (tCapMylar  > 0) PlaceSrc("SourceCap_Mylar",  tCapMylar,  matMylar,  visMylar,   dL);
-    if (tCapCarbon > 0) PlaceSrc("SourceCap_Carbon",  tCapCarbon, matCFRP,   visCFRP,    dL);
-    if (tCapAl     > 0) PlaceSrc("SourceCap_Al",      tCapAl,     matAl,     visAl,      dL);
-    if (tCapTape   > 0) PlaceSrc("SourceCap_Tape",    tCapTape,   matBlkMylar,visBlkMylar,dL);
+    {
+        // Air gap: use world-sized slab so gun position is inside air
+        auto* airBox = new G4Box("AirGap1", bsHX+2*cm, bsHY+2*cm, airToBSc/2);
+        auto* airLV  = new G4LogicalVolume(airBox, matAir, "AirGap1");
+        new G4PVPlacement(nullptr, G4ThreeVector(0,0,zF+airToBSc/2), airLV, "AirGap1", worldLV, false, 0, true);
+        zF += airToBSc;
+    }
 
-    // Air gap to LS
-    PlaceSrc("AirGap1", airToLS, matAir, nullptr, dL);
-
-    // LS layer (1 layer, same construction as Full_Geant)
-    PlaceLS("LS_CFRP_1",      tLSCfrp,      matCFRP, visCFRP, dL);
-    PlaceLS("LS_InnerCFRP_1", tLSInnerCfrp, matCFRP, visCFRP, dL);
-    PlaceLS("LS_Al_1",        tLSInnerAl,   matAl,   visAl,   dL);
-    PlaceLS("LiqScint_1",     tLS,          matLAB,  visLAB,  dL);
-    PlaceLS("LS_InnerCFRP_2", tLSInnerCfrp, matCFRP, visCFRP, dL);
-    PlaceLS("LS_Al_2",        tLSInnerAl,   matAl,   visAl,   dL);
-    PlaceLS("LS_CFRP_2",      tLSCfrp,      matCFRP, visCFRP, dL);
-
-    // Air gap to back scint
-    PlaceSrc("AirGap2", airLSBack, matAir, nullptr, dL);
-
-    // Back scint bar: tape | Al foil | PVT | Al foil | tape
-    auto visBscPVT = new G4VisAttributes(G4Color(0.9, 0.5, 0.1, 0.8));
-    PlaceBS("BackScintWrap_Tape1", tBscTape, matBlkMylar, visBlkMylar, dL);
-    PlaceBS("BackScintWrap_Al1",   tBscAl,   matAl,       visAl,       dL);
-    PlaceBS("BackScint",           tBscPVT,  matPlScint,  visBscPVT,   fBackScintLV);
-    PlaceBS("BackScintWrap_Al2",   tBscAl,   matAl,       visAl,       dL);
-    PlaceBS("BackScintWrap_Tape2", tBscTape, matBlkMylar, visBlkMylar, dL);
+    PlaceB("BackScintWrap_Tape1", tBscTape, matBlkMylar, visBlkMylar, dL);
+    PlaceB("BackScintWrap_Al1",   tBscAl,   matAl,       visAl,       dL);
+    PlaceB("BackScint",           tBscPVT,  matPlScint,  visBscPVT,   fBackScintLV);
+    PlaceB("BackScintWrap_Al2",   tBscAl,   matAl,       visAl,       dL);
+    PlaceB("BackScintWrap_Tape2", tBscTape, matBlkMylar, visBlkMylar, dL);
 
     return worldPV;
 }

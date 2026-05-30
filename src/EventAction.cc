@@ -4,6 +4,8 @@
 #include "RunAction.hh"
 
 #include "G4Event.hh"
+#include "G4PrimaryVertex.hh"
+#include "G4PrimaryParticle.hh"
 #include "G4SystemOfUnits.hh"
 #include "G4UnitsTable.hh"
 
@@ -13,6 +15,15 @@ EventAction::EventAction(const SimConfig& cfg, RunAction* runAction)
 void EventAction::BeginOfEventAction(const G4Event* event) {
     fData.Reset();
     fData.eventID = event->GetEventID();
+
+    // Record the sampled primary KE (useful when spectrum sampling is on)
+    if (event->GetNumberOfPrimaryVertex() > 0) {
+        const G4PrimaryVertex* vtx = event->GetPrimaryVertex(0);
+        if (vtx && vtx->GetNumberOfParticle() > 0) {
+            const G4PrimaryParticle* p = vtx->GetPrimary(0);
+            if (p) fData.primaryKE_MeV = p->GetKineticEnergy() / MeV;
+        }
+    }
 }
 
 void EventAction::EndOfEventAction(const G4Event* event) {

@@ -1,12 +1,12 @@
 #pragma once
 // PrimaryGeneratorAction.hh
-// Vacuum mode : pencil beam along +z at z = -10 cm
-// Full mode   : beam from centre of He-3 gas volume along +z
 
 #include "G4VUserPrimaryGeneratorAction.hh"
 #include "G4ParticleGun.hh"
 #include "SimConfig.hh"
 #include <memory>
+#include <vector>
+#include <string>
 
 class G4Event;
 class DetectorConstruction;
@@ -20,7 +20,15 @@ public:
     void GeneratePrimaries(G4Event* event) override;
 
 private:
+    void LoadSpectrum(const std::string& filepath);
+    double SampleSpectrum() const;
+
     std::unique_ptr<G4ParticleGun> fGun;
     const SimConfig&               fConfig;
     const DetectorConstruction*    fDetCon;
+
+    // Sr-90/Y-90 spectrum: CDF table for inverse-transform sampling
+    std::vector<double> fSpecEnergies;  // energy values [MeV]
+    std::vector<double> fSpecCDF;       // cumulative probabilities [0,1]
+    bool fUseSpectrum = false;
 };

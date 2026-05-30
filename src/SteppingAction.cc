@@ -103,27 +103,11 @@ void SteppingAction::UserSteppingAction(const G4Step* step) {
 
     if (fConfig.mode == SimMode::kVacuum) return;
 
-    // ── kLSCalib: source capsule, LS, back scint only ───────────────────
+    // ── kLSCalib: score LS layer only ───────────────────────────────────
     if (fConfig.mode == SimMode::kLSCalib) {
         if (volName == "LiqScint_1") {
             data.edepLS1 += edep/eV;
             if (isPrimary) data.primInLS1 = true;
-            return;
-        }
-        if (volName == "BackScint") {
-            data.edepBackScint += edep/eV;
-            if (isPrimary) data.primInBackScint = true;
-            return;
-        }
-        // Source capsule + back scint wrapping contribute to budget tracking
-        if (volName == "SourceCap_Mylar" || volName == "SourceCap_Carbon" ||
-            volName == "SourceCap_Al"    || volName == "SourceCap_Tape") {
-            data.edepSourceCap += edep/eV;
-            return;
-        }
-        if (volName == "BackScintWrap_Tape1" || volName == "BackScintWrap_Al1" ||
-            volName == "BackScintWrap_Al2"   || volName == "BackScintWrap_Tape2") {
-            data.edepBackScintW += edep/eV;
             return;
         }
         if ((volName.size() >= 8  && volName.substr(0,8)  == "LS_CFRP_")    ||
@@ -132,7 +116,17 @@ void SteppingAction::UserSteppingAction(const G4Step* step) {
             data.edepLSCFRP += edep/eV;
             return;
         }
-        return;  // AirGap volumes: ignore
+        return;
+    }
+
+    // ── kBackScintCalib: score back scint bar only ───────────────────────
+    if (fConfig.mode == SimMode::kBackScintCalib) {
+        if (volName == "BackScint") {
+            data.edepBackScint += edep/eV;
+            if (isPrimary) data.primInBackScint = true;
+            return;
+        }
+        return;
     }
 
     // ── Full / Sr90 modes: per-layer edep ───────────────────────────────

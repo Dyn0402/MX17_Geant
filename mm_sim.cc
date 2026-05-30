@@ -34,7 +34,9 @@ void PrintUsage() {
     std::cerr << "  -o <output>      Output file base name  (default: mm_output)\n";
     std::cerr << "  -s <seed>        Random seed  (default: time-based)\n";
     std::cerr << "  -t <nthreads>    MT threads  (default: 1)\n";
-    std::cerr << "  -m <mode>        vacuum | full | sr90 | sr90nomm | lscalib  (default: vacuum)\n";
+    std::cerr << "  -m <mode>        vacuum | full | sr90 | sr90nomm | lscalib | backscintcalib\n";
+    std::cerr << "  --spectrum <csv> Sample energies from Sr-90/Y-90 CSV (lscalib/backscintcalib)\n";
+    std::cerr << "  --src-dist <mm>  Source-to-detector air gap [mm] (default: 100)\n";
     std::cerr << "  -a <mm>          Al shielding [mm], vacuum mode only  (default: 0)\n";
     std::cerr << "  -c <mm>          CFRP wall thickness [mm] for LS cells, full mode only  (default: 1.5)\n";
     std::cerr << "  -v               Verbose output\n";
@@ -76,10 +78,12 @@ int main(int argc, char** argv) {
             else if (mode == "full")   config.mode = SimMode::kFullExperiment;
             else if (mode == "sr90")    config.mode = SimMode::kSr90Calibration;
             else if (mode == "sr90nomm") config.mode = SimMode::kSr90NoMM;
-            else if (mode == "lscalib")  config.mode = SimMode::kLSCalib;
-            else { std::cerr << "Unknown mode: " << mode
-                             << " (use vacuum/full/sr90/sr90nomm/lscalib)\n"; return 1; }
+            else if (mode == "lscalib")       config.mode = SimMode::kLSCalib;
+            else if (mode == "backscintcalib") config.mode = SimMode::kBackScintCalib;
+            else { std::cerr << "Unknown mode: " << mode << "\n"; return 1; }
         }
+        else if (arg == "--spectrum" && i+1<argc) config.spectrum_file  = argv[++i];
+        else if (arg == "--src-dist" && i+1<argc) config.source_to_det_mm = std::stod(argv[++i]);
         else if (arg[0] != '-') macroFile = arg;
         else { std::cerr << "Unknown option: " << arg << "\n"; PrintUsage(); return 1; }
     }
@@ -89,10 +93,11 @@ int main(int argc, char** argv) {
 
     std::cout << "=== Micromegas Simulation ===" << "\n";
     std::cout << "  Geant4 version : " << G4Version << "\n";
-    std::string modeStr = (config.mode == SimMode::kFullExperiment  ? "full-experiment"  :
-                           config.mode == SimMode::kSr90Calibration ? "sr90-calibration" :
-                           config.mode == SimMode::kSr90NoMM        ? "sr90-no-mm"       :
-                           config.mode == SimMode::kLSCalib         ? "ls-calibration"   : "vacuum");
+    std::string modeStr = (config.mode == SimMode::kFullExperiment  ? "full-experiment"       :
+                           config.mode == SimMode::kSr90Calibration ? "sr90-calibration"    :
+                           config.mode == SimMode::kSr90NoMM        ? "sr90-no-mm"          :
+                           config.mode == SimMode::kLSCalib         ? "ls-calibration"      :
+                           config.mode == SimMode::kBackScintCalib  ? "backscint-calibration": "vacuum");
     std::cout << "  Mode           : " << modeStr << "\n";
     std::cout << "  Gas            : " << config.gas << "\n";
     std::cout << "  Particle       : " << config.particle << "\n";

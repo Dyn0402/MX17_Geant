@@ -42,8 +42,9 @@ struct RunAction::Impl {
     Double_t br_edepLSCFRP;
     Bool_t   br_primInLSCFRP5;
 
-    // EventTree — kLSCalib mode
-    Double_t br_edepBackScint, br_edepBackScintW, br_edepSourceCap;
+    // EventTree — kLSCalib / kBackScintCalib
+    Double_t br_edepBackScint;
+    Double_t br_primaryKE;
     Bool_t   br_primInBackScint;
 
     // ClusterTree
@@ -78,7 +79,8 @@ void RunAction::BeginOfRunAction(const G4Run*) {
     bool isFull    = (fConfig.mode == SimMode::kFullExperiment  ||
                       fConfig.mode == SimMode::kSr90Calibration ||
                       fConfig.mode == SimMode::kSr90NoMM);
-    bool isLSCalib = (fConfig.mode == SimMode::kLSCalib);
+    bool isCalib   = (fConfig.mode == SimMode::kLSCalib ||
+                      fConfig.mode == SimMode::kBackScintCalib);
 
 #ifdef USE_ROOT
     std::string fname = ss.str() + ".root";
@@ -88,10 +90,11 @@ void RunAction::BeginOfRunAction(const G4Run*) {
         return;
     }
 
-    std::string modeStr = (fConfig.mode == SimMode::kFullExperiment  ? "full"    :
-                           fConfig.mode == SimMode::kSr90Calibration ? "sr90"    :
-                           fConfig.mode == SimMode::kSr90NoMM        ? "sr90nomm":
-                           fConfig.mode == SimMode::kLSCalib         ? "lscalib" : "vacuum");
+    std::string modeStr = (fConfig.mode == SimMode::kFullExperiment  ? "full"         :
+                           fConfig.mode == SimMode::kSr90Calibration ? "sr90"         :
+                           fConfig.mode == SimMode::kSr90NoMM        ? "sr90nomm"     :
+                           fConfig.mode == SimMode::kLSCalib         ? "lscalib"      :
+                           fConfig.mode == SimMode::kBackScintCalib  ? "backscintcalib": "vacuum");
     std::string tag = "mode=" + modeStr
                     + "_gas=" + fConfig.gas
                     + "_particle=" + fConfig.particle
@@ -136,13 +139,12 @@ void RunAction::BeginOfRunAction(const G4Run*) {
         fImpl->evtTree->Branch("primInLSCFRP5",    &fImpl->br_primInLSCFRP5);
     }
 
-    if (isLSCalib) {
+    if (isCalib) {
+        fImpl->evtTree->Branch("primaryKE_MeV",    &fImpl->br_primaryKE);
         fImpl->evtTree->Branch("edepLS1",          &fImpl->br_edepLS1);
         fImpl->evtTree->Branch("edepLSCFRP",       &fImpl->br_edepLSCFRP);
         fImpl->evtTree->Branch("primInLS1",        &fImpl->br_primInLS1);
         fImpl->evtTree->Branch("edepBackScint",    &fImpl->br_edepBackScint);
-        fImpl->evtTree->Branch("edepBackScintW",   &fImpl->br_edepBackScintW);
-        fImpl->evtTree->Branch("edepSourceCap",    &fImpl->br_edepSourceCap);
         fImpl->evtTree->Branch("primInBackScint",  &fImpl->br_primInBackScint);
     }
 
@@ -180,10 +182,10 @@ void RunAction::BeginOfRunAction(const G4Run*) {
                           ",primInLS1,primInLS2"
                           ",edepLSCFRP_eV,primInLSCFRP5";
     }
-    if (isLSCalib) {
-        fImpl->evtFile << ",edepLS1_eV,edepLSCFRP_eV,primInLS1"
-                          ",edepBackScint_eV,edepBackScintW_eV"
-                          ",edepSourceCap_eV,primInBackScint";
+    if (isCalib) {
+        fImpl->evtFile << ",primaryKE_MeV"
+                          ",edepLS1_eV,edepLSCFRP_eV,primInLS1"
+                          ",edepBackScint_eV,primInBackScint";
     }
     fImpl->evtFile << "\n";
 
@@ -213,10 +215,11 @@ void RunAction::EndOfRunAction(const G4Run* run) {
 
     if (fIsMaster || !G4Threading::IsMultithreadedApplication()) {
         G4int nev = run->GetNumberOfEvent();
-        std::string modeStr = (fConfig.mode == SimMode::kFullExperiment  ? "full-experiment"  :
-                               fConfig.mode == SimMode::kSr90Calibration ? "sr90-calibration" :
-                               fConfig.mode == SimMode::kSr90NoMM        ? "sr90-no-mm"       :
-                               fConfig.mode == SimMode::kLSCalib         ? "ls-calibration"   : "vacuum");
+        std::string modeStr = (fConfig.mode == SimMode::kFullExperiment  ? "full-experiment"       :
+                               fConfig.mode == SimMode::kSr90Calibration ? "sr90-calibration"    :
+                               fConfig.mode == SimMode::kSr90NoMM        ? "sr90-no-mm"          :
+                               fConfig.mode == SimMode::kLSCalib         ? "ls-calibration"      :
+                               fConfig.mode == SimMode::kBackScintCalib  ? "backscint-calibration": "vacuum");
         G4cout << "\n========= Run Summary =========" << G4endl;
         G4cout << "  Mode   : " << modeStr         << G4endl;
         G4cout << "  Gas    : " << fConfig.gas      << G4endl;
@@ -241,7 +244,8 @@ void RunAction::RecordEvent(const EventData& data) {
     bool isFull    = (fConfig.mode == SimMode::kFullExperiment  ||
                       fConfig.mode == SimMode::kSr90Calibration ||
                       fConfig.mode == SimMode::kSr90NoMM);
-    bool isLSCalib = (fConfig.mode == SimMode::kLSCalib);
+    bool isCalib   = (fConfig.mode == SimMode::kLSCalib ||
+                      fConfig.mode == SimMode::kBackScintCalib);
 
 #ifdef USE_ROOT
     if (!fImpl->evtTree) return;
@@ -282,13 +286,12 @@ void RunAction::RecordEvent(const EventData& data) {
         fImpl->br_primInLSCFRP5   = data.primInLSCFRP5;
     }
 
-    if (isLSCalib) {
+    if (isCalib) {
+        fImpl->br_primaryKE       = data.primaryKE_MeV;
         fImpl->br_edepLS1         = data.edepLS1;
         fImpl->br_edepLSCFRP      = data.edepLSCFRP;
         fImpl->br_primInLS1       = data.primInLS1;
         fImpl->br_edepBackScint   = data.edepBackScint;
-        fImpl->br_edepBackScintW  = data.edepBackScintW;
-        fImpl->br_edepSourceCap   = data.edepSourceCap;
         fImpl->br_primInBackScint = data.primInBackScint;
     }
 
@@ -345,13 +348,12 @@ void RunAction::RecordEvent(const EventData& data) {
                        << "," << data.edepLSCFRP
                        << "," << data.primInLSCFRP5;
     }
-    if (isLSCalib) {
-        fImpl->evtFile << "," << data.edepLS1
+    if (isCalib) {
+        fImpl->evtFile << "," << data.primaryKE_MeV
+                       << "," << data.edepLS1
                        << "," << data.edepLSCFRP
                        << "," << data.primInLS1
                        << "," << data.edepBackScint
-                       << "," << data.edepBackScintW
-                       << "," << data.edepSourceCap
                        << "," << data.primInBackScint;
     }
     fImpl->evtFile << "\n";
