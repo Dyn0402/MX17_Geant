@@ -126,45 +126,52 @@ def make_tag(gas, particle, energy_mev):
     return f"full_{gas}_{particle}_{e_str}"
 
 
+def eos_xrd(path: str) -> str:
+    if path.startswith("/eos/"):
+        return "root://eosuser.cern.ch/" + path
+    return path
+
+
 def write_wrapper(job_dir: Path, exe: str, setup_script: str,
                   cfrp_mm: float) -> Path:
     """
-    Bash wrapper re-sources Geant4 on the worker node and runs mm_sim in
-    full-experiment mode. Arguments are positional: gas particle energy
-    nevents outfile seed.
+    Bash wrapper: xrdcp exe from EOS, run locally, xrdcp output back.
+    Arguments: gas particle energy nevents outfile seed
     """
     wrapper = job_dir / "run_full_job.sh"
+    exe_xrd = eos_xrd(exe)
+
     content = textwrap.dedent(f"""\
         #!/usr/bin/env bash
         set -e
         source "{setup_script}"
 
-        GAS="$1"
-        PARTICLE="$2"
-        ENERGY="$3"
-        NEVENTS="$4"
-        OUTFILE="$5"
-        SEED="$6"
+        GAS="$1"; PARTICLE="$2"; ENERGY="$3"
+        NEVENTS="$4"; OUTFILE="$5"; SEED="$6"
+        LOCAL=$(basename "$OUTFILE")
 
         echo "=== mm_sim full-experiment job ==="
         echo "  Node     : $(hostname)"
-        echo "  Gas      : $GAS"
-        echo "  Particle : $PARTICLE"
-        echo "  Energy   : $ENERGY MeV"
-        echo "  Events   : $NEVENTS"
-        echo "  Output   : $OUTFILE"
-        echo "  Seed     : $SEED"
+        echo "  Gas      : $GAS  Particle : $PARTICLE"
+        echo "  Energy   : $ENERGY MeV   Events : $NEVENTS"
         echo "=================================="
 
-        "{exe}" \\
-            -m full      \\
-            -g "$GAS"    \\
+        xrdcp -s "{exe_xrd}" ./mm_sim
+        chmod +x ./mm_sim
+
+        ./mm_sim \\
+            -m full        \\
+            -g "$GAS"      \\
             -p "$PARTICLE" \\
-            -e "$ENERGY" \\
-            -n "$NEVENTS" \\
-            -o "$OUTFILE" \\
-            -s "$SEED"   \\
+            -e "$ENERGY"   \\
+            -n "$NEVENTS"  \\
+            -o "./$LOCAL"  \\
+            -s "$SEED"     \\
             -c {cfrp_mm}
+
+        for f in "./$LOCAL"*; do
+            xrdcp -s "$f" "root://eosuser.cern.ch/$(dirname $OUTFILE)/$(basename $f)"
+        done
 
         echo "Job done: $(date)"
     """)

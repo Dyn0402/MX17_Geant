@@ -32,31 +32,74 @@ from pathlib import Path
 
 # ── Wrapper script ────────────────────────────────────────────────────────────
 
+def eos_xrd(path: str) -> str:
+    """Convert /eos/... path to root://eosuser.cern.ch//eos/... for xrdcp."""
+    if path.startswith("/eos/"):
+        return "root://eosuser.cern.ch/" + path
+    return path  # already an xrootd URL or AFS path
+
+
 def write_wrapper(job_dir: Path, exe: str, mode: str, spectrum: str,
                   outdir: str, nevents: int, src_dist: float) -> Path:
-    """Write a single shared wrapper that takes (outfile, seed) as $1 $2."""
+    """
+    Write a single shared wrapper that takes (outfile_basename, seed) as $1 $2.
+    Batch nodes don't POSIX-mount /eos, so the wrapper:
+      1. xrdcp's the executable and spectrum to local scratch.
+      2. Runs the simulation with a local output path.
+      3. xrdcp's the output file(s) back to EOS.
+    """
     g4_mode = "lscalib" if mode == "ls" else "backscintcalib"
     wrapper = job_dir / f"run_{mode}_calib.sh"
+
+    exe_xrd      = eos_xrd(exe)
+    spectrum_xrd = eos_xrd(spectrum)
+    outdir_xrd   = eos_xrd(outdir)
 
     content = f"""\
 #!/bin/bash
 set -e
-OUTFILE=$1
+JOBTAG=$1   # e.g. ls_calib_job000
 SEED=$2
+
+echo "=== {mode} calibration job ==="
+echo "  Node   : $(hostname)"
+echo "  JobTag : $JOBTAG  Seed: $SEED"
+echo "  Start  : $(date)"
+echo "=============================="
 
 source /cvmfs/sft.cern.ch/lcg/views/LCG_104/x86_64-el9-gcc13-opt/setup.sh
 
-{exe} \\
+# ── Copy inputs from EOS to local scratch ──────────────────────────────
+xrdcp -s "{exe_xrd}" ./mm_sim
+chmod +x ./mm_sim
+xrdcp -s "{spectrum_xrd}" ./spectrum.csv
+
+# ── Run simulation ──────────────────────────────────────────────────────
+./mm_sim \\
   -m {g4_mode} \\
   -p electron \\
   -n {nevents} \\
   -g ArCF4 \\
-  -o "$OUTFILE" \\
+  -o "./$JOBTAG" \\
   -s "$SEED" \\
-  --spectrum {spectrum} \\
+  --spectrum ./spectrum.csv \\
   --src-dist {src_dist:.1f}
 
-echo "Done: $OUTFILE  (seed $SEED)"
+# ── Copy output back to EOS ─────────────────────────────────────────────
+# ROOT output (if compiled with USE_ROOT)
+if ls "./${{JOBTAG}}"*.root 2>/dev/null | grep -q .; then
+    for f in "./${{JOBTAG}}"*.root; do
+        xrdcp -s "$f" "{outdir_xrd}/$(basename $f)"
+    done
+fi
+# CSV output (fallback)
+if ls "./${{JOBTAG}}"*_events.csv 2>/dev/null | grep -q .; then
+    for f in "./${{JOBTAG}}"*_events.csv; do
+        xrdcp -s "$f" "{outdir_xrd}/$(basename $f)"
+    done
+fi
+
+echo "Done: $JOBTAG  ($(date))"
 """
     wrapper.write_text(content)
     wrapper.chmod(wrapper.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
@@ -85,12 +128,13 @@ def write_submit(job_dir: Path, wrapper: Path, jobs: list,
         "request_memory        = 512",
         'requirements          = (OpSysAndVer =?= "AlmaLinux9")',
         "",
-        "arguments             = $(outfile) $(seed)",
+        # $1=tag (job basename), $2=seed — output files are written locally then xrdcp'd
+        "arguments             = $(tag) $(seed)",
         "",
-        "queue outfile,seed,tag from (",
+        "queue tag,seed from (",
     ]
-    for outfile, seed, tag in jobs:
-        lines.append(f"  {outfile}, {seed}, {tag}")
+    for _outfile, seed, tag in jobs:
+        lines.append(f"  {tag}, {seed}")
     lines.append(")")
 
     sub.write_text("\n".join(lines) + "\n")

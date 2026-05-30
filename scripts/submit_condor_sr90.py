@@ -111,9 +111,24 @@ def make_tag(gas, particle, energy_mev, mode="sr90"):
     return f"{mode}_{gas}_{particle}_{e_str}"
 
 
+def eos_xrd(path: str) -> str:
+    """Convert /eos/... path to root://eosuser.cern.ch//eos/... for xrdcp."""
+    if path.startswith("/eos/"):
+        return "root://eosuser.cern.ch/" + path
+    return path
+
+
 def write_wrapper(job_dir: Path, exe: str, setup_script: str,
                   cfrp_mm: float, mode: str = "sr90") -> Path:
+    """
+    Wrapper that xrdcp's the executable from EOS, runs locally, then
+    xrdcp's output back.  Batch nodes don't POSIX-mount /eos.
+    Arguments: gas particle energy nevents outfile seed
+      outfile is the desired EOS destination (used to derive local name + xrdcp target).
+    """
     wrapper = job_dir / f"run_{mode}_job.sh"
+    exe_xrd = eos_xrd(exe)
+
     content = textwrap.dedent(f"""\
         #!/usr/bin/env bash
         set -e
@@ -121,6 +136,7 @@ def write_wrapper(job_dir: Path, exe: str, setup_script: str,
 
         GAS="$1"; PARTICLE="$2"; ENERGY="$3"
         NEVENTS="$4"; OUTFILE="$5"; SEED="$6"
+        LOCAL=$(basename "$OUTFILE")
 
         echo "=== mm_sim {mode} job ==="
         echo "  Node     : $(hostname)"
@@ -128,15 +144,24 @@ def write_wrapper(job_dir: Path, exe: str, setup_script: str,
         echo "  Energy   : $ENERGY MeV   Events : $NEVENTS"
         echo "=========================="
 
-        "{exe}" \\
-            -m {mode}    \\
-            -g "$GAS"    \\
+        # Copy executable from EOS to local scratch
+        xrdcp -s "{exe_xrd}" ./mm_sim
+        chmod +x ./mm_sim
+
+        ./mm_sim \\
+            -m {mode}      \\
+            -g "$GAS"      \\
             -p "$PARTICLE" \\
-            -e "$ENERGY" \\
-            -n "$NEVENTS" \\
-            -o "$OUTFILE" \\
-            -s "$SEED"   \\
+            -e "$ENERGY"   \\
+            -n "$NEVENTS"  \\
+            -o "./$LOCAL"  \\
+            -s "$SEED"     \\
             -c {cfrp_mm}
+
+        # Copy output back to EOS (dirname gives /eos/..., prepend root://server)
+        for f in "./$LOCAL"*; do
+            xrdcp -s "$f" "root://eosuser.cern.ch/$(dirname $OUTFILE)/$(basename $f)"
+        done
 
         echo "Job done: $(date)"
     """)
