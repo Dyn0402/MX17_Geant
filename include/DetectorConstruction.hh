@@ -1,6 +1,5 @@
 #pragma once
 // DetectorConstruction.hh
-// Builds the full Micromegas detector geometry
 
 #include "G4VUserDetectorConstruction.hh"
 #include "G4LogicalVolume.hh"
@@ -10,7 +9,6 @@
 #include <string>
 
 class G4Material;
-class G4Region;
 
 class DetectorConstruction : public G4VUserDetectorConstruction {
 public:
@@ -20,21 +18,21 @@ public:
     G4VPhysicalVolume* Construct() override;
     void ConstructSDandField() override;
 
-    // Accessors used by analysis
-    G4LogicalVolume* GetDriftGasLV()  const { return fDriftGasLV; }
-    G4LogicalVolume* GetAmpGasLV()    const { return fAmpGasLV; }
+    G4LogicalVolume* GetDriftGasLV()    const { return fDriftGasLV; }
+    G4LogicalVolume* GetAmpGasLV()      const { return fAmpGasLV; }
     G4double         GetHe3GasCenterZ() const { return fHe3GasCenterZ; }
 
 private:
     void DefineMaterials();
     G4Material* GetGasMixture(const std::string& name);
+
     const SimConfig& fConfig;
-    G4LogicalVolume* fDriftGasLV  = nullptr;
-    G4LogicalVolume* fAmpGasLV    = nullptr;
-    G4LogicalVolume* fHe3GasLV    = nullptr;
+    G4LogicalVolume* fDriftGasLV   = nullptr;
+    G4LogicalVolume* fAmpGasLV     = nullptr;
+    G4LogicalVolume* fHe3GasLV     = nullptr;
+    G4LogicalVolume* fBackScintLV  = nullptr;  // back plastic scintillator bar (kLSCalib)
 
-    G4double fHe3GasCenterZ = 0.0; // z position of He-3 gas centre [G4 length units]
+    G4double fHe3GasCenterZ = 0.0;
 
-    // Material cache
     std::map<std::string, G4Material*> fGasMaterials;
 };

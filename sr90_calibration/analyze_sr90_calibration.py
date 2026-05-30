@@ -103,7 +103,7 @@ BUDGET_GAPS = [
     ("Scint. Wall",
      "trans_primInScintWall", "trans_primInLS1",        "#d62728"),
 
-    ("Liq. scint. layers 1–4 + CFRP walls",
+    ("Liq. scint. layers 1–2 + CFRP walls",
      "trans_primInLS1",       "trans_primInLSCFRP5",    "#6a1d8a"),
 
     ("Exits LS stack",
@@ -304,7 +304,7 @@ def plot_fate_breakdown(pdf, res: dict):
     ax.fill_between(E, res["f_nentry"],      res["f_nentry"] + res["f_cont"],
                     alpha=0.55, color="#2ca02c", label="Contained in LS stack")
     ax.fill_between(E, res["f_nentry"] + res["f_cont"], 1,
-                    alpha=0.55, color="#ff7f0e", label="Punch-through (exits LS4)")
+                    alpha=0.55, color="#ff7f0e", label="Punch-through (exits LS2)")
     ax.set_xlim(0, 2.5)
     ax.set_ylim(0, 1.05)
     ax.set_xlabel("Beta energy (MeV)", fontsize=10)
@@ -648,7 +648,7 @@ def compute_material_budget(spectrum: pd.DataFrame,
         if col is None:
             return np.ones_like(E)
         if col == "exit":
-            # punch-through: what's left after LS4 (may not be in summary)
+            # punch-through: what's left after LS2 (may not be in summary)
             if "trans_primInLSCFRP5" in summary.columns:
                 return interp_sim(summary, "trans_primInLSCFRP5", E, 0.0)
             return np.zeros_like(E)
@@ -901,12 +901,11 @@ def plot_edep_comparison(pdf, res: dict, full_summary_path: str):
     def get(row, col):
         return float(row.get(col, 0) or 0)
 
-    edep_keys = ["edep_edepScintWall", "edep_edepLS1",
-                 "edep_edepLS2", "edep_edepLS3", "edep_edepLS4"]
-    labels_det = ["Plastic\nscint.", "LS 1", "LS 2", "LS 3", "LS 4"]
+    edep_keys = ["edep_edepScintWall", "edep_edepLS1", "edep_edepLS2"]
+    labels_det = ["Plastic\nscint.", "LS 1", "LS 2"]
 
     vals_sr90 = [res["mean_scint_trig"] * 1000,      # keV
-                 res["mean_ls1_trig"]   * 1000, 0, 0, 0]   # LS2-4 not scored in sr90
+                 res["mean_ls1_trig"]   * 1000, 0]   # LS2 not scored in sr90
 
     vals_4mev  = [get(r4,  k) * 1000 for k in edep_keys]
     vals_15mev = [get(r15, k) * 1000 for k in edep_keys]

@@ -20,7 +20,7 @@ struct IonizationCluster {
 struct EventData {
     int eventID = -1;
 
-    // ── Micromegas gas scoring (both modes) ─────────────────────────────
+    // ── Micromegas gas scoring ──────────────────────────────────────────────
     double edepDrift = 0.0;  // [eV]
     double edepAmp   = 0.0;  // [eV]
 
@@ -32,43 +32,48 @@ struct EventData {
     bool primaryInDrift = false;
     bool primaryInAmp   = false;
 
-    // ── Full-experiment per-layer edep [eV] (kFullExperiment mode only) ─
-    double edepHe3Gas      = 0.0;  // He-3 gas volume
-    double edepResistPaste = 0.0;  // resistive paste (100 µm, behind amp gas)
+    // ── Full-experiment per-layer edep [eV] ───────────────────────────────
+    double edepHe3Gas      = 0.0;
+    double edepResistPaste = 0.0;
 
     // ── MM entrance / dead layers ─────────────────────────────────────────
-    double edepMylar      = 0.0;  // Mylar entrance window (40 µm)
-    double edepCathode    = 0.0;  // drift cathode: GasWin_Al + Kapton + Cu combined
-    double edepMicromesh  = 0.0;  // SS micromesh (30 µm)
+    double edepMylar      = 0.0;
+    double edepCathode    = 0.0;  // GasWin_Al + Kapton + Cu combined
+    double edepMicromesh  = 0.0;
 
     // ── PCB stack: aggregate + individual components ──────────────────────
-    double edepPCB         = 0.0;  // total PCB stack (all sublayers summed)
-    double edepPCBKapton   = 0.0;  // PCB entrance Kapton (50 µm)
-    double edepPCBCu       = 0.0;  // total copper: 4 × 26 µm layers
-    double edepPCBFR4      = 0.0;  // total FR4: 4 × 100 µm layers
-    double edepPCBRohacell = 0.0;  // Rohacell 51 foam (5 mm)
-    double edepPCBAlFoil   = 0.0;  // PCB exit Al foil (50 µm)
+    double edepPCB         = 0.0;
+    double edepPCBKapton   = 0.0;
+    double edepPCBCu       = 0.0;
+    double edepPCBFR4      = 0.0;
+    double edepPCBRohacell = 0.0;
+    double edepPCBAlFoil   = 0.0;
 
     // ── Scintillator wall breakdown ───────────────────────────────────────
-    double edepScintWall   = 0.0;  // plastic scintillator bar (3 mm)
-    double edepScintTape   = 0.0;  // black PVC tape, both layers
-    double edepScintAlFoil = 0.0;  // scint wall Al foil (50 µm)
+    double edepScintWall   = 0.0;  // 3mm plastic scintillator
+    double edepScintTape   = 0.0;  // black mylar tape layers
+    double edepScintAlFoil = 0.0;
 
-    double edepLS1         = 0.0;  // liquid scintillator layer 1
-    double edepLS2         = 0.0;
-    double edepLS3         = 0.0;
-    double edepLS4         = 0.0;
-    double edepLSCFRP      = 0.0;  // total edep in all 5 LS cell CFRP walls [eV]
+    // ── Liquid scintillator stack (2 layers × 2cm, from Full_Geant) ───────
+    double edepLS1     = 0.0;
+    double edepLS2     = 0.0;
+    double edepLSCFRP  = 0.0;  // all structural + inner CFRP/Al lining walls
 
-    // ── Transmission flags (did primary particle reach each subsystem?) ─
+    // ── Back plastic scintillator (kLSCalib mode) ─────────────────────────
+    double edepBackScint  = 0.0;  // PVT scint bar
+    double edepBackScintW = 0.0;  // back scint wrapping (tape + Al foil)
+
+    // ── Source capsule (kLSCalib mode) ────────────────────────────────────
+    double edepSourceCap  = 0.0;  // total source capsule edep
+
+    // ── Transmission flags ─────────────────────────────────────────────────
     bool primInHe3Gas    = false;
     bool primInPCB       = false;
     bool primInScintWall = false;
     bool primInLS1       = false;
     bool primInLS2       = false;
-    bool primInLS3       = false;
-    bool primInLS4       = false;
-    bool primInLSCFRP5   = false;  // entered back wall → exited LS stack
+    bool primInLSCFRP5   = false;  // primary exited LS stack through back wall
+    bool primInBackScint = false;  // primary reached back scint bar
 
     void Reset() {
         eventID = -1;
@@ -83,8 +88,9 @@ struct EventData {
         edepPCB = edepPCBKapton = edepPCBCu = edepPCBFR4
                 = edepPCBRohacell = edepPCBAlFoil = 0.0;
         edepScintWall = edepScintTape = edepScintAlFoil = 0.0;
-        edepLS1 = edepLS2 = edepLS3 = edepLS4 = edepLSCFRP = 0.0;
+        edepLS1 = edepLS2 = edepLSCFRP = 0.0;
+        edepBackScint = edepBackScintW = edepSourceCap = 0.0;
         primInHe3Gas = primInPCB = primInScintWall = false;
-        primInLS1 = primInLS2 = primInLS3 = primInLS4 = primInLSCFRP5 = false;
+        primInLS1 = primInLS2 = primInLSCFRP5 = primInBackScint = false;
     }
 };

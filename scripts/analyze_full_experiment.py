@@ -65,8 +65,6 @@ LAYERS = [
     ("edepScintWall",   "primInScintWall", "Plastic scint.",  "#d62728"),
     ("edepLS1",         "primInLS1",       "Liq. scint. 1",   "#6a1d8a"),
     ("edepLS2",         "primInLS2",       "Liq. scint. 2",   "#9b59b6"),
-    ("edepLS3",         "primInLS3",       "Liq. scint. 3",   "#bb8fce"),
-    ("edepLS4",         "primInLS4",       "Liq. scint. 4",   "#d7bde2"),
 ]
 
 # Fully granular layer list — every individually scored material.
@@ -92,11 +90,9 @@ DETAILED_LAYERS = [
     ("edepScintTape",    None,              "Scint. tape (×2)",  "#f7b6d2"),
     ("edepScintWall",    "primInScintWall", "Plastic scint.",    "#d62728"),
     ("edepScintAlFoil",  None,              "Scint. Al foil",    "#e8a09a"),
-    # LS layers
+    # LS layers (2 × 2 cm, from Full_Geant geometry)
     ("edepLS1",          "primInLS1",       "Liq. scint. 1",     "#6a1d8a"),
     ("edepLS2",          "primInLS2",       "Liq. scint. 2",     "#9b59b6"),
-    ("edepLS3",          "primInLS3",       "Liq. scint. 3",     "#bb8fce"),
-    ("edepLS4",          "primInLS4",       "Liq. scint. 4",     "#d7bde2"),
     ("edepLSCFRP",       None,              "LS CFRP walls",     "#555555"),
 ]
 
@@ -104,7 +100,7 @@ SIMPLIFIED_LAYERS = [
     ("edepDrift",     "primInDrift",     "MM drift gas",   "#2ca02c"),
     ("edepScintWall", "primInScintWall", "Plastic scint.", "#d62728"),
     ("edepLS1",       "primInLS1",       "Liq. scint. 1",  "#6a1d8a"),
-    ("edepLS4",       "primInLS4",       "Liq. scint. 4",  "#d7bde2"),
+    ("edepLS2",       "primInLS2",       "Liq. scint. 2",  "#9b59b6"),
 ]
 
 # Coarse grouping: aggregate detector subsystems
@@ -123,27 +119,26 @@ COARSE_GROUPS = [
      ["edepScintWall"],
      "primInScintWall"),
     ("Liquid scint. (all)","#6a1d8a",
-     ["edepLS1", "edepLS2", "edepLS3", "edepLS4"],
+     ["edepLS1", "edepLS2"],
      "primInLS1"),
 ]
 
 # Cumulative path from gun (He-3 centre, z = 0) to entry face of each
-# scored volume [mm].  Used for survival-vs-path plots.
-# He-3 gas radius 25 mm + exit wall (Al 0.5 + CFRP 0.9) + 200 mm air
-# + MM dead layers (~0.1 mm) → drift gas entry ≈ 226.5 mm.
+# scored volume [mm].  Updated for Full_Geant geometry:
+#   He-3 r=1.5 cm + exit wall (Al 0.5 + CFRP 0.9) + 200 mm air + MM dead layers
+#   → drift gas entry ≈ 202.5 mm.
+# LS stack: 2 mm CFRP + 0.6 mm inner CFRP + 0.04 mm Al + 20 mm LAB (×2)
 SURVIVAL_COLS = [
     # (trans_col,        z_entry_mm, label)
-    ("primInHe3Gas",       25.0,   "He-3 exit"),
-    ("primInDrift",       226.5,   "MM drift"),
-    ("primInAmp",         256.5,   "MM amp"),
-    ("primInPCB",         256.8,   "PCB"),
-    ("primInScintWall",   282.6,   "Plastic scint."),
-    ("primInLS1",         307.3,   "LS1"),
-    ("primInLS2",         323.8,   "LS2"),
-    ("primInLS3",         340.3,   "LS3"),
-    ("primInLS4",         356.8,   "LS4"),
+    ("primInHe3Gas",       15.0,   "He-3 exit"),   # He-3 r=1.5 cm
+    ("primInDrift",       202.5,   "MM drift"),
+    ("primInAmp",         232.5,   "MM amp"),
+    ("primInPCB",         232.7,   "PCB"),
+    ("primInScintWall",   258.5,   "Plastic scint."),
+    ("primInLS1",         283.0,   "LS1"),
+    ("primInLS2",         307.6,   "LS2"),
 ]
-LS4_EXIT_MM = 371.8   # end of LS4 (LS_CFRP_5 skipped — not scored)
+LS2_EXIT_MM = 311.8   # end of LS2 (back CFRP wall LS_CFRP_3)
 
 SURVIVAL_ENERGIES_MEV = [1, 3, 6, 10, 16]   # integer MeV — exact points guaranteed by submit script
 
@@ -151,26 +146,24 @@ SURVIVAL_ENERGIES_MEV = [1, 3, 6, 10, 16]   # integer MeV — exact points guara
 # (z_start_mm, z_end_mm, face_color, text_color, label)
 # Air gaps are omitted — they take the figure background color.
 DETECTOR_STACK = [
-    ( 0.0,   25.0,  "#1f77b4", "white",  "He-3 gas"),   # He-3 gas (half-diameter)
-    (25.0,   25.5,  "#aec7e8", "black",  ""),            # Al capsule wall
-    (25.5,   26.4,  "#555555", "white",  ""),            # CFRP capsule wall
-    # 26.4 – 226.4  Air gap 1 (background)
-    (226.4,  226.5, "#c7e9c0", "black",  ""),            # MM dead layers (Mylar+cathode)
-    (226.5,  256.5, "#2ca02c", "white",  "Drift"),       # Drift gas  30 mm
-    (256.5,  256.55,"#808080", "white",  ""),            # Micromesh
-    (256.55, 257.0, "#74c476", "black",  ""),            # Amp gas + resistive paste
-    (257.0,  262.6, "#ff7f0e", "black",  "PCB"),         # PCB stack  5.6 mm
-    # 262.6 – 282.6  Air gap 2 (background)
-    (282.6,  285.8, "#d62728", "white",  "Scint."),      # Plastic scint. wall  3.2 mm
-    # 285.8 – 305.8  Air gap 3 (background)
-    (305.8,  307.3, "#555555", "white",  ""),            # CFRP  1.5 mm
-    (307.3,  322.3, "#6a1d8a", "white",  "LS 1"),        # Liq. scint. 1  15 mm
-    (322.3,  323.8, "#555555", "white",  ""),            # CFRP
-    (323.8,  338.8, "#9b59b6", "white",  "LS 2"),        # Liq. scint. 2
-    (338.8,  340.3, "#555555", "white",  ""),            # CFRP
-    (340.3,  355.3, "#bb8fce", "black",  "LS 3"),        # Liq. scint. 3
-    (355.3,  356.8, "#555555", "white",  ""),            # CFRP
-    (356.8,  371.8, "#d7bde2", "black",  "LS 4"),        # Liq. scint. 4
+    # Full_Geant geometry: He-3 r=1.5 cm, 2×2 cm LS
+    ( 0.0,   15.0,  "#1f77b4", "white",  "He-3 gas"),   # He-3 gas r=1.5 cm
+    (15.0,   15.5,  "#aec7e8", "black",  ""),            # Al capsule wall 0.5 mm
+    (15.5,   16.4,  "#555555", "white",  ""),            # CFRP capsule wall 0.9 mm
+    # 16.4 – 216.4  Air gap 1 (200 mm, background)
+    (202.4,  202.5, "#c7e9c0", "black",  ""),            # MM dead layers
+    (202.5,  232.5, "#2ca02c", "white",  "Drift"),       # Drift gas 30 mm
+    (232.5,  232.53,"#808080", "white",  ""),            # Micromesh
+    (232.53, 233.0, "#74c476", "black",  ""),            # Amp gas + resistive paste
+    (233.0,  238.6, "#ff7f0e", "black",  "PCB"),         # PCB stack ~5.6 mm
+    # 238.6 – 258.6  Air gap 2 (background)
+    (258.6,  261.8, "#d62728", "white",  "Scint."),      # Plastic scint. wall ~3.2 mm
+    # 261.8 – 281.8  Air gap 3 (background)
+    (281.8,  283.8, "#555555", "white",  ""),            # LS_CFRP_1 + InnerCFRP + Al  ~2.64 mm
+    (283.8,  303.8, "#6a1d8a", "white",  "LS 1"),        # Liq. scint. 1  20 mm
+    (303.8,  306.4, "#555555", "white",  ""),            # LS_CFRP_2 + InnerCFRP + Al
+    (306.4,  326.4, "#9b59b6", "white",  "LS 2"),        # Liq. scint. 2  20 mm
+    (326.4,  328.4, "#555555", "white",  ""),            # LS_CFRP_3  2 mm
 ]
 
 # Line style per particle
@@ -179,7 +172,7 @@ PARTICLE_STYLES = {
     "positron": {"ls": "--", "lw": 1.8, "label": "e⁺"},
 }
 
-LS_EDEP_BRANCHES  = ["edepLS1", "edepLS2", "edepLS3", "edepLS4"]
+LS_EDEP_BRANCHES  = ["edepLS1", "edepLS2"]
 SNAPSHOT_ENERGIES = [5, 8, 11, 13, 16]   # integer MeV — exact points guaranteed by submit script
 MAX_EVENTS_ANG    = 3000
 
@@ -313,8 +306,8 @@ def _summarise_one(args):
         row["ls_total_mean"]   = ls_tot.mean()
         row["ls_total_std"]    = ls_tot.std()
         row["ls_total_median"] = ls_tot.median()
-        row["frac_any_ls4"]    = (df["primInLS4"].mean()
-                                  if "primInLS4" in df.columns else np.nan)
+        row["frac_any_ls2"]    = (df["primInLS2"].mean()
+                                  if "primInLS2" in df.columns else np.nan)
         if "primInLS1" in df.columns:
             ls_in = ls_tot[df["primInLS1"].astype(bool)]
             if len(ls_in) > 10:
@@ -624,9 +617,9 @@ def plot_containment(pdf: PdfPages, summaries: dict):
     for particle, summary in summaries.items():
         pst = PARTICLE_STYLES.get(particle, {"ls": "-", "lw": 1.8, "label": particle})
         for col, color in [("trans_primInLS1", "#6a1d8a"),
-                            ("trans_primInLS4", "#d7bde2")]:
+                            ("trans_primInLS2", "#9b59b6")]:
             if col in summary.columns:
-                layer = "LS1" if "LS1" in col else "LS4"
+                layer = "LS1" if "LS1" in col else "LS2"
                 ax.plot(summary["energy_MeV"].values, summary[col].values,
                         color=color, ls=pst["ls"], lw=pst["lw"],
                         label=f"{layer} ({pst['label']})")
@@ -836,11 +829,11 @@ def plot_edep_detailed(pdf: PdfPages, summaries: dict):
     """
     mm_pcb_layers = [l for l in DETAILED_LAYERS
                      if l[0] not in ("edepHe3Gas", "edepLS1", "edepLS2",
-                                     "edepLS3", "edepLS4", "edepLSCFRP",
+                                     "edepLSCFRP",
                                      "edepScintWall", "edepScintTape", "edepScintAlFoil")]
     scint_ls_layers = [l for l in DETAILED_LAYERS
                        if l[0] in ("edepScintTape", "edepScintWall", "edepScintAlFoil",
-                                   "edepLS1", "edepLS2", "edepLS3", "edepLS4", "edepLSCFRP")]
+                                   "edepLS1", "edepLS2", "edepLSCFRP")]
 
     fig, axes = plt.subplots(2, 1, figsize=(10, 9), sharex=True)
 
@@ -985,10 +978,10 @@ def _draw_stack_diagram(ax, xlim, skip_target: bool = False):
     # ── Group labels with brackets above the blocks ───────────────────────
     # (z_start_mm, z_end_mm, label text)
     GROUPS = [
-        (0.0,   26.4,  "Target"),
-        (226.4, 262.6, "Micromegas"),
-        (282.6, 285.8, "Scint.\nWall"),
-        (305.8, 371.8, "Liquid Scint.\nCalorimeter"),
+        (0.0,   16.4,  "Target"),
+        (202.4, 238.6, "Micromegas"),
+        (258.6, 261.8, "Scint.\nWall"),
+        (281.8, 328.4, "Liquid Scint.\nCalorimeter"),
     ]
     bracket_y = 0.82   # top of bracket bar (in axes data coords)
     tick_h    = 0.07   # downward tick at each bracket end
@@ -1033,7 +1026,7 @@ def plot_survival(pdf: PdfPages, all_summaries: dict):
     blocks align with the data.  All particles are overlaid on each panel:
     solid = electron, dashed = positron.
     """
-    XLIM        = (0.0, LS4_EXIT_MM + 6)
+    XLIM        = (0.0, LS2_EXIT_MM + 6)
     DIAG_H      = 0.38   # height ratio: diagram row relative to data row
     snap_colors = cm.plasma(np.linspace(0.1, 0.85, len(SURVIVAL_ENERGIES_MEV)))
 
@@ -1069,7 +1062,7 @@ def plot_survival(pdf: PdfPages, all_summaries: dict):
     def _boundary_guides(ax):
         for (_, z_entry, _) in SURVIVAL_COLS:
             ax.axvline(z_entry, color="lightgrey", lw=0.7, ls=":", zorder=0)
-        ax.axvline(LS4_EXIT_MM, color="lightgrey", lw=0.7, ls=":", zorder=0)
+        ax.axvline(LS2_EXIT_MM, color="lightgrey", lw=0.7, ls=":", zorder=0)
 
     def _make_legend(ax, particles):
         """Combined legend: colour = energy, linestyle = particle."""
@@ -1467,7 +1460,7 @@ def main():
 
         print("  Transmission (all layers) ...")
         plot_transmission(pdf, all_summaries)
-        print("  Transmission (simplified: drift / plastic scint. / LS1 / LS4) ...")
+        print("  Transmission (simplified: drift / plastic scint. / LS1 / LS2) ...")
         plot_transmission_simple(pdf, all_summaries)
         print("  Transmission (coarse: detector groups) ...")
         plot_transmission_coarse(pdf, all_summaries)

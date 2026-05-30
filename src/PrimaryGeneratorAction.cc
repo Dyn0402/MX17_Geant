@@ -55,7 +55,8 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(const SimConfig& cfg,
     G4double gunZ = -10.0 * cm;
     if ((cfg.mode == SimMode::kFullExperiment  ||
          cfg.mode == SimMode::kSr90Calibration ||
-         cfg.mode == SimMode::kSr90NoMM) && fDetCon) {
+         cfg.mode == SimMode::kSr90NoMM        ||
+         cfg.mode == SimMode::kLSCalib) && fDetCon) {
         gunZ = fDetCon->GetHe3GasCenterZ();   // returns gun position for both modes
     }
     fGun->SetParticlePosition(G4ThreeVector(0, 0, gunZ));

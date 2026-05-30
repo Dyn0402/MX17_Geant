@@ -1,6 +1,7 @@
 // SteppingAction.cc
 // Gas volumes: compute primary ion pairs via W-value, record per-cluster detail.
 // Full-experiment extra volumes: record per-layer total edep and transmission flags.
+// kLSCalib mode: score LS layer + back scint bar only.
 
 #include "SteppingAction.hh"
 #include "EventAction.hh"
@@ -18,7 +19,6 @@
 
 #include <cmath>
 
-// W-values (mean energy per ion pair, eV) — unchanged from vacuum-mode code.
 const std::map<std::string, double> SteppingAction::kWValues = {
     {"ArCF4",    34.0},
     {"HeEth",    27.0},
@@ -27,7 +27,7 @@ const std::map<std::string, double> SteppingAction::kWValues = {
     {"NeIso",    27.0},
     {"NeCF4",    30.0},
     {"ArCF4CO2", 34.0},
-    {"ArIso",    26.0},   // Ar/iC4H10 95/5; mild Penning (Ar* 11.55 eV > iso IE 10.6 eV)
+    {"ArIso",    26.0},
     {"PureCF4",  34.0},
     {"PureAr",   26.4},
     {"PureHe",   41.3},
@@ -59,7 +59,7 @@ void SteppingAction::UserSteppingAction(const G4Step* step) {
 
     EventData& data = fEventAction->GetEventData();
 
-    // ── Gas volumes: detailed cluster scoring (both modes) ───
+    // ── Gas volumes: ionisation cluster scoring (all non-vacuum modes) ───
     bool inDrift = (volName == "DriftGas");
     bool inAmp   = (volName == "AmpGas");
 
@@ -101,22 +101,50 @@ void SteppingAction::UserSteppingAction(const G4Step* step) {
         return;
     }
 
-    // ── Full-experiment extra volumes: per-layer edep only ───
-    // Applies to both full-experiment and sr90-calibration modes.
     if (fConfig.mode == SimMode::kVacuum) return;
 
+    // ── kLSCalib: source capsule, LS, back scint only ───────────────────
+    if (fConfig.mode == SimMode::kLSCalib) {
+        if (volName == "LiqScint_1") {
+            data.edepLS1 += edep/eV;
+            if (isPrimary) data.primInLS1 = true;
+            return;
+        }
+        if (volName == "BackScint") {
+            data.edepBackScint += edep/eV;
+            if (isPrimary) data.primInBackScint = true;
+            return;
+        }
+        // Source capsule + back scint wrapping contribute to budget tracking
+        if (volName == "SourceCap_Mylar" || volName == "SourceCap_Carbon" ||
+            volName == "SourceCap_Al"    || volName == "SourceCap_Tape") {
+            data.edepSourceCap += edep/eV;
+            return;
+        }
+        if (volName == "BackScintWrap_Tape1" || volName == "BackScintWrap_Al1" ||
+            volName == "BackScintWrap_Al2"   || volName == "BackScintWrap_Tape2") {
+            data.edepBackScintW += edep/eV;
+            return;
+        }
+        if ((volName.size() >= 8  && volName.substr(0,8)  == "LS_CFRP_")    ||
+            (volName.size() >= 11 && volName.substr(0,11) == "LS_InnerCFR") ||
+            (volName.size() >= 6  && volName.substr(0,6)  == "LS_Al_")) {
+            data.edepLSCFRP += edep/eV;
+            return;
+        }
+        return;  // AirGap volumes: ignore
+    }
+
+    // ── Full / Sr90 modes: per-layer edep ───────────────────────────────
     if (volName == "ResistivePaste") {
         data.edepResistPaste += edep/eV;
         return;
     }
-
     if (volName == "He3Gas") {
         data.edepHe3Gas += edep/eV;
         if (isPrimary) data.primInHe3Gas = true;
         return;
     }
-
-    // ── MM entrance / dead layers ─────────────────────────────────────────
     if (volName == "GasWindow_Mylar") {
         data.edepMylar += edep/eV;
         return;
@@ -131,22 +159,16 @@ void SteppingAction::UserSteppingAction(const G4Step* step) {
         data.edepMicromesh += edep/eV;
         return;
     }
-
-    // ── PCB stack: aggregate + individual components ──────────────────────
     if (volName.size() >= 4 && volName.substr(0,4) == "PCB_") {
-        data.edepPCB += edep/eV;          // keep aggregate
+        data.edepPCB += edep/eV;
         if (isPrimary) data.primInPCB = true;
         if      (volName == "PCB_Kapton")   data.edepPCBKapton   += edep/eV;
-        else if (volName.size() >= 7 &&
-                 volName.substr(0,6) == "PCB_Cu")   data.edepPCBCu       += edep/eV;
-        else if (volName.size() >= 8 &&
-                 volName.substr(0,7) == "PCB_FR4")  data.edepPCBFR4      += edep/eV;
+        else if (volName.size()>=6 && volName.substr(0,6)=="PCB_Cu")  data.edepPCBCu       += edep/eV;
+        else if (volName.size()>=7 && volName.substr(0,7)=="PCB_FR4") data.edepPCBFR4      += edep/eV;
         else if (volName == "PCB_Rohacell") data.edepPCBRohacell += edep/eV;
         else if (volName == "PCB_AlFoil")   data.edepPCBAlFoil   += edep/eV;
         return;
     }
-
-    // ── Scintillator wall components ──────────────────────────────────────
     if (volName == "ScintWall_BlackTape1" || volName == "ScintWall_BlackTape2") {
         data.edepScintTape += edep/eV;
         return;
@@ -155,13 +177,11 @@ void SteppingAction::UserSteppingAction(const G4Step* step) {
         data.edepScintAlFoil += edep/eV;
         return;
     }
-
     if (volName == "PlasticScint") {
         data.edepScintWall += edep/eV;
         if (isPrimary) data.primInScintWall = true;
         return;
     }
-
     if (volName == "LiqScint_1") {
         data.edepLS1 += edep/eV;
         if (isPrimary) data.primInLS1 = true;
@@ -172,23 +192,19 @@ void SteppingAction::UserSteppingAction(const G4Step* step) {
         if (isPrimary) data.primInLS2 = true;
         return;
     }
-    if (volName == "LiqScint_3") {
-        data.edepLS3 += edep/eV;
-        if (isPrimary) data.primInLS3 = true;
-        return;
-    }
-    if (volName == "LiqScint_4") {
-        data.edepLS4 += edep/eV;
-        if (isPrimary) data.primInLS4 = true;
-        return;
-    }
-
-    // LS cell CFRP walls (LS_CFRP_1 … LS_CFRP_5)
-    // edepLSCFRP accumulates all dead-wall losses.
-    // primInLSCFRP5 flags primary particles that exit LS4 through the back wall.
-    if (volName.size() >= 8 && volName.substr(0, 8) == "LS_CFRP_") {
+    // LS structural CFRP walls + inner CFRP liners + Al liners → all into edepLSCFRP
+    if (volName.size() >= 8 && volName.substr(0,8) == "LS_CFRP_") {
         data.edepLSCFRP += edep/eV;
-        if (isPrimary && volName == "LS_CFRP_5") data.primInLSCFRP5 = true;
+        // LS_CFRP_3 is the back wall (exited LS2) — reusing primInLSCFRP5 flag
+        if (isPrimary && volName == "LS_CFRP_3") data.primInLSCFRP5 = true;
+        return;
+    }
+    if (volName.size() >= 11 && volName.substr(0,11) == "LS_InnerCFR") {
+        data.edepLSCFRP += edep/eV;
+        return;
+    }
+    if (volName.size() >= 6 && volName.substr(0,6) == "LS_Al_") {
+        data.edepLSCFRP += edep/eV;
         return;
     }
 }
