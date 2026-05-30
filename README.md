@@ -81,6 +81,12 @@ The binary is written to `build/mm_sim`.
 
 ## Running on lxplus with HTCondor
 
+> **AFS vs EOS rule**: HTCondor's submit file (`executable`, `log`, `output`, `error`)
+> must reference AFS paths. Simulation output files are written by the job script and
+> may live on EOS. Each submit script enforces this automatically:
+> `--jobdir` (AFS, default `~/condor/...`) controls job control files;
+> `--outdir` (EOS) controls where ROOT/CSV output is written.
+
 ### Sr-90 calibration (full material stack, energy sweep)
 
 ```bash
@@ -88,28 +94,28 @@ python scripts/submit_condor_sr90.py \
     --exe /eos/home-d/dneff/sim/mm_sim \
     --outdir /eos/home-d/dneff/sim/sr90_out \
     --mode sr90nomm
+# jobdir defaults to ~/condor/mx17_geant_sr90 (AFS)
 ```
 
-### LS calibration (liquid scintillator, spectrum sampling)
+### LS calibration (liquid scintillator only, Sr-90 spectrum sampling)
 
 ```bash
 python scripts/submit_condor_lscalib.py \
-    --exe /eos/home-d/dneff/sim/mm_sim \
+    --exe      /eos/home-d/dneff/sim/mm_sim \
     --spectrum /eos/home-d/dneff/sim/sr90_calibration/Sr90_Y90_Beta_Spectrum.csv \
-    --outdir /eos/home-d/dneff/sim/lscalib_out \
-    --mode ls \
-    --njobs 20 --nevents 100000
+    --outdir   /eos/home-d/dneff/sim/lscalib_out \
+    --mode ls --njobs 20 --nevents 100000
+# jobdir defaults to ~/condor/mx17_lscalib (AFS)
 ```
 
-### Back scint calibration (plastic scintillator, spectrum sampling)
+### Back scint calibration (plastic scint only, Sr-90 spectrum sampling)
 
 ```bash
 python scripts/submit_condor_lscalib.py \
-    --exe /eos/home-d/dneff/sim/mm_sim \
+    --exe      /eos/home-d/dneff/sim/mm_sim \
     --spectrum /eos/home-d/dneff/sim/sr90_calibration/Sr90_Y90_Beta_Spectrum.csv \
-    --outdir /eos/home-d/dneff/sim/backscint_out \
-    --mode backscint \
-    --njobs 20 --nevents 100000
+    --outdir   /eos/home-d/dneff/sim/backscint_out \
+    --mode backscint --njobs 20 --nevents 100000
 ```
 
 ### Merging job outputs
