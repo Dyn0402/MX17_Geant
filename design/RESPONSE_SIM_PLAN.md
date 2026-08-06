@@ -40,8 +40,9 @@ Anode stack, top (gas) to bottom. z=0 at the top surface of the ESL resistive la
 |---|---|---|---|---|
 | 1 | Micromesh (grounded ref. for amp field; at −HV_mesh in reality) | woven SS, wire 2×19 µm crossing, fill factor 0.223 | `shared/MX17ModuleGeometry.hh` | good |
 | 2 | Amplification gap | **150 µm — CONFIRMED (user, 2026-08-06). Not 128. Do not scan.** | user; supersedes the "unverified" flag in `design/GEOMETRY_IMPLEMENTATION_NOTES.md` | fixed |
+| 2b | Pillars (inside the amp gap) | **Dynamask** dry-film (photoimageable solder mask; user 2026-08-06), Ø 0.60 mm on a 4.68 mm grid (3571 pillars), height = gap 150 µm; area coverage ≈ 1.3% | material: user; geometry: `3498A_bulk.gbr` | good |
 | 3 | **ESL resistive strips** | **550 µm wide, 250 µm gap, 800 µm pitch, running along y ("vertical")** | user/fab knowledge; NOT in gerbers (screen-printed after fab) | geometry good; ρ_s unknown → scan **{0.5, 1, 2, 5} MΩ/sq** |
-| 4 | Insulator between pad Cu and ESL | **Dynamask** (photoimageable dry-film solder mask, epoxy-acrylate; user 2026-08-06). Nominal film thickness typically 75–100 µm, ε_r ≈ 3.9 (get exact datasheet values if the grade is ever learned) | user (material class); thickness/ε_r from typical Dynamask datasheets | default 100 µm; scan **{75, 100} µm** |
+| 4 | Insulator between pad Cu and ESL | **kapton, thickness unknown** (NOT Dynamask — that is the pillar material only; user 2026-08-06). Default 75 µm, ε_r = 3.5 | user (material class); thickness assumed | scan **{50, 75, 125} µm** |
 | 5 | Pad plane (Cu) | 512×512 pads, **0.68 mm square on 0.78 mm pitch**, active area 399.36 mm | `design/gerbers/readout_pcb/DFS3498A_L2-pads.gbr` | exact |
 | 6 | Buried interconnect | pads bussed by vias to 512 Y-strip traces (L3-TrackY) and 512 X-strip traces (L4-TrackX), 0.1 mm traces on 0.78 mm pitch | gerbers | exact (in-plane); layer z-spacing unknown |
 
@@ -97,7 +98,7 @@ H_d(x,t) = -∇ ∂ψ_d(x,t)/∂t ,   ψ_d = Ψ - ψ_p ,  ψ_p = Ψ(t→0⁺)
 
 At t=0⁺ the ESL acts as a dielectric (prompt/static solution); as t→∞ it acts as a grounded conductor. By reciprocity, Ψ_n(x0,y0,0⁻ surface, t)/V_w is exactly the Green's function G_n: the charge induced on channel n by a unit point charge *sitting* on the ESL at (x0,y0) since t=0.
 
-**Geometry model W1 (baseline).** Layers in z: grounded mesh plane at z=+g (treat as solid — justified: weave-scale field ripple decays as e^(−2πz/p_weave), negligible at the ESL for p_weave ≪ g; verify in V5) / gas ε=1 thickness g / ESL sheet at z=0 with σ_s(x) = 1/ρ_s on strips, 0 in gaps (periodic in x, period 800 µm, uniform in y) / Dynamask ε_r=3.9 thickness d_k / segmented pad plane at z=−d_k. Buried trace layers are screened by the pad plane and ignored in W1 (W2 check in V6: expose 100 µm inter-pad gaps and re-run — expected percent-level).
+**Geometry model W1 (baseline).** Layers in z: grounded mesh plane at z=+g (treat as solid — justified: weave-scale field ripple decays as e^(−2πz/p_weave), negligible at the ESL for p_weave ≪ g; verify in V5) / gas ε=1 thickness g / ESL sheet at z=0 with σ_s(x) = 1/ρ_s on strips, 0 in gaps (periodic in x, period 800 µm, uniform in y) / kapton ε_r=3.5 thickness d_k / segmented pad plane at z=−d_k. (Pillars — Dynamask, 1.3% coverage — are ignored in the weighting solve; they matter only as dead/perturbed spots, checked in validation, and in S2 if included in the unit cell.) Buried trace layers are screened by the pad plane and ignored in W1 (W2 check in V6: expose 100 µm inter-pad gaps and re-run — expected percent-level).
 
 **Electrode definition.** A Y channel = one row of pads bussed together; an X channel = one column. (Confirm from the via pattern in `DFS3498A_pla1-2.gbr` which pads belong to X vs Y — likely alternating checkerboard; the parser in `scripts/` or nTof_x17 `common/Mx17StripMap.py` may already know. If checkerboard: an X channel is every-other-pad along a column. Document what you find in `response/common/`.)
 
@@ -121,7 +122,7 @@ Result: per (k_y, Bloch block) a linear ODE system `dV/dt = A·V + b·Θ(t)` of 
 
 Numbers to expect (sanity): c′ ≈ 5×10⁻⁷ F/m²; sheet diffusivity D = 1/(ρ_s c′) ≈ 2.0 m²/s at 1 MΩ/sq → relaxation of a 130 µm feature in ~8 ns, of one 800 µm pitch in ~0.3 µs.
 
-**Host:** laptop (light). **Scan matrix:** ρ_s {0.5,1,2,5} MΩ/sq × d_k {75,100} µm = 8 points (gap fixed at 150 µm); each point = 2 channel types → 16 solver runs, laptop-scale; if slow, desktop.
+**Host:** laptop (light). **Scan matrix:** ρ_s {0.5,1,2,5} MΩ/sq × d_k {50,75,125} µm = 12 points (gap fixed at 150 µm); each point = 2 channel types → 24 solver runs, laptop-scale; if slow, desktop.
 
 ---
 
@@ -131,7 +132,9 @@ Purpose: (a) electron transparency ε(E_drift/E_amp) from geometry instead of an
 
 Method: one weave unit cell (period from `shared/MX17ModuleGeometry.hh` wire diameter + fill factor — **resolve the weave pitch from these two numbers and cross-check against the bulk-MM standard 400 lpi; if inconsistent, flag in §12 and use the header**), woven wire geometry (two orthogonal sinusoid-ish wires, standard Garfield++ neBEM wire/primitive representation or an Elmer tetra mesh), periodic lateral BCs, plates: drift cathode far above (apply E_drift), anode plane at ESL surface potential below. Solve electrostatics; export field map.
 
-Tools: **first choice Garfield++ neBEM** (already built locally at `~/garfield`; no meshing needed). Fallback: install `gmsh`+`Elmer` (apt/pip, ~30 min) if neBEM struggles with the woven geometry. **Host: desktop** (one-off heavy; hours). Deliverable includes a transparency curve figure vs field ratio compared to the generic bulk-MM curve from literature.
+Tools: **first choice Garfield++ neBEM** (built on all three hosts at the pinned commit, §5a; no meshing needed). Fallback: install `gmsh`+`Elmer` (apt/pip, ~30 min) if neBEM struggles with the woven geometry — note `ComponentElmer2d` gained delayed weighting-potential support in the pinned version. **Host: desktop** (one-off heavy; hours). Deliverable includes a transparency curve figure vs field ratio compared to the generic bulk-MM curve from literature.
+
+**Start from the upstream example, not from scratch:** `Examples/ResistiveMicromegas/` in the pinned Garfield (added 2026-05-21 from the DRD1 GDSimS 2026 tutorial) is a working resistive-MM chain that ships COMSOL maps for a **woven mesh** and a **dynamic weighting potential** with strip electrodes, and drives them with `SetDynamicWeightingPotential` + `CopyWeightingPotential` (one solved map translated onto many electrodes — the answer to "512 channels"), `EnableDelayedSignal`, `AvalancheMicroscopic::GetIons()` → `AvalancheMC` for the ion tail, and a `Shaper`. Its maps are also an independent cross-check for S1's V1–V3.
 
 ## 5. S3 — avalanche calibration campaign
 
@@ -141,7 +144,25 @@ Extract per point into `aval_calib.json`: mean gain ḡ, Polya θ (fit P(g) ∝ 
 
 Gases: Ar/iso 95/5 dry AND +1% H2O (tables partly exist in `~/PycharmProjects/nTof_x17/garfield_sim/results/` and on EOS — reuse; the condor workflow in that repo is the template). HV: 480–540 V mesh in 10 V steps (bench operating 490 V, SPS up to 625 V different gas — add Ar/CO2/iso 95/3/2 and Ar/CF4/iso 88/10/2 later).
 
-**Host: lxplus condor** (systematic campaign; reuse `garfield_sim/mm_condor_*` submission machinery, CVMFS LCG_108 environment). Quick single-point smoke tests: laptop (local Garfield++ build).
+**Host: lxplus condor** (systematic campaign; reuse `garfield_sim/mm_condor_*` submission machinery). Quick single-point smoke tests: laptop.
+
+## 5a. Garfield++ version — PINNED (decided 2026-08-06)
+
+**Pin: garfieldpp master `927e5c21`.** Built from source on all three hosts; all pass upstream `ctest` 22/22.
+
+| Host | ROOT | Garfield install |
+|---|---|---|
+| laptop | 6.36.06 | `~/garfield/install` |
+| desktop | 6.30.02 | `~/Software/garfield/install` |
+| lxplus | 6.38.00 (LCG_109 view) | `/afs/.../work/garfield_install/lcg109-927e5c21` (+ a 6.7 MB tarball shipped to condor workers) |
+
+Single entry point on every host: `source nTof_x17/garfield_sim/setup_garfield.sh`. It is the only file that names a Garfield or LCG path; nothing else in the toolchain hard-codes one.
+
+**Do not use the CVMFS Garfield.** LCG_108 ships `6fb94b35` (2025-07-07, 664 commits behind the pin) and LCG_109 ships `78fe1bd3` (2026-02-02, 281 behind). The APIs this plan names in §7 exist in all of them, so this is not about being blocked — it is that everything aimed at *this* problem landed between March and August 2026: the `ResistiveMicromegas` example (§4), `AvalancheMicroscopic::GetIons()` for the ion component of §7 step 5, the neBEM OpenMP race fix in the SVD inversion (S2 correctness), interface-crossing checks (electrons no longer tunnel through mesh wires — that *is* the S2 transparency observable), the FFT-convolution fix and arbitrary-PSD noise generators (§8), and the regression test suite itself.
+
+**Magboltz needs no separate upgrade** and the existing gas tables stay valid: Magboltz is vendored inside Garfield at version 11.19 (January 2024), and between the LCG_108 Garfield and the pin `Magboltz/magboltz.f` changes only by the fixed-form continuation marker in column 6 (`/` → `&`, 354 lines) plus one missing comma in a `FORMAT` *print* statement. No cross-section or transport change. Garfield's built-in Penning table is likewise unchanged — re-probed with `garfield_sim/probe_penning.py`, every rP in `mm_config.py` reproduces exactly.
+
+Re-run `probe_penning.py` and reconcile it against `mm_config.py` whenever the pin moves.
 
 ## 6. Stage A — Geant4 upgrades (AFTER geometry work merges)
 
@@ -206,16 +227,40 @@ Procedure: predictions FIRST for the full ρ_s × d_k grid, as a band; then over
 | Host | Hardware | Use for | Don't use for |
 |---|---|---|---|
 | **laptop** (this machine) | i7-8550U 4c/8t, 16 GB, GTX 1050 4 GB | development, S1 solver, Stage B/C on ≤10⁴ events, analysis/plots, single-event Garfield checks | anything >1 h wall or >8 GB RAM |
-| **desktop** (`ssh desktop`) | Ryzen 7 5800X 8c/16t, 62 GB, RTX 3060 Ti 8 GB. ⚠ home disk 13 GB free; no Geant4/ROOT/Garfield installed yet (one-time setup task T0) | one-off heavy: S2 neBEM/Elmer solves, medium Garfield campaigns, big single Geant4 runs, S1 if it outgrows laptop | systematic multi-point campaigns (no batch system); storing bulk output (ship results back to `~/x17/response_sim/`) |
-| **lxplus** (`ssh lxplus`) | HTCondor + CVMFS LCG_108 | ALL systematic campaigns: S3 avalanche grid, gas tables, Stage A productions, Stage B parameter sweeps | interactive iteration |
+| **desktop** (`ssh desktop`) | Ryzen 7 5800X 8c/16t, 62 GB, RTX 3060 Ti 8 GB. Garfield++ ready at the pin (§10a); ⚠ home disk 20 GB free | one-off heavy: S2 neBEM/Elmer solves, medium Garfield campaigns, big single Geant4 runs, S1 if it outgrows laptop | systematic multi-point campaigns (no batch system); storing bulk output (ship results back to `~/x17/response_sim/`) |
+| **lxplus** (`ssh lxplus`) | HTCondor + CVMFS; LCG_109 view for the runtime, our own Garfield (§5a) | ALL systematic campaigns: S3 avalanche grid, gas tables, Stage A productions, Stage B parameter sweeps | interactive iteration |
 
 Existing lxplus workflow to reuse: `nTof_x17/garfield_sim/mm_condor_submit.py` and wrappers (AFS work dir `/afs/cern.ch/user/d/dneff/work/git/...`, EOS for tables). Copy the pattern, don't reinvent.
+
+### 10a. Desktop (`ssh desktop`, `dylan-MS-7C84`) — state as of 2026-08-06
+
+Correcting this plan's original claim that the desktop had "no Geant4/ROOT/Garfield installed yet": ROOT and Garfield were already there. A bare `ssh desktop <cmd>` runs a *non-login* shell that does not source `.bashrc`, so `which root` finds nothing and the box looks emptier than it is — use `ssh desktop 'bash -lc "..."'` when probing.
+
+**Present and working:**
+
+| | |
+|---|---|
+| OS / toolchain | Ubuntu 22.04.5, gcc 11.4.0, cmake 3.22.1, system python 3.10.12, gfortran |
+| ROOT | **6.30.02** at `~/Software/root_6_30`, sourced from `.bashrc` (line 121) |
+| Garfield++ | `~/Software/garfield`, **at the pin `927e5c21`** — rebuilt 2026-08-06 (72 s, `make -j12`), `CMAKE_BUILD_TYPE=Release`, installed to `~/Software/garfield/install`. Upstream `ctest`: **22/22 pass**. PyROOT smoke test passes (`import Garfield`, `GetIons`, `SetDynamicWeightingPotential`, neBEM all present) |
+| Repos | `~/PycharmProjects/nTof_x17`, `~/CLionProjects/MX17_Geant` |
+
+Use it via `source ~/PycharmProjects/nTof_x17/garfield_sim/setup_garfield.sh` — it detects the desktop and wires up ROOT + the pinned Garfield. Nothing else needs configuring for S2/S3/Stage-B work.
+
+**Still needed (the remainder of T0):**
+
+1. **Python stack** — no conda/mamba, and only the system python 3.10. `numpy`/`scipy`/`uproot` still to install before the S1 solver or Stage B/C can run here. (Note the pinned Garfield's python module lives under `lib/python3.10/site-packages`, so a *different* python from a conda env would not see it without re-pointing `PYTHONPATH`.)
+2. **Geant4** — genuinely absent. Only needed if big single Geant4 runs are actually wanted here; lxplus covers Stage A productions.
+3. **Disk** — 20 GB free on `/` (plus 28 GB on `/media/ucla`, 7 GB on `/media/dylan/data`). The garfieldpp clone alone is 639 MB because the `ResistiveMicromegas` COMSOL maps are ~100 MB each. Keep bulk products off this box, per the table above.
+4. **Cleanup** — `~/Software/garfield/build_lcg110/` and `install_lcg110/` are leftovers from an older commit and are now stale. The name is misleading: that build used the local ROOT 6.30 and `/usr/bin/c++`, not an LCG_110 view. Safe to delete.
+
+**Constraints to remember:** there is **no CVMFS** on this machine (`/cvmfs` does not exist, the client is not installed) — so no LCG views, and the Garfield build must go against the local ROOT. `sudo` works but **requires a password**, so nothing here can be provisioned non-interactively.
 
 ## 11. Task graph
 
 | ID | Task | Depends | Host | Acceptance |
 |---|---|---|---|---|
-| T0 | Desktop env setup (miniconda + numpy/scipy/uproot; optional Garfield++ build or CVMFS-style container) | — | desktop | `python -c "import numpy"`, garfield smoke test |
+| T0 | Desktop env setup — **Garfield++ part DONE** (2026-08-06: pinned build, ctest 22/22, smoke test passes). Remaining: python stack (numpy/scipy/uproot) and, if wanted there, Geant4 | — | desktop | `python -c "import numpy"`; ~~garfield smoke test~~ ✅ |
 | T1 | `response/` package skeleton + `common/` geometry constants (parse/assert vs `MX17ModuleGeometry.hh`) + params YAML schema | — | laptop | unit tests pass |
 | T2 | Pad↔X/Y channel mapping from gerber via pattern (checkerboard question, §3) | T1 | laptop | map figure; agrees with `Mx17StripMap.py` channel count |
 | T3 | **S1 solver core** (uniform sheet first: V1) | T1 | laptop | V1 passes to <1% |
@@ -240,7 +285,7 @@ Parallelizable now (before geometry merge): T0–T7. T3–T5 is the critical pat
 
 **Fab-side unknowns (Saclay/CEA would know):**
 1. ESL resistive paste: measured surface resistivity (Ω/sq) and paste type/batch for our modules. *Default: scan 0.5–5 MΩ/sq.*
-2. Exact Dynamask grade → film thickness and ε_r. Material class IS known (Dynamask dry-film solder mask; user 2026-08-06). *Default: 100 µm, ε_r 3.9, scan 75–100.*
+2. Kapton thickness between pad Cu and ESL (material IS kapton — user 2026-08-06; pillars are Dynamask, a separate fact). *Default: 75 µm, ε_r 3.5, scan 50–125.*
 3. Screen-print registration: nominal alignment/tolerance of the 800 µm ESL pattern vs the 780 µm pad pattern (and vs active-area center). *Default: nominal aligned at center; the beat makes absolute phase measurable from data later.*
 4. ESL strip termination: how strips connect to the HV/ground bus (both ends? one end? via resistor?). *Default: A1 (§1).*
 5. ~~Amplification gap as built: 128 or 150 µm~~ **RESOLVED: 150 µm (user, 2026-08-06).**
