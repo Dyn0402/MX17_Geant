@@ -220,7 +220,9 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
     mmMats.rohacell = matRohacell;
     mmMats.gas      = matGas;
 
-    MX17::ModuleSpec mmSpec = MX17::LegacySpec(detXY/mm, detXY/mm);
+    MX17::ModuleSpec mmSpec = fConfig.legacy_mm_geometry
+        ? MX17::LegacySpec(detXY/mm, detXY/mm)
+        : MX17::AsBuiltSpec(fConfig.mx17_bulge_front_mm);
     const bool placeMM = (fConfig.mode == SimMode::kVacuum ||
                           fConfig.mode == SimMode::kFullExperiment ||
                           fConfig.mode == SimMode::kSr90Calibration);
@@ -251,6 +253,9 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
         }
         return run;
     };
+    // World transverse half-size for modes containing the module (the as-built
+    // module is wider than the legacy 40 cm face).
+    G4double wHXY = std::max(detXY/2, mmModule.halfX) + 2*cm;
 
     // ── Scint wall (BlackMylar tape, from Full_Geant) ─────────
     G4double tBlkTape  = 200.0 * um;
@@ -311,7 +316,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
         G4double upstreamMargin = std::max(alGap + alThickness + 0.5*cm, minUpstream);
         G4double worldZ = mmTotalZ + upstreamMargin + 2.5*cm;
 
-        auto* worldSolid = new G4Box("World", detXY/2+2*cm, detXY/2+2*cm, worldZ/2);
+        auto* worldSolid = new G4Box("World", wHXY, wHXY, worldZ/2);
         worldLV = new G4LogicalVolume(worldSolid, matAir, "World");
         worldPV = new G4PVPlacement(nullptr, G4ThreeVector(), worldLV, "World", nullptr, false, 0, true);
         worldLV->SetVisAttributes(G4VisAttributes::GetInvisible());
@@ -360,7 +365,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
         G4double totalFullZ = capsuleZExtent + airGap1 + mmTotalZ + pcbTotalZ
                             + airGap2 + scintWallZ + airGap3 + lsStackZ;
 
-        auto* worldSolid = new G4Box("World", detXY/2+2*cm, detXY/2+2*cm, (totalFullZ+2*cm)/2);
+        auto* worldSolid = new G4Box("World", wHXY, wHXY, (totalFullZ+2*cm)/2);
         worldLV = new G4LogicalVolume(worldSolid, matAir, "World");
         worldPV = new G4PVPlacement(nullptr, G4ThreeVector(), worldLV, "World", nullptr, false, 0, true);
         worldLV->SetVisAttributes(G4VisAttributes::GetInvisible());
@@ -401,7 +406,10 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
         };
         G4LogicalVolume* dL = nullptr;
 
-        Place("AirGap1",             airGap1,   matAir,      nullptr,      dL);
+        // The air-gap slab stops where the window dome begins; the dome
+        // terraces live in world air. Source→window distance is unchanged.
+        Place("AirGap1", airGap1 - mmModule.frontExtent, matAir, nullptr, dL);
+        zF += mmModule.frontExtent;
         zF = PlaceModule(worldLV, zF);
 
         Place("AirGap2",               airGap2,   matAir,      nullptr,     dL);
@@ -436,7 +444,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
         G4double totalZ = airToMM + mmTotalZ + pcbTotalZ
                         + airGap2 + scintWallZ + airGap3 + lsStackZ;
 
-        auto* worldSolid = new G4Box("World", detXY/2+2*cm, detXY/2+2*cm, (totalZ+2*cm)/2);
+        auto* worldSolid = new G4Box("World", wHXY, wHXY, (totalZ+2*cm)/2);
         worldLV = new G4LogicalVolume(worldSolid, matAir, "World");
         worldPV = new G4PVPlacement(nullptr, G4ThreeVector(), worldLV, "World", nullptr, false, 0, true);
         worldLV->SetVisAttributes(G4VisAttributes::GetInvisible());
@@ -457,7 +465,8 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
         };
         G4LogicalVolume* dL = nullptr;
 
-        Place("AirGap1",             airToMM,   matAir,      nullptr,      dL);
+        Place("AirGap1", airToMM - mmModule.frontExtent, matAir, nullptr, dL);
+        zF += mmModule.frontExtent;
         zF = PlaceModule(worldLV, zF);
 
         Place("AirGap2",               airGap2,  matAir,      nullptr,     dL);

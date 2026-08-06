@@ -26,6 +26,11 @@ struct SimConfig {
     double      alThickness_mm;
     SimMode     mode = SimMode::kVacuum;
 
+    // ── MX17 module geometry (shared/MX17ModuleGeometry.hh) ──────────────
+    bool   legacy_mm_geometry = false;  // true: pre-2026-08 uniform-slab module
+    double mx17_bulge_front_mm = 8.0;   // front-window dome sag from gas
+                                        // overpressure (Hencky ~3 mbar); 0 = flat
+
     // ── Spectrum sampling (kLSCalib / kBackScintCalib) ────────────────────
     // When non-empty, PrimaryGeneratorAction samples electron energies from
     // this CSV file (two columns: energy_MeV, probability) instead of using

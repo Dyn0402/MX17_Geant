@@ -96,6 +96,16 @@ struct ModuleSpec {
     double pcbFace_mm    = 400.0;  // as-built 470
     double pcbOffset_mm  = 0.0;    // +x,+y offset of the 470 mm plates from the active-area axis (as-built 15)
 
+    // ── Front-end (multi M1) boards ──
+    // Two pairs of vertical daughter-cards on the two connector edges (+x and
+    // +y in the active-area frame; STEP: ring radius 227.5 mm, tangential
+    // centres +75 / −108 mm), standing upstream from the mesh plane alongside
+    // the gas frame outer wall.
+    double feThick_mm    = 0.0;    // radial thickness; 0 → none
+    double feLen_mm      = 180.0;  // tangential length
+    double feHeight_mm   = 41.0;   // z extent, rising upstream from the mesh plane
+    double feRing_mm     = 227.5;  // board centreline distance from the axis
+
     // ── Backing ──
     double rohacell_mm   = 5.0;
     double backMylar_um  = 0.0;    // aluminized-mylar foil behind the rohacell (as-built, thickness TBC)
@@ -136,6 +146,7 @@ inline ModuleSpec AsBuiltSpec(double bulgeSag_mm = 8.0) {
     s.meshOpen_um    = 48.0;
     s.meshFace_mm    = 410.0;
     s.ampFace_mm     = 410.0;
+    s.feThick_mm     = 6.6;     // multi M1 front-end cards
     s.pcbTotal_mm    = 1.70;    // CAD single-body readout board
     s.pcbFace_mm     = 470.0;
     s.pcbOffset_mm   = 15.0;    // plates offset (+15,+15) from the active-area axis (STEP + gerbers)
@@ -439,7 +450,32 @@ inline Module BuildModule(const ModuleSpec& s, const Materials& m) {
     }
     out.driftGasLV = addBox("DriftGas", driftH, driftH, tDriftGas, m.gas, visDrift);
 
-    // 5) Micromesh / amplification gap / resistive layer (top of the readout
+    // 5) Front-end (multi M1) cards: two per connector edge, standing upstream
+    //    from the mesh plane alongside the gas frame outer wall. Modelled as
+    //    solid FR4 (components folded in). Outside the beam path.
+    const double zMeshFront = zF;
+    if (s.feThick_mm > 0.0) {
+        const double tFe  = s.feThick_mm  * mm;
+        const double feLH = s.feLen_mm    * mm / 2;
+        const double feHH = s.feHeight_mm * mm / 2;
+        const double feR  = s.feRing_mm   * mm;
+        const double zFe  = zMeshFront - feHH;
+        auto* feX = new G4LogicalVolume(
+            new G4Box("FrontEndPCB_x", tFe/2, feLH, feHH), m.fr4, "FrontEndPCB");
+        auto* feY = new G4LogicalVolume(
+            new G4Box("FrontEndPCB_y", feLH, tFe/2, feHH), m.fr4, "FrontEndPCB");
+        feX->SetVisAttributes(visFR4);
+        feY->SetVisAttributes(visFR4);
+        for (double tang : {75.0*mm, -108.0*mm}) {
+            out.pieces.push_back({feX, G4ThreeVector(feR, tang, zFe), 0.0, false});
+            out.pieces.push_back({feY, G4ThreeVector(tang, feR, zFe), 0.0, false});
+        }
+        grow(feR + tFe/2, feR + tFe/2, 0, 0);
+        out.frontExtent = std::max(out.frontExtent,
+                                   s.feHeight_mm*mm - zMeshFront);
+    }
+
+    // 6) Micromesh / amplification gap / resistive layer (top of the readout
     //    board body; mesh front face = frame bottom face).
     addBox("Micromesh", meshH, meshH, tMesh, matMesh, visMesh);
     out.ampGasLV = addBox("AmpGas", ampH, ampH, tAmp, m.gas, visAmp);

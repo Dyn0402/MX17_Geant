@@ -37,6 +37,8 @@ void PrintUsage() {
     std::cerr << "  -m <mode>        vacuum | full | sr90 | sr90nomm | lscalib | backscintcalib\n";
     std::cerr << "  --spectrum <csv> Sample energies from Sr-90/Y-90 CSV (lscalib/backscintcalib)\n";
     std::cerr << "  --src-dist <mm>  Source-to-detector air gap [mm] (default: 100)\n";
+    std::cerr << "  --bulge-front <mm>  Front-window overpressure dome sag (default: 8, 0=flat)\n";
+    std::cerr << "  --legacy-geometry   Use the pre-2026-08 uniform-slab MM module\n";
     std::cerr << "  -a <mm>          Al shielding [mm], vacuum mode only  (default: 0)\n";
     std::cerr << "  -c <mm>          CFRP wall thickness [mm] for LS cells, full mode only  (default: 1.5)\n";
     std::cerr << "  -v               Verbose output\n";
@@ -84,6 +86,8 @@ int main(int argc, char** argv) {
         }
         else if (arg == "--spectrum" && i+1<argc) config.spectrum_file  = argv[++i];
         else if (arg == "--src-dist" && i+1<argc) config.source_to_det_mm = std::stod(argv[++i]);
+        else if (arg == "--bulge-front" && i+1<argc) config.mx17_bulge_front_mm = std::stod(argv[++i]);
+        else if (arg == "--legacy-geometry") config.legacy_mm_geometry = true;
         else if (arg[0] != '-') macroFile = arg;
         else { std::cerr << "Unknown option: " << arg << "\n"; PrintUsage(); return 1; }
     }
