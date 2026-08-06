@@ -123,14 +123,15 @@
 
 <p class="kicker">MX17_Geant &middot; detector-response simulation</p>
 <h1>Overnight progress, 6&ndash;7 August 2026</h1>
-<p class="lede">The S1 dynamic weighting-potential solver is built and passes all five of its
-correctness tests. Along the way it refuted one of the plan's stated assumptions, and it
-predicts a much larger position-dependent effect than expected. The Geant4 side is
-unblocked. A 62-job Garfield campaign is running at CERN.</p>
+<p class="lede">The S1 dynamic weighting-potential solver is built and passes all five of
+its correctness tests. Along the way it refuted one of the plan's stated assumptions and
+predicted a much larger position-dependent effect than expected. The Geant4 side is
+unblocked, the pad&harr;channel checkerboard is confirmed straight from the gerbers, and a
+62-job Garfield campaign is running at CERN.</p>
 
 <div class="meta">
   <span>plan: design/RESPONSE_SIM_PLAN.md</span>
-  <span>commits: 3c2c22b &rarr; baf2873</span>
+  <span>commits: 3c2c22b &rarr; fbb4e39</span>
   <span>hosts: laptop + lxplus condor</span>
 </div>
 
@@ -144,7 +145,7 @@ unblocked. A 62-job Garfield campaign is running at CERN.</p>
 <tr><td class="num">T3&ndash;T5</td><td>S1 weighting-potential solver + validation suite</td><td><span class="pill pass">DONE</span> 5/5 correctness</td></tr>
 <tr><td class="num">T8</td><td>Stage A: cluster <code>time</code>, creator process, active-area frame</td><td><span class="pill pass">DONE</span></td></tr>
 <tr><td class="num">T7</td><td>S3 avalanche calibration grid on lxplus</td><td><span class="pill run">RUNNING</span> 62 jobs</td></tr>
-<tr><td class="num">T2</td><td>Pad&harr;X/Y channel mapping from the via gerbers</td><td><span class="pill fail">NOT STARTED</span></td></tr>
+<tr><td class="num">T2</td><td>Pad&harr;X/Y channel mapping from the gerbers</td><td><span class="pill pass">DONE</span> checkerboard confirmed</td></tr>
 <tr><td class="num">T6</td><td>S2 woven-mesh unit cell on the desktop</td><td><span class="pill fail">NOT STARTED</span></td></tr>
 <tr><td class="num">T9+</td><td>Digitizer, DREAM electronics, end-to-end</td><td><span class="pill fail">NOT STARTED</span></td></tr>
 </tbody>
@@ -152,8 +153,9 @@ unblocked. A 62-job Garfield campaign is running at CERN.</p>
 </div>
 
 <p>The night went deep rather than wide, which is what you asked for: the S1 solver is the
-critical path and the highest-skill piece, so it got the hours. What that bought is
-below. T2 and T6 are the two things I would start next, and I have said why at the end.</p>
+critical path and the highest-skill piece, so it got the hours. T2 fell out at the end and
+answered cleanly. T6 (the mesh unit cell) is the main thing left untouched, and I say why
+at the end.</p>
 
 <h2><span class="stage">Finding 1</span>Assumption A1 is refuted by your own data</h2>
 
@@ -321,6 +323,49 @@ registration is wrong &mdash; which would itself be worth knowing.</p>
 </div>
 
 <div class="wrap">
+
+<h2><span class="stage">Finding 4</span>The checkerboard is real &mdash; and a channel is a comb, not a strip</h2>
+
+<p>T2 turned out to be answerable in the time left, and it changes the response model,
+so it is worth reading before the solver section.</p>
+
+<p>The plan (&sect;3, and &sect;12 item 7) asks whether the pads alternate checkerboard
+between the two bus layers, and suggests looking at the via pattern. <b>The vias do not
+answer it.</b> Both bus layers put an annular ring on all 512&times;512 pads &mdash; on the
+0.78 mm grid to <span class="num">0.0 &micro;m</span> &mdash; because the via is a plated
+through hole running from physical L4 to L7 and rings every layer it passes.</p>
+
+<p>What answers it is the 0.1 mm <em>connector stub</em>: a
+<span class="num">390 &micro;m</span> trace, exactly half the pad pitch, from a pad's ring
+out to the bus line. A pad belongs to a layer's channel if and only if that layer draws a
+stub at it.</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Bus layer</th><th class="n">Connector stubs</th><th>(col+row) parity</th><th>Bus direction</th><th>So a channel is&hellip;</th></tr></thead>
+<tbody>
+<tr><td>L5 &ldquo;TrackY&rdquo;</td><td class="n">131072 = 512&times;256</td><td>all <b>even</b></td><td>along x (132279 h / 1973 v)</td><td>a row &rarr; measures y</td></tr>
+<tr><td>L6 &ldquo;TrackX&rdquo;</td><td class="n">131072 = 512&times;256</td><td>all <b>odd</b></td><td>along y (1942 h / 132248 v)</td><td>a column &rarr; measures x</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Zero overlap between the two sets, and 262030 of the 262144 pads assigned &mdash; the
+114 unaccounted for are Y-layer stubs on the boundary column whose start point lands just
+outside the active window, a 0.04% edge effect rather than a competing assignment.</p>
+
+<div class="callout">
+<h3>This changes the channel model</h3>
+<p>A channel is <strong>every other pad along its line</strong> &mdash; 256 pads on a
+1.56 mm pitch, a comb &mdash; not 512 pads on a 0.78 mm pitch forming a solid strip. Its
+weighting potential is therefore a comb too. The drive patterns currently in
+<code>wpot.py</code> build solid lines, so the <em>channel-level</em> kernels must be
+rebuilt on the comb before any sharing fraction is quoted against the &sect;9 targets.</p>
+<p>The single-pad results in this report are unaffected: they are per-pad, and a channel
+is a linear sum over its pads. But the beat prediction above gets more interesting &mdash;
+a comb of 1.56 mm pitch against an 800 &micro;m strip pitch is a second, much shorter beat
+sitting underneath the 31.2 mm one.</p>
+</div>
 
 <h2><span class="stage">S1</span>The solver, and one deviation from the plan</h2>
 
@@ -504,10 +549,13 @@ commits land.</li>
 
 <h3>Ready to run, in priority order</h3>
 <ol>
-<li><b>T2, the pad&harr;X/Y mapping.</b> Now the single biggest blocker. Everything about
-channels &mdash; and the whole X-view beat prediction &mdash; depends on knowing which pads
-belong to which channel. It also settles the open x/y convention flagged in
-<code>ActiveAreaFrame.hh</code>. It is a gerber-parsing job, a few hours, no new physics.</li>
+<li><b>Rebuild the channel kernels on the comb.</b> T2 (above) landed, and it says the
+current solid-strip drive patterns are the wrong shape. This is now the first thing to fix
+&mdash; it is a change to two functions in <code>wpot.py</code>, but every sharing number
+depends on it. It does <em>not</em> settle the x/y sign convention flagged in
+<code>ActiveAreaFrame.hh</code>; that still needs a look at how
+<code>Mx17StripMap.py</code> numbers its connectors, which is a nominal linear map and not
+gerber-derived.</li>
 <li><b>T6, the S2 mesh unit cell on the desktop.</b> The one thing genuinely wanting the
 big machine, and it supplies the transparency and funnelling that S3 currently writes as
 nulls.</li>
