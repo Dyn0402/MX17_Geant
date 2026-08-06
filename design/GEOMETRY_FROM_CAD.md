@@ -54,11 +54,11 @@ transverse face size and in that Full_Geant replicates the module across 4 arms.
 | # | Feature | As-built (CAD) | MX17_Geant | MX17_Full_Geant |
 |---|---|---|---|---|
 | 1 | Mylar window | 60 µm, 440×440 | ❌ 40 µm | ❌ 40 µm |
-| 2 | Window Al metallization | ⚠️ not resolved | ⚠️ 0.1 µm | ⚠️ 0.1 µm |
+| 2 | Window Al metallization | 🔶 absent from CAD | ✅ 0.1 µm | ✅ 0.1 µm |
 | 3 | Window flange (Al ring, 5 mm) | present | ❌ absent | ❌ absent |
 | 4 | Gas gap, window → cathode | 5.0 mm | ❌ absent | ❌ absent |
 | 5 | Kapton drift cathode | 50 µm, 406×406 | ✅ 50 µm | ✅ 50 µm |
-| 6 | Cu cathode layer | ⚠️ not resolved | ⚠️ 9 µm | ⚠️ 9 µm |
+| 6 | Cu cathode cladding | 🔶 absent from CAD | ✅ 9 µm | ✅ 9 µm |
 | 7 | **Drift gap** | **30.000 mm** | ✅ 30 mm | ✅ 30 mm |
 | 8 | **Aluminium gas frame** | 440 out / 410 ap / 30 mm | ❌ absent | ❌ absent |
 | 9 | Drift field-cage PCBs | 4× 408.4×1.62×31.6 | ❌ absent | ❌ absent |
@@ -72,8 +72,17 @@ transverse face size and in that Full_Geant replicates the module across 4 arms.
 | 17 | Transverse face | 440 (window) / 470 (PCB) | ⚠️ 400 × 400 | ⚠️ 380 × 340 |
 | 18 | Copper readout segmentation | pads + X/Y strips | ❌ solid Cu sheets | ❌ solid Cu sheets |
 | 19 | Material behind gas | 14.70 mm | ❌ 5.604 mm | ❌ 5.604 mm |
+| 20 | Aluminized mylar behind rohacell | 🔶 absent from CAD | ❌ absent | ❌ absent |
+| 21 | Front-window pressure bulge | n/a (CAD is unpressurized) | ❌ flat | ❌ flat |
 
-✅ matches · ❌ disagrees · ⚠️ not determined by the CAD, or approximated by choice
+✅ matches · ❌ disagrees · 🔶 real, but absent from the CAD · ⚠️ not determined
+by the CAD, or approximated by choice
+
+Rows 2, 6, 20 and 21 come from Dylan's knowledge of the hardware, not from the
+files. The mechanical CAD models foils as plain solids and carries no
+metallization or cladding, so its silence on rows 2 and 6 is not evidence of
+absence — **the simulations are right there and must not be "corrected" toward
+the CAD.** See [`GEOMETRY_IMPLEMENTATION_NOTES.md`](GEOMETRY_IMPLEMENTATION_NOTES.md) §2.
 
 ## Discrepancies, worst first
 
