@@ -18,11 +18,36 @@ The two calibration modes (`lscalib`, `backscintcalib`) study each detector in
 isolation with a bare source and are designed to be run with the Sr-90/Y-90
 beta spectrum sampled at the gun (`--spectrum`).
 
-## Detector geometry (from Full_Geant reference)
+## Detector geometry
+
+The MM module (window → support plate) has **one description**,
+[`shared/MX17ModuleGeometry.hh`](shared/MX17ModuleGeometry.hh), consumed by
+this sim and by `../MX17_Full_Geant`. The default is the **as-built** module
+derived from the mechanical CAD + hardware knowledge
+([`design/GEOMETRY_FROM_CAD.md`](design/GEOMETRY_FROM_CAD.md),
+[`design/GEOMETRY_IMPLEMENTATION_NOTES.md`](design/GEOMETRY_IMPLEMENTATION_NOTES.md);
+remaining assumptions in [`design/NEEDED_INPUTS.md`](design/NEEDED_INPUTS.md)):
+
+- **Window**: 60 µm aluminized mylar, 440×440, bulged by the gas overpressure
+  (terraced dome, default 8 mm sag ≈ Hencky at ~3 mbar, `--bulge-front`)
+- **Window flange**: 5 mm Al ring (440/400.2) = 5 mm gas gap before the cathode
+- **Drift**: Cu-clad kapton cathode (406²), 30.000 mm gap set by the Al gas
+  frame (440/410), 4× 1.62 mm field-cage PCBs lining the aperture
+- **Mesh**: woven SS 19/48 µm → 38 µm effective-density slab (fill 0.223)
+- **Readout board**: 1.70 mm single body (mesh + 150 µm amp + 100 µm paste +
+  laminate), 470², offset (+15,+15) from the active axis
+- **Backing**: 5 mm rohacell + 25 µm aluminized mylar + **8 mm Al support
+  plate with a 402 mm aperture** concentric with the 399.36 mm active area
+- **M1 front-end cards**: 2× per connector edge alongside the frame
+
+`--legacy-geometry` restores the pre-2026-08 uniform-slab stack (bit-identical
+to the old build). Model figures — cross-section, 3D, exploded, and a
+source-status schematic — live in `design/figures/` and regenerate with
+`python scripts/model/plot_mx17_model.py` (no Geant4 needed).
+
+Everything downstream of the module is unchanged:
 
 - **He-3 target**: r = 1.5 cm, L = 8 cm, 300 bar; Al (0.5 mm) + CFRP (0.9 mm) capsule
-- **Micromegas**: 40 µm mylar + drift cathode + 3 cm drift gas + micromesh + 150 µm amp + resistive paste
-- **PCB stack**: Kapton + 4×(Cu + FR4) + Rohacell + Al foil
 - **Trigger scint wall**: 200 µm BlackMylar tape + 3 mm PVT + 50 µm Al foil
 - **LS stack**: 2 mm CFRP wall + 600 µm inner CFRP liner + 40 µm Al liner + **2 cm LAB** × 2 layers
 - **Back scint bar**: 30×20×2 cm PVT, wrapped in 20 µm Al foil + 200 µm BlackMylar tape
@@ -42,6 +67,8 @@ beta spectrum sampled at the gun (`--spectrum`).
 --spectrum <csv>   Sample electron energies from Sr-90/Y-90 spectrum CSV
                    (two whitespace-separated columns: energy_MeV  probability)
 --src-dist <mm>    Source-to-detector air gap [mm] (lscalib/backscintcalib, default: 100)
+--bulge-front <mm> Front-window overpressure dome sag (default: 8, 0 = flat)
+--legacy-geometry  Pre-2026-08 uniform-slab MM module (old stack, bit-identical)
 -v                 Verbose
 -h                 Help
 ```

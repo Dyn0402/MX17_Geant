@@ -7,6 +7,25 @@ order, and which numbers are still missing.
 Written 2026-08-06. Items 2–5 come from Dylan's domain knowledge and correct or
 extend what the CAD alone shows.
 
+> **Status — implemented 2026-08-06.** All six tasks are done:
+>
+> - §1 merge: `shared/MX17ModuleGeometry.hh` is the single module description,
+>   consumed by both repos (option A, relative-path include with a CMake
+>   guard). Landed as a pure refactor first — fixed-seed runs of every mode in
+>   both sims were verified **bit-identical** to the pre-refactor builds.
+> - §2–§6 applied on top: 60 µm window, 5 mm flange gap, copper-clad cathode,
+>   440/406/410/470 faces + rings + field cage + M1 cards, woven-mesh
+>   effective-density slab (19/48 µm placeholder), 1.70 mm readout body,
+>   aluminized-mylar back foil (25 µm assumed), 8 mm support plate, terraced
+>   front-window bulge (8 mm sag ≈ Hencky at 3 mbar, `--bulge-front`).
+>   `--legacy-geometry` restores the old stack.
+> - The §6 "held back" item is resolved: the plate has a **402 mm aperture in
+>   the STEP file** (the earlier "verified solid" reading was a parser error —
+>   see `GEOMETRY_FROM_CAD.md`, discrepancy 1) so it is modelled as a ring and
+>   does not stop on-axis betas.
+> - Remaining assumptions moved to [`NEEDED_INPUTS.md`](NEEDED_INPUTS.md).
+> - Python mirror + figures: `scripts/model/`, output in `design/figures/`.
+
 ## Task summary
 
 | # | Task | Blocked on input? |
@@ -235,17 +254,16 @@ discrepancy 1.
 
 ## Inputs still needed
 
-| # | Input | Blocks |
-|---|---|---|
-| 1 | Rohacell-back mylar: mylar µm, Al µm, which side | §3 |
-| 2 | Is the 50 µm `PCB_AlFoil` meant to be that foil? | §3 |
-| 3 | Operating gas overpressure | §4 |
-| 4 | Micromesh wire Ø and opening | §5 |
-| 5 | Amplification gap: 150 µm or 128 µm | §5 |
-| 6 | Which side the window Al and cathode Cu face | §2 |
-| 7 | Is the 8 mm Al support plate in the beam path? | §6 |
-| 8 | PCB internal stackup (Cu/dielectric thicknesses) | §6 — in neither CAD nor gerbers |
+| # | Input | Blocks | Resolution (2026-08-06) |
+|---|---|---|---|
+| 1 | Rohacell-back mylar: mylar µm, Al µm, which side | §3 | **assumed** 25 µm + 0.1 µm Al (Dylan: use as placeholder) |
+| 2 | Is the 50 µm `PCB_AlFoil` meant to be that foil? | §3 | **yes** — replaced by the aluminized mylar |
+| 3 | Operating gas overpressure | §4 | **assumed** ~3 mbar → 8 mm sag (`--bulge-front`) |
+| 4 | Micromesh wire Ø and opening | §5 | **placeholder** P2 weave 19/48 µm |
+| 5 | Amplification gap: 150 µm or 128 µm | §5 | open — 150 µm kept |
+| 6 | Which side the window Al and cathode Cu face | §2 | open — drift-facing assumed |
+| 7 | Is the 8 mm Al support plate in the beam path? | §6 | **resolved** — plate has a 402 mm aperture in the STEP; modelled as a ring |
+| 8 | PCB internal stackup (Cu/dielectric thicknesses) | §6 | open — historical Cu kept, FR4 filler solved to the 1.70 mm body |
 
-Items 1, 3, 4 and 7 each block a specific deliverable; the rest can proceed
-under a stated assumption. `p2_geant/docs/NEEDED_INPUTS.md` is a good model for
-tracking these as they get answered.
+Live register: [`NEEDED_INPUTS.md`](NEEDED_INPUTS.md) (modeled on
+`p2_geant/docs/NEEDED_INPUTS.md`).
