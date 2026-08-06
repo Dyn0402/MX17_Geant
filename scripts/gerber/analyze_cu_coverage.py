@@ -16,9 +16,11 @@ Coverage is reported over
   * the active area     (399.36 mm square centred on the origin).
 The `Bot` (L8) file contains only a 10 µm outline stroke — no real copper.
 
-M1 front-end (DFS3498AM1): the gerbers are a fabrication panel of six 41 mm
-card images; coverage is reported per unit area of one card window so it can
-scale a 41×180 mm sheet in the model.
+M1 front-end (DFS3498AM1): the gerbers are drawn in the READOUT-BOARD frame
+at the card's as-mounted position — one 41 × 160 mm card at x 219.4..260.4,
+y 19.6..179.6 (edge-mill layer), whose bottom pogo-pad field lands on the
+board's connector cluster at tangential +100. Coverage is reported over that
+card outline.
 
 Usage:
     python scripts/gerber/analyze_cu_coverage.py [--res 0.05]
@@ -151,21 +153,14 @@ def main():
         print(f"  {lay}  {os.path.basename(fn):26s} {desc:22s} "
               f"board {cb:6.4f}   active {ca:6.4f}")
 
-    # M1 panel: card windows from the panel structure (6 images across x).
-    print("\nM1 front-end (DFS3498AM1) — panel and per-card-window coverage:")
-    gf0 = parse(os.path.join(GDIR, M1_LAYERS[0][0]))
-    bx0, by0, bx1, by1 = gf0.bbox()
-    panel = (bx0, by0, bx1, by1)
-    ncard = 6
-    cw = (bx1 - bx0) / ncard
+    # M1: coverage over the card outline (from DFS3498AM1_ebm)
+    card = (219.40, 19.59, 260.40, 179.59)
+    print("\nM1 front-end (DFS3498AM1) — coverage over the 41 x 160 card outline:")
     for fn, lay in M1_LAYERS:
         gf = parse(os.path.join(GDIR, fn))
-        r = Raster(panel, args.res)
+        r = Raster(card, args.res)
         r.draw(gf)
-        cards = [r.coverage((bx0 + i*cw, by0, bx0 + (i+1)*cw, by1))
-                 for i in range(ncard)]
-        print(f"  {lay:4s} panel {r.coverage():6.4f}   "
-              f"cards {' '.join(f'{c:5.3f}' for c in cards)}")
+        print(f"  {lay:4s} {r.coverage():6.4f}")
 
 
 if __name__ == "__main__":

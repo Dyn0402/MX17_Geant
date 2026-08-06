@@ -48,6 +48,7 @@ MESH_FACE   = 410.0
 AMP         = 0.150
 PASTE       = 0.100
 AMP_FACE    = 410.0
+PASTE_FACE  = 412.0    # full-sheet resistive coat boundary (3498A_top-resist)
 
 PCB_TOTAL   = 1.70     # CAD single-body readout board (mesh → laminate back)
 PCB_KAPTON  = 0.050
@@ -67,12 +68,15 @@ BACK_AL     = 0.0001
 PLATE       = 8.0
 PLATE_AP    = 402.0    # through-aperture, concentric with the active area
 
-FE_ENV      = 6.6      # multi M1 cards: envelope thickness in z (flat cards)
-FE_W        = 41.0     # radial extent (straddling the board edge)
-FE_LEN      = 180.0    # tangential length
-FE_RING     = 242.5    # centreline distance from the active axis
-FE_TANG     = (90.0, -93.1)    # tangential centres on each connector edge
-FE_CU       = [0.183, 0.105, 0.110, 0.106, 0.102, 0.053]  # per-layer coverage
+# M1 cards: gerbers are drawn in the board frame at the as-mounted position
+# (card outline 41 x 160 at x 219.4..260.4, y centre +100; DFS3498AM1_ebm).
+# No standoff: laminate directly on the board; Mec8/pogo connectors omitted.
+FE_THICK    = 1.6      # bare-laminate guess
+FE_INNER    = 220.0    # inner edge (gerber 219.4, clipped to the frame ring)
+FE_OUTER    = 260.4    # outer edge (10.4 beyond the board edge at +250)
+FE_LEN      = 160.0    # tangential length
+FE_TANG     = (100.0, -100.0)  # tangential centres = board connector clusters
+FE_CU       = [0.147, 0.110, 0.114, 0.117, 0.111, 0.041]  # card-window coverage
 
 ACTIVE      = 399.36   # readout active area (gerbers), centred
 
@@ -147,21 +151,22 @@ def build_stack(bulge: float = BULGE_SAG):
         color="#3380ff", alpha=0.30)
     z_mesh = z
 
-    # front-end M1 cards: two per connector edge, lying flat on the drift-gas
-    # side of the board edge and straddling it (6 Cu layers + FR4 in the model;
-    # drawn as one envelope box per card)
+    # front-end M1 cards: two per connector edge, laminate flat on the board
+    # edge, tangentially centred on the connector-copper clusters
+    fe_r  = (FE_INNER + FE_OUTER) / 2
+    fe_wh = (FE_OUTER - FE_INNER) / 2
     for tang in FE_TANG:
-        side.append(Layer("FrontEndPCB", z_mesh - FE_ENV, FE_ENV, "FR4+Cu",
-                          FE_W/2, FE_LEN/2, ox=FE_RING, oy=tang,
+        side.append(Layer("FrontEndPCB", z_mesh - FE_THICK, FE_THICK, "FR4+Cu",
+                          fe_wh, FE_LEN/2, ox=fe_r, oy=tang,
                           color="#339933", alpha=0.9))
-        side.append(Layer("FrontEndPCB", z_mesh - FE_ENV, FE_ENV, "FR4+Cu",
-                          FE_LEN/2, FE_W/2, ox=tang, oy=FE_RING,
+        side.append(Layer("FrontEndPCB", z_mesh - FE_THICK, FE_THICK, "FR4+Cu",
+                          FE_LEN/2, fe_wh, ox=tang, oy=fe_r,
                           color="#339933", alpha=0.9))
 
     add("Micromesh", MESH_T, f"steel(x{MESH_FILL:.2f})", MESH_FACE/2, MESH_FACE/2,
         color="#808080")
     add("AmpGas", AMP, "gas", AMP_FACE/2, AMP_FACE/2, color="#ff4d4d", alpha=0.35)
-    add("ResistivePaste", PASTE, "resistive", AMP_FACE/2, AMP_FACE/2,
+    add("ResistivePaste", PASTE, "resistive", PASTE_FACE/2, PASTE_FACE/2,
         color="#333333")
 
     add("PCB_Kapton", PCB_KAPTON, "kapton", PCB_FACE/2, PCB_FACE/2,

@@ -85,6 +85,7 @@ struct ModuleSpec {
     double amp_um        = 150.0;
     double paste_um      = 100.0;
     double ampFace_mm    = 400.0;  // as-built 410
+    double pasteFace_mm  = 0.0;    // 0 → ampFace; as-built 412 (resist-coat gerber)
 
     // ── Readout laminate ──
     bool   includeReadout = true;  // false: stop after ResistivePaste (vacuum mode)
@@ -103,24 +104,25 @@ struct ModuleSpec {
     double pcbOffset_mm  = 0.0;    // +x,+y offset of the 470 mm plates from the active-area axis (as-built 15)
 
     // ── Front-end (multi M1) cards ──
-    // Two pairs of cards lying FLAT on the drift-gas side of the readout-board
-    // edge, straddling it longways (long axis along the edge), on the two
-    // connector edges (+x and +y in the active-area frame). STEP placements
-    // re-referenced to the active axis: centreline ring 242.5 mm, tangential
-    // centres +90.0 / −93.1 mm — so each card spans radially 222..263 mm,
-    // ~28 mm over the board and ~13 mm hanging outboard, just outside the
-    // 440 mm gas frame. The 6.6 mm CAD envelope is modelled as the card's six
-    // gerber-defined Cu layers with FR4 filling the rest (components and
-    // connectors folded into FR4 — see design/NEEDED_INPUTS.md).
-    double feEnvelope_mm = 0.0;    // envelope thickness in z; 0 → none
-    double feWidth_mm    = 41.0;   // radial extent
-    double feLen_mm      = 180.0;  // tangential length
-    double feRing_mm     = 242.5;  // card centreline distance from the active axis
-    double feTangA_mm    = 90.0;   // tangential centres of the two cards per edge
-    double feTangB_mm    = -93.1;
+    // Four cards lying FLAT on the drift-gas side of the readout-board edge,
+    // straddling it longways, two per connector edge (+x and +y in the
+    // active-area frame). The M1 gerbers are drawn in the BOARD frame at the
+    // as-mounted position: card outline 41 × 160 mm at radial 219.4..260.4,
+    // tangential centre +100 (edge-mill layer DFS3498AM1_ebm); the pogo-pad
+    // field on the card bottom lands exactly on the board's connector copper
+    // clusters (tangential ±83..117 on both edges). No standoff: the card
+    // laminate sits directly on the board (the thin pogo-pin connector and
+    // the Mec8 output connectors on top are not modelled —
+    // design/NEEDED_INPUTS.md). The inner edge is clipped from 219.4 to
+    // 220.0 mm where the plain-ring gas-frame model has its outer wall.
+    double feThick_mm    = 0.0;    // card laminate thickness; 0 → none
+    double feInner_mm    = 220.0;  // inner edge (gerber 219.4, clipped to frame)
+    double feOuter_mm    = 260.4;  // outer edge (10.4 mm beyond the board edge)
+    double feLen_mm      = 160.0;  // tangential length
+    double feTang_mm     = 100.0;  // tangential centres at ±feTang on each edge
     double feCu_um       = 26.0;   // per Cu layer (same guess as the readout)
-    // Cu coverage per M1 layer (top,L2..L5,bot), panel average from
-    // scripts/gerber/analyze_cu_coverage.py; empty → solid FR4 envelope.
+    // Cu coverage per M1 layer (top,L2..L5,bot) over the card outline, from
+    // scripts/gerber/analyze_cu_coverage.py; empty → solid FR4 card.
     std::vector<double> feCuCoverage;
 
     // ── Backing ──
@@ -163,8 +165,9 @@ inline ModuleSpec AsBuiltSpec(double bulgeSag_mm = 8.0) {
     s.meshOpen_um    = 48.0;
     s.meshFace_mm    = 410.0;
     s.ampFace_mm     = 410.0;
-    s.feEnvelope_mm  = 6.6;     // multi M1 front-end cards (flat, straddling)
-    s.feCuCoverage   = {0.183, 0.105, 0.110, 0.106, 0.102, 0.053};
+    s.pasteFace_mm   = 412.0;   // full-sheet resistive coat boundary (3498A_top-resist)
+    s.feThick_mm     = 1.6;     // multi M1 cards: bare-laminate guess
+    s.feCuCoverage   = {0.147, 0.110, 0.114, 0.117, 0.111, 0.041};
     s.pcbTotal_mm    = 1.70;    // CAD single-body readout board
     s.pcbCuCoverage  = {0.0945, 0.6512, 0.4194, 0.4200, 0.4558};
     s.pcbFace_mm     = 470.0;
@@ -483,24 +486,24 @@ inline Module BuildModule(const ModuleSpec& s, const Materials& m) {
     }
     out.driftGasLV = addBox("DriftGas", driftH, driftH, tDriftGas, m.gas, visDrift);
 
-    // 5) Front-end (multi M1) cards: two per connector edge, lying flat on the
-    //    drift-gas side of the readout-board edge and straddling it longways,
-    //    just outside the gas frame. The 6.6 mm CAD envelope (bottom face at
-    //    the board top = mesh plane) holds the card's gerber-defined Cu layers
-    //    with FR4 filling the remainder (components/connectors as FR4).
+    // 5) Front-end (multi M1) cards: four cards flat on the drift-gas side of
+    //    the readout-board edge (no standoff — the card laminate sits directly
+    //    on the board), two per connector edge, tangentially centred on the
+    //    board's connector-copper clusters at ±feTang. The laminate holds the
+    //    six gerber Cu layers (density-scaled) with FR4 filling the rest.
     const double zMeshFront = zF;
-    if (s.feEnvelope_mm > 0.0) {
-        const double tEnv = s.feEnvelope_mm * mm;
-        const double feWH = s.feWidth_mm * mm / 2;   // radial half-extent
-        const double feLH = s.feLen_mm   * mm / 2;   // tangential half-extent
-        const double feR  = s.feRing_mm  * mm;
+    if (s.feThick_mm > 0.0) {
+        const double tCard = s.feThick_mm * mm;
+        const double feWH  = (s.feOuter_mm - s.feInner_mm) * mm / 2;
+        const double feR   = (s.feOuter_mm + s.feInner_mm) * mm / 2;
+        const double feLH  = s.feLen_mm * mm / 2;
         // sub-stack: [Cu + FR4 gap] per gerber layer, top (upstream) first
         const int nFeCu = static_cast<int>(s.feCuCoverage.size());
         const double tFeCu  = s.feCu_um * um;
-        const double tFeFR4 = nFeCu > 0 ? (tEnv - nFeCu*tFeCu) / nFeCu : tEnv;
+        const double tFeFR4 = nFeCu > 0 ? (tCard - nFeCu*tFeCu) / nFeCu : tCard;
         struct Sub { double z0, t; G4Material* mat; };
         std::vector<Sub> subs;
-        double zs = zMeshFront - tEnv;
+        double zs = zMeshFront - tCard;
         for (int i = 0; i < std::max(nFeCu, 1); ++i) {
             if (nFeCu > 0) {
                 subs.push_back({zs, tFeCu,
@@ -523,7 +526,7 @@ inline Module BuildModule(const ModuleSpec& s, const Materials& m) {
             lvx->SetVisAttributes(vis);
             lvy->SetVisAttributes(vis);
             const double zc = sub.z0 + sub.t/2;
-            for (double tang : {s.feTangA_mm * mm, s.feTangB_mm * mm}) {
+            for (double tang : {+s.feTang_mm * mm, -s.feTang_mm * mm}) {
                 out.pieces.push_back({lvx, G4ThreeVector(feR, tang, zc),
                                       0.0, false});
                 out.pieces.push_back({lvy, G4ThreeVector(tang, feR, zc),
@@ -537,7 +540,9 @@ inline Module BuildModule(const ModuleSpec& s, const Materials& m) {
     //    board body; mesh front face = frame bottom face).
     addBox("Micromesh", meshH, meshH, tMesh, matMesh, visMesh);
     out.ampGasLV = addBox("AmpGas", ampH, ampH, tAmp, m.gas, visAmp);
-    addBox("ResistivePaste", ampH, ampH, tPaste, m.resPaste, visResPaste);
+    const double pasteH = (s.pasteFace_mm > 0 ? s.pasteFace_mm : s.ampFace_mm)
+                          * mm / 2;
+    addBox("ResistivePaste", pasteH, pasteH, tPaste, m.resPaste, visResPaste);
     out.mmDepth = zF;
 
     if (s.includeReadout) {

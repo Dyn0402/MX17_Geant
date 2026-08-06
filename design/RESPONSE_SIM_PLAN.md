@@ -1,0 +1,258 @@
+# MX17 Full Detector-Response Simulation — Implementation Plan
+
+**Status:** approved plan, ready for implementation. **Date:** 2026-08-06.
+**Authority:** this document. Where it conflicts with older notes, this wins. Update it as decisions land ("living document").
+**Audience:** an implementing agent/developer who has NOT read the research behind this plan. Every stage gives the equation or the reference, the file contract, the host to run on, and acceptance criteria. When something is genuinely open, it is listed in §12 with the default to proceed with — do not block on §12 items.
+
+**Coordination rule (active now):** a parallel effort is updating the Geant4 geometry (`src/DetectorConstruction.cc`, `shared/MX17ModuleGeometry.hh`). Until that merges, do NOT edit existing C++ files in this repo. All new work in this plan lives in NEW files/directories, and Stage A (§6) starts only after the geometry work is committed.
+
+---
+
+## 0. Goal and principles
+
+Simulate the complete MX17 response to MIPs from first principles: Geant4 ionization → drift/diffusion → mesh transparency → avalanche gain → **charge spreading on the resistive strips + signal induction on the X/Y readout** → DREAM electronics → digitized waveforms that the existing `wft` reconstruction (in `~/PycharmProjects/nTof_x17`) can process **unchanged**.
+
+Principles:
+1. **First-principles first.** No parameter is tuned to MX17 detector data on the first pass. Measured MX17 quantities (sharing fractions, peak-time shifts, response library — §9) are *blind validation targets*. Only after the blind comparison do we iterate.
+2. **Staged, file-joined pipeline** (adopted from `~/CLionProjects/p2_geant/docs/SIM_CAMPAIGN_PLAN.md` §2): expensive stages run once, cheap stages re-run per parameter point. Every stage reads/writes documented files; any stage can be re-run in isolation.
+3. **Two-tier fidelity.** A rigorous slow path (Garfield++ delayed-signal formalism) validates a fast path (precomputed response-function convolution). The fast path is the production digitizer. Same physics, different caching.
+4. **Everything scanned that is unknown.** Resistivity, coverlay thickness, amplification gap are scan axes, not guesses.
+
+Pipeline overview:
+
+```
+S1  Weighting solver   Ψ_n(x,y,z,t)  dynamic weighting potentials      [new python]
+S2  Mesh field solver  E(x,y,z) unit cell, transparency, funneling     [Garfield++ neBEM / Elmer]
+S3  Avalanche calib    gain(V), Polya θ, σ0, ion current shape         [Garfield++ microscopic]
+A   Geant4             ClusterTree upgrade: time + local coords        [this repo, C++]
+B   Digitizer          clusters → per-strip induced current waveforms  [new python package]
+C   DREAM electronics  currents → ADC samples, noise, ZS               [new python package]
+V   Validation         wft reconstruction on sim output vs data        [nTof_x17 tooling]
+```
+
+---
+
+## 1. Detector description and parameter table
+
+Anode stack, top (gas) to bottom. z=0 at the top surface of the ESL resistive layer, +z toward the mesh.
+
+| # | Layer | Value | Source | Confidence |
+|---|---|---|---|---|
+| 1 | Micromesh (grounded ref. for amp field; at −HV_mesh in reality) | woven SS, wire 2×19 µm crossing, fill factor 0.223 | `shared/MX17ModuleGeometry.hh` | good |
+| 2 | Amplification gap | **150 µm** (alt: 128 µm) | header; flagged unverified in `design/GEOMETRY_IMPLEMENTATION_NOTES.md` | scan {128, 150} |
+| 3 | **ESL resistive strips** | **550 µm wide, 250 µm gap, 800 µm pitch, running along y ("vertical")** | user/fab knowledge; NOT in gerbers (screen-printed after fab) | geometry good; ρ_s unknown → scan **{0.5, 1, 2, 5} MΩ/sq** |
+| 4 | Coverlay insulator (kapton + adhesive) | **unknown**; default 75 µm, ε_r = 3.5 | typical Saclay coverlay 50 µm kapton + 25 µm adhesive | scan **{50, 75, 125} µm** |
+| 5 | Pad plane (Cu) | 512×512 pads, **0.68 mm square on 0.78 mm pitch**, active area 399.36 mm | `design/gerbers/readout_pcb/DFS3498A_L2-pads.gbr` | exact |
+| 6 | Buried interconnect | pads bussed by vias to 512 Y-strip traces (L3-TrackY) and 512 X-strip traces (L4-TrackX), 0.1 mm traces on 0.78 mm pitch | gerbers | exact (in-plane); layer z-spacing unknown |
+
+Critical geometric facts:
+- **Pitch mismatch / beat:** resistive pitch 800 µm vs readout pitch 780 µm. The ESL-to-pad registration phase advances 20 µm per pitch and repeats every **LCM = 31.2 mm** (39 resistive strips = 40 readout pitches). The response kernel is therefore **position-dependent with a 31.2 mm superperiod** in x. The solvers and the digitizer must carry the absolute x position, not just position-within-one-strip. This beat is itself a physics prediction to look for in data (position-dependent sharing/residuals with 31.2 mm period).
+- **Orientation and sharing anisotropy:** resistive strips run along y. Resistive transport moves charge along y → spreads signal across the *y-measuring* channels → the Y view has stronger, slower sharing (data: τ_Y ≈ 410 ns vs τ_X ≈ 230 ns; kY ≈ 1.8–2.9). Across x, gaps block DC transport; X-view sharing is diffusion + induction + weak inter-strip capacitance. The simulation must reproduce this asymmetry *from geometry alone* — it is a headline validation target.
+- **Strip biasing/grounding (assumption A1):** ESL strips are assumed connected to the HV/ground bus at both y-ends of the active area (AC-grounded through the bus). Measured global drain constant τ_g = 5.3–7.3 µs (nTof_x17 `rc_line_step2.py`) is the *validation* of whatever boundary we implement, not an input.
+- Gas: Ar/iso 95/5 (+~1% H2O on the bench — matters, measured v_drift 36.6 µm/ns is far below dry Magboltz). Drift gap 30 mm at 1000 V typical bench.
+
+---
+
+## 2. Repository layout and file contracts
+
+New code lives in this repo under `response/` (Python ≥3.10, numpy/scipy only for the core; ROOT via `uproot` for I/O):
+
+```
+response/
+  solver/          S1 semi-spectral weighting solver
+  meshcell/        S2 unit-cell scripts (Garfield++/neBEM driver + collectors)
+  avalanche/       S3 calibration campaign scripts + frozen JSON outputs
+  digitizer/       B  cluster → strip-current pipeline
+  dream/           C  electronics + ZS emulation
+  validation/      V  closure scripts, blind-comparison figures
+  common/          geometry constants (single source: parse shared/MX17ModuleGeometry.hh
+                   values into python once, assert against the header at import)
+  params/          *.yaml parameter sets (one file per scan point; git-tracked)
+```
+
+Large products (grids, libraries, waveform files) go to `~/x17/response_sim/` (data disk), never in git. Every product file embeds: git hash of `response/`, the parameter YAML content, and a UTC timestamp. **No un-manifested runs** — one CSV manifest row per production run (copy the discipline from p2 `SIM_CAMPAIGN_PLAN.md` §"bookkeeping").
+
+Key file contracts (formats frozen here; extend, don't break):
+
+| Product | Producer | Format |
+|---|---|---|
+| `wpot_<ch>_<params>.npz` | S1 | Ψ_n on grid: axes `x` (over 31.2 mm superperiod, ≤10 µm step near strip edges), `y` (relative, to ±25 mm), `z` {0, 8–16 slices to mesh}, `t` (60 log-spaced, 0.1 ns–10 µs); arrays `psi[t,z,y,x]`, prompt slice `psi_p[z,y,x]` |
+| `greens_<params>.npz` | S1 post | G_n(x0,y0,t): induced charge on channel n (X and Y sets) for unit point charge landing at (x0,y0); same axes; this is Ψ on the z=0 plane by reciprocity |
+| `meshfield.root/.txt` | S2 | E-field map of one weave unit cell, amp gap + last 200 µm of drift |
+| `aval_calib.json` | S3 | per (gas, HV, gap): mean gain ḡ, Polya θ, transverse avalanche σ0, funneling offset map, ion current shape i_ion(t) (normalized), ion fraction to mesh, transparency ε(E_d/E_a) |
+| `clusters.root` | A | ClusterTree (schema §6) |
+| `currents_<ev>.npz` / batched | B | per-event dict: `{channel_id: i(t)}` on a 1 ns grid, plus truth block |
+| `sim_decoded.root` | C | **identical schema to data** `decoded_root/*_<feu>.root` tree `nt` (`eventId`, `amplitude[n_samp×512]`, `ftst`) so `wft/io.py` reads it unchanged |
+
+---
+
+## 3. S1 — semi-spectral dynamic weighting-potential solver
+
+**Physics.** Extended Ramo–Shockley for resistive elements (Riegler, JINST 11 (2016) P11002, arXiv:1602.07949; Janssens et al., arXiv:2304.01883). To get the signal induced on readout channel n: apply V_w·Θ(t) to channel n's electrode (all its pads), everything else (other pads, mesh) grounded; solve the **quasi-static** relaxation of the potential in the stack where the ESL layer is a thin sheet with patterned surface conductivity. The time-dependent solution Ψ_n(x,y,z,t) is the dynamic weighting potential. Induced current from a charge q at position x_q(t):
+
+```
+i_n(t) = -(q/V_w) ∇ψ_p·ẋ_q(t)  -  (q/V_w) ∫₀ᵗ H_d[x_q(t'), t-t']·ẋ_q(t') dt'
+H_d(x,t) = -∇ ∂ψ_d(x,t)/∂t ,   ψ_d = Ψ - ψ_p ,  ψ_p = Ψ(t→0⁺)
+```
+
+At t=0⁺ the ESL acts as a dielectric (prompt/static solution); as t→∞ it acts as a grounded conductor. By reciprocity, Ψ_n(x0,y0,0⁻ surface, t)/V_w is exactly the Green's function G_n: the charge induced on channel n by a unit point charge *sitting* on the ESL at (x0,y0) since t=0.
+
+**Geometry model W1 (baseline).** Layers in z: grounded mesh plane at z=+g (treat as solid — justified: weave-scale field ripple decays as e^(−2πz/p_weave), negligible at the ESL for p_weave ≪ g; verify in V5) / gas ε=1 thickness g / ESL sheet at z=0 with σ_s(x) = 1/ρ_s on strips, 0 in gaps (periodic in x, period 800 µm, uniform in y) / coverlay ε_r=3.5 thickness d_k / segmented pad plane at z=−d_k. Buried trace layers are screened by the pad plane and ignored in W1 (W2 check in V6: expose 100 µm inter-pad gaps and re-run — expected percent-level).
+
+**Electrode definition.** A Y channel = one row of pads bussed together; an X channel = one column. (Confirm from the via pattern in `DFS3498A_pla1-2.gbr` which pads belong to X vs Y — likely alternating checkerboard; the parser in `scripts/` or nTof_x17 `common/Mx17StripMap.py` may already know. If checkerboard: an X channel is every-other-pad along a column. Document what you find in `response/common/`.)
+
+**Method.** Expand in lateral Fourier modes. In y (uniform sheet direction) modes decouple: continuous wavenumber k_y (discretize, ~200 log+linear points to k_y·L=π·400). In x the periodic conductivity couples k_x ↔ k_x + m·2π/p_ESL (Bloch): for each (k_y, k_x∈[0, 2π/p)) truncate to |m| ≤ M (start M=12, converge-test). Each dielectric layer gives an algebraic transfer relation per mode; the sheet gives the junction condition
+
+```
+n·(J_above − J_below) = −∇_T · [ σ_s(x) ∇_T V ]|_{z=0}   (+ ε0 ∂/∂t displacement terms in the layers)
+```
+
+Result: per (k_y, Bloch block) a linear ODE system `dV/dt = A·V + b·Θ(t)` of dimension ~(2M+1); solve by eigendecomposition of A (exact exponentials — no time-stepping error). Assemble Ψ on the output grid at the 60 requested times. Runtime target: minutes per channel type on the laptop. Pure numpy.
+
+**Boundary/drain.** Finite strip length enters as the smallest k_y; additionally implement assumption A1 as a lumped leak rate 1/τ_g on the k_y→0 mode and check the late-time tail against the measured 5–7 µs (validation V4, not tuning).
+
+**Validation (all must pass before S1 output is used):**
+- V1: set σ_s uniform (no gaps) → matches Riegler's closed-form uniform-layer solution (JINST 2016 eqns; also the Gaussian limit σ²(t)=2t/(ρ_s c′), c′=ε0(ε_r/d_k + 1/g)).
+- V2: single isolated strip, k_y only → matches 1D telegraph solution (Galan arXiv:1110.6640).
+- V3: charge conservation: Σ_n G_n(x0,y0,t) + charge remaining on sheet + mesh charge = 1 at all t; each G_n → its t→∞ electrostatic value.
+- V4: late-time drain tail within factor ~2 of measured τ_g = 5.3–7.3 µs (else revisit A1).
+- V5: mesh-as-plane check: perturbative estimate of weave ripple amplitude at z=0 < 1%.
+- V6: W2 (exposed inter-pad gaps) shifts G_n by < few %.
+
+Numbers to expect (sanity): c′ ≈ 5×10⁻⁷ F/m²; sheet diffusivity D = 1/(ρ_s c′) ≈ 2.0 m²/s at 1 MΩ/sq → relaxation of a 130 µm feature in ~8 ns, of one 800 µm pitch in ~0.3 µs.
+
+**Host:** laptop (light). **Scan matrix:** ρ_s {0.5,1,2,5} MΩ/sq × d_k {50,75,125} µm × gap {128,150} µm = 24 points; each point = 2 channel types → ~48 solver runs, still laptop-scale; if slow, desktop.
+
+---
+
+## 4. S2 — realistic mesh field (unit cell)
+
+Purpose: (a) electron transparency ε(E_drift/E_amp) from geometry instead of an assumed constant; (b) funneling map (entry (x,y) in the weave cell → avalanche seed position/spread below); (c) field non-uniformity feeding S3; (d) ion drift endpoints (fraction terminating on mesh vs escaping to drift — sets the ion-tail shape split).
+
+Method: one weave unit cell (period from `shared/MX17ModuleGeometry.hh` wire diameter + fill factor — **resolve the weave pitch from these two numbers and cross-check against the bulk-MM standard 400 lpi; if inconsistent, flag in §12 and use the header**), woven wire geometry (two orthogonal sinusoid-ish wires, standard Garfield++ neBEM wire/primitive representation or an Elmer tetra mesh), periodic lateral BCs, plates: drift cathode far above (apply E_drift), anode plane at ESL surface potential below. Solve electrostatics; export field map.
+
+Tools: **first choice Garfield++ neBEM** (already built locally at `~/garfield`; no meshing needed). Fallback: install `gmsh`+`Elmer` (apt/pip, ~30 min) if neBEM struggles with the woven geometry. **Host: desktop** (one-off heavy; hours). Deliverable includes a transparency curve figure vs field ratio compared to the generic bulk-MM curve from literature.
+
+## 5. S3 — avalanche calibration campaign
+
+Garfield++ `AvalancheMicroscopic` + `MediumMagboltz` in the S2 field map (or uniform-field fallback for first pass): 10³–10⁴ single electrons per (gas, HV) point.
+
+Extract per point into `aval_calib.json`: mean gain ḡ, Polya θ (fit P(g) ∝ (g/ḡ)^θ e^(−(1+θ)g/ḡ)), transverse avalanche spread σ0 at the ESL, longitudinal α(z) profile, normalized ion-induced current shape i_ion(t) in the gap (uniform-field ion mobility from Magboltz tables; **flag: ion mobility is the single softest parameter** — carry ±30% as a systematic), fraction of ions to mesh.
+
+Gases: Ar/iso 95/5 dry AND +1% H2O (tables partly exist in `~/PycharmProjects/nTof_x17/garfield_sim/results/` and on EOS — reuse; the condor workflow in that repo is the template). HV: 480–540 V mesh in 10 V steps (bench operating 490 V, SPS up to 625 V different gas — add Ar/CO2/iso 95/3/2 and Ar/CF4/iso 88/10/2 later).
+
+**Host: lxplus condor** (systematic campaign; reuse `garfield_sim/mm_condor_*` submission machinery, CVMFS LCG_108 environment). Quick single-point smoke tests: laptop (local Garfield++ build).
+
+## 6. Stage A — Geant4 upgrades (AFTER geometry work merges)
+
+Port the p2_geant ClusterTree schema (`p2_geant/docs/OUTPUT_FORMAT.md`) into this repo's `SteppingAction`/`EventData`/`RunAction`:
+1. Add **`time`** (globalTime, ns) per ionization cluster. (Blocking for everything downstream.)
+2. Add module-local coordinates or store the world→active-area transform in the file header. Active-area frame: origin at active-area center, x/y per strip-map convention (`nTof_x17/common/Mx17StripMap.py`), z=0 at ESL surface. Beware: PCB plates are offset (+15,+15) mm from the active-area axis — use the active-area axis, not the plate center.
+3. Optional (cheap, valuable): the p2 provenance block (creator process, origin volume, ancestor).
+4. Do NOT model strips/pads/coverlay as Geant4 volumes — material budget is unchanged at the level that matters and the response chain owns that geometry.
+
+Physics settings: keep EM opt4; evaluate PAI model in a gas G4Region (p2 `TOOLCHAIN_NOTES.md` argues default condensed-history straggling is inadequate in thin gas — for our 30 mm drift gap it matters less than for p2's 3 mm, but PAI in the gas region is cheap: turn it on, compare cluster statistics, keep it).
+Acceptance: a 10⁴-event muon run whose ClusterTree loads in `response/digitizer` and produces sensible (x,y,z,t,nPrimary) distributions.
+
+## 7. Stage B — digitizer
+
+Per event, per ionization cluster (vectorize over clusters):
+1. Electrons: n = round(edep/W) with Fano-factor binomial correction (F≈0.2 Ar); or later Heed re-ionization mode.
+2. Drift each electron packet: arrival time t = t_cluster + z/v_d + Gauss(σ_L√z /v_d); transverse Gauss(σ_T√z); attachment survival e^(−z/λ). Parameters interpolated from Magboltz tables (wet gas!). Use the packet approximation (per-cluster, not per-electron) until profiling says otherwise.
+3. Mesh transparency ε (S2) — binomial thin.
+4. Per surviving electron: gain g ~ Polya(ḡ,θ) (S3); avalanche lands at (x+funnel offset, y) with spread σ0.
+5. **Induction — fast path (production):** for an avalanche of total charge Q=g·e at (x0,y0) at time t0: per readout channel n,
+   `i_n(t) = Q·[ f_e·δ_fast(t−t0) ⊛ (−∂G̃_n/∂t) + f_ion·i_ion ⊛ ... ]`
+   concretely implemented as precomputed **response templates** `R_n(x0 mod 31.2 mm, t)`: the full current on channel n for a standard avalanche at (x0,y0), built once by running the slow path (below) over a grid of source positions and caching. Ion component included (ions drift up; their induction uses Ψ at moving z — this is why templates come from the slow path, not from surface G alone).
+6. **Induction — slow path (validation, and template generation):** Garfield++ `Sensor` with `ComponentGrid` loading the S1 Ψ time slices (`LoadWeightingField(file, fmt, t_k, true)` per slice; `SetDelayedSignalTimes`; `EnableDelayedSignal(true)`; `SetWeightingFieldOffset` to place channels), drift/avalanche trajectories parameterized (electron spike + ion line current), NOT microscopic per event. Run on O(100) events per parameter point to certify the fast path (<2% waveform residual target).
+7. Sum currents per channel on a 1 ns grid; write `currents` product + truth block (true (x,y), t0, per-channel true charge).
+
+**Host:** laptop for development/small runs; **lxplus condor** for productions (pure python + npz — trivially portable); desktop for medium one-offs.
+
+## 8. Stage C — DREAM electronics
+
+1. Shaper: build the DREAM transfer function **from the manual** (`~/x17/Documents/dream/DREAM_User Manual_prod_v3.pdf`) at the register settings in the run config (`CosmicTb_MX17.cfg`, local copies in `~/x17/cosmic_bench/det_3/*/raw_daq_data/`; peaking-time code `(0xd023>>4)&0xF = 2` → 180 ns class per nTof_x17 notes). Convolve channel currents.
+2. Sampling: 60 ns (bench, 32 samp) / 60 ns 64 samp (SPS config) with uniform-random trigger phase; ftst semantics as in data.
+3. Gain/ADC: charge→ADC scale from the manual's mV/fC + ADC full scale; leave one global scale factor free-but-recorded (this is the one place absolute calibration enters; it does not affect shapes/sharing).
+4. Noise: per-channel Gaussian σ from the det3 pedestal runs (raw fdf/decoded root at `~/x17/cosmic_bench/det3/mx17_det3_saturday_scan_6-27-26/*/raw_daq_data/MX17_pedestals_pedthr_260627_16H35_*` and the standalone 6-22 run) **plus** the common-mode component per 64-ch block (measure covariance from pedestal data; inject correlated noise; the analysis CNS step then removes most of it, as in data). Optional pink/coherent extras only if pedestal PSD demands.
+5. Saturation at 3550 ADC (clip, plus reproduce the repeated-constant pathology only if needed later). ZS: port `nTof_x17/mx_july_beam_qa/26_zs_sim_extract.py` (DREAM firmware ZS: `ZsTyp=1`, `ZsChkSmp=4`, N·σ thresholds); RAW mode = no ZS.
+6. Output in the exact `decoded_root` schema (§2) so `wft/io.py` reads simulation as if it were data.
+
+**Host:** laptop.
+
+## 9. Validation & closure (blind targets — do not tune to these)
+
+Run the **unmodified** wft chain (`nTof_x17/wft/`) + the SPS-style kernel analyses on simulated det3-bench cosmics and simulated normal-incidence tracks. Compare:
+
+| Observable | Measured value | Source |
+|---|---|---|
+| Dispersed ±1 share c1 | 0.23–0.28 (gain/gas/drift-invariant) | `sps_beam_test_26/analysis/M70V_FLAT_ANALYSIS.md`, `FLAT_CF4_RUN63.md` |
+| ±1 median peak-time shift | +54–61 ns | `RAW_RUN71_REANALYSIS_2026-08-04.md` |
+| Charge budget d=0/±1/±2/±3 (area) | 1.00 / 0.71–0.77 / 0.40–0.48 / 0.15–0.18 | same (trim20, clean) |
+| Peak-amplitude ratios | 1.00 / 0.16–0.19 / 0.06–0.08 / 0.03 | same |
+| Full W_d(t) library, 3 drift fields | npz archive | `staging/run_71/reanalysis_2026-08-04/` (data disk) |
+| X vs Y sharing asymmetry | τ 230 vs 410 ns; kY 1.8–2.9 | `mx_june_wft/ANALYSIS_STATE_2026-07-31.md` |
+| Global drain τ_g | 5.3–7.3 µs | `rc_line_step2.py` results |
+| X/Y charge balance | 0.49/0.51 (det3) | `bench_constants.py` |
+| Undershoot | −4 to −6% | run_71 reanalysis |
+| Angular/position resolution | σ_θ 1.08–1.11°, core σ|r| 0.46 mm | `ANALYSIS_STATE_2026-07-31.md` |
+| Prompt diffusion onto ±1 | 0.19–0.21 | M70V analysis (checks steps B.2–B.4 alone) |
+| **Predicted, look for in data:** 31.2 mm beat in sharing/residuals | — | this plan §1 |
+
+Procedure: predictions FIRST for the full ρ_s × d_k grid, as a band; then overlay data; identify which scan point matches; only then permit tuning, restricted to the physical parameter set {ρ_s, d_k, ion mobility, absolute gain, ENC scale} — the p2 "don't tune past these" firewall applies: if *shapes* disagree beyond these knobs, the model is missing physics; find it, don't fudge it.
+
+## 10. Compute distribution policy
+
+| Host | Hardware | Use for | Don't use for |
+|---|---|---|---|
+| **laptop** (this machine) | i7-8550U 4c/8t, 16 GB, GTX 1050 4 GB | development, S1 solver, Stage B/C on ≤10⁴ events, analysis/plots, single-event Garfield checks | anything >1 h wall or >8 GB RAM |
+| **desktop** (`ssh desktop`) | Ryzen 7 5800X 8c/16t, 62 GB, RTX 3060 Ti 8 GB. ⚠ home disk 13 GB free; no Geant4/ROOT/Garfield installed yet (one-time setup task T0) | one-off heavy: S2 neBEM/Elmer solves, medium Garfield campaigns, big single Geant4 runs, S1 if it outgrows laptop | systematic multi-point campaigns (no batch system); storing bulk output (ship results back to `~/x17/response_sim/`) |
+| **lxplus** (`ssh lxplus`) | HTCondor + CVMFS LCG_108 | ALL systematic campaigns: S3 avalanche grid, gas tables, Stage A productions, Stage B parameter sweeps | interactive iteration |
+
+Existing lxplus workflow to reuse: `nTof_x17/garfield_sim/mm_condor_submit.py` and wrappers (AFS work dir `/afs/cern.ch/user/d/dneff/work/git/...`, EOS for tables). Copy the pattern, don't reinvent.
+
+## 11. Task graph
+
+| ID | Task | Depends | Host | Acceptance |
+|---|---|---|---|---|
+| T0 | Desktop env setup (miniconda + numpy/scipy/uproot; optional Garfield++ build or CVMFS-style container) | — | desktop | `python -c "import numpy"`, garfield smoke test |
+| T1 | `response/` package skeleton + `common/` geometry constants (parse/assert vs `MX17ModuleGeometry.hh`) + params YAML schema | — | laptop | unit tests pass |
+| T2 | Pad↔X/Y channel mapping from gerber via pattern (checkerboard question, §3) | T1 | laptop | map figure; agrees with `Mx17StripMap.py` channel count |
+| T3 | **S1 solver core** (uniform sheet first: V1) | T1 | laptop | V1 passes to <1% |
+| T4 | S1 Bloch patterning (strips) + V2, V3 | T3 | laptop | V2, V3 pass |
+| T5 | S1 boundary/drain + full grid export; V4, V5, V6 | T4 | laptop | all V pass; 48-run scan produced |
+| T6 | S2 mesh unit cell | T0 | desktop | transparency curve; field map export |
+| T7 | S3 avalanche campaign | T6 (or uniform-field first pass without T6) | lxplus | `aval_calib.json` grid |
+| T8 | Stage A schema upgrade | geometry merge | laptop | §6 acceptance |
+| T9 | Stage B fast path (templates from S1 surface G + analytic ion term, first pass) | T5, T7 | laptop | digitizes 10³ events; energy/charge bookkeeping closes |
+| T10 | Stage B slow path (Garfield++ ComponentGrid delayed signals) + certify fast path | T5, T9 | desktop | <2% waveform residual fast vs slow |
+| T11 | Stage C DREAM (shaper from manual, sampling, gain) | T9 | laptop | shaped single-avalanche pulse; rise/peak vs measured template compared (report, don't tune) |
+| T12 | Stage C noise from det3 pedestals + ZS port | T11 | laptop | simulated pedestal PSD/σ matches data pedestals |
+| T13 | End-to-end: sim decoded_root through wft unchanged | T8–T12 | laptop | wft runs, produces events.parquet |
+| T14 | Blind comparison (§9) + report | T13 | laptop/lxplus | prediction-band figures vs data |
+| T15 | Iterate: constrained tuning, systematics, feed kernel back to wft as physical model | T14 | — | documented parameter posterior |
+
+Parallelizable now (before geometry merge): T0–T7. T3–T5 is the critical path and the highest-skill task — implement with the validation tests as the definition of done.
+
+## 12. Outstanding questions (external answers expected in WEEKS — proceed with defaults)
+
+**To Saclay/CEA (fab):**
+1. ESL resistive paste: measured surface resistivity (Ω/sq) and paste type/batch for our modules. *Default: scan 0.5–5 MΩ/sq.*
+2. Coverlay stackup between pad copper and ESL: kapton + adhesive thicknesses and ε_r. *Default: 75 µm, ε_r 3.5, scan 50–125.*
+3. Screen-print registration: nominal alignment/tolerance of the 800 µm ESL pattern vs the 780 µm pad pattern (and vs active-area center). *Default: nominal aligned at center; the beat makes absolute phase measurable from data later.*
+4. ESL strip termination: how strips connect to the HV/ground bus (both ends? one end? via resistor?). *Default: A1 (§1).*
+5. Amplification gap as built: 128 or 150 µm. *Default: scan both.*
+6. PCB internal stackup: layer z-spacings (pads→L3→L4). *Default: pads-only model W1; spacing irrelevant in W1.*
+7. Confirm pad↔X/Y bussing pattern (checkerboard?). *We will extract from via gerbers (T2); confirmation only.*
+
+**To DAQ host / collaborators:**
+8. Confirm `CosmicTb_MX17.cfg` on `daq:/mnt/cosmic_data/MX17/dream_config/` is byte-identical to the May copies we have locally (for the 6-27 det3 runs). *Default: trust local copies.*
+9. DREAM ADC full-scale and mV/fC at our register settings if not unambiguous from the manual. *Default: manual values + one recorded global scale factor.*
+
+**Internal (resolve by doing):**
+10. Mesh weave pitch from fill factor 0.223 + 19 µm wire vs standard 400 lpi — reconcile in T6.
+11. Whether per-electron (vs per-cluster-packet) treatment changes closure observables — profile in T9.
+
+## 13. References
+
+Dixit & Rankin, NIM A 566 (2006) 281 (physics/0605121) — dispersion model · Riegler, JINST 11 (2016) P11002 (arXiv:1602.07949) — resistive-layer weighting theory, THE math reference for S1 · Janssens et al., arXiv:2304.01883 — 2D resistive-strip bulk MM with delayed weighting potentials, the rigor benchmark · Galan et al., arXiv:1110.6640, 1304.2057 — strip telegraph line · Alexopoulos et al., arXiv:2409.19297 — NSW strip spreading solutions · T2K ERAM, arXiv:2303.04481 — data-constrained RC workflow · Garfield++ User Guide 2025.1 §7.2 (delayed signals), `ComponentGrid::LoadWeightingField`, `Sensor::EnableDelayedSignal` · p2_geant `docs/SIM_CAMPAIGN_PLAN.md`, `docs/TESTBEAM_PLAN.md` — architecture and tuning-firewall templates · nTof_x17 `RAW_RUN71_REANALYSIS_2026-08-04.md`, `ANALYSIS_STATE_2026-07-31.md` — validation targets.

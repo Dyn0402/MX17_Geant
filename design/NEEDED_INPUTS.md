@@ -77,19 +77,38 @@ FR4 filler (5 × 246.4 µm) still solves the CAD 1.70 mm body.
 guess; ½-oz 18 µm is the common fab default) and the kapton/dielectric split.
 A fab stackup drawing would settle it.
 
-## 6b. 🟡 M1 front-end card internals
+## 6b. 🟡 M1 front-end cards
 
-**Assume now (Dylan 2026-08-06):** each card is its 6.6 mm CAD envelope
-(41 × 180 mm, flat on the drift-gas side of the board edge, straddling it
-longways at ring 242.5 mm / tangential +90 / −93 mm), filled with the six
-gerber-defined Cu layers (26 µm each, density-scaled by the panel-average
-coverage 0.183/0.105/0.110/0.106/0.102/0.053) and FR4 for the remainder.
+**Now gerber-anchored (2026-08-06, rev 2):** the M1 gerbers turn out to be
+drawn in the readout-board frame at the as-mounted position — card outline
+41 × 160 mm at radial 219.4..260.4, tangential centre +100 (edge-mill layer),
+with the bottom pogo-pad field landing exactly on the board's connector
+copper. The model places four cards (2 per connector edge, tangential ±100),
+laminate flat on the board with **no standoff** (Dylan), six Cu layers at
+26 µm density-scaled by card-window coverage (0.147/0.110/0.114/0.117/0.111/
+0.041) with FR4 filler.
 
-**Why it matters / caveat:** treating the whole 6.6 mm as solid laminate
-means components and connectors are modelled as FR4-equivalent — that likely
-*overstates* the card mass (a bare 6-layer card is ~1.6 mm). If the M1s ever
-matter for a background estimate, split the envelope into laminate + connector
-standoff + air. Peripheral material, outside the beam path.
+**Still assumed:** bare-laminate thickness 1.6 mm (the CAD 6.6 mm envelope
+includes the Mec8 output connectors soldered on top and the thin JZ pogo-pin
+connector underneath — both omitted from the model; add simple blocks if the
+M1 mass ever matters). The card inner edge is clipped 219.4 → 220.0 mm where
+the plain-ring gas-frame model has its outer wall (the real frame must be
+relieved there).
+
+## 6c. ⬜ Resistive layer: uniform sheet or strips?
+
+**Modelled now:** a uniform 100 µm `ResistivePaste` slab, 412 × 412 (the
+deposit boundary in `3498A_top-resist.gbr` — that gerber is a full-sheet
+mask; the only structure in it is a serigraphy note about two bulk-evacuation
+zones). **The strip artwork, if the coat is screen-printed as strips, is not
+in the gerber set.**
+
+**Why it matters:** if the resistive layer is strips (e.g. ~550 µm wide on
+the 0.78 mm pad pitch, as the strip-response work suggests), the areal mass
+is ~30 % lower than the uniform sheet, and the pattern matters for any
+charge-spreading modelling downstream. Ask for the serigraphy artwork or a
+photo/microscope shot of the coat, plus the coat thickness (100 µm is a
+guess).
 
 ## 7. 🟡 Per-arm orientation of the module asymmetries (Full_Geant)
 
