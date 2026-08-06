@@ -150,13 +150,31 @@ Gases: Ar/iso 95/5 dry AND +1% H2O (tables partly exist in `~/PycharmProjects/nT
 
 **Pin: garfieldpp master `927e5c21`.** Built from source on all three hosts; all pass upstream `ctest` 22/22.
 
-| Host | ROOT | Garfield install |
-|---|---|---|
-| laptop | 6.36.06 | `~/garfield/install` |
-| desktop | 6.30.02 | `~/Software/garfield/install` |
-| lxplus | 6.38.00 (LCG_109 view) | `/afs/.../work/garfield_install/lcg109-927e5c21` (+ a 6.7 MB tarball shipped to condor workers) |
+| Host | ROOT | Garfield install (full path) | source clone |
+|---|---|---|---|
+| laptop | 6.36.06 | `/home/dylan/garfield/install` | `/home/dylan/garfield` |
+| desktop | 6.30.02 (`/home/dylan/Software/root_6_30`) | `/home/dylan/Software/garfield/install` | `/home/dylan/Software/garfield` |
+| lxplus | 6.38.00 (LCG_109 view) | `/afs/cern.ch/user/d/dneff/work/garfield_install/lcg109-927e5c21` | `/afs/cern.ch/user/d/dneff/work/git/garfieldpp` |
 
-Single entry point on every host: `source nTof_x17/garfield_sim/setup_garfield.sh`. It is the only file that names a Garfield or LCG path; nothing else in the toolchain hard-codes one.
+**lxplus paths in full** (these are the ones to paste into job scripts):
+
+```
+# the install
+/afs/cern.ch/user/d/dneff/work/garfield_install/lcg109-927e5c21
+# the tarball shipped to condor workers (6.7 MB)
+/afs/cern.ch/user/d/dneff/work/garfield_install/garfield-927e5c21.tar.gz
+# the source clone it was built from, pinned at 927e5c21
+/afs/cern.ch/user/d/dneff/work/git/garfieldpp
+# the LCG view supplying ROOT/python/compiler (its Garfield is NOT used)
+/cvmfs/sft.cern.ch/lcg/views/LCG_109/x86_64-el9-gcc14-opt
+```
+
+The install sets `GARFIELD_INSTALL`, `LD_LIBRARY_PATH`, `PYTHONPATH`
+(`lib64/python3.13/site-packages`) and `HEED_DATABASE`. Upstream examples,
+including `Examples/ResistiveMicromegas` and its COMSOL maps, live under the
+source clone.
+
+Single entry point on every host: `source nTof_x17/garfield_sim/setup_garfield.sh`. It is the only file that names a Garfield or LCG path; nothing else in the toolchain hard-codes one. It resolves the paths above automatically (and on a condor worker unpacks the tarball instead), so prefer it over pasting a path.
 
 **Do not use the CVMFS Garfield.** LCG_108 ships `6fb94b35` (2025-07-07, 664 commits behind the pin) and LCG_109 ships `78fe1bd3` (2026-02-02, 281 behind). The APIs this plan names in §7 exist in all of them, so this is not about being blocked — it is that everything aimed at *this* problem landed between March and August 2026: the `ResistiveMicromegas` example (§4), `AvalancheMicroscopic::GetIons()` for the ion component of §7 step 5, the neBEM OpenMP race fix in the SVD inversion (S2 correctness), interface-crossing checks (electrons no longer tunnel through mesh wires — that *is* the S2 transparency observable), the FFT-convolution fix and arbitrary-PSD noise generators (§8), and the regression test suite itself.
 
