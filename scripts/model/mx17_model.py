@@ -52,7 +52,11 @@ AMP_FACE    = 410.0
 PCB_TOTAL   = 1.70     # CAD single-body readout board (mesh → laminate back)
 PCB_KAPTON  = 0.050
 PCB_CU      = 0.026
-PCB_N       = 4
+# Physical copper layers L3..L7 (L8 is outline-only) with the gerber-measured
+# area coverage over the 470 mm board face (scripts/gerber/analyze_cu_coverage.py)
+PCB_CU_LAYERS = [("L3", 0.0945), ("L4", 0.6512), ("L5", 0.4194),
+                 ("L6", 0.4200), ("L7", 0.4558)]
+PCB_N       = len(PCB_CU_LAYERS)
 PCB_FR4     = (PCB_TOTAL - MESH_T - AMP - PASTE - PCB_KAPTON - PCB_N * PCB_CU) / PCB_N
 PCB_FACE    = 470.0
 PCB_OFF     = 15.0     # 470 mm plates offset (+15,+15) from the active axis
@@ -63,11 +67,12 @@ BACK_AL     = 0.0001
 PLATE       = 8.0
 PLATE_AP    = 402.0    # through-aperture, concentric with the active area
 
-FE_T        = 6.6      # multi M1 cards: radial thickness
-FE_LEN      = 180.0
-FE_H        = 41.0     # rising upstream from the mesh plane
-FE_RING     = 227.5
-FE_TANG     = (75.0, -108.0)   # tangential centres on each connector edge
+FE_ENV      = 6.6      # multi M1 cards: envelope thickness in z (flat cards)
+FE_W        = 41.0     # radial extent (straddling the board edge)
+FE_LEN      = 180.0    # tangential length
+FE_RING     = 242.5    # centreline distance from the active axis
+FE_TANG     = (90.0, -93.1)    # tangential centres on each connector edge
+FE_CU       = [0.183, 0.105, 0.110, 0.106, 0.102, 0.053]  # per-layer coverage
 
 ACTIVE      = 399.36   # readout active area (gerbers), centred
 
@@ -142,13 +147,15 @@ def build_stack(bulge: float = BULGE_SAG):
         color="#3380ff", alpha=0.30)
     z_mesh = z
 
-    # front-end M1 cards: two per connector edge, rising upstream from z_mesh
+    # front-end M1 cards: two per connector edge, lying flat on the drift-gas
+    # side of the board edge and straddling it (6 Cu layers + FR4 in the model;
+    # drawn as one envelope box per card)
     for tang in FE_TANG:
-        side.append(Layer("FrontEndPCB", z_mesh - FE_H, FE_H, "FR4",
-                          FE_T/2, FE_LEN/2, ox=FE_RING, oy=tang,
+        side.append(Layer("FrontEndPCB", z_mesh - FE_ENV, FE_ENV, "FR4+Cu",
+                          FE_W/2, FE_LEN/2, ox=FE_RING, oy=tang,
                           color="#339933", alpha=0.9))
-        side.append(Layer("FrontEndPCB", z_mesh - FE_H, FE_H, "FR4",
-                          FE_LEN/2, FE_T/2, ox=tang, oy=FE_RING,
+        side.append(Layer("FrontEndPCB", z_mesh - FE_ENV, FE_ENV, "FR4+Cu",
+                          FE_LEN/2, FE_W/2, ox=tang, oy=FE_RING,
                           color="#339933", alpha=0.9))
 
     add("Micromesh", MESH_T, f"steel(x{MESH_FILL:.2f})", MESH_FACE/2, MESH_FACE/2,
@@ -159,10 +166,10 @@ def build_stack(bulge: float = BULGE_SAG):
 
     add("PCB_Kapton", PCB_KAPTON, "kapton", PCB_FACE/2, PCB_FACE/2,
         color="#e6b300", ox=PCB_OFF, oy=PCB_OFF)
-    for i in range(1, PCB_N + 1):
-        add(f"PCB_Cu_{i}", PCB_CU, "Cu", PCB_FACE/2, PCB_FACE/2,
+    for lay, cov in PCB_CU_LAYERS:
+        add(f"PCB_Cu_{lay}", PCB_CU, f"Cu(x{cov:.2f})", PCB_FACE/2, PCB_FACE/2,
             color="#cc6619", ox=PCB_OFF, oy=PCB_OFF)
-        add(f"PCB_FR4_{i}", PCB_FR4, "FR4", PCB_FACE/2, PCB_FACE/2,
+        add(f"PCB_FR4_{lay}", PCB_FR4, "FR4", PCB_FACE/2, PCB_FACE/2,
             color="#339933", ox=PCB_OFF, oy=PCB_OFF)
     z_pcb_end = z
 

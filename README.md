@@ -35,10 +35,13 @@ remaining assumptions in [`design/NEEDED_INPUTS.md`](design/NEEDED_INPUTS.md)):
   frame (440/410), 4× 1.62 mm field-cage PCBs lining the aperture
 - **Mesh**: woven SS 19/48 µm → 38 µm effective-density slab (fill 0.223)
 - **Readout board**: 1.70 mm single body (mesh + 150 µm amp + 100 µm paste +
-  laminate), 470², offset (+15,+15) from the active axis
+  laminate), 470², offset (+15,+15) from the active axis; copper = the five
+  physical gerber layers (guard ring, pads, Y strips, X strips, fan-out),
+  density-scaled by their measured coverage (`scripts/gerber/analyze_cu_coverage.py`)
 - **Backing**: 5 mm rohacell + 25 µm aluminized mylar + **8 mm Al support
   plate with a 402 mm aperture** concentric with the 399.36 mm active area
-- **M1 front-end cards**: 2× per connector edge alongside the frame
+- **M1 front-end cards**: 2× per connector edge, flat on the drift side of
+  the board edge and straddling it (6.6 mm envelope: 6 gerber Cu layers + FR4)
 
 `--legacy-geometry` restores the pre-2026-08 uniform-slab stack (bit-identical
 to the old build). Model figures — cross-section, 3D, exploded, and a

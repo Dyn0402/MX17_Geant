@@ -48,14 +48,10 @@ downstream), 470 mm face, replacing the old 50 µm bare-Al guess.
 in albedo/backscatter for the Sr-90 runs. A caliper or datasheet number ends
 the guess.
 
-## 4. 🟡 Amplification gap: 150 µm or 128 µm
+## 4. ✅ Amplification gap: 150 µm
 
-**Assume now:** 150 µm — both sims' historical value, and P2 confirmed 150 for
-their build. A bulk micromegas is often 128 µm, and the CAD folds the gap
-invisibly into the 1.70 mm readout body, so the CAD cannot settle it.
-
-**Why it matters:** ±15 % on amplification-gap path length; secondary for
-material budget, primary for any gain modelling done downstream of Geant4.
+**Confirmed by Dylan, 2026-08-06.** The 150 µm both sims carried is correct;
+the 128 µm bulk-standard question is closed.
 
 ## 5. 🟡 Which side the window Al and cathode Cu face
 
@@ -67,19 +63,33 @@ for MX17.
 **Why it matters:** sub-µm layers; irrelevant to energy deposit, marginally
 relevant to very-low-energy electron emission off the surfaces.
 
-## 6. ⬜ Readout PCB internal stackup
+## 6. 🟡 Readout PCB internal stackup
 
-**Assume now:** the historical 50 µm kapton + 4 × 26 µm Cu, with the FR4
-filler solved (4 × 314.5 µm) so that mesh + amp + paste + laminate = the CAD's
-1.70 mm single body. In-plane, the copper is modelled as full sheets, although
-the gerbers show pads + X/Y strips on 3 functional layers (0.68 mm pads on
-0.78 mm pitch, 512 × 512, 399.36 mm active area).
+**Now partly measured (2026-08-06).** The copper is modelled as the five
+physical gerber layers (L3 guard ring, L4 pads, L5 Y strips, L6 X strips,
+L7 fan-out; L8 carries only the outline stroke), each a 26 µm sheet
+density-scaled by its measured area coverage over the 470 mm board face —
+0.095 / 0.651 / 0.419 / 0.420 / 0.456 (`scripts/gerber/analyze_cu_coverage.py`,
+0.05 mm/px raster; over the active area: 0.00 / 0.879 / 0.533 / 0.534 / 0.608).
+FR4 filler (5 × 246.4 µm) still solves the CAD 1.70 mm body.
 
-**Why it matters:** total board mass is now pinned by the CAD (1.70 mm), but
-the Cu fraction inside it is a guess. Gerber-measured area coverage (as p2 did
-with `analyze_cu_coverage.py`) would turn the 4 full sheets into
-density-scaled ones without new hardware input. Good candidate for the next
-model iteration.
+**Still open:** the per-layer copper *thickness* (26 µm is the historical
+guess; ½-oz 18 µm is the common fab default) and the kapton/dielectric split.
+A fab stackup drawing would settle it.
+
+## 6b. 🟡 M1 front-end card internals
+
+**Assume now (Dylan 2026-08-06):** each card is its 6.6 mm CAD envelope
+(41 × 180 mm, flat on the drift-gas side of the board edge, straddling it
+longways at ring 242.5 mm / tangential +90 / −93 mm), filled with the six
+gerber-defined Cu layers (26 µm each, density-scaled by the panel-average
+coverage 0.183/0.105/0.110/0.106/0.102/0.053) and FR4 for the remainder.
+
+**Why it matters / caveat:** treating the whole 6.6 mm as solid laminate
+means components and connectors are modelled as FR4-equivalent — that likely
+*overstates* the card mass (a bare 6-layer card is ~1.6 mm). If the M1s ever
+matter for a background estimate, split the envelope into laminate + connector
+standoff + air. Peripheral material, outside the beam path.
 
 ## 7. 🟡 Per-arm orientation of the module asymmetries (Full_Geant)
 
@@ -91,9 +101,9 @@ local frame.
 active regions are unaffected. The photos/survey of the actual arm mounting
 would settle it. Note also two Full_Geant-only deviations, commented in its
 `DetectorConstruction.cc`: window bulge off (square terraced-dome corners
-would falsely hit the neighbour arm's flange) and M1 cards off (CAD ring
-radius interpenetrates the neighbour by ~1.1 mm at the surveyed arm
-distances).
+would falsely hit the neighbour arm's flange) and M1 cards off (straddling
+cards reach 263 mm from the active axis and interpenetrate the neighbour
+arm's flange at the surveyed arm distances).
 
 ## 8. 🟡 The 0.1 mm CAD seam at the frame/readout interface
 

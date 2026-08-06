@@ -3,9 +3,10 @@
 Plots of the as-built MX17 Geant4 model (scripts/model/mx17_model.py).
 
     python scripts/model/plot_mx17_model.py             # all figures
-    python scripts/model/plot_mx17_model.py --only 3d   # xsec | 3d | status
+    python scripts/model/plot_mx17_model.py --only 3d   # board | xsec | 3d | status
 
 Outputs to design/figures/ by default:
+    mx17_board_copper.png  readout copper rendered from the production gerbers
     mx17_stack_xsec.png    cross-section at y=0 (true scale + zooms + stack)
     mx17_3d_overview.png   assembled 3D views (z exaggerated where noted)
     mx17_3d_exploded.png   exploded 3D view
@@ -21,7 +22,8 @@ import sys
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
+from matplotlib.collections import LineCollection, PatchCollection
+from matplotlib.patches import Circle, Rectangle
 
 # On machines where an old distro matplotlib coexists with a pip user install,
 # the distro's mpl_toolkits shadows the user install's namespace portion.
@@ -40,8 +42,13 @@ import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
+sys.path.insert(0, os.path.join(REPO, "scripts", "gerber"))
 
 import mx17_model as M
+from gerber_outline import parse
+
+GERBER_DIR = os.path.join(REPO, "design", "gerbers", "readout_pcb")
+CU_COLOR = "#b87333"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -180,6 +187,106 @@ def fig_3d(outdir):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Board copper from the production gerbers (like p2_board_copper.png)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def draw_gerber(ax, gf, lw_scale):
+    """Additive copper render: regions, strokes at aperture width, flashes."""
+    small = [r for r in gf.regions if 2 < len(r) <= 10000]
+    zones = [r for r in gf.regions if len(r) > 10000]
+    if small:
+        polys = [plt.Polygon(np.array(r), closed=True) for r in small]
+        ax.add_collection(PatchCollection(polys, facecolor=CU_COLOR,
+                                          edgecolor="none", alpha=0.95, zorder=2))
+    if zones:
+        ax.add_collection(LineCollection(
+            [np.array(z) for z in zones], colors=CU_COLOR, linewidths=0.1,
+            alpha=0.35, zorder=1))
+    by_w = {}
+    for s in gf.segments:
+        w = gf.apertures.get(s.aperture)
+        w = w.size if w else 0.15
+        by_w.setdefault(round(w, 3), []).append(s)
+    for w, segs in by_w.items():
+        lines = [s.sample(16) for s in segs]
+        ax.add_collection(LineCollection(
+            lines, colors=CU_COLOR, linewidths=max(w * lw_scale, 0.25),
+            alpha=0.9, zorder=2, capstyle="round"))
+    pats = []
+    for f in gf.flashes:
+        a = gf.apertures.get(f.aperture)
+        if a is None:
+            continue
+        if a.template in ("R", "O") and len(a.params) >= 2:
+            pats.append(Rectangle((f.x - a.params[0]/2, f.y - a.params[1]/2),
+                                  a.params[0], a.params[1]))
+        elif a.template == "C" and a.params:
+            pats.append(Circle((f.x, f.y), max(a.params[0], 0.05) / 2))
+        elif a.params:
+            pats.append(Circle((f.x, f.y), max(a.params[0], 0.1) / 2))
+    if pats:
+        ax.add_collection(PatchCollection(pats, facecolor=CU_COLOR,
+                                          edgecolor="none", alpha=0.95, zorder=3))
+
+
+def board_overlays(ax, lw=1.2):
+    b = plt.Rectangle((-220, -220), 470, 470, fill=False, ec="crimson",
+                      lw=lw, zorder=5, label="board outline (L8)")
+    ax.add_patch(b)
+    a = M.ACTIVE / 2
+    ax.add_patch(plt.Rectangle((-a, -a), 2*a, 2*a, fill=False, ec="royalblue",
+                               ls=":", lw=lw, zorder=5,
+                               label="active area (399.36)"))
+    ax.add_patch(plt.Rectangle((-205, -205), 410, 410, fill=False, ec="0.35",
+                               ls="--", lw=lw, zorder=5,
+                               label="gas frame aperture (410)"))
+    ax.add_patch(plt.Rectangle((-201, -201), 402, 402, fill=False, ec="0.6",
+                               ls="-.", lw=0.9, zorder=5,
+                               label="support-plate aperture (402)"))
+    ax.plot(0, 0, "+", color="k", ms=10, mew=1.5, zorder=6)
+
+
+def fig_board(outdir):
+    layers = [("DFS3498A_L2-pads.gbr",   "L4 — readout pads (65% Cu on board)"),
+              ("DFS3498A_L3-TrackY.gbr", "L5 — Y strips (42%)"),
+              ("DFS3498A_L4-TrackX.gbr", "L6 — X strips (42%)")]
+    fig = plt.figure(figsize=(19, 6.9))
+    gs = fig.add_gridspec(1, 4, width_ratios=[1.2, 1.2, 1.2, 1.0])
+    axs = [fig.add_subplot(gs[i]) for i in range(4)]
+
+    for ax, (fn, title) in zip(axs[:3], layers):
+        gf = parse(os.path.join(GERBER_DIR, fn))
+        draw_gerber(ax, gf, lw_scale=0.55)
+        board_overlays(ax)
+        ax.set_xlim(-240, 270); ax.set_ylim(-240, 270)
+        ax.set_aspect("equal"); ax.grid(alpha=0.2, lw=0.4)
+        ax.set_title(title, fontsize=11)
+        ax.set_xlabel("x [mm]")
+    axs[0].set_ylabel("y [mm]")
+    axs[0].legend(loc="upper left", fontsize=7)
+
+    # zoom: pad field + strip fan-out toward the +x connector edge
+    axz = axs[3]
+    for fn, _ in (layers[0], layers[2]):
+        gf = parse(os.path.join(GERBER_DIR, fn))
+        draw_gerber(axz, gf, lw_scale=3.0)
+    board_overlays(axz)
+    axz.set_xlim(190, 258); axz.set_ylim(55, 130)
+    axz.set_aspect("equal"); axz.grid(alpha=0.2, lw=0.4)
+    axz.set_title("zoom: pads + X-strip fan-out\nat the +x connector edge (M1 cards)",
+                  fontsize=10)
+    axz.set_xlabel("x [mm]")
+
+    fig.suptitle("MX17 readout board — production gerbers (DFS3498A) with model "
+                 "overlays; Cu coverage feeds the density-scaled sheets",
+                 fontsize=13)
+    fig.tight_layout(rect=[0, 0, 1, 0.95])
+    out = os.path.join(outdir, "mx17_board_copper.png")
+    fig.savefig(out, dpi=170); plt.close(fig)
+    print("wrote", out)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Cross-section at y = 0
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -223,7 +330,7 @@ def fig_xsec(outdir):
 
     zs = {L.name: (L.z0, L.t) for L in layers}
     z_mesh = zs["Micromesh"][0]
-    z_end = zs["PCB_FR4_4"][0] + zs["PCB_FR4_4"][1]
+    z_end = zs["PCB_FR4_L7"][0] + zs["PCB_FR4_L7"][1]
     ax2.set_xlim(-30, 30); ax2.set_ylim(z_end + 0.1, z_mesh - 0.1)
     ax2.set_xlabel("x [mm]")
     ax2.set_title("Zoom: mesh → laminate (1.70 mm board body)")
@@ -232,7 +339,7 @@ def fig_xsec(outdir):
                       ("AmpGas", "amp gap (150 µm)"),
                       ("ResistivePaste", "paste (100 µm)"),
                       ("PCB_Kapton", "kapton (50 µm)"),
-                      ("PCB_FR4_2", "4× Cu 26 µm / FR4 314.5 µm")]:
+                      ("PCB_FR4_L5", "5× Cu 26 µm (coverage-scaled)\n/ FR4 246.4 µm")]:
         z0, t = zs[name]
         ax2.annotate(lab, xy=(30, z0 + t/2), xytext=(32, z0 + t/2),
                      fontsize=8, va="center", annotation_clip=False)
@@ -288,11 +395,13 @@ def fig_status(outdir):
         ("mesh",    "micromesh — woven SS 19/48 µm",
          "weave spec is a P2-like placeholder", 0.55, "#9e9e9e", C_GUESS),
         ("amp",     "amplification gap — 150 µm",
-         "both sims' historical value; 128 µm bulk standard unresolved", 0.7, "#ffc4c4", C_ASSUME),
+         "confirmed (Dylan 2026-08-06)", 0.7, "#ffc4c4", C_HW),
         ("paste",   "resistive paste — 100 µm",
          "historical value; not in CAD or gerbers", 0.45, "#555555", C_GUESS),
         ("pcb",     "readout board — 1.70 mm body, 470²",
-         "CAD total; internal Cu/FR4 stackup unknown, FR4 filler solved", 0.9, "#cc6619", C_ASSUME),
+         "CAD total; Cu = 5 gerber layers × 26 µm, density-scaled\nby measured coverage (L3–L7); FR4 filler solved", 0.9, "#cc6619", C_CAD),
+        ("m1",      "M1 cards — flat, straddling the edges",
+         "6.6 mm envelope: 6 gerber Cu layers + FR4 (components as FR4)", 0.5, "#9fd49f", C_ASSUME),
         ("roh",     "rohacell — 5 mm, 470²", "CAD", 0.7, "#e8e89a", C_CAD),
         ("foil",    "back foil — 25 µm aluminized mylar",
          "existence: hardware; thickness assumed", 0.45, "#63b8d8", C_ASSUME),
@@ -341,10 +450,13 @@ def fig_status(outdir):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out-dir", default=os.path.join(REPO, "design", "figures"))
-    ap.add_argument("--only", choices=["xsec", "3d", "status"], default=None)
+    ap.add_argument("--only", choices=["board", "xsec", "3d", "status"],
+                    default=None)
     args = ap.parse_args()
     os.makedirs(args.out_dir, exist_ok=True)
 
+    if args.only in (None, "board"):
+        fig_board(args.out_dir)
     if args.only in (None, "xsec"):
         fig_xsec(args.out_dir)
     if args.only in (None, "3d"):

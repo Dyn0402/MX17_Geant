@@ -93,18 +93,35 @@ struct ModuleSpec {
     double pcbFR4_um     = 100.0;  // per layer; ignored when pcbTotal_mm > 0
     int    pcbNLayers    = 4;
     double pcbTotal_mm   = 0.0;    // >0: FR4 per-layer solved so mesh front → laminate back = pcbTotal
+    // Cu coverage per readout layer (physical L3..L7; L8 is outline-only),
+    // measured over the 470 mm board face from the production gerbers
+    // (scripts/gerber/analyze_cu_coverage.py). When non-empty it replaces the
+    // pcbNLayers full-density sheets with one density-scaled 26 µm sheet per
+    // entry: L3 guard ring, L4 pads, L5 Y strips, L6 X strips, L7 fan-out.
+    std::vector<double> pcbCuCoverage;
     double pcbFace_mm    = 400.0;  // as-built 470
     double pcbOffset_mm  = 0.0;    // +x,+y offset of the 470 mm plates from the active-area axis (as-built 15)
 
-    // ── Front-end (multi M1) boards ──
-    // Two pairs of vertical daughter-cards on the two connector edges (+x and
-    // +y in the active-area frame; STEP: ring radius 227.5 mm, tangential
-    // centres +75 / −108 mm), standing upstream from the mesh plane alongside
-    // the gas frame outer wall.
-    double feThick_mm    = 0.0;    // radial thickness; 0 → none
+    // ── Front-end (multi M1) cards ──
+    // Two pairs of cards lying FLAT on the drift-gas side of the readout-board
+    // edge, straddling it longways (long axis along the edge), on the two
+    // connector edges (+x and +y in the active-area frame). STEP placements
+    // re-referenced to the active axis: centreline ring 242.5 mm, tangential
+    // centres +90.0 / −93.1 mm — so each card spans radially 222..263 mm,
+    // ~28 mm over the board and ~13 mm hanging outboard, just outside the
+    // 440 mm gas frame. The 6.6 mm CAD envelope is modelled as the card's six
+    // gerber-defined Cu layers with FR4 filling the rest (components and
+    // connectors folded into FR4 — see design/NEEDED_INPUTS.md).
+    double feEnvelope_mm = 0.0;    // envelope thickness in z; 0 → none
+    double feWidth_mm    = 41.0;   // radial extent
     double feLen_mm      = 180.0;  // tangential length
-    double feHeight_mm   = 41.0;   // z extent, rising upstream from the mesh plane
-    double feRing_mm     = 227.5;  // board centreline distance from the axis
+    double feRing_mm     = 242.5;  // card centreline distance from the active axis
+    double feTangA_mm    = 90.0;   // tangential centres of the two cards per edge
+    double feTangB_mm    = -93.1;
+    double feCu_um       = 26.0;   // per Cu layer (same guess as the readout)
+    // Cu coverage per M1 layer (top,L2..L5,bot), panel average from
+    // scripts/gerber/analyze_cu_coverage.py; empty → solid FR4 envelope.
+    std::vector<double> feCuCoverage;
 
     // ── Backing ──
     double rohacell_mm   = 5.0;
@@ -146,8 +163,10 @@ inline ModuleSpec AsBuiltSpec(double bulgeSag_mm = 8.0) {
     s.meshOpen_um    = 48.0;
     s.meshFace_mm    = 410.0;
     s.ampFace_mm     = 410.0;
-    s.feThick_mm     = 6.6;     // multi M1 front-end cards
+    s.feEnvelope_mm  = 6.6;     // multi M1 front-end cards (flat, straddling)
+    s.feCuCoverage   = {0.183, 0.105, 0.110, 0.106, 0.102, 0.053};
     s.pcbTotal_mm    = 1.70;    // CAD single-body readout board
+    s.pcbCuCoverage  = {0.0945, 0.6512, 0.4194, 0.4200, 0.4558};
     s.pcbFace_mm     = 470.0;
     s.pcbOffset_mm   = 15.0;    // plates offset (+15,+15) from the active-area axis (STEP + gerbers)
     s.backMylar_um   = 25.0;    // assumed (design/NEEDED_INPUTS.md)
@@ -287,12 +306,26 @@ inline Module BuildModule(const ModuleSpec& s, const Materials& m) {
 
     // Readout laminate FR4 thickness: fixed per-layer (legacy), or solved so
     // that mesh front → laminate back equals the CAD 1.70 mm board body.
+    const int nPCBCu = s.pcbCuCoverage.empty()
+        ? s.pcbNLayers : static_cast<int>(s.pcbCuCoverage.size());
     double tPCBFR4 = s.pcbFR4_um * um;
     if (s.pcbTotal_mm > 0.0) {
         const double lamTotal = s.pcbTotal_mm*mm - tMesh - tAmp - tPaste
-                              - tPCBKap - s.pcbNLayers*tPCBCu;
-        tPCBFR4 = lamTotal / s.pcbNLayers;
+                              - tPCBKap - nPCBCu*tPCBCu;
+        tPCBFR4 = lamTotal / nPCBCu;
     }
+
+    // Density-scaled copper for partially covered layers (p2-style): a
+    // full-thickness sheet whose density is the gerber-measured area fraction.
+    auto EffCu = [&](const std::string& name, double frac) -> G4Material* {
+        if (frac >= 0.999) return m.cu;
+        G4Material* mat = G4Material::GetMaterial(name, false);
+        if (!mat) {
+            mat = new G4Material(name, m.cu->GetDensity() * frac, 1);
+            mat->AddMaterial(m.cu, 1.0);
+        }
+        return mat;
+    };
 
     // ── Uniform (legacy) transverse face ─────────────────────────────────────
     if (s.Uniform()) {
@@ -450,29 +483,54 @@ inline Module BuildModule(const ModuleSpec& s, const Materials& m) {
     }
     out.driftGasLV = addBox("DriftGas", driftH, driftH, tDriftGas, m.gas, visDrift);
 
-    // 5) Front-end (multi M1) cards: two per connector edge, standing upstream
-    //    from the mesh plane alongside the gas frame outer wall. Modelled as
-    //    solid FR4 (components folded in). Outside the beam path.
+    // 5) Front-end (multi M1) cards: two per connector edge, lying flat on the
+    //    drift-gas side of the readout-board edge and straddling it longways,
+    //    just outside the gas frame. The 6.6 mm CAD envelope (bottom face at
+    //    the board top = mesh plane) holds the card's gerber-defined Cu layers
+    //    with FR4 filling the remainder (components/connectors as FR4).
     const double zMeshFront = zF;
-    if (s.feThick_mm > 0.0) {
-        const double tFe  = s.feThick_mm  * mm;
-        const double feLH = s.feLen_mm    * mm / 2;
-        const double feHH = s.feHeight_mm * mm / 2;
-        const double feR  = s.feRing_mm   * mm;
-        const double zFe  = zMeshFront - feHH;
-        auto* feX = new G4LogicalVolume(
-            new G4Box("FrontEndPCB_x", tFe/2, feLH, feHH), m.fr4, "FrontEndPCB");
-        auto* feY = new G4LogicalVolume(
-            new G4Box("FrontEndPCB_y", feLH, tFe/2, feHH), m.fr4, "FrontEndPCB");
-        feX->SetVisAttributes(visFR4);
-        feY->SetVisAttributes(visFR4);
-        for (double tang : {75.0*mm, -108.0*mm}) {
-            out.pieces.push_back({feX, G4ThreeVector(feR, tang, zFe), 0.0, false});
-            out.pieces.push_back({feY, G4ThreeVector(tang, feR, zFe), 0.0, false});
+    if (s.feEnvelope_mm > 0.0) {
+        const double tEnv = s.feEnvelope_mm * mm;
+        const double feWH = s.feWidth_mm * mm / 2;   // radial half-extent
+        const double feLH = s.feLen_mm   * mm / 2;   // tangential half-extent
+        const double feR  = s.feRing_mm  * mm;
+        // sub-stack: [Cu + FR4 gap] per gerber layer, top (upstream) first
+        const int nFeCu = static_cast<int>(s.feCuCoverage.size());
+        const double tFeCu  = s.feCu_um * um;
+        const double tFeFR4 = nFeCu > 0 ? (tEnv - nFeCu*tFeCu) / nFeCu : tEnv;
+        struct Sub { double z0, t; G4Material* mat; };
+        std::vector<Sub> subs;
+        double zs = zMeshFront - tEnv;
+        for (int i = 0; i < std::max(nFeCu, 1); ++i) {
+            if (nFeCu > 0) {
+                subs.push_back({zs, tFeCu,
+                                EffCu("MX17M1CuEff_" + std::to_string(i),
+                                      s.feCuCoverage[i])});
+                zs += tFeCu;
+            }
+            subs.push_back({zs, tFeFR4, m.fr4});
+            zs += tFeFR4;
         }
-        grow(feR + tFe/2, feR + tFe/2, 0, 0);
-        out.frontExtent = std::max(out.frontExtent,
-                                   s.feHeight_mm*mm - zMeshFront);
+        // 2 cards on the +x edge, 2 on the +y edge
+        for (const auto& sub : subs) {
+            auto* lvx = new G4LogicalVolume(
+                new G4Box("FrontEndPCB_x", feWH, feLH, sub.t/2),
+                sub.mat, "FrontEndPCB");
+            auto* lvy = new G4LogicalVolume(
+                new G4Box("FrontEndPCB_y", feLH, feWH, sub.t/2),
+                sub.mat, "FrontEndPCB");
+            auto* vis = (sub.mat == m.fr4) ? visFR4 : visCu;
+            lvx->SetVisAttributes(vis);
+            lvy->SetVisAttributes(vis);
+            const double zc = sub.z0 + sub.t/2;
+            for (double tang : {s.feTangA_mm * mm, s.feTangB_mm * mm}) {
+                out.pieces.push_back({lvx, G4ThreeVector(feR, tang, zc),
+                                      0.0, false});
+                out.pieces.push_back({lvy, G4ThreeVector(tang, feR, zc),
+                                      0.0, false});
+            }
+        }
+        grow(feR + feWH, feR + feWH, 0, 0);
     }
 
     // 6) Micromesh / amplification gap / resistive layer (top of the readout
@@ -484,11 +542,18 @@ inline Module BuildModule(const ModuleSpec& s, const Materials& m) {
 
     if (s.includeReadout) {
         // 6) Readout laminate — with pcbTotal_mm the FR4 filler is solved so
-        //    mesh + amp + paste + laminate = the CAD 1.70 mm board body.
+        //    mesh + amp + paste + laminate = the CAD 1.70 mm board body. With
+        //    pcbCuCoverage set, the copper is one density-scaled sheet per
+        //    physical gerber layer (L3 guard ring, L4 pads, L5 Y strips,
+        //    L6 X strips, L7 fan-out; L8 carries no copper).
         addBox("PCB_Kapton", pcbH, pcbH, tPCBKap, m.kapton, visKapton, off, off);
-        for (int i = 1; i <= s.pcbNLayers; ++i) {
+        for (int i = 1; i <= nPCBCu; ++i) {
+            G4Material* cuMat = s.pcbCuCoverage.empty()
+                ? m.cu
+                : EffCu("MX17PCBCuEff_L" + std::to_string(i + 2),
+                        s.pcbCuCoverage[i - 1]);
             addBox("PCB_Cu_"  + std::to_string(i), pcbH, pcbH, tPCBCu,
-                   m.cu, visCu, off, off);
+                   cuMat, visCu, off, off);
             addBox("PCB_FR4_" + std::to_string(i), pcbH, pcbH, tPCBFR4,
                    m.fr4, visFR4, off, off);
         }
