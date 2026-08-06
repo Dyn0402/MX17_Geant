@@ -13,8 +13,8 @@ include(${Geant4_USE_FILE})
 # Find ROOT (optional but recommended for output)
 find_package(ROOT QUIET)
 
-# Include dirs
-include_directories(${PROJECT_SOURCE_DIR}/include)
+# Include dirs (shared/ holds the module geometry header used by MX17_Full_Geant too)
+include_directories(${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/shared)
 
 # Source files
 file(GLOB SOURCES ${PROJECT_SOURCE_DIR}/src/*.cc)

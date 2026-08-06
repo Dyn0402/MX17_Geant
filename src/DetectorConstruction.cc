@@ -30,6 +30,7 @@
 #include "G4UserLimits.hh"
 
 #include "SensitiveDetector.hh"
+#include "MX17ModuleGeometry.hh"
 
 #include <stdexcept>
 #include <algorithm>
@@ -203,25 +204,53 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
 
     G4double detXY = 40.0 * cm;
 
-    // ── MM stack layer thicknesses ───────────────────────────
-    G4double tMylar    = 40.0  * um;
-    G4double tAlWin    = 0.1   * um;
-    G4double tKapCath  = 50.0  * um;
-    G4double tCuCath   = 9.0   * um;
-    G4double tDrift    = 3.0   * cm;
-    G4double tMesh     = 30.0  * um;
-    G4double tAmp      = 150.0 * um;
-    G4double tResPaste = 100.0 * um;
-    G4double mmTotalZ  = tMylar + tAlWin + tKapCath + tCuCath
-                       + tDrift + tMesh + tAmp + tResPaste;
+    // ── MM module (shared description, see shared/MX17ModuleGeometry.hh) ─────
+    // The MM + readout stack is built once from the shared spec; modes place
+    // the returned pieces at their own z. mmTotalZ / pcbTotalZ keep their
+    // historical meaning (window→paste, laminate→backing) for the air-gap and
+    // world-size arithmetic below.
+    MX17::Materials mmMats;
+    mmMats.mylar    = matMylar;
+    mmMats.al       = matAl;
+    mmMats.kapton   = matKapton;
+    mmMats.cu       = matCu;
+    mmMats.steel    = matSteel;
+    mmMats.fr4      = matFR4;
+    mmMats.resPaste = matResPaste;
+    mmMats.rohacell = matRohacell;
+    mmMats.gas      = matGas;
 
-    // ── PCB stack ─────────────────────────────────────────────
-    G4double tPCB_Kap  = 50.0  * um;
-    G4double tPCB_Cu   = 26.0  * um;
-    G4double tPCB_FR4  = 100.0 * um;
-    G4double tPCB_Roh  = 5.0   * mm;
-    G4double tPCB_Al   = 50.0  * um;
-    G4double pcbTotalZ = tPCB_Kap + 4*(tPCB_Cu + tPCB_FR4) + tPCB_Roh + tPCB_Al;
+    MX17::ModuleSpec mmSpec = MX17::LegacySpec(detXY/mm, detXY/mm);
+    const bool placeMM = (fConfig.mode == SimMode::kVacuum ||
+                          fConfig.mode == SimMode::kFullExperiment ||
+                          fConfig.mode == SimMode::kSr90Calibration);
+    if (fConfig.mode == SimMode::kVacuum) mmSpec.includeReadout = false;
+
+    // Built in every mode: kSr90NoMM still needs the stack depths for its air
+    // gap even though the module itself is not placed.
+    MX17::Module mmModule = MX17::BuildModule(mmSpec, mmMats);
+    if (placeMM) {
+        fDriftGasLV = mmModule.driftGasLV;
+        fAmpGasLV   = mmModule.ampGasLV;
+    }
+
+    G4double mmTotalZ  = mmModule.mmDepth;
+    G4double pcbTotalZ = mmModule.readoutDepth;
+
+    // Place every module piece with its front (flat window plane) at zFront.
+    // Slabs use the running-front arithmetic (bit-identical to the historical
+    // per-slab `zF += t`); side structure is placed at zFront + pos.z.
+    // Returns the z of the module back face.
+    auto PlaceModule = [&](G4LogicalVolume* world, G4double zFront) -> G4double {
+        G4double run = zFront;
+        for (const auto& p : mmModule.pieces) {
+            const G4double z = p.advance ? run + p.thick/2 : zFront + p.pos.z();
+            new G4PVPlacement(nullptr, G4ThreeVector(p.pos.x(), p.pos.y(), z),
+                              p.lv, p.lv->GetName(), world, false, 0, true);
+            if (p.advance) run += p.thick;
+        }
+        return run;
+    };
 
     // ── Scint wall (BlackMylar tape, from Full_Geant) ─────────
     G4double tBlkTape  = 200.0 * um;
@@ -302,25 +331,8 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
         G4cout << "  Gas: " << fConfig.gas
                << "  (rho=" << matGas->GetDensity()/(mg/cm3) << " mg/cm3)" << G4endl;
 
-        // Place MM layers
-        G4double zFront = -mmTotalZ / 2.0;
-        auto PlaceSlab = [&](const std::string& name, G4double t,
-                              G4Material* mat, G4VisAttributes* vis,
-                              G4LogicalVolume*& outLV) {
-            auto* lv = MakeSlab(name, t, detXY/2, detXY/2, mat, vis);
-            new G4PVPlacement(nullptr, G4ThreeVector(0,0,zFront+t/2), lv, name, worldLV, false, 0, true);
-            zFront += t;
-            outLV = lv;
-        };
-        G4LogicalVolume* dummy = nullptr;
-        PlaceSlab("GasWindow_Mylar",     tMylar,    matMylar,    visMylar,    dummy);
-        PlaceSlab("GasWindow_Al",        tAlWin,    matAl,       visAl,       dummy);
-        PlaceSlab("DriftCathode_Kapton", tKapCath,  matKapton,   visKapton,   dummy);
-        PlaceSlab("DriftCathode_Cu",     tCuCath,   matCu,       visCu,       dummy);
-        PlaceSlab("DriftGas",            tDrift,    matGas,      visDrift,    fDriftGasLV);
-        PlaceSlab("Micromesh",           tMesh,     matSteel,    visMesh,     dummy);
-        PlaceSlab("AmpGas",              tAmp,      matGas,      visAmp,      fAmpGasLV);
-        PlaceSlab("ResistivePaste",      tResPaste, matResPaste, visResPaste, dummy);
+        // Place MM layers (shared module description)
+        PlaceModule(worldLV, -mmTotalZ / 2.0);
 
         return worldPV;
     }
@@ -390,26 +402,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
         G4LogicalVolume* dL = nullptr;
 
         Place("AirGap1",             airGap1,   matAir,      nullptr,      dL);
-        Place("GasWindow_Mylar",     tMylar,    matMylar,    visMylar,     dL);
-        Place("GasWindow_Al",        tAlWin,    matAl,       visAl,        dL);
-        Place("DriftCathode_Kapton", tKapCath,  matKapton,   visKapton,    dL);
-        Place("DriftCathode_Cu",     tCuCath,   matCu,       visCu,        dL);
-        Place("DriftGas",            tDrift,    matGas,      visDrift,     fDriftGasLV);
-        Place("Micromesh",           tMesh,     matSteel,    visMesh,      dL);
-        Place("AmpGas",              tAmp,      matGas,      visAmp,       fAmpGasLV);
-        Place("ResistivePaste",      tResPaste, matResPaste, visResPaste,  dL);
-
-        Place("PCB_Kapton",   tPCB_Kap, matKapton,  visKapton,  dL);
-        Place("PCB_Cu_1",     tPCB_Cu,  matCu,      visCu,      dL);
-        Place("PCB_FR4_1",    tPCB_FR4, matFR4,     visFR4,     dL);
-        Place("PCB_Cu_2",     tPCB_Cu,  matCu,      visCu,      dL);
-        Place("PCB_FR4_2",    tPCB_FR4, matFR4,     visFR4,     dL);
-        Place("PCB_Cu_3",     tPCB_Cu,  matCu,      visCu,      dL);
-        Place("PCB_FR4_3",    tPCB_FR4, matFR4,     visFR4,     dL);
-        Place("PCB_Cu_4",     tPCB_Cu,  matCu,      visCu,      dL);
-        Place("PCB_FR4_4",    tPCB_FR4, matFR4,     visFR4,     dL);
-        Place("PCB_Rohacell", tPCB_Roh, matRohacell,visRohacell,dL);
-        Place("PCB_AlFoil",   tPCB_Al,  matAl,      visAl,      dL);
+        zF = PlaceModule(worldLV, zF);
 
         Place("AirGap2",               airGap2,   matAir,      nullptr,     dL);
         Place("ScintWall_BlackTape1",  tBlkTape,  matBlkMylar, visBlkMylar, dL);
@@ -465,26 +458,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
         G4LogicalVolume* dL = nullptr;
 
         Place("AirGap1",             airToMM,   matAir,      nullptr,      dL);
-        Place("GasWindow_Mylar",     tMylar,    matMylar,    visMylar,     dL);
-        Place("GasWindow_Al",        tAlWin,    matAl,       visAl,        dL);
-        Place("DriftCathode_Kapton", tKapCath,  matKapton,   visKapton,    dL);
-        Place("DriftCathode_Cu",     tCuCath,   matCu,       visCu,        dL);
-        Place("DriftGas",            tDrift,    matGas,      visDrift,     fDriftGasLV);
-        Place("Micromesh",           tMesh,     matSteel,    visMesh,      dL);
-        Place("AmpGas",              tAmp,      matGas,      visAmp,       fAmpGasLV);
-        Place("ResistivePaste",      tResPaste, matResPaste, visResPaste,  dL);
-
-        Place("PCB_Kapton",   tPCB_Kap, matKapton,  visKapton,  dL);
-        Place("PCB_Cu_1",     tPCB_Cu,  matCu,      visCu,      dL);
-        Place("PCB_FR4_1",    tPCB_FR4, matFR4,     visFR4,     dL);
-        Place("PCB_Cu_2",     tPCB_Cu,  matCu,      visCu,      dL);
-        Place("PCB_FR4_2",    tPCB_FR4, matFR4,     visFR4,     dL);
-        Place("PCB_Cu_3",     tPCB_Cu,  matCu,      visCu,      dL);
-        Place("PCB_FR4_3",    tPCB_FR4, matFR4,     visFR4,     dL);
-        Place("PCB_Cu_4",     tPCB_Cu,  matCu,      visCu,      dL);
-        Place("PCB_FR4_4",    tPCB_FR4, matFR4,     visFR4,     dL);
-        Place("PCB_Rohacell", tPCB_Roh, matRohacell,visRohacell,dL);
-        Place("PCB_AlFoil",   tPCB_Al,  matAl,      visAl,      dL);
+        zF = PlaceModule(worldLV, zF);
 
         Place("AirGap2",               airGap2,  matAir,      nullptr,     dL);
         Place("ScintWall_BlackTape1",  tBlkTape, matBlkMylar, visBlkMylar, dL);
