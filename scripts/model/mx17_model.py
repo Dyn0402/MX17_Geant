@@ -60,9 +60,13 @@ PCB_TOTAL   = 1.70     # CAD single-body readout board (mesh → laminate back)
 PCB_KAPTON  = 0.050
 PCB_CU      = 0.026
 # Physical copper layers L3..L7 (L8 is outline-only) with the gerber-measured
-# area coverage over the 470 mm board face (scripts/gerber/analyze_cu_coverage.py)
-PCB_CU_LAYERS = [("L3", 0.0945), ("L4", 0.6512), ("L5", 0.4194),
-                 ("L6", 0.4200), ("L7", 0.4558)]
+# area coverage over the 470 mm board face (scripts/gerber/analyze_cu_coverage.py).
+# The Geant4 model splits each layer into an active-window zone and an outside
+# zone rather than using these board averages — see shared/MX17ModuleGeometry.hh.
+PCB_CU_LAYERS = [("L3", 0.0941), ("L4", 0.5645), ("L5", 0.3635),
+                 ("L6", 0.3630), ("L7", 0.3978)]
+PCB_CU_ACTIVE = [0.0000, 0.7600, 0.4577, 0.4568, 0.5285]
+PCB_CU_OUTER  = [0.3385, 0.0568, 0.1189, 0.1194, 0.0584]
 PCB_N       = len(PCB_CU_LAYERS)
 PCB_FR4     = (PCB_TOTAL - MESH_T - AMP - PASTE - PCB_KAPTON - PCB_N * PCB_CU) / PCB_N
 PCB_FACE    = 470.0
@@ -82,7 +86,7 @@ FE_INNER    = 220.0    # inner edge (gerber 219.4, clipped to the frame ring)
 FE_OUTER    = 260.4    # outer edge (10.4 beyond the board edge at +250)
 FE_LEN      = 160.0    # tangential length
 FE_TANG     = (100.0, -100.0)  # tangential centres = board connector clusters
-FE_CU       = [0.147, 0.110, 0.114, 0.117, 0.111, 0.041]  # card-window coverage
+FE_CU       = [0.1405, 0.1034, 0.1078, 0.1109, 0.1051, 0.0362]  # card-window coverage
 
 ACTIVE      = 399.36   # readout active area (gerbers), centred
 

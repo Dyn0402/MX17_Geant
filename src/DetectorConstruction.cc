@@ -223,6 +223,12 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
     MX17::ModuleSpec mmSpec = fConfig.legacy_mm_geometry
         ? MX17::LegacySpec(detXY/mm, detXY/mm)
         : MX17::AsBuiltSpec(fConfig.mx17_bulge_front_mm);
+    // Only the as-built spec is patterned; the legacy stack must stay a plain
+    // uniform-slab build so it remains bit-identical to the pre-2026-08 output.
+    if (!fConfig.legacy_mm_geometry) {
+        mmSpec.patternedReadout = fConfig.mx17_patterned_readout;
+        mmSpec.patternedResist  = fConfig.mx17_patterned_readout;
+    }
     const bool placeMM = (fConfig.mode == SimMode::kVacuum ||
                           fConfig.mode == SimMode::kFullExperiment ||
                           fConfig.mode == SimMode::kSr90Calibration);

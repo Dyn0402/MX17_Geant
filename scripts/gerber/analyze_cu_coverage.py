@@ -6,8 +6,9 @@ better than the aperture sizes involved; no external geometry deps).
 
 The Geant4 model spans each copper layer as a full-face sheet, so the sheet
 density must be scaled by the real covered-area fraction, exactly as p2_geant
-does for the P2 wedge (their analyze_cu_coverage.py uses shapely; the numbers
-agree at the raster resolution).
+does for the P2 wedge. p2_geant's equivalent script uses shapely (exact vector
+geometry) rather than a raster, so it is not subject to the pixel-convention
+issue described in Raster below — do not "port" that correction over there.
 
 Readout board (DFS3498A): physical copper layers are L3..L8 — L1/L2 are the
 bulk-micromegas side (resistive layer + mesh) and have no copper gerber.
@@ -23,11 +24,18 @@ board's connector cluster at tangential +100. Coverage is reported over that
 card outline.
 
 Usage:
-    python scripts/gerber/analyze_cu_coverage.py [--res 0.05]
+    python scripts/gerber/analyze_cu_coverage.py [--res 0.02]
+    python scripts/gerber/analyze_cu_coverage.py --selftest   # pixel convention
 
 The resulting fractions are hard-coded in shared/MX17ModuleGeometry.hh
-(kReadoutCuCoverage / kM1CuCoverage) — rerun this script if the gerbers
-change and update the header.
+(pcbCuCoverage / pcbCuCoverageActive / pcbCuCoverageOuter / feCuCoverage) —
+rerun this script if the gerbers change and update the header. The Geant4 model
+splits each layer into an active-window zone and an outside zone, so both the
+"board" and "active" columns matter; the outside-zone value is derived as
+(board*A_board - active*A_active) / A_outside.
+
+Run --selftest after touching the drawing code: it checks the rasterizer
+against structures whose coverage is known analytically.
 """
 
 from __future__ import annotations
@@ -64,7 +72,16 @@ ACTIVE_HALF = 399.36 / 2
 
 
 class Raster:
-    """Dark/clear gerber raster over a bbox at `res` mm/px."""
+    """Dark/clear gerber raster over a bbox at `res` mm/px.
+
+    NOTE on the pixel convention: PIL's `rectangle`/`ellipse` fill INCLUSIVE of
+    both corner pixels, so drawing [c-h, c+h] covers 2h+1 pixels rather than
+    2h. Left uncorrected that inflates every feature by one pixel per
+    dimension, which is a large bias for features only a few pixels across —
+    the 0.68 mm pads at the old 0.05 mm/px default came out 16 % high
+    (0.879 vs the exact 0.68²/0.78² = 0.760). `_rect`/`_circ` below subtract
+    that pixel; see `--selftest` for the analytic check.
+    """
 
     def __init__(self, bbox, res):
         self.x0, self.y0, self.x1, self.y1 = bbox
@@ -76,6 +93,21 @@ class Raster:
 
     def px(self, x, y):
         return ((x - self.x0) / self.res, (y - self.y0) / self.res)
+
+    def _rect(self, cx, cy, hw, hh, fill):
+        """Axis-aligned box of half-size (hw, hh) px, endpoint-corrected."""
+        if 2 * hw < 1.0 or 2 * hh < 1.0:      # sub-pixel: keep a 1 px sliver
+            self.drw.rectangle([cx - hw, cy - hh, cx + hw, cy + hh], fill=fill)
+            return
+        self.drw.rectangle([cx - hw, cy - hh, cx + hw - 1, cy + hh - 1],
+                           fill=fill)
+
+    def _circ(self, cx, cy, r, fill):
+        """Disc of radius r px, endpoint-corrected."""
+        if 2 * r < 1.0:
+            self.drw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=fill)
+            return
+        self.drw.ellipse([cx - r, cy - r, cx + r - 1, cy + r - 1], fill=fill)
 
     def draw(self, gf):
         ap = gf.apertures
@@ -101,46 +133,93 @@ class Raster:
                     self.drw.line(pts, fill=fill, width=wpx, joint="curve")
                     r = wpx / 2
                     for p in (pts[0], pts[-1]):   # round caps
-                        self.drw.ellipse([p[0]-r, p[1]-r, p[0]+r, p[1]+r],
-                                         fill=fill)
+                        self._circ(p[0], p[1], r, fill)
                 else:
                     a = ap.get(obj.aperture)
                     if a is None:
                         continue
                     cx, cy = self.px(obj.x, obj.y)
                     if a.template == "C" and a.params:
-                        r = a.params[0] / 2 / self.res
-                        self.drw.ellipse([cx-r, cy-r, cx+r, cy+r], fill=fill)
+                        self._circ(cx, cy, a.params[0] / 2 / self.res, fill)
                     elif a.template in ("R", "O") and len(a.params) >= 2:
                         hw = a.params[0] / 2 / self.res
                         hh = a.params[1] / 2 / self.res
-                        self.drw.rectangle([cx-hw, cy-hh, cx+hw, cy+hh],
-                                           fill=fill)
+                        self._rect(cx, cy, hw, hh, fill)
                         if len(a.params) >= 4:    # rect with rect hole
                             hw2 = a.params[2] / 2 / self.res
                             hh2 = a.params[3] / 2 / self.res
-                            self.drw.rectangle([cx-hw2, cy-hh2, cx+hw2, cy+hh2],
-                                               fill=0 if want_dark else 1)
+                            self._rect(cx, cy, hw2, hh2,
+                                       0 if want_dark else 1)
                     elif a.params:                # macro: treat as circle
                         r = max(a.params[0], 0.05) / 2 / self.res
-                        self.drw.ellipse([cx-r, cy-r, cx+r, cy+r], fill=fill)
+                        self._circ(cx, cy, r, fill)
 
-    def coverage(self, bbox=None):
-        arr = np.asarray(self.img, dtype=np.uint8)
+    def coverage(self, bbox=None, rows_per_block=2048):
+        """Covered-area fraction over `bbox` (default: the whole raster).
+
+        Accumulated in row blocks: at 0.02 mm/px the 470 mm board is 23500²
+        pixels, and materialising that as a uint8 array at once would cost
+        ~550 MB.
+        """
         if bbox is None:
-            return arr.mean()
-        x0, y0, x1, y1 = bbox
-        j0 = max(int((x0 - self.x0) / self.res), 0)
-        j1 = min(int((x1 - self.x0) / self.res), self.w)
-        i0 = max(int((y0 - self.y0) / self.res), 0)
-        i1 = min(int((y1 - self.y0) / self.res), self.h)
-        return arr[i0:i1, j0:j1].mean()
+            i0, i1, j0, j1 = 0, self.h, 0, self.w
+        else:
+            x0, y0, x1, y1 = bbox
+            j0 = max(int((x0 - self.x0) / self.res), 0)
+            j1 = min(int((x1 - self.x0) / self.res), self.w)
+            i0 = max(int((y0 - self.y0) / self.res), 0)
+            i1 = min(int((y1 - self.y0) / self.res), self.h)
+        if i1 <= i0 or j1 <= j0:
+            return 0.0
+        total = 0
+        for a in range(i0, i1, rows_per_block):
+            b = min(a + rows_per_block, i1)
+            strip = self.img.crop((j0, a, j1, b))
+            total += int(np.asarray(strip, dtype=np.uint8).sum())
+        return total / float((i1 - i0) * (j1 - j0))
+
+
+def selftest(res):
+    """Analytic check of the pixel convention.
+
+    The pad layer is a known-exact structure — a 0.68 mm square on a 0.78 mm
+    pitch — so its coverage must come out at 0.68²/0.78² = 0.76003. Any
+    endpoint-convention regression shows up here immediately.
+    """
+    ok = True
+    for name, exact, draw in (
+        ("0.68 mm square @ 0.78 pitch", 0.68 ** 2 / 0.78 ** 2, "rect"),
+        ("0.50 mm disc   @ 0.78 pitch",
+         math.pi * 0.25 ** 2 / 0.78 ** 2, "circ"),
+    ):
+        n, pitch = 40, 0.78
+        r = Raster((0.0, 0.0, n * pitch, n * pitch), res)
+        for i in range(n):
+            for j in range(n):
+                cx, cy = (i + 0.5) * pitch / res, (j + 0.5) * pitch / res
+                if draw == "rect":
+                    r._rect(cx, cy, 0.68 / 2 / res, 0.68 / 2 / res, 1)
+                else:
+                    r._circ(cx, cy, 0.50 / 2 / res, 1)
+        got = r.coverage()
+        dev = 100.0 * (got / exact - 1.0)
+        flag = "OK " if abs(dev) < 1.0 else "BAD"
+        ok &= abs(dev) < 1.0
+        print(f"  [{flag}] {name}: exact {exact:.5f}  raster {got:.5f} "
+              f"({dev:+.2f} %)")
+    return ok
 
 
 def main():
     apar = argparse.ArgumentParser()
-    apar.add_argument("--res", type=float, default=0.05, help="mm per pixel")
+    apar.add_argument("--res", type=float, default=0.02, help="mm per pixel")
+    apar.add_argument("--selftest", action="store_true",
+                      help="run the analytic pixel-convention check and exit")
     args = apar.parse_args()
+
+    if args.selftest:
+        print(f"pixel-convention selftest at {args.res} mm/px")
+        return 0 if selftest(args.res) else 1
 
     print(f"raster {args.res} mm/px\n")
     print("Readout board (DFS3498A) — coverage over board / active area:")

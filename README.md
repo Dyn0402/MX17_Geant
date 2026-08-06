@@ -39,11 +39,59 @@ remaining assumptions in [`design/NEEDED_INPUTS.md`](design/NEEDED_INPUTS.md)):
 - **Readout board**: 1.70 mm single body (mesh + 150 µm amp + 100 µm paste +
   laminate), 470², offset (+15,+15) from the active axis; copper = the five
   physical gerber layers (guard ring, pads, Y strips, X strips, fan-out),
-  density-scaled by their measured coverage (`scripts/gerber/analyze_cu_coverage.py`)
+  density-scaled by their measured coverage (`scripts/gerber/analyze_cu_coverage.py`).
+  Each layer is built as **two zones** — inside and outside the 399.36 mm
+  active window — because the copper is very unevenly distributed: the pad
+  layer is 0.76 covered inside the active area and 0.057 outside, so a single
+  board-wide average (0.564) would put ~26 % too little copper where the beam
+  passes and ~10× too much at the edges. Zoning costs no CPU.
 - **Backing**: 5 mm rohacell + 25 µm aluminized mylar + **8 mm Al support
   plate with a 402 mm aperture** concentric with the 399.36 mm active area
 - **M1 front-end cards**: 2× per connector edge, flat on the drift side of
   the board edge and straddling it (6.6 mm envelope: 6 gerber Cu layers + FR4)
+
+### Real readout pattern (default; `--homogenized-readout` to disable)
+
+The three signal copper layers are built as the **real 512 × 512 pattern** read
+off the production gerbers: 0.68 mm square pads on L4, and Ø0.50 mm dots +
+0.098 mm bus traces on the L5/L6 X-Y track layers, all on the gerber-exact
+0.78 mm pitch. The **ESL resistive layer** is likewise built as 515 discrete
+550 µm strips on the 0.8 mm pitch, inside a gas-filled envelope — so the 250 µm
+inter-strip grooves are real chamber gas, not reduced-density paste. Total ESL
+mass is unchanged (515 × 0.550 / 412 = 0.6875, exactly the old scale factor).
+
+L3 (guard ring) and L7 (fan-out) have irregular artwork and stay as the
+two-zone density-scaled sheets.
+
+Both grids are perfectly regular, so they are built with `G4PVReplica` (two
+nested levels for the copper, one for the strips). The whole 786432-feature
+copper pattern plus 515 ESL strips costs **17 extra volumes**, not 786943
+placements, and cell lookup stays O(1) index arithmetic:
+
+| | volumes | total CPU, 100k sr90 events | max RSS |
+|---|---|---|---|
+| `--homogenized-readout` | 7342 | 27.0 s | 582 MB |
+| patterned (default) | 7359 | 28.0 s | 579 MB |
+
+So the full pattern costs about **+3–4 % of total CPU** and no extra memory.
+Removing the fixed ~13 s of startup overlap-checking, the tracking-only cost is
+roughly +9 %, most of it from the resist strips rather than the copper (the ESL
+is 100 µm thick against 26 µm per Cu layer, and its envelope adds gas/solid
+boundaries). Treat these as ±3 % — they were measured as user CPU time,
+min-of-4, on a machine with other jobs running.
+
+It is cheap because the patterned layers total ~180 µm of a ~45 mm stack, so
+few steps land there — not because the pattern is approximated.
+
+**When you can turn it off**: the signal copper sits *downstream of both gas
+gaps*, so for anything scored in the gas the homogenized zones give
+essentially the same answer. The resist strips are the part that could matter
+even for gas scoring, since the ESL bounds the amplification gap. The pattern
+would also get relatively more expensive for tracks at shallow incidence,
+which cross many cells per layer.
+
+`--legacy-geometry` is never patterned regardless of these flags, so it stays
+bit-identical to the pre-2026-08 output (checked with `scripts/tree_digest.py`).
 
 `--legacy-geometry` restores the pre-2026-08 uniform-slab stack (bit-identical
 to the old build). Model figures live in `design/figures/` and regenerate with
@@ -76,7 +124,11 @@ Everything downstream of the module is unchanged:
                    (two whitespace-separated columns: energy_MeV  probability)
 --src-dist <mm>    Source-to-detector air gap [mm] (lscalib/backscintcalib, default: 100)
 --bulge-front <mm> Front-window overpressure dome sag (default: 8, 0 = flat)
---legacy-geometry  Pre-2026-08 uniform-slab MM module (old stack, bit-identical)
+--legacy-geometry  Pre-2026-08 uniform-slab MM module (old stack, bit-identical;
+                   never patterned, regardless of the flags below)
+--homogenized-readout  Density-scaled copper sheets + ESL slab instead of the
+                   default real pattern (~3 % faster; see "Real readout pattern")
+--patterned-readout Explicitly request the real pattern (this is the default)
 --dump-geometry <f> Write the constructed geometry to JSON and exit (feeds
                    scripts/model/plot_mx17_model.py so figures show the true geometry)
 -v                 Verbose

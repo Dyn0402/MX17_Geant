@@ -29,6 +29,11 @@ struct SimConfig {
     // ── MX17 module geometry (shared/MX17ModuleGeometry.hh) ──────────────
     bool   legacy_mm_geometry = false;  // true: pre-2026-08 uniform-slab module
     double mx17_bulge_front_mm = 8.0;   // front-window dome sag from gas
+    // Real 512x512 readout copper (pads / X / Y tracks) + discrete ESL
+    // resistive strips, instead of density-scaled sheets. Default ON: it costs
+    // ~3 % CPU and no memory. --homogenized-readout falls back to the cheaper
+    // density-scaled build. See shared/MX17ModuleGeometry.hh.
+    bool   mx17_patterned_readout = true;
                                         // overpressure (Hencky ~3 mbar); 0 = flat
 
     // ── Spectrum sampling (kLSCalib / kBackScintCalib) ────────────────────

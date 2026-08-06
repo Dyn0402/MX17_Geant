@@ -1,0 +1,14 @@
+# Build trees
+build-rel/
+build/
+cmake-build-*/
+
+# IDE
+.idea/
+
+# Generated figures and analysis products (regenerate with scripts/)
+plots/
+
+# Python
+__pycache__/
+*.pyc

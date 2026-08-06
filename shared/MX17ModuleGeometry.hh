@@ -33,6 +33,7 @@
 #include "G4SubtractionSolid.hh"
 #include "G4LogicalVolume.hh"
 #include "G4PVPlacement.hh"
+#include "G4PVReplica.hh"
 #include "G4Material.hh"
 #include "G4ThreeVector.hh"
 #include "G4VisAttributes.hh"
@@ -88,9 +89,19 @@ struct ModuleSpec {
     double paste_um      = 100.0;
     double ampFace_mm    = 400.0;  // as-built 410
     double pasteFace_mm  = 0.0;    // 0 → ampFace; as-built 412 (resist-coat gerber)
-    // ESL resistive strips: 550 µm wide / 250 µm gaps (confirmed 2026-08-06)
-    // → the 100 µm slab is density-scaled by 550/800. 0 → uniform sheet.
-    double pasteCoverage = 0.0;
+    // ESL resistive strips: 550 µm wide / 250 µm gaps (confirmed 2026-08-06),
+    // screen-printed running along y. 0 → uniform sheet.
+    // pasteCoverage density-scales the slab in the homogenized build; with
+    // patternedResist the strips are built as real geometry instead and this
+    // is unused.
+    double pasteCoverage    = 0.0;
+    double pasteStripW_mm   = 0.550;
+    double pasteStripPitch_mm = 0.800;
+    // Build the ESL as discrete strips in a gas-filled envelope rather than a
+    // density-scaled slab. This matters more than the copper pattern does: the
+    // resist is the first solid the avalanche region sees, it is 100 µm thick
+    // (4× a copper layer), and the 250 µm inter-strip grooves are really gas.
+    bool   patternedResist  = false;
     // Bulk pillars supporting the mesh, standing in the amplification gap:
     // Ø0.6 mm on a regular 85×85 grid at 4.68 mm pitch spanning ±196.56 mm
     // (3498A_bulk.gbr, exact). Placed as daughters of the AmpGas volume so
@@ -112,6 +123,46 @@ struct ModuleSpec {
     // pcbNLayers full-density sheets with one density-scaled 26 µm sheet per
     // entry: L3 guard ring, L4 pads, L5 Y strips, L6 X strips, L7 fan-out.
     std::vector<double> pcbCuCoverage;
+
+    // ── Real readout pattern (optional) ──
+    // The three signal layers are a PERFECT 512 × 512 grid on a 0.78 mm pitch
+    // spanning ±199.29 mm — verified flash-by-flash against the production
+    // gerbers (262144 flashes each, one single pitch value, no exceptions):
+    //   L4  DFS3498A_L2-pads    0.68 × 0.68 mm square pad per cell
+    //   L5  DFS3498A_L3-TrackY  Ø0.50 mm dot + 0.10 mm bus running along y
+    //   L6  DFS3498A_L4-TrackX  Ø0.50 mm dot + 0.10 mm bus running along x
+    // patternedReadout=true replaces the three density-scaled sheets with that
+    // real structure. Because the grid is exactly regular it is built as two
+    // nested G4PVReplica levels inside a 399.36 mm active window, so each layer
+    // costs 4 extra logical volumes rather than 262144 placements: memory stays
+    // flat and navigation stays O(1) index arithmetic. Copper outside the
+    // active window (guard ring, fan-out) stays homogenized — see
+    // pcbCuCoverageOuter.
+    //
+    // ON by default in AsBuiltSpec (Dylan, 2026-08-06): it costs ~3 % CPU and
+    // no memory, so accuracy wins. Turn it off with --homogenized-readout when
+    // you want the cheaper build — for anything scored in the gas the
+    // homogenized zones give the same answer, since the signal copper sits
+    // DOWNSTREAM of both gas gaps. See design/NEEDED_INPUTS.md and the README.
+    bool   patternedReadout = false;
+    double padPitch_mm   = 0.78;   // gerber-exact
+    int    padN          = 512;    // gerber-exact (512 × 512)
+    double padSize_mm    = 0.68;   // L4 square pad (gerber aperture R 0.68)
+    double dotDia_mm     = 0.50;   // L5/L6 round dot (gerber aperture C 0.50)
+    double traceW_mm     = 0.098;  // L5/L6 bus, measured off the folded cell
+    // The stub bridging dot→bus exists in only ~2/3 of the cells, so it is not
+    // periodic. It is entered in EVERY cell at the width that reproduces the
+    // measured layer coverage exactly: dot 0.19635 + bus 0.07644 + stub
+    // 0.00603 = 0.27882 mm² per 0.78² cell = 0.4583, the rasterized value.
+    double stubW_mm      = 0.0663;
+    // Cu coverage of L3..L7 split by zone: inside the 399.36 mm active window
+    // and outside it. When BOTH are supplied each layer is built as two zones
+    // rather than one board-wide average, which is a strict accuracy gain at
+    // no CPU cost — see BuildReadoutZone. Measured / derived by
+    // scripts/gerber/analyze_cu_coverage.py.
+    std::vector<double> pcbCuCoverageActive;
+    std::vector<double> pcbCuCoverageOuter;
+
     double pcbFace_mm    = 400.0;  // as-built 470
     double pcbOffset_mm  = 0.0;    // +x,+y offset of the 470 mm plates from the active-area axis (as-built 15)
 
@@ -179,11 +230,21 @@ inline ModuleSpec AsBuiltSpec(double bulgeSag_mm = 8.0) {
     s.ampFace_mm     = 410.0;
     s.pasteFace_mm   = 412.0;   // resistive coat boundary (3498A_top-resist)
     s.pasteCoverage  = 550.0 / 800.0;   // ESL strips 550/250 µm (confirmed)
+    s.patternedResist  = true;  // real ESL strips, not a density-scaled slab
+    s.patternedReadout = true;  // real 512×512 pad/X/Y copper
     s.pillarD_mm     = 0.6;     // bulk pillars (3498A_bulk.gbr grid)
     s.feThick_mm     = 1.6;     // multi M1 cards: bare-laminate guess
-    s.feCuCoverage   = {0.147, 0.110, 0.114, 0.117, 0.111, 0.041};
+    s.feCuCoverage   = {0.1405, 0.1034, 0.1078, 0.1109, 0.1051, 0.0362};
     s.pcbTotal_mm    = 1.70;    // CAD single-body readout board
-    s.pcbCuCoverage  = {0.0945, 0.6512, 0.4194, 0.4200, 0.4558};
+    // Re-measured 2026-08-06 at 0.02 mm/px after fixing an endpoint-inclusive
+    // rasterizer bias that inflated every feature by one pixel per dimension
+    // (the signal layers read ~13 % high before; the L3 guard ring, being one
+    // large solid shape, was unaffected). Cross-check: the pad layer now
+    // rasterizes to 0.7600 over the active area against the exact
+    // 0.68²/0.78² = 0.76003 — see analyze_cu_coverage.py --selftest.
+    s.pcbCuCoverage       = {0.0941, 0.5645, 0.3635, 0.3630, 0.3978};
+    s.pcbCuCoverageActive = {0.0000, 0.7600, 0.4577, 0.4568, 0.5285};
+    s.pcbCuCoverageOuter  = {0.3385, 0.0568, 0.1189, 0.1194, 0.0584};
     s.pcbFace_mm     = 470.0;
     s.pcbOffset_mm   = 15.0;    // plates offset (+15,+15) from the active-area axis (STEP + gerbers)
     s.backMylar_um   = 25.0;    // assumed (design/NEEDED_INPUTS.md)
@@ -235,6 +296,159 @@ struct Module {
     G4LogicalVolume* driftGasLV = nullptr;
     G4LogicalVolume* ampGasLV   = nullptr;
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The ESL resistive layer as discrete strips inside a gas-filled envelope.
+//
+// `mother` is the 412 mm coat-boundary envelope, which is filled with the
+// CHAMBER GAS: the 250 µm grooves between strips are really gas, not
+// reduced-density paste as the homogenized slab implies. The strips keep the
+// exact name "ResistivePaste" because SteppingAction scores that volume by
+// name (edepResistPaste) — the envelope gas is deliberately NOT scored, which
+// preserves the existing meaning of that counter. See design/NEEDED_INPUTS.md.
+//
+// Strips run along y on a 0.8 mm pitch, so one G4PVReplica level suffices.
+inline void BuildResistStrips(const ModuleSpec& s, const Materials& m,
+                              G4LogicalVolume* mother, double t,
+                              G4VisAttributes* vis) {
+    const double pitch = s.pasteStripPitch_mm * mm;
+    const double face  = (s.pasteFace_mm > 0 ? s.pasteFace_mm : s.ampFace_mm) * mm;
+    const int    n     = int(std::lround(face / pitch));   // 412 / 0.8 = 515
+    const double span  = n * pitch;
+
+    auto* cellLV = new G4LogicalVolume(
+        new G4Box("ResistCell", pitch/2, span/2, t/2), m.gas, "ResistCell");
+    cellLV->SetVisAttributes(new G4VisAttributes(false));
+    new G4PVReplica("ResistCell", cellLV, mother, kXAxis, n, pitch);
+
+    auto* stripLV = new G4LogicalVolume(
+        new G4Box("ResistivePaste", s.pasteStripW_mm*mm/2, span/2, t/2),
+        m.resPaste, "ResistivePaste");
+    stripLV->SetVisAttributes(vis);
+    new G4PVPlacement(nullptr, G4ThreeVector(), stripLV, "ResistivePaste",
+                      cellLV, false, 0, false);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Which readout copper layers carry the real 512 × 512 pattern. Layer index
+// i (1..5) ↔ physical gerber layer L(i+2); L3 (guard ring) and L7 (fan-out)
+// are irregular and stay homogenized, so they return -1.
+inline int PatternKind(int layerIndex) {
+    switch (layerIndex) {
+        case 2:  return 0;   // L4  square pads
+        case 3:  return 1;   // L5  dot + bus running along y
+        case 4:  return 2;   // L6  dot + bus running along x
+        default: return -1;
+    }
+}
+
+// Build the 399.36 mm active-area zone of one 26 µm readout copper layer.
+//
+// Why a separate zone at all: the copper is very unevenly distributed. Modelling
+// a layer with ONE board-wide coverage smears it radially — the L4 pad layer,
+// 0.7600 covered inside the active area and 0.0568 outside, averages to 0.5645
+// over the board, which puts 26 % too little copper where the beam actually
+// passes and ~10× too much out at the edges. Splitting each layer into an
+// active window plus a homogenized remainder costs two volumes and no CPU.
+//
+//   kind <  0 : fill the window with `activeMat` (density-scaled sheet)
+//   kind >= 0 : build the real 512 × 512 pattern, per PatternKind()
+//
+// The pattern is expressed as two nested G4PVReplica levels, so it costs 3
+// logical volumes + a handful of placements per layer instead of 262144
+// G4PVPlacements: memory stays flat and the navigator finds a cell by index
+// arithmetic rather than by searching a daughter list.
+//
+// (cx, cy) is where the ACTIVE-AREA axis sits inside the layer volume — the
+// 470 mm board is mounted with a (+15, +15) offset, so the zone must be
+// pushed back by that much to stay concentric with the active area.
+inline void BuildReadoutZone(const ModuleSpec& s, const Materials& m,
+                             G4LogicalVolume* mother, const std::string& tag,
+                             int kind, G4Material* activeMat, double tCu,
+                             double cx, double cy,
+                             G4VisAttributes* visCu,
+                             G4VisAttributes* visFR4) {
+    const double pitch = s.padPitch_mm * mm;
+    const double win   = s.padN * pitch;          // 512 × 0.78 = 399.36 mm
+    auto* invis = new G4VisAttributes(false);
+
+    // The active window: either a density-scaled sheet, or the prepreg the
+    // real copper features sit in.
+    auto* winLV = new G4LogicalVolume(
+        new G4Box(tag + "_Win", win/2, win/2, tCu/2),
+        kind >= 0 ? m.fr4 : activeMat, tag + "_Win");
+    winLV->SetVisAttributes(kind >= 0 ? visFR4 : visCu);
+    new G4PVPlacement(nullptr, G4ThreeVector(cx, cy, 0), winLV,
+                      tag + "_Win", mother, false, 0, false);
+    if (kind < 0) return;
+
+    auto* colLV = new G4LogicalVolume(
+        new G4Box(tag + "_Col", pitch/2, win/2, tCu/2), m.fr4, tag + "_Col");
+    colLV->SetVisAttributes(invis);
+    new G4PVReplica(tag + "_Col", colLV, winLV, kXAxis, s.padN, pitch);
+
+    auto* cellLV = new G4LogicalVolume(
+        new G4Box(tag + "_Cell", pitch/2, pitch/2, tCu/2), m.fr4,
+        tag + "_Cell");
+    cellLV->SetVisAttributes(invis);
+    new G4PVReplica(tag + "_Cell", cellLV, colLV, kYAxis, s.padN, pitch);
+
+    if (kind == 0) {                     // L4: one square pad per cell
+        const double h = s.padSize_mm * mm / 2;
+        auto* padLV = new G4LogicalVolume(
+            new G4Box(tag + "_Pad", h, h, tCu/2), m.cu, tag + "_Pad");
+        padLV->SetVisAttributes(visCu);
+        new G4PVPlacement(nullptr, G4ThreeVector(), padLV, tag + "_Pad",
+                          cellLV, false, 0, false);
+        return;
+    }
+
+    // L5/L6: the Ø0.5 dot sits on the cell centre (the gerber flash position)
+    // and the bus runs exactly midway between dot columns — i.e. straight down
+    // the cell boundary. It is therefore placed as two half-width boxes
+    // hugging the opposite cell edges, which neighbouring cells rejoin into a
+    // continuous line.
+    const bool   alongY = (kind == 1);
+    const double rDot   = s.dotDia_mm * mm / 2;
+    const double wBus   = s.traceW_mm * mm;
+    const double half   = pitch / 2;
+
+    auto* dotLV = new G4LogicalVolume(
+        new G4Tubs(tag + "_Dot", 0, rDot, tCu/2, 0, 360*deg), m.cu,
+        tag + "_Dot");
+    dotLV->SetVisAttributes(visCu);
+    new G4PVPlacement(nullptr, G4ThreeVector(), dotLV, tag + "_Dot",
+                      cellLV, false, 0, false);
+
+    const double hb = wBus / 4;          // half-thickness of one half-bus
+    const double cb = half - hb;         // ... centred this far out
+    auto* busLV = new G4LogicalVolume(
+        alongY ? new G4Box(tag + "_Bus", hb, half, tCu/2)
+               : new G4Box(tag + "_Bus", half, hb, tCu/2),
+        m.cu, tag + "_Bus");
+    busLV->SetVisAttributes(visCu);
+    for (int k = -1; k <= 1; k += 2) {
+        const G4ThreeVector p = alongY ? G4ThreeVector(k*cb, 0, 0)
+                                       : G4ThreeVector(0, k*cb, 0);
+        new G4PVPlacement(nullptr, p, busLV, tag + "_Bus", cellLV, false,
+                          (k + 1) / 2, false);
+    }
+
+    const double e0 = rDot, e1 = half - wBus/2;   // dot edge → bus inner edge
+    if (e1 > e0 && s.stubW_mm > 0.0) {
+        const double hl = (e1 - e0) / 2, cs = (e0 + e1) / 2;
+        const double hw = s.stubW_mm * mm / 2;
+        auto* stubLV = new G4LogicalVolume(
+            alongY ? new G4Box(tag + "_Stub", hl, hw, tCu/2)
+                   : new G4Box(tag + "_Stub", hw, hl, tCu/2),
+            m.cu, tag + "_Stub");
+        stubLV->SetVisAttributes(visCu);
+        const G4ThreeVector p = alongY ? G4ThreeVector(cs, 0, 0)
+                                       : G4ThreeVector(0, cs, 0);
+        new G4PVPlacement(nullptr, p, stubLV, tag + "_Stub", cellLV, false,
+                          0, false);
+    }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 inline Module BuildModule(const ModuleSpec& s, const Materials& m) {
@@ -587,7 +801,15 @@ inline Module BuildModule(const ModuleSpec& s, const Materials& m) {
             matPaste->AddMaterial(m.resPaste, 1.0);
         }
     }
-    addBox("ResistivePaste", pasteH, pasteH, tPaste, matPaste, visResPaste);
+    if (s.patternedResist && s.pasteStripPitch_mm > 0.0
+        && s.pasteStripW_mm > 0.0 && m.gas) {
+        // Gas-filled envelope with the real ESL strips replicated inside.
+        G4LogicalVolume* env = addBox("ResistLayer", pasteH, pasteH, tPaste,
+                                      m.gas, visResPaste);
+        BuildResistStrips(s, m, env, tPaste, visResPaste);
+    } else {
+        addBox("ResistivePaste", pasteH, pasteH, tPaste, matPaste, visResPaste);
+    }
     out.mmDepth = zF;
 
     if (s.includeReadout) {
@@ -597,13 +819,39 @@ inline Module BuildModule(const ModuleSpec& s, const Materials& m) {
         //    physical gerber layer (L3 guard ring, L4 pads, L5 Y strips,
         //    L6 X strips, L7 fan-out; L8 carries no copper).
         addBox("PCB_Kapton", pcbH, pcbH, tPCBKap, m.kapton, visKapton, off, off);
+        // Layer index i (1..5) ↔ physical gerber layer L(i+2). When the
+        // separate active-area / outside-active coverages are available each
+        // layer is built as two zones (see BuildReadoutZone for why); the
+        // three signal layers L4/L5/L6 (i = 2,3,4) can additionally carry the
+        // real 512 × 512 copper pattern.
+        const bool zoned = !s.pcbCuCoverage.empty()
+                        && s.pcbCuCoverageOuter.size() >= size_t(nPCBCu)
+                        && s.padN > 0 && s.padPitch_mm > 0.0;
+        const bool pattern = zoned && s.patternedReadout;
         for (int i = 1; i <= nPCBCu; ++i) {
-            G4Material* cuMat = s.pcbCuCoverage.empty()
-                ? m.cu
-                : EffCu("MX17PCBCuEff_L" + std::to_string(i + 2),
-                        s.pcbCuCoverage[i - 1]);
-            addBox("PCB_Cu_"  + std::to_string(i), pcbH, pcbH, tPCBCu,
-                   cuMat, visCu, off, off);
+            const std::string nm = "PCB_Cu_" + std::to_string(i);
+            const std::string ltag = std::to_string(i + 2);
+            // Material of the layer box: the whole board when unzoned, else
+            // only the copper outside the active window.
+            G4Material* outerMat =
+                s.pcbCuCoverage.empty() ? m.cu
+              : zoned ? EffCu("MX17PCBCuOuter_L" + ltag,
+                              s.pcbCuCoverageOuter[i - 1])
+              : EffCu("MX17PCBCuEff_L" + ltag, s.pcbCuCoverage[i - 1]);
+            G4LogicalVolume* layLV =
+                addBox(nm, pcbH, pcbH, tPCBCu, outerMat, visCu, off, off);
+            if (zoned) {
+                const int kind = pattern ? PatternKind(i) : -1;
+                const double ca = s.pcbCuCoverageActive.empty()
+                                ? 0.0 : s.pcbCuCoverageActive[i - 1];
+                // A layer with no copper at all inside the active window (the
+                // L3 guard ring) gets plain prepreg there, not a zero-density
+                // "copper" that Geant4 would reject.
+                G4Material* activeMat = (ca < 1e-4) ? m.fr4
+                    : EffCu("MX17PCBCuAct_L" + ltag, ca);
+                BuildReadoutZone(s, m, layLV, nm, kind, activeMat, tPCBCu,
+                                 -off, -off, visCu, visFR4);
+            }
             addBox("PCB_FR4_" + std::to_string(i), pcbH, pcbH, tPCBFR4,
                    m.fr4, visFR4, off, off);
         }

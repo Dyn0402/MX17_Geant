@@ -42,6 +42,9 @@ void PrintUsage() {
     std::cerr << "  --src-dist <mm>  Source-to-detector air gap [mm] (default: 100)\n";
     std::cerr << "  --bulge-front <mm>  Front-window overpressure dome sag (default: 8, 0=flat)\n";
     std::cerr << "  --legacy-geometry   Use the pre-2026-08 uniform-slab MM module\n";
+    std::cerr << "  --homogenized-readout  Density-scaled copper sheets + resist slab\n";
+    std::cerr << "                      instead of the default real 512x512 pad/X/Y\n";
+    std::cerr << "                      copper and discrete ESL strips (~3%% faster)\n";
     std::cerr << "  --dump-geometry <f> Write the constructed geometry to JSON and exit\n";
     std::cerr << "  -a <mm>          Al shielding [mm], vacuum mode only  (default: 0)\n";
     std::cerr << "  -c <mm>          CFRP wall thickness [mm] for LS cells, full mode only  (default: 1.5)\n";
@@ -93,6 +96,8 @@ int main(int argc, char** argv) {
         else if (arg == "--src-dist" && i+1<argc) config.source_to_det_mm = std::stod(argv[++i]);
         else if (arg == "--bulge-front" && i+1<argc) config.mx17_bulge_front_mm = std::stod(argv[++i]);
         else if (arg == "--legacy-geometry") config.legacy_mm_geometry = true;
+        else if (arg == "--patterned-readout")   config.mx17_patterned_readout = true;
+        else if (arg == "--homogenized-readout") config.mx17_patterned_readout = false;
         else if (arg == "--dump-geometry" && i+1<argc) geomDumpFile = argv[++i];
         else if (arg[0] != '-') macroFile = arg;
         else { std::cerr << "Unknown option: " << arg << "\n"; PrintUsage(); return 1; }

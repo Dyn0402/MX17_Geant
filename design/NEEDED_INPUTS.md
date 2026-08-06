@@ -65,17 +65,60 @@ relevant to very-low-energy electron emission off the surfaces.
 
 ## 6. 🟡 Readout PCB internal stackup
 
-**Now partly measured (2026-08-06).** The copper is modelled as the five
+**Now measured (2026-08-06, rev 2).** The copper is modelled as the five
 physical gerber layers (L3 guard ring, L4 pads, L5 Y strips, L6 X strips,
 L7 fan-out; L8 carries only the outline stroke), each a 26 µm sheet
-density-scaled by its measured area coverage over the 470 mm board face —
-0.095 / 0.651 / 0.419 / 0.420 / 0.456 (`scripts/gerber/analyze_cu_coverage.py`,
-0.05 mm/px raster; over the active area: 0.00 / 0.879 / 0.533 / 0.534 / 0.608).
+density-scaled by its measured area coverage, and each split into two zones —
+inside and outside the 399.36 mm active window:
+
+| layer | active | outside | board avg |
+|---|---|---|---|
+| L3 guard  | 0.0000 | 0.3385 | 0.0941 |
+| L4 pads   | 0.7600 | 0.0568 | 0.5645 |
+| L5 Y      | 0.4577 | 0.1189 | 0.3635 |
+| L6 X      | 0.4568 | 0.1194 | 0.3630 |
+| L7 fan-out| 0.5285 | 0.0584 | 0.3978 |
+
 FR4 filler (5 × 246.4 µm) still solves the CAD 1.70 mm body.
+
+Two corrections went in with this revision, both of which changed the as-built
+result (`--legacy-geometry` is unaffected and remains bit-identical):
+
+1. **Rasterizer bias.** `analyze_cu_coverage.py` drew every aperture with
+   PIL's endpoint-*inclusive* `rectangle`/`ellipse`, inflating each feature by
+   one pixel per dimension — +16 % on the 0.68 mm pads at the old 0.05 mm/px
+   default. The previous numbers (0.095/0.651/0.419/0.420/0.456) were
+   therefore ~13 % high on every fine-featured layer; the L3 guard ring, being
+   one large solid shape, was almost unaffected. Fixed, default raster raised
+   to 0.02 mm/px, and `--selftest` now checks the rasterizer against the
+   analytically exact pad grid (0.68²/0.78² = 0.76003) so it cannot regress.
+2. **Radial smearing.** One board-wide coverage per layer put ~26 % too little
+   copper in the active area and up to 10× too much outside it. Hence the
+   two-zone build, which costs nothing.
 
 **Still open:** the per-layer copper *thickness* (26 µm is the historical
 guess; ½-oz 18 µm is the common fab default) and the kapton/dielectric split.
-A fab stackup drawing would settle it.
+A fab stackup drawing would settle it — this is now the dominant uncertainty
+on the board, well above the ~0.2 % residuals in the coverage measurement.
+
+### Real copper pattern — now the DEFAULT (2026-08-06, Dylan)
+
+The three signal layers are an exactly regular 512 × 512 grid on a 0.78 mm
+pitch spanning ±199.29 mm, verified flash-by-flash against the gerbers. The
+model builds their real geometry — 0.68 mm square pads (L4), Ø0.50 mm dots +
+0.098 mm bus traces (L5/L6) — via nested `G4PVReplica`, at ~+3 % CPU and no
+extra memory. `--homogenized-readout` falls back to density-scaled sheets.
+
+Only the dot→bus connector stub is approximated: it exists in ~2/3 of the
+cells (so it is not periodic and cannot go in a replica cell as-is), and is
+therefore entered in every cell at the width that reproduces the measured
+layer coverage exactly.
+
+**L3 (guard ring) and L7 (fan-out) are NOT patterned** — their artwork is
+irregular, so they stay as the two-zone density-scaled sheets above. That is
+the remaining approximation in the board copper. L7 in particular is 0.53
+covered inside the active area (vias/fan-out), so if board backscatter ever
+turns out to matter at the percent level, L7 is the next thing to model.
 
 ## 6b. 🟡 M1 front-end cards
 
@@ -85,8 +128,9 @@ drawn in the readout-board frame at the as-mounted position — card outline
 with the bottom pogo-pad field landing exactly on the board's connector
 copper. The model places four cards (2 per connector edge, tangential ±100),
 laminate flat on the board with **no standoff** (Dylan), six Cu layers at
-26 µm density-scaled by card-window coverage (0.147/0.110/0.114/0.117/0.111/
-0.041) with FR4 filler.
+26 µm density-scaled by card-window coverage (0.1405/0.1034/0.1078/0.1109/
+0.1051/0.0362, re-measured after the rasterizer fix in §6 — the previous
+0.147/0.110/0.114/0.117/0.111/0.041 were 4–12 % high) with FR4 filler.
 
 **Still assumed:** bare-laminate thickness 1.6 mm (the CAD 6.6 mm envelope
 includes the Mec8 output connectors soldered on top and the thin JZ pogo-pin
@@ -98,15 +142,32 @@ relieved there).
 ## 6c. 🟡 Resistive layer: ESL strips 550/250 µm
 
 **Confirmed (Dylan 2026-08-06):** vertical ESL resistive strips, 550 µm wide
-with 250 µm gaps (0.8 mm pitch — deliberately not the 0.78 mm pad pitch).
-Modelled as a 100 µm slab density-scaled ×0.6875, 412 × 412 (the deposit
-boundary from `3498A_top-resist.gbr`; the strip artwork itself is not in the
-gerber set — strips in the figures are drawn from the confirmed spec).
+with 250 µm gaps (0.8 mm pitch — deliberately not the 0.78 mm pad pitch),
+over 412 × 412 (the deposit boundary from `3498A_top-resist.gbr`; the strip
+artwork itself is not in the gerber set — the strips are built from the
+confirmed spec, not from a gerber).
 
-**Still open:** the coat *thickness* — 100 µm remains a guess. Also noted:
-the strip/pad pitch mismatch (0.80 vs 0.78 mm) means a slowly beating moiré
-between strips and pads; irrelevant for material budget, relevant for any
-charge-sharing model downstream.
+**Now built as real strips (default).** 515 strips of 550 µm on the 0.8 mm
+pitch, one `G4PVReplica` level inside a gas-filled `ResistLayer` envelope.
+Coverage works out to exactly 515 × 0.550 / 412 = 0.6875, i.e. the same total
+ESL mass as the old density-scaled slab — but the 250 µm inter-strip grooves
+are now **chamber gas** rather than reduced-density paste, which is what they
+physically are. This matters more than the copper pattern: the resist is the
+first solid the avalanche region sees and it is 100 µm thick, 4× a Cu layer.
+`--homogenized-readout` restores the slab.
+
+**Scoring note:** the strips keep the exact volume name `ResistivePaste`, so
+`SteppingAction`'s `edepResistPaste` counter is unchanged in meaning. The gas
+in the grooves is deliberately **not** scored — it is not part of the `AmpGas`
+volume. That is the conservative choice (it preserves existing counter
+semantics); if the avalanche is considered to extend into the grooves, the
+envelope would instead have to be named `AmpGas`. **Worth a decision.**
+
+**Still open:** the coat *thickness* — 100 µm remains a guess, and is now the
+dominant uncertainty on this layer. Also noted: the strip/pad pitch mismatch
+(0.80 vs 0.78 mm) means a slowly beating moiré between strips and pads;
+irrelevant for material budget, relevant for any charge-sharing model
+downstream.
 
 ## 6d. ✅ Bulk pillars
 

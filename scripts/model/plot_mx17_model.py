@@ -81,6 +81,7 @@ STYLE = {
     "Micromesh":           ("#808080", 0.85),
     "AmpGas":              ("#ff4d4d", 0.35),
     "ResistivePaste":      ("#333333", 0.85),
+    "ResistLayer":         ("#333333", 0.85),   # ESL envelope (patterned build)
     "PCB_Kapton":          ("#e6b300", 0.85),
     "PCB_Cu":              ("#cc6619", 0.85),
     "PCB_FR4":             ("#339933", 0.85),
@@ -90,7 +91,12 @@ STYLE = {
     "SupportPlate_Al":     ("#9a9aa2", 0.95),
 }
 DROP_PREFIX = ("AirGap", "ScintWall", "PlasticScint", "LS_", "LiqScint",
-               "BulkPillar", "World", "He3")
+               "BulkPillar", "World", "He3", "ResistCell")
+# Internals of the zoned / patterned readout copper layers. Each of these sits
+# INSIDE its PCB_Cu_<n> parent at the same z, so drawing them too would stack a
+# second copy of the layer on top of itself. The parent already carries the
+# layer at full board extent; the copper micro-pattern is the peel figure's job.
+DROP_SUFFIX = ("_Win", "_Col", "_Cell", "_Pad", "_Dot", "_Bus", "_Stub")
 
 
 @dataclass
@@ -120,7 +126,14 @@ def load_dump(path=DUMP):
         sys.exit(f"{path} not found — regenerate with\n"
                  f"    ./mm_sim -m sr90 --dump-geometry {path}")
     raw = json.load(open(path))
-    raw = [v for v in raw if not v["lv"].startswith(DROP_PREFIX)]
+    raw = [v for v in raw if not v["lv"].startswith(DROP_PREFIX)
+           and not v["lv"].endswith(DROP_SUFFIX)]
+    # In the patterned build the ESL is 515 replicated 0.55 mm strips inside a
+    # gas-filled "ResistLayer" envelope. The envelope is the thing to draw as a
+    # stack layer; the strip prototype would otherwise show up as a 0.55 mm
+    # sliver spanning the whole board thickness.
+    if any(v["lv"] == "ResistLayer" for v in raw):
+        raw = [v for v in raw if v["lv"] != "ResistivePaste"]
     vols = []
     for v in raw:
         s = v["solid"]
@@ -696,9 +709,14 @@ def fig_xsec(outdir):
     ax2.set_xlabel("x [mm]")
     ax2.set_title("Zoom: mesh → laminate (1.70 mm board body)")
     ax2.grid(alpha=0.25, lw=0.4)
+    # "ResistLayer" in the patterned build, "ResistivePaste" in the
+    # homogenized one — annotate whichever the dump actually contains.
+    resist = "ResistLayer" if "ResistLayer" in zs else "ResistivePaste"
+    resist_lab = ("ESL strips 550/250 µm (100 µm)" if resist == "ResistLayer"
+                  else "paste (100 µm)")
     for name, lab in [("Micromesh", "mesh (38 µm eff.)"),
                       ("AmpGas", "amp gap (150 µm)"),
-                      ("ResistivePaste", "paste (100 µm)"),
+                      (resist, resist_lab),
                       ("PCB_Kapton", "kapton (50 µm)"),
                       ("PCB_FR4_3", "5× Cu 26 µm (coverage-scaled)\n/ FR4 246.4 µm")]:
         z0, t = zs[name]
