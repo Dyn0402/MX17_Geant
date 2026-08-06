@@ -8,6 +8,7 @@
 #include "EventData.hh"
 
 #include "G4Step.hh"
+#include "G4VProcess.hh"
 #include "G4Track.hh"
 #include "G4VPhysicalVolume.hh"
 #include "G4LogicalVolume.hh"
@@ -69,6 +70,11 @@ void SteppingAction::UserSteppingAction(const G4Step* step) {
         double ke = step->GetPreStepPoint()->GetKineticEnergy();
         G4ThreeVector pos = 0.5*(step->GetPreStepPoint()->GetPosition() +
                                   step->GetPostStepPoint()->GetPosition());
+        double tGlobal = 0.5*(step->GetPreStepPoint()->GetGlobalTime() +
+                              step->GetPostStepPoint()->GetGlobalTime());
+        const G4VProcess* creator = track->GetCreatorProcess();
+        const std::string creatorName =
+            creator ? std::string(creator->GetProcessName()) : std::string("primary");
 
         double W = GetWValue(fConfig.gas) * eV;
         int nPrimary = static_cast<int>(std::floor(edep / W));
@@ -79,12 +85,14 @@ void SteppingAction::UserSteppingAction(const G4Step* step) {
         cluster.x            = pos.x()/mm;
         cluster.y            = pos.y()/mm;
         cluster.z            = pos.z()/mm;
+        cluster.time         = tGlobal/ns;
         cluster.edep         = edep/eV;
         cluster.nPrimary     = nPrimary;
         cluster.trackID      = trackID;
         cluster.parentID     = parentID;
         cluster.volumeName   = volName;
         cluster.particleName = pName;
+        cluster.creatorProcess = creatorName;
         cluster.kineticEnergy = ke/MeV;
 
         if (inDrift) {

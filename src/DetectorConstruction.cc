@@ -13,6 +13,7 @@
 //  - Scint wall: BlackMylar tape (200 µm) instead of PVC tape (165 µm)
 
 #include "DetectorConstruction.hh"
+#include "ActiveAreaFrame.hh"
 
 #include "G4NistManager.hh"
 #include "G4Material.hh"
@@ -255,6 +256,18 @@ G4VPhysicalVolume* DetectorConstruction::Construct() {
             const G4double z = p.advance ? run + p.thick/2 : zFront + p.pos.z();
             new G4PVPlacement(nullptr, G4ThreeVector(p.pos.x(), p.pos.y(), z),
                               p.lv, p.lv->GetName(), world, false, 0, true);
+            // Report the active-area frame to the response chain: its origin is
+            // the downstream face of the amplification gap (= top of the ESL),
+            // on the active-area axis. Captured from the placement itself so it
+            // tracks any geometry change automatically (ActiveAreaFrame.hh).
+            if (p.lv == mmModule.ampGasLV) {
+                auto* box = dynamic_cast<G4Box*>(p.lv->GetSolid());
+                auto& fr = MX17::TheActiveAreaFrame();
+                fr.x0 = p.pos.x()/mm;
+                fr.y0 = p.pos.y()/mm;
+                fr.z0 = (z + (box ? box->GetZHalfLength() : 0.0))/mm;
+                fr.valid = (box != nullptr);
+            }
             if (p.advance) run += p.thick;
         }
         return run;

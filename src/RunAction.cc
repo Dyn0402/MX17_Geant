@@ -2,6 +2,7 @@
 // Writes ROOT TTrees (or CSV fallback) per worker thread.
 
 #include "RunAction.hh"
+#include "ActiveAreaFrame.hh"
 #include "G4Run.hh"
 #include "G4SystemOfUnits.hh"
 #include "G4Threading.hh"
@@ -49,9 +50,13 @@ struct RunAction::Impl {
 
     // ClusterTree
     Int_t    cb_eventID, cb_trackID, cb_parentID, cb_nPrimary;
-    Double_t cb_x, cb_y, cb_z, cb_edep, cb_ke;
+    Double_t cb_x, cb_y, cb_z, cb_time, cb_edep, cb_ke;
     Char_t   cb_volume[32];
     Char_t   cb_particle[32];
+    Char_t   cb_creator[32];
+
+    // Meta — one entry, the world -> active-area transform (ActiveAreaFrame.hh)
+    TTree*   metaTree = nullptr;
 #else
     std::ofstream evtFile;
     std::ofstream clusFile;
@@ -156,11 +161,39 @@ void RunAction::BeginOfRunAction(const G4Run*) {
     fImpl->clusTree->Branch("x",        &fImpl->cb_x);
     fImpl->clusTree->Branch("y",        &fImpl->cb_y);
     fImpl->clusTree->Branch("z",        &fImpl->cb_z);
+    fImpl->clusTree->Branch("time",     &fImpl->cb_time);
     fImpl->clusTree->Branch("edep",     &fImpl->cb_edep);
     fImpl->clusTree->Branch("nPrimary", &fImpl->cb_nPrimary);
     fImpl->clusTree->Branch("ke",       &fImpl->cb_ke);
     fImpl->clusTree->Branch("volume",   fImpl->cb_volume,  "volume[32]/C");
     fImpl->clusTree->Branch("particle", fImpl->cb_particle,"particle[32]/C");
+    fImpl->clusTree->Branch("creator",  fImpl->cb_creator, "creator[32]/C");
+
+    // ── Meta tree: the world -> active-area transform ────────────────────
+    // Written once per file so the response chain never has to hard-code the
+    // module placement. See include/ActiveAreaFrame.hh for the definition and
+    // for the open x/y-convention caveat (task T2).
+    {
+        const MX17::ActiveAreaFrame& fr = MX17::TheActiveAreaFrame();
+        Double_t m_x0 = fr.x0, m_y0 = fr.y0, m_z0 = fr.z0;
+        Double_t m_sx = fr.sx, m_sy = fr.sy, m_sz = fr.sz;
+        Double_t m_w  = fr.activeWidth_mm;
+        Bool_t   m_valid = fr.valid;
+        fImpl->metaTree = new TTree("Meta", "world -> active-area transform");
+        fImpl->metaTree->Branch("origin_x_mm", &m_x0);
+        fImpl->metaTree->Branch("origin_y_mm", &m_y0);
+        fImpl->metaTree->Branch("origin_z_mm", &m_z0);
+        fImpl->metaTree->Branch("sign_x",      &m_sx);
+        fImpl->metaTree->Branch("sign_y",      &m_sy);
+        fImpl->metaTree->Branch("sign_z",      &m_sz);
+        fImpl->metaTree->Branch("active_width_mm", &m_w);
+        fImpl->metaTree->Branch("valid",       &m_valid);
+        fImpl->metaTree->Fill();
+        if (!fr.valid)
+            G4cerr << "RunAction: WARNING active-area frame not reported by the "
+                      "geometry (no AmpGas placement?); Meta.valid = false"
+                   << G4endl;
+    }
 
     G4cout << "RunAction: Opened " << fname << G4endl;
 
@@ -190,8 +223,8 @@ void RunAction::BeginOfRunAction(const G4Run*) {
     fImpl->evtFile << "\n";
 
     fImpl->clusFile.open(clusFname);
-    fImpl->clusFile << "eventID,trackID,parentID,x_mm,y_mm,z_mm,"
-                       "edep_eV,nPrimary,ke_MeV,volume,particle\n";
+    fImpl->clusFile << "eventID,trackID,parentID,x_mm,y_mm,z_mm,time_ns,"
+                       "edep_eV,nPrimary,ke_MeV,volume,particle,creator\n";
 
     G4cout << "RunAction: Writing " << evtFname << G4endl;
 #endif
@@ -305,12 +338,15 @@ void RunAction::RecordEvent(const EventData& data) {
             fImpl->cb_x        = c.x;
             fImpl->cb_y        = c.y;
             fImpl->cb_z        = c.z;
+            fImpl->cb_time     = c.time;
             fImpl->cb_edep     = c.edep;
             fImpl->cb_nPrimary = c.nPrimary;
             fImpl->cb_ke       = c.kineticEnergy;
             std::strncpy(fImpl->cb_volume,   c.volumeName.c_str(),   31);
             std::strncpy(fImpl->cb_particle, c.particleName.c_str(), 31);
-            fImpl->cb_volume[31] = fImpl->cb_particle[31] = '\0';
+            std::strncpy(fImpl->cb_creator,  c.creatorProcess.c_str(), 31);
+            fImpl->cb_volume[31] = fImpl->cb_particle[31] =
+                fImpl->cb_creator[31] = '\0';
             fImpl->clusTree->Fill();
         }
     };
@@ -362,9 +398,11 @@ void RunAction::RecordEvent(const EventData& data) {
         for (const auto& c : clusters) {
             fImpl->clusFile << data.eventID << "," << c.trackID << "," << c.parentID << ","
                             << c.x << "," << c.y << "," << c.z << ","
+                            << c.time << ","
                             << c.edep << "," << c.nPrimary << ","
                             << c.kineticEnergy << ","
-                            << c.volumeName << "," << c.particleName << "\n";
+                            << c.volumeName << "," << c.particleName << ","
+                            << c.creatorProcess << "\n";
         }
     };
     writeClusters(data.driftClusters);

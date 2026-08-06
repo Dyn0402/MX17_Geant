@@ -6,12 +6,22 @@
 
 struct IonizationCluster {
     double x, y, z;
+    // Global time of the ionisation [ns]. Stage A of the response chain
+    // (design/RESPONSE_SIM_PLAN.md §6 item 1): the drift time of every electron
+    // is measured from here, so without it no waveform can be built at all.
+    // Both endpoints of the step carry a time; the midpoint is used, matching
+    // the midpoint already used for the position.
+    double time;
     double edep;
     int    nPrimary;
     int    trackID;
     int    parentID;
     std::string volumeName;
     std::string particleName;
+    // Process that created the track this cluster belongs to ("primary" for
+    // the beam particle). Plan §6 item 3 — cheap provenance that lets the
+    // digitizer separate e.g. delta rays from the primary's own ionisation.
+    std::string creatorProcess;
     double kineticEnergy;
 };
 
