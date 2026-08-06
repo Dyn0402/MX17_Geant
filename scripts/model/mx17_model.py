@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """
 Python mirror of the MX17 as-built module geometry
-(shared/MX17ModuleGeometry.hh, AsBuiltSpec). Used by plot_mx17_model.py to
-draw the model without needing Geant4.
+(shared/MX17ModuleGeometry.hh, AsBuiltSpec) — a quick numeric reference
+(`python scripts/model/mx17_model.py` prints the stack). The figures in
+plot_mx17_model.py now render the TRUE geometry from design/mx17_geometry.json
+(`mm_sim --dump-geometry`), so this mirror is no longer load-bearing for them.
 
 KEEP IN SYNC with shared/MX17ModuleGeometry.hh — that header is the single
 source of truth consumed by both MX17_Geant and MX17_Full_Geant;
@@ -48,7 +50,11 @@ MESH_FACE   = 410.0
 AMP         = 0.150
 PASTE       = 0.100
 AMP_FACE    = 410.0
-PASTE_FACE  = 412.0    # full-sheet resistive coat boundary (3498A_top-resist)
+PASTE_FACE  = 412.0    # resistive coat boundary (3498A_top-resist)
+PASTE_COV   = 550.0/800.0  # ESL strips 550 um wide / 250 um gaps (confirmed)
+PILLAR_D    = 0.6      # bulk pillars in the amp gap: 85x85 grid, 4.68 mm
+PILLAR_PITCH= 4.68     # pitch, spanning +-196.56 (3498A_bulk.gbr, exact)
+PILLAR_N    = 85
 
 PCB_TOTAL   = 1.70     # CAD single-body readout board (mesh → laminate back)
 PCB_KAPTON  = 0.050
@@ -166,8 +172,8 @@ def build_stack(bulge: float = BULGE_SAG):
     add("Micromesh", MESH_T, f"steel(x{MESH_FILL:.2f})", MESH_FACE/2, MESH_FACE/2,
         color="#808080")
     add("AmpGas", AMP, "gas", AMP_FACE/2, AMP_FACE/2, color="#ff4d4d", alpha=0.35)
-    add("ResistivePaste", PASTE, "resistive", PASTE_FACE/2, PASTE_FACE/2,
-        color="#333333")
+    add("ResistivePaste", PASTE, f"resistive(x{PASTE_COV:.2f})",
+        PASTE_FACE/2, PASTE_FACE/2, color="#333333")
 
     add("PCB_Kapton", PCB_KAPTON, "kapton", PCB_FACE/2, PCB_FACE/2,
         color="#e6b300", ox=PCB_OFF, oy=PCB_OFF)

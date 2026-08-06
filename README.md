@@ -33,7 +33,9 @@ remaining assumptions in [`design/NEEDED_INPUTS.md`](design/NEEDED_INPUTS.md)):
 - **Window flange**: 5 mm Al ring (440/400.2) = 5 mm gas gap before the cathode
 - **Drift**: Cu-clad kapton cathode (406²), 30.000 mm gap set by the Al gas
   frame (440/410), 4× 1.62 mm field-cage PCBs lining the aperture
-- **Mesh**: woven SS 19/48 µm → 38 µm effective-density slab (fill 0.223)
+- **Mesh**: woven SS 19/48 µm → 38 µm effective-density slab (fill 0.223);
+  bulk pillars (Ø0.6 mm, 85×85 grid at 4.68 mm) stand in the amplification gap
+- **Resistive layer**: ESL strips 550/250 µm → 100 µm slab ×0.69, 412²
 - **Readout board**: 1.70 mm single body (mesh + 150 µm amp + 100 µm paste +
   laminate), 470², offset (+15,+15) from the active axis; copper = the five
   physical gerber layers (guard ring, pads, Y strips, X strips, fan-out),
@@ -44,9 +46,12 @@ remaining assumptions in [`design/NEEDED_INPUTS.md`](design/NEEDED_INPUTS.md)):
   the board edge and straddling it (6.6 mm envelope: 6 gerber Cu layers + FR4)
 
 `--legacy-geometry` restores the pre-2026-08 uniform-slab stack (bit-identical
-to the old build). Model figures — cross-section, 3D, exploded, and a
-source-status schematic — live in `design/figures/` and regenerate with
-`python scripts/model/plot_mx17_model.py` (no Geant4 needed).
+to the old build). Model figures live in `design/figures/` and regenerate with
+`python scripts/model/plot_mx17_model.py`; the cross-section/3D/plan figures
+render the **true constructed geometry** from `design/mx17_geometry.json`
+(refresh it after geometry changes: `mm_sim -m sr90 --dump-geometry
+design/mx17_geometry.json`), while the board/peel figures render the
+production gerbers directly.
 
 Everything downstream of the module is unchanged:
 
@@ -72,6 +77,8 @@ Everything downstream of the module is unchanged:
 --src-dist <mm>    Source-to-detector air gap [mm] (lscalib/backscintcalib, default: 100)
 --bulge-front <mm> Front-window overpressure dome sag (default: 8, 0 = flat)
 --legacy-geometry  Pre-2026-08 uniform-slab MM module (old stack, bit-identical)
+--dump-geometry <f> Write the constructed geometry to JSON and exit (feeds
+                   scripts/model/plot_mx17_model.py so figures show the true geometry)
 -v                 Verbose
 -h                 Help
 ```

@@ -1,6 +1,15 @@
 #!/usr/bin/env python3
 """
-Plots of the as-built MX17 Geant4 model (scripts/model/mx17_model.py).
+Plots of the as-built MX17 Geant4 model.
+
+The cross-section, 3D and plan figures render the TRUE constructed geometry
+from design/mx17_geometry.json, produced by the simulation itself:
+
+    ./mm_sim -m sr90 --dump-geometry design/mx17_geometry.json
+
+Regenerate that dump after any geometry change. The board/peel figures render
+the production gerbers directly; scripts/model/mx17_model.py remains as a
+quick numeric reference but the figures no longer depend on it.
 
     python scripts/model/plot_mx17_model.py             # all figures
     python scripts/model/plot_mx17_model.py --only 3d   # board | xsec | 3d | status
@@ -46,11 +55,93 @@ REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(REPO, "scripts", "gerber"))
 
+import json
+from dataclasses import dataclass
+
 import mx17_model as M
 from gerber_outline import parse
 
 GERBER_DIR = os.path.join(REPO, "design", "gerbers", "readout_pcb")
 CU_COLOR = "#b87333"
+DUMP = os.path.join(REPO, "design", "mx17_geometry.json")
+
+# lv name -> (color, alpha); BulkPillar is skipped in the drawings.
+STYLE = {
+    "GasWindow_Mylar":     ("#63b8d8", 0.90),
+    "GasWindow_Al":        ("#b0b0b0", 0.90),
+    "WindowBulgeGas":      ("#8dd8f0", 0.15),
+    "WindowFlange_Al":     ("#c9c9cf", 0.90),
+    "WindowGapGas":        ("#8dd8f0", 0.15),
+    "DriftCathode_Kapton": ("#e6b300", 0.85),
+    "DriftCathode_Cu":     ("#cc6619", 0.85),
+    "GasFrame_Al":         ("#c9c9cf", 0.90),
+    "FieldCagePCB":        ("#339933", 0.90),
+    "DriftGas":            ("#3380ff", 0.30),
+    "FrontEndPCB":         ("#2e7d32", 0.90),
+    "Micromesh":           ("#808080", 0.85),
+    "AmpGas":              ("#ff4d4d", 0.35),
+    "ResistivePaste":      ("#333333", 0.85),
+    "PCB_Kapton":          ("#e6b300", 0.85),
+    "PCB_Cu":              ("#cc6619", 0.85),
+    "PCB_FR4":             ("#339933", 0.85),
+    "PCB_Rohacell":        ("#e8e89a", 0.85),
+    "PCB_BackMylar":       ("#63b8d8", 0.90),
+    "PCB_AlFoil":          ("#b0b0b0", 0.85),
+    "SupportPlate_Al":     ("#9a9aa2", 0.95),
+}
+DROP_PREFIX = ("AirGap", "ScintWall", "PlasticScint", "LS_", "LiqScint",
+               "BulkPillar", "World", "He3")
+
+
+@dataclass
+class Vol:
+    name: str
+    z0: float
+    t: float
+    hx: float
+    hy: float
+    ox: float
+    oy: float
+    hole: tuple | None      # (hcx, hcy, hhx, hhy) of a rectangular aperture
+    color: str
+    alpha: float
+
+
+def style_of(name):
+    for k in sorted(STYLE, key=len, reverse=True):
+        if name.startswith(k):
+            return STYLE[k]
+    return ("0.6", 0.8)
+
+
+def load_dump(path=DUMP):
+    """The constructed Geant4 module, z-shifted so the window plane is 0."""
+    if not os.path.exists(path):
+        sys.exit(f"{path} not found — regenerate with\n"
+                 f"    ./mm_sim -m sr90 --dump-geometry {path}")
+    raw = json.load(open(path))
+    raw = [v for v in raw if not v["lv"].startswith(DROP_PREFIX)]
+    vols = []
+    for v in raw:
+        s = v["solid"]
+        x, y, z = v["pos"]
+        if s["type"] == "box":
+            vols.append((v["lv"], x, y, z, s["hx"], s["hy"], s["hz"], None))
+        elif s["type"] == "sub" and s["a"]["type"] == "box":
+            b = s["b"]
+            hole = (x + s["bpos"][0], y + s["bpos"][1], b["hx"], b["hy"])
+            vols.append((v["lv"], x, y, z,
+                         s["a"]["hx"], s["a"]["hy"], s["a"]["hz"], hole))
+        # tubs (pillars) and others: skipped in drawings
+    # window plane: front of the widest GasWindow_Mylar piece
+    win = max((v for v in vols if v[0] == "GasWindow_Mylar"),
+              key=lambda v: v[4])
+    zref = win[3] - win[6]
+    out = []
+    for name, x, y, z, hx, hy, hz, hole in vols:
+        c, a = style_of(name)
+        out.append(Vol(name, z - hz - zref, 2*hz, hx, hy, x, y, hole, c, a))
+    return out
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -95,7 +186,8 @@ def ring_faces(outer, inner, z0, z1):
 def add_layer_3d(ax, L, z0, z1):
     outer = rect_outline(L.hx, L.hy, L.ox, L.oy)
     if L.hole is not None:
-        faces = ring_faces(outer, rect_outline(L.hole, L.hole), z0, z1)
+        hcx, hcy, hhx, hhy = L.hole
+        faces = ring_faces(outer, rect_outline(hhx, hhy, hcx, hcy), z0, z1)
     else:
         faces = prism_faces(outer, z0, z1)
     ax.add_collection3d(Poly3DCollection(
@@ -103,40 +195,40 @@ def add_layer_3d(ax, L, z0, z1):
         edgecolor="k", linewidths=0.15))
 
 
+GROUPS = {"GasWindow": -2, "WindowBulge": -2,
+          "WindowFlange": -1, "WindowGap": -1,
+          "DriftCathode": 0, "GasFrame": 1, "FieldCage": 1, "DriftGas": 1,
+          "Micromesh": 2, "AmpGas": 2, "ResistivePaste": 2, "FrontEndPCB": 2,
+          "PCB_Kapton": 3, "PCB_Cu": 3, "PCB_FR4": 3,
+          "PCB_Rohacell": 4, "PCB_BackMylar": 4, "PCB_AlFoil": 4,
+          "SupportPlate": 5}
+
+
+def grp(name):
+    for k in sorted(GROUPS, key=len, reverse=True):
+        if name.startswith(k):
+            return GROUPS[k]
+    return 0
+
+
 def draw_model_3d(ax, zexag=1.0, explode=0.0):
-    layers, side, windows, key_z = M.build_stack()
-
-    groups = {"GasWindow": -2, "WindowBulge": -2, "Bulge": -2,
-              "WindowFlange": -1, "WindowGap": -1,
-              "DriftCathode": 0, "GasFrame": 1, "FieldCage": 1, "DriftGas": 1,
-              "FrontEndPCB": 1,
-              "Micromesh": 2, "AmpGas": 2, "ResistivePaste": 2,
-              "PCB_Kapton": 3, "PCB_Cu": 3, "PCB_FR4": 3,
-              "PCB_Rohacell": 4, "PCB_BackMylar": 4, "PCB_AlFoil": 4,
-              "SupportPlate": 5}
-
-    def grp(name):
-        for k in sorted(groups, key=len, reverse=True):
-            if name.startswith(k):
-                return groups[k]
-        return 0
+    vols = load_dump()
 
     def Z(z, g):
         return z * zexag + g * explode
 
     skip = {"WindowGapGas"}  # flat gas slab clutter; the flange shows the gap
-    for L in layers + side + windows:
-        if L.name in skip or (L.material == "gas" and "Bulge" in L.name and explode > 0):
+    for L in vols:
+        if L.name in skip or (explode > 0 and L.name == "WindowBulgeGas"):
             continue
-        alpha = 0.10 if "BulgeGas" in L.name else L.alpha
+        alpha = 0.10 if L.name == "WindowBulgeGas" else L.alpha
         g = grp(L.name)
-        Lc = L
-        Lc.alpha = alpha
-        add_layer_3d(ax, Lc, Z(L.z0, g), Z(L.z0 + L.t, g))
+        L2 = Vol(L.name, L.z0, L.t, L.hx, L.hy, L.ox, L.oy, L.hole,
+                 L.color, alpha)
+        add_layer_3d(ax, L2, Z(L.z0, g), Z(L.z0 + L.t, g))
 
     ax.set_xlabel("x [mm]"); ax.set_ylabel("y [mm]")
-    ax.set_xlim(-260, 260); ax.set_ylim(-260, 260)
-    return key_z
+    ax.set_xlim(-280, 280); ax.set_ylim(-280, 280)
 
 
 def fig_3d(outdir):
@@ -173,8 +265,9 @@ def fig_3d(outdir):
     for ztxt, lab in [(-125, "bulged window\n(60 µm mylar + Al, terraced dome)"),
                       (-40, "window flange ring + 5 mm gas gap"),
                       (85, "drift: Cu-clad kapton cathode, 30 mm frame,\n"
-                           "field cage, M1 front-end cards"),
-                      (200, "mesh (woven, eff. density) + amp gap + paste"),
+                           "field cage"),
+                      (200, "mesh + amp gap (bulk pillars) + ESL resist\n"
+                            "+ M1 front-end cards on the board edges"),
                       (280, "readout laminate (1.70 mm body total)"),
                       (360, "rohacell + aluminized-mylar back foil"),
                       (440, "8 mm Al support plate (402 mm aperture)")]:
@@ -345,7 +438,7 @@ def fig_peel(outdir):
 
     # (title, substrate colour, copper colour, gerber file or None=resist)
     spec = [
-        ("① top surface\nresistive coat + bulk pillars", "#3c3c3c", None, None),
+        ("① top surface\nESL resist strips + bulk pillars", "#d9c48f", None, None),
         ("② coat removed\nL4 readout pads", "#d9c48f", "#e09a55",
          "DFS3498A_L2-pads.gbr"),
         ("③ pads removed\nL5 Y strips", "#c4ac74", "#b87333",
@@ -373,15 +466,20 @@ def fig_peel(outdir):
             gf = parse(os.path.join(GERBER_DIR, fn))
             draw_gerber_clipped(ax, gf, patch, lw_scale=2.2, color=cuc)
         else:
-            # resistive coat: gerber defines a uniform 412 mm sheet; the strip
-            # pattern (if screen-printed) is not in the gerber set, so strips
-            # at the 0.78 mm pad pitch are drawn ILLUSTRATIVELY.
+            # ESL resistive strips: 550 um wide / 250 um gaps (confirmed
+            # 2026-08-06; deliberately NOT the 0.78 mm pad pitch). The L4 pads
+            # show through the gaps. Strip artwork is not in the gerber set,
+            # so the strips are drawn from the confirmed spec.
+            gp = parse(os.path.join(GERBER_DIR, "DFS3498A_L2-pads.gbr"))
+            draw_gerber_clipped(ax, gp, patch, lw_scale=2.2,
+                                color="#c8874a", alpha=0.8)
             strips = []
-            xs = np.arange(np.floor(X0/0.78)*0.78, bx1 + 1, 0.78)
+            xs = np.arange(np.floor(X0/0.8)*0.8, bx1 + 1, 0.8)
             for xstrip in xs:
                 strips.append(Rectangle((xstrip - 0.275, Y0), 0.55, Y1 - Y0))
             sc = ax.add_collection(PatchCollection(
-                strips, facecolor="#151515", edgecolor="none", zorder=3))
+                strips, facecolor="#1c1c1c", edgecolor="none", alpha=0.92,
+                zorder=4))
             sc.set_clip_path(patch)
             # bulk pillars (real: 3498A_bulk.gbr, Ø0.6 on ~4.7 mm pitch)
             gb = parse(os.path.join(REPO, "design", "gerbers", "readout_pcb",
@@ -390,7 +488,7 @@ def fig_peel(outdir):
                    if X0 - 2 < f.x < bx1 + 2 and Y0 - 2 < f.y < Y1 + 2]
             pc = ax.add_collection(PatchCollection(
                 pil, facecolor="#e8e2d2", edgecolor="#9a9384",
-                linewidths=0.4, zorder=4))
+                linewidths=0.4, zorder=5))
             pc.set_clip_path(patch)
 
         # torn-edge shadow on the left boundary of each deeper band
@@ -410,13 +508,15 @@ def fig_peel(outdir):
     ax.set_aspect("equal")
     ax.set_xlabel("x [mm]"); ax.set_ylabel("y [mm]")
     ax.set_title("MX17 readout board close-up — layers peeled back "
-                 "(gerber geometry; resist strips illustrative)",
+                 "(gerber geometry; ESL strips drawn from the confirmed spec)",
                  fontsize=13, pad=14)
 
     # depth key: mini stack elevation linking bands to depth
-    labels = [("resistive coat (100 µm slab in Geant4;\n"
-               "gerber = uniform 412² sheet, strip\nartwork not in the set)",
-               "#3c3c3c"),
+    labels = [("ESL resistive strips — 550 µm wide,\n"
+               "250 µm gaps (confirmed; pads show\n"
+               "through). Geant4: 100 µm slab ×0.69.\n"
+               "White dots: bulk pillars Ø0.6 @ 4.68 mm",
+               "#1c1c1c"),
               ("L4 pads — 0.68 mm on 0.78 mm pitch\n(88 % Cu over active)",
                "#e09a55"),
               ("L5 Y strips (53 %)", "#b87333"),
@@ -447,75 +547,85 @@ def fig_peel(outdir):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def fig_plan(outdir):
+    """Plan views built from the geometry dump (unique footprints per lv)."""
+    vols = load_dump()
+    foot = {}   # name -> list of unique (ox, oy, hx, hy, hole)
+    for L in vols:
+        key = (round(L.ox, 3), round(L.oy, 3), round(L.hx, 3), round(L.hy, 3),
+               L.hole and tuple(round(v, 3) for v in L.hole))
+        foot.setdefault(L.name, set()).add(key)
+
+    def draw(ax, name, *, fc, ec, lw=1.2, ls="-", alpha=0.8, zorder=2,
+             label=None):
+        for i, (ox, oy, hx, hy, hole) in enumerate(sorted(foot.get(name, []))):
+            r = Rectangle((ox - hx, oy - hy), 2*hx, 2*hy, facecolor=fc,
+                          edgecolor=ec, lw=lw, ls=ls, alpha=alpha,
+                          zorder=zorder, label=label if i == 0 else None)
+            ax.add_patch(r)
+            if hole:
+                hcx, hcy, hhx, hhy = hole
+                ax.add_patch(Rectangle((hcx - hhx, hcy - hhy), 2*hhx, 2*hhy,
+                                       facecolor="white", edgecolor=ec,
+                                       lw=lw*0.7, alpha=alpha, zorder=zorder))
+
+    def conn_clusters(ax, zorder):
+        # board connector-copper clusters, measured from the gerbers
+        for tang in (+99.8, -99.8):
+            ax.add_patch(Rectangle((228.5, tang - 14.5), 20, 29,
+                                   facecolor="#b87333", edgecolor="none",
+                                   alpha=0.9, zorder=zorder))
+            ax.add_patch(Rectangle((tang - 14.5, 228.5), 29, 20,
+                                   facecolor="#b87333", edgecolor="none",
+                                   alpha=0.9, zorder=zorder))
+
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(19, 9.6))
-
-    def rect(ax, x0, y0, w, h, *, fc="none", ec="k", lw=1.2, ls="-", alpha=1.0,
-             zorder=2, label=None):
-        r = Rectangle((x0, y0), w, h, facecolor=fc, edgecolor=ec, lw=lw,
-                      ls=ls, alpha=alpha, zorder=zorder, label=label)
-        ax.add_patch(r)
-        return r
-
-    def m1_cards(ax, fc, ec, zorder, show_conn):
-        wh = (M.FE_OUTER - M.FE_INNER)
-        for tang in M.FE_TANG:
-            rect(ax, M.FE_INNER, tang - M.FE_LEN/2, wh, M.FE_LEN,
-                 fc=fc, ec=ec, lw=1.3, alpha=0.75, zorder=zorder)
-            rect(ax, tang - M.FE_LEN/2, M.FE_INNER, M.FE_LEN, wh,
-                 fc=fc, ec=ec, lw=1.3, alpha=0.75, zorder=zorder)
-        if show_conn:
-            # board connector-copper clusters (measured from the gerbers)
-            for tang in (+99.8, -99.8):
-                rect(ax, 228.5, tang - 14.5, 20, 29, fc="#b87333", ec="none",
-                     alpha=0.9, zorder=zorder + 1)
-                rect(ax, tang - 14.5, 228.5, 29, 20, fc="#b87333", ec="none",
-                     alpha=0.9, zorder=zorder + 1)
 
     # ── view from upstream (beam side, window first) ─────────────────────────
     ax = ax1
-    rect(ax, -220+15, -220+15, 470, 470, fc="#f2f2f2", ec="0.55", lw=1.0,
-         zorder=1, label="470² plates (board/rohacell/plate, +15,+15)")
-    m1_cards(ax, "#c9e4c9", "#2e7d32", 2, show_conn=False)
-    rect(ax, -220, -220, 440, 440, fc="#e2e6ee", ec="0.3", lw=1.4, zorder=3,
-         label="gas frame / flange outer (440²)")
-    rect(ax, -205, -205, 410, 410, fc="none", ec="0.3", ls="--", lw=1.2,
-         zorder=4, label="frame aperture (410²) + field cage")
-    rect(ax, -203.38, -203.38, 406.76, 406.76, fc="none", ec="#339933", lw=0.9,
-         zorder=4)
-    rect(ax, -200.1, -200.1, 400.2, 400.2, fc="#dff2fa", ec="#4499bb", lw=1.3,
-         alpha=0.8, zorder=5, label="window free span (400.2²), bulged")
-    sig, h = M.terrace_profile(M.BULGE_SAG)
-    for k in range(1, M.BULGE_N):
-        s = 200.1 * sig[k]
-        rect(ax, -s, -s, 2*s, 2*s, fc="none", ec="#4499bb", lw=0.5, zorder=6)
+    draw(ax, "SupportPlate_Al", fc="#f2f2f2", ec="0.55", lw=1.0, zorder=1,
+         label="470² plates (+15,+15) / plate aperture")
+    draw(ax, "FrontEndPCB", fc="#c9e4c9", ec="#2e7d32", lw=1.3, zorder=2,
+         alpha=0.75, label="M1 front-end cards (gerber-aligned)")
+    draw(ax, "GasFrame_Al", fc="#e2e6ee", ec="0.3", lw=1.4, zorder=3,
+         label="gas frame ring (440/410)")
+    draw(ax, "FieldCagePCB", fc="#9fd49f", ec="#2e7d32", lw=0.8, zorder=4,
+         label="field cage (4×, pinwheeled)")
+    draw(ax, "WindowGapGas", fc="#dff2fa", ec="#4499bb", lw=1.3, zorder=5,
+         alpha=0.8, label="window free span (400.2²), bulged")
+    for L in sorted((L for L in vols if L.name == "WindowBulgeGas"),
+                    key=lambda L: -L.hx):
+        ax.add_patch(Rectangle((L.ox - L.hx, L.oy - L.hy), 2*L.hx, 2*L.hy,
+                               facecolor="none", edgecolor="#4499bb", lw=0.5,
+                               zorder=6))
     a = M.ACTIVE/2
-    rect(ax, -a, -a, 2*a, 2*a, fc="none", ec="royalblue", ls=":", lw=1.4,
-         zorder=7, label="active area (399.36²)")
+    ax.add_patch(Rectangle((-a, -a), 2*a, 2*a, facecolor="none",
+                           edgecolor="royalblue", ls=":", lw=1.4, zorder=7,
+                           label="active area (399.36²)"))
+    ax.annotate("M1 cards: 2 per connector edge,\nflat on the board edge,\n"
+                "centred on the connector copper",
+                xy=(240, 100), xytext=(150, 300), fontsize=9,
+                arrowprops=dict(arrowstyle="->", lw=1.0))
     ax.set_title("view from UPSTREAM (beam side) — window, frame, M1 cards",
                  fontsize=12)
-    for txt, xy in [("M1 cards (green):\n2 per connector edge,\nflat on the board edge",
-                     (240, 170))]:
-        ax.annotate(txt, xy=(240, 105), xytext=(150, 300), fontsize=9,
-                    arrowprops=dict(arrowstyle="->", lw=1.0))
 
     # ── view from downstream (support-plate side) ────────────────────────────
     ax = ax2
-    rect(ax, -220, -220, 440, 440, fc="#f5f5f5", ec="0.7", lw=0.8, zorder=1,
+    draw(ax, "GasFrame_Al", fc="#f5f5f5", ec="0.7", lw=0.8, zorder=1,
          label="window/frame footprint (440²)")
-    m1_cards(ax, "#c9e4c9", "#2e7d32", 2, show_conn=True)
-    rect(ax, -220+15, -220+15, 470, 470, fc="#efe9d2", ec="#8a7a40", lw=1.4,
-         zorder=3, alpha=0.85, label="readout board / rohacell (470², +15,+15)")
-    rect(ax, -201, -201, 402, 402, fc="#dcdce2", ec="0.35", lw=1.4, zorder=4,
-         alpha=0.9, label="support-plate aperture (402²)")
+    draw(ax, "FrontEndPCB", fc="#c9e4c9", ec="#2e7d32", lw=1.3, zorder=2,
+         alpha=0.75, label="M1 front-end cards")
+    draw(ax, "PCB_Rohacell", fc="#efe9d2", ec="#8a7a40", lw=1.4, zorder=3,
+         alpha=0.85, label="readout board / rohacell (470², +15,+15)")
+    draw(ax, "SupportPlate_Al", fc="#dcdce2", ec="0.35", lw=1.4, zorder=4,
+         alpha=0.9, label="support plate (402² aperture)")
+    conn_clusters(ax, 5)
     a = M.ACTIVE/2
-    rect(ax, -a, -a, 2*a, 2*a, fc="none", ec="royalblue", ls=":", lw=1.4,
-         zorder=6, label="active area (399.36²)")
+    ax.add_patch(Rectangle((-a, -a), 2*a, 2*a, facecolor="none",
+                           edgecolor="royalblue", ls=":", lw=1.4, zorder=6,
+                           label="active area (399.36²)"))
     ax.annotate("board connector copper\n(measured: tangential ±83..117,\n"
                 "radial 213..248)", xy=(238, -100), xytext=(120, -300),
                 fontsize=9, arrowprops=dict(arrowstyle="->", lw=1.0))
-    ax.annotate("Al support plate ring:\n470² @(+15,+15), 402² aperture",
-                xy=(-210, -160), xytext=(-330, -290), fontsize=9,
-                arrowprops=dict(arrowstyle="->", lw=1.0))
     ax.set_title("view from DOWNSTREAM (support-plate side) — board, plate, "
                  "connectors", fontsize=12)
 
@@ -526,8 +636,8 @@ def fig_plan(outdir):
         ax.grid(alpha=0.2, lw=0.4)
         ax.set_xlabel("x [mm]"); ax.set_ylabel("y [mm]")
         ax.legend(loc="lower left", fontsize=8, framealpha=0.9)
-    fig.suptitle("MX17 as-built model — plan views (active-area axis at the "
-                 "origin, + = beam axis)", fontsize=14)
+    fig.suptitle("MX17 as-built model — plan views RENDERED FROM THE GEANT4 "
+                 "GEOMETRY DUMP (active axis at the origin)", fontsize=14)
     fig.tight_layout(rect=[0, 0, 1, 0.96])
     out = os.path.join(outdir, "mx17_plan_views.png")
     fig.savefig(out, dpi=160); plt.close(fig)
@@ -545,16 +655,17 @@ def xsec_intervals(L):
     lo, hi = L.ox - L.hx, L.ox + L.hx
     if L.hole is None:
         return [(lo, hi)]
-    h = L.hole
+    hcx, hcy, hhx, hhy = L.hole
+    if abs(hcy) >= hhy:
+        return [(lo, hi)]
     out = []
-    if lo < -h: out.append((lo, -h))
-    if hi > h:  out.append((h, hi))
+    if lo < hcx - hhx: out.append((lo, hcx - hhx))
+    if hi > hcx + hhx: out.append((hcx + hhx, hi))
     return out
 
 
 def fig_xsec(outdir):
-    layers, side, windows, key_z = M.build_stack()
-    items = layers + side + windows
+    items = load_dump()
 
     fig, (ax1, ax2, ax3) = plt.subplots(
         1, 3, figsize=(19, 6.4), width_ratios=[2.2, 1.0, 1.1])
@@ -576,9 +687,11 @@ def fig_xsec(outdir):
     ax1.set_title("True scale — bulged window, flange, frame, plate aperture")
     ax1.grid(alpha=0.25, lw=0.4)
 
-    zs = {L.name: (L.z0, L.t) for L in layers}
+    zs = {}
+    for L in items:
+        zs.setdefault(L.name, (L.z0, L.t))
     z_mesh = zs["Micromesh"][0]
-    z_end = zs["PCB_FR4_L7"][0] + zs["PCB_FR4_L7"][1]
+    z_end = zs["PCB_FR4_5"][0] + zs["PCB_FR4_5"][1]
     ax2.set_xlim(-30, 30); ax2.set_ylim(z_end + 0.1, z_mesh - 0.1)
     ax2.set_xlabel("x [mm]")
     ax2.set_title("Zoom: mesh → laminate (1.70 mm board body)")
@@ -587,14 +700,23 @@ def fig_xsec(outdir):
                       ("AmpGas", "amp gap (150 µm)"),
                       ("ResistivePaste", "paste (100 µm)"),
                       ("PCB_Kapton", "kapton (50 µm)"),
-                      ("PCB_FR4_L5", "5× Cu 26 µm (coverage-scaled)\n/ FR4 246.4 µm")]:
+                      ("PCB_FR4_3", "5× Cu 26 µm (coverage-scaled)\n/ FR4 246.4 µm")]:
         z0, t = zs[name]
         ax2.annotate(lab, xy=(30, z0 + t/2), xytext=(32, z0 + t/2),
                      fontsize=8, va="center", annotation_clip=False)
 
     ax3.set_title("Stack (not to scale)")
+    # z-advancing chain = unique on-axis volumes ordered by z (skip side items)
+    side_names = {"WindowFlange_Al", "GasFrame_Al", "FieldCagePCB",
+                  "FrontEndPCB", "WindowBulgeGas"}
+    biggest = {}
+    for L in items:
+        if L.name in side_names:
+            continue
+        if L.name not in biggest or L.hx > biggest[L.name].hx:
+            biggest[L.name] = L
     y = 0
-    for L in layers:
+    for L in sorted(biggest.values(), key=lambda L: L.z0):
         ax3.add_patch(Rectangle((0, y), 1, 1, facecolor=L.color,
                                 alpha=max(L.alpha, 0.4), edgecolor="k", lw=0.4))
         t_lab = f"{L.t*1000:.1f} µm" if L.t < 1 else f"{L.t:.0f} mm"
@@ -644,8 +766,10 @@ def fig_status(outdir):
          "weave spec is a P2-like placeholder", 0.55, "#9e9e9e", C_GUESS),
         ("amp",     "amplification gap — 150 µm",
          "confirmed (Dylan 2026-08-06)", 0.7, "#ffc4c4", C_HW),
-        ("paste",   "resistive paste — 100 µm",
-         "historical value; not in CAD or gerbers", 0.45, "#555555", C_GUESS),
+        ("paste",   "ESL resist strips — 550/250 µm → slab ×0.69",
+         "strip spec confirmed; 100 µm thickness still a guess", 0.45, "#555555", C_HW),
+        ("pillars", "bulk pillars — Ø0.6 mm, 85×85 @ 4.68 mm",
+         "exact grid from 3498A_bulk.gbr; in the amp gas", 0.4, "#e8e2d2", C_CAD),
         ("pcb",     "readout board — 1.70 mm body, 470²",
          "CAD total; Cu = 5 gerber layers × 26 µm, density-scaled\nby measured coverage (L3–L7); FR4 filler solved", 0.9, "#cc6619", C_CAD),
         ("m1",      "M1 cards — flat on the board edges",

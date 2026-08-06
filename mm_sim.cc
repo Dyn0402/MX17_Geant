@@ -16,6 +16,9 @@
 #include "PhysicsList.hh"
 #include "ActionInitialization.hh"
 #include "SimConfig.hh"
+#include "GeometryDump.hh"
+
+#include "G4TransportationManager.hh"
 
 #include <iostream>
 #include <string>
@@ -39,6 +42,7 @@ void PrintUsage() {
     std::cerr << "  --src-dist <mm>  Source-to-detector air gap [mm] (default: 100)\n";
     std::cerr << "  --bulge-front <mm>  Front-window overpressure dome sag (default: 8, 0=flat)\n";
     std::cerr << "  --legacy-geometry   Use the pre-2026-08 uniform-slab MM module\n";
+    std::cerr << "  --dump-geometry <f> Write the constructed geometry to JSON and exit\n";
     std::cerr << "  -a <mm>          Al shielding [mm], vacuum mode only  (default: 0)\n";
     std::cerr << "  -c <mm>          CFRP wall thickness [mm] for LS cells, full mode only  (default: 1.5)\n";
     std::cerr << "  -v               Verbose output\n";
@@ -60,6 +64,7 @@ int main(int argc, char** argv) {
     config.cfrpThickness_mm = 2.0;  // updated to match Full_Geant
 
     std::string macroFile = "";
+    std::string geomDumpFile = "";
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -88,6 +93,7 @@ int main(int argc, char** argv) {
         else if (arg == "--src-dist" && i+1<argc) config.source_to_det_mm = std::stod(argv[++i]);
         else if (arg == "--bulge-front" && i+1<argc) config.mx17_bulge_front_mm = std::stod(argv[++i]);
         else if (arg == "--legacy-geometry") config.legacy_mm_geometry = true;
+        else if (arg == "--dump-geometry" && i+1<argc) geomDumpFile = argv[++i];
         else if (arg[0] != '-') macroFile = arg;
         else { std::cerr << "Unknown option: " << arg << "\n"; PrintUsage(); return 1; }
     }
@@ -131,6 +137,14 @@ int main(int argc, char** argv) {
     runManager->SetUserInitialization(new ActionInitialization(config, detCon));
 
     runManager->Initialize();
+
+    if (!geomDumpFile.empty()) {
+        auto* world = G4TransportationManager::GetTransportationManager()
+                          ->GetNavigatorForTracking()->GetWorldVolume();
+        DumpGeometry(world, geomDumpFile);
+        delete runManager;
+        return 0;
+    }
 
     G4UImanager* UI = G4UImanager::GetUIpointer();
     if (macroFile.empty()) {

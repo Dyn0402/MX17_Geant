@@ -29,8 +29,10 @@
 // deliberately so the scoring stays correct; same for "GasWindow_Al".
 
 #include "G4Box.hh"
+#include "G4Tubs.hh"
 #include "G4SubtractionSolid.hh"
 #include "G4LogicalVolume.hh"
+#include "G4PVPlacement.hh"
 #include "G4Material.hh"
 #include "G4ThreeVector.hh"
 #include "G4VisAttributes.hh"
@@ -86,6 +88,16 @@ struct ModuleSpec {
     double paste_um      = 100.0;
     double ampFace_mm    = 400.0;  // as-built 410
     double pasteFace_mm  = 0.0;    // 0 → ampFace; as-built 412 (resist-coat gerber)
+    // ESL resistive strips: 550 µm wide / 250 µm gaps (confirmed 2026-08-06)
+    // → the 100 µm slab is density-scaled by 550/800. 0 → uniform sheet.
+    double pasteCoverage = 0.0;
+    // Bulk pillars supporting the mesh, standing in the amplification gap:
+    // Ø0.6 mm on a regular 85×85 grid at 4.68 mm pitch spanning ±196.56 mm
+    // (3498A_bulk.gbr, exact). Placed as daughters of the AmpGas volume so
+    // the scored gas is properly displaced (~1.3 % of the gap volume).
+    double pillarD_mm    = 0.0;    // 0 → no pillars
+    double pillarPitch_mm= 4.68;
+    int    pillarN       = 85;
 
     // ── Readout laminate ──
     bool   includeReadout = true;  // false: stop after ResistivePaste (vacuum mode)
@@ -165,7 +177,9 @@ inline ModuleSpec AsBuiltSpec(double bulgeSag_mm = 8.0) {
     s.meshOpen_um    = 48.0;
     s.meshFace_mm    = 410.0;
     s.ampFace_mm     = 410.0;
-    s.pasteFace_mm   = 412.0;   // full-sheet resistive coat boundary (3498A_top-resist)
+    s.pasteFace_mm   = 412.0;   // resistive coat boundary (3498A_top-resist)
+    s.pasteCoverage  = 550.0 / 800.0;   // ESL strips 550/250 µm (confirmed)
+    s.pillarD_mm     = 0.6;     // bulk pillars (3498A_bulk.gbr grid)
     s.feThick_mm     = 1.6;     // multi M1 cards: bare-laminate guess
     s.feCuCoverage   = {0.147, 0.110, 0.114, 0.117, 0.111, 0.041};
     s.pcbTotal_mm    = 1.70;    // CAD single-body readout board
@@ -540,9 +554,40 @@ inline Module BuildModule(const ModuleSpec& s, const Materials& m) {
     //    board body; mesh front face = frame bottom face).
     addBox("Micromesh", meshH, meshH, tMesh, matMesh, visMesh);
     out.ampGasLV = addBox("AmpGas", ampH, ampH, tAmp, m.gas, visAmp);
+    // Bulk pillars: one LV placed on the measured grid inside the amp gas, so
+    // wherever the module is placed the scored gas is displaced correctly.
+    // Material: polyimide coverlay (kapton) — the photoimageable film used by
+    // the bulk process. checkOverlaps off for the grid: 7225 regular daughters
+    // with pitch >> diameter, and the O(n²) sibling check would dominate
+    // startup for no benefit.
+    if (s.pillarD_mm > 0.0 && out.ampGasLV) {
+        auto* pilSolid = new G4Tubs("BulkPillar", 0, s.pillarD_mm*mm/2,
+                                    tAmp/2, 0, 360*deg);
+        auto* pilLV = new G4LogicalVolume(pilSolid, m.kapton, "BulkPillar");
+        pilLV->SetVisAttributes(new G4VisAttributes(G4Color(0.9, 0.88, 0.8, 0.9)));
+        const double pitch = s.pillarPitch_mm * mm;
+        const double o = (s.pillarN - 1) / 2.0;
+        int copy = 0;
+        for (int i = 0; i < s.pillarN; ++i)
+            for (int j = 0; j < s.pillarN; ++j)
+                new G4PVPlacement(nullptr,
+                    G4ThreeVector((i - o)*pitch, (j - o)*pitch, 0),
+                    pilLV, "BulkPillar", out.ampGasLV, false, copy++, false);
+    }
+
+    // Resistive layer: ESL strips 550 µm / 250 µm gap → density-scaled slab.
     const double pasteH = (s.pasteFace_mm > 0 ? s.pasteFace_mm : s.ampFace_mm)
                           * mm / 2;
-    addBox("ResistivePaste", pasteH, pasteH, tPaste, m.resPaste, visResPaste);
+    G4Material* matPaste = m.resPaste;
+    if (s.pasteCoverage > 0.0 && s.pasteCoverage < 0.999) {
+        matPaste = G4Material::GetMaterial("MX17ResistEff", false);
+        if (!matPaste) {
+            matPaste = new G4Material("MX17ResistEff",
+                                      m.resPaste->GetDensity() * s.pasteCoverage, 1);
+            matPaste->AddMaterial(m.resPaste, 1.0);
+        }
+    }
+    addBox("ResistivePaste", pasteH, pasteH, tPaste, matPaste, visResPaste);
     out.mmDepth = zF;
 
     if (s.includeReadout) {

@@ -95,20 +95,26 @@ M1 mass ever matters). The card inner edge is clipped 219.4 → 220.0 mm where
 the plain-ring gas-frame model has its outer wall (the real frame must be
 relieved there).
 
-## 6c. ⬜ Resistive layer: uniform sheet or strips?
+## 6c. 🟡 Resistive layer: ESL strips 550/250 µm
 
-**Modelled now:** a uniform 100 µm `ResistivePaste` slab, 412 × 412 (the
-deposit boundary in `3498A_top-resist.gbr` — that gerber is a full-sheet
-mask; the only structure in it is a serigraphy note about two bulk-evacuation
-zones). **The strip artwork, if the coat is screen-printed as strips, is not
-in the gerber set.**
+**Confirmed (Dylan 2026-08-06):** vertical ESL resistive strips, 550 µm wide
+with 250 µm gaps (0.8 mm pitch — deliberately not the 0.78 mm pad pitch).
+Modelled as a 100 µm slab density-scaled ×0.6875, 412 × 412 (the deposit
+boundary from `3498A_top-resist.gbr`; the strip artwork itself is not in the
+gerber set — strips in the figures are drawn from the confirmed spec).
 
-**Why it matters:** if the resistive layer is strips (e.g. ~550 µm wide on
-the 0.78 mm pad pitch, as the strip-response work suggests), the areal mass
-is ~30 % lower than the uniform sheet, and the pattern matters for any
-charge-spreading modelling downstream. Ask for the serigraphy artwork or a
-photo/microscope shot of the coat, plus the coat thickness (100 µm is a
-guess).
+**Still open:** the coat *thickness* — 100 µm remains a guess. Also noted:
+the strip/pad pitch mismatch (0.80 vs 0.78 mm) means a slowly beating moiré
+between strips and pads; irrelevant for material budget, relevant for any
+charge-sharing model downstream.
+
+## 6d. ✅ Bulk pillars
+
+Ø 0.6 mm pillars on an exact 85 × 85 grid at 4.68 mm pitch spanning
+±196.56 mm (`3498A_bulk.gbr`), standing in the amplification gap. Modelled as
+polyimide-coverlay cylinders placed as daughters of the AmpGas volume — the
+scored gas is displaced (~1.3 % of the gap volume, locally dead spots).
+Pillar material (coverlay ≈ kapton) is an approximation.
 
 ## 7. 🟡 Per-arm orientation of the module asymmetries (Full_Geant)
 

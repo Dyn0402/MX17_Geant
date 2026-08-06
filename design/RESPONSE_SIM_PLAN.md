@@ -39,9 +39,9 @@ Anode stack, top (gas) to bottom. z=0 at the top surface of the ESL resistive la
 | # | Layer | Value | Source | Confidence |
 |---|---|---|---|---|
 | 1 | Micromesh (grounded ref. for amp field; at −HV_mesh in reality) | woven SS, wire 2×19 µm crossing, fill factor 0.223 | `shared/MX17ModuleGeometry.hh` | good |
-| 2 | Amplification gap | **150 µm** (alt: 128 µm) | header; flagged unverified in `design/GEOMETRY_IMPLEMENTATION_NOTES.md` | scan {128, 150} |
+| 2 | Amplification gap | **150 µm — CONFIRMED (user, 2026-08-06). Not 128. Do not scan.** | user; supersedes the "unverified" flag in `design/GEOMETRY_IMPLEMENTATION_NOTES.md` | fixed |
 | 3 | **ESL resistive strips** | **550 µm wide, 250 µm gap, 800 µm pitch, running along y ("vertical")** | user/fab knowledge; NOT in gerbers (screen-printed after fab) | geometry good; ρ_s unknown → scan **{0.5, 1, 2, 5} MΩ/sq** |
-| 4 | Coverlay insulator (kapton + adhesive) | **unknown**; default 75 µm, ε_r = 3.5 | typical Saclay coverlay 50 µm kapton + 25 µm adhesive | scan **{50, 75, 125} µm** |
+| 4 | Insulator between pad Cu and ESL | **Dynamask** (photoimageable dry-film solder mask, epoxy-acrylate; user 2026-08-06). Nominal film thickness typically 75–100 µm, ε_r ≈ 3.9 (get exact datasheet values if the grade is ever learned) | user (material class); thickness/ε_r from typical Dynamask datasheets | default 100 µm; scan **{75, 100} µm** |
 | 5 | Pad plane (Cu) | 512×512 pads, **0.68 mm square on 0.78 mm pitch**, active area 399.36 mm | `design/gerbers/readout_pcb/DFS3498A_L2-pads.gbr` | exact |
 | 6 | Buried interconnect | pads bussed by vias to 512 Y-strip traces (L3-TrackY) and 512 X-strip traces (L4-TrackX), 0.1 mm traces on 0.78 mm pitch | gerbers | exact (in-plane); layer z-spacing unknown |
 
@@ -97,7 +97,7 @@ H_d(x,t) = -∇ ∂ψ_d(x,t)/∂t ,   ψ_d = Ψ - ψ_p ,  ψ_p = Ψ(t→0⁺)
 
 At t=0⁺ the ESL acts as a dielectric (prompt/static solution); as t→∞ it acts as a grounded conductor. By reciprocity, Ψ_n(x0,y0,0⁻ surface, t)/V_w is exactly the Green's function G_n: the charge induced on channel n by a unit point charge *sitting* on the ESL at (x0,y0) since t=0.
 
-**Geometry model W1 (baseline).** Layers in z: grounded mesh plane at z=+g (treat as solid — justified: weave-scale field ripple decays as e^(−2πz/p_weave), negligible at the ESL for p_weave ≪ g; verify in V5) / gas ε=1 thickness g / ESL sheet at z=0 with σ_s(x) = 1/ρ_s on strips, 0 in gaps (periodic in x, period 800 µm, uniform in y) / coverlay ε_r=3.5 thickness d_k / segmented pad plane at z=−d_k. Buried trace layers are screened by the pad plane and ignored in W1 (W2 check in V6: expose 100 µm inter-pad gaps and re-run — expected percent-level).
+**Geometry model W1 (baseline).** Layers in z: grounded mesh plane at z=+g (treat as solid — justified: weave-scale field ripple decays as e^(−2πz/p_weave), negligible at the ESL for p_weave ≪ g; verify in V5) / gas ε=1 thickness g / ESL sheet at z=0 with σ_s(x) = 1/ρ_s on strips, 0 in gaps (periodic in x, period 800 µm, uniform in y) / Dynamask ε_r=3.9 thickness d_k / segmented pad plane at z=−d_k. Buried trace layers are screened by the pad plane and ignored in W1 (W2 check in V6: expose 100 µm inter-pad gaps and re-run — expected percent-level).
 
 **Electrode definition.** A Y channel = one row of pads bussed together; an X channel = one column. (Confirm from the via pattern in `DFS3498A_pla1-2.gbr` which pads belong to X vs Y — likely alternating checkerboard; the parser in `scripts/` or nTof_x17 `common/Mx17StripMap.py` may already know. If checkerboard: an X channel is every-other-pad along a column. Document what you find in `response/common/`.)
 
@@ -121,7 +121,7 @@ Result: per (k_y, Bloch block) a linear ODE system `dV/dt = A·V + b·Θ(t)` of 
 
 Numbers to expect (sanity): c′ ≈ 5×10⁻⁷ F/m²; sheet diffusivity D = 1/(ρ_s c′) ≈ 2.0 m²/s at 1 MΩ/sq → relaxation of a 130 µm feature in ~8 ns, of one 800 µm pitch in ~0.3 µs.
 
-**Host:** laptop (light). **Scan matrix:** ρ_s {0.5,1,2,5} MΩ/sq × d_k {50,75,125} µm × gap {128,150} µm = 24 points; each point = 2 channel types → ~48 solver runs, still laptop-scale; if slow, desktop.
+**Host:** laptop (light). **Scan matrix:** ρ_s {0.5,1,2,5} MΩ/sq × d_k {75,100} µm = 8 points (gap fixed at 150 µm); each point = 2 channel types → 16 solver runs, laptop-scale; if slow, desktop.
 
 ---
 
@@ -234,18 +234,20 @@ Existing lxplus workflow to reuse: `nTof_x17/garfield_sim/mm_condor_submit.py` a
 
 Parallelizable now (before geometry merge): T0–T7. T3–T5 is the critical path and the highest-skill task — implement with the validation tests as the definition of done.
 
-## 12. Outstanding questions (external answers expected in WEEKS — proceed with defaults)
+## 12. Outstanding questions — REFERENCE ONLY
 
-**To Saclay/CEA (fab):**
+**These are NOT being sent to anyone and will likely never be answered. They exist to record exactly which inputs are assumed rather than known. Never block on, or wait for, any item here — the listed default is the answer for all purposes.**
+
+**Fab-side unknowns (Saclay/CEA would know):**
 1. ESL resistive paste: measured surface resistivity (Ω/sq) and paste type/batch for our modules. *Default: scan 0.5–5 MΩ/sq.*
-2. Coverlay stackup between pad copper and ESL: kapton + adhesive thicknesses and ε_r. *Default: 75 µm, ε_r 3.5, scan 50–125.*
+2. Exact Dynamask grade → film thickness and ε_r. Material class IS known (Dynamask dry-film solder mask; user 2026-08-06). *Default: 100 µm, ε_r 3.9, scan 75–100.*
 3. Screen-print registration: nominal alignment/tolerance of the 800 µm ESL pattern vs the 780 µm pad pattern (and vs active-area center). *Default: nominal aligned at center; the beat makes absolute phase measurable from data later.*
 4. ESL strip termination: how strips connect to the HV/ground bus (both ends? one end? via resistor?). *Default: A1 (§1).*
-5. Amplification gap as built: 128 or 150 µm. *Default: scan both.*
+5. ~~Amplification gap as built: 128 or 150 µm~~ **RESOLVED: 150 µm (user, 2026-08-06).**
 6. PCB internal stackup: layer z-spacings (pads→L3→L4). *Default: pads-only model W1; spacing irrelevant in W1.*
 7. Confirm pad↔X/Y bussing pattern (checkerboard?). *We will extract from via gerbers (T2); confirmation only.*
 
-**To DAQ host / collaborators:**
+**DAQ-side unknowns:**
 8. Confirm `CosmicTb_MX17.cfg` on `daq:/mnt/cosmic_data/MX17/dream_config/` is byte-identical to the May copies we have locally (for the 6-27 det3 runs). *Default: trust local copies.*
 9. DREAM ADC full-scale and mV/fC at our register settings if not unambiguous from the manual. *Default: manual values + one recorded global scale factor.*
 
