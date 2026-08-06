@@ -1,0 +1,115 @@
+==========================================================================
+S1 weighting-potential solver — acceptance tests
+gap 150 µm (confirmed) | ESL 550/250 µm on 800 µm | pads 780 µm | superperiod 31.2 mm
+==========================================================================
+
+V1  uniform sheet vs closed form
+       t =      0.0 ns   max|num-ana|/max|ana| = 2.505e-16
+       t =      1.0 ns   max|num-ana|/max|ana| = 2.505e-16
+       t =     10.0 ns   max|num-ana|/max|ana| = 2.505e-16
+       t =    100.0 ns   max|num-ana|/max|ana| = 2.647e-16
+       t =   1000.0 ns   max|num-ana|/max|ana| = 8.641e-16
+       (4.3 s for 5 times on a 256x780 grid)
+  [PASS] V1 uniform sheet vs closed form                      8.641e-16 (tol 1.0e-02) 
+
+V1b small-k limit -> Gaussian diffusion
+       c' = 4.7222e-07 F/m^2   D = 1/(rho_s c') = 2.118 m^2/s
+       plan §3 quotes c' ~ 5e-7 F/m^2 and D ~ 2.0 m^2/s
+       relaxation of a  130 µm feature:     4.0 ns   (plan says ~8 ns)
+       relaxation of a  800 µm feature:   151.1 ns   (plan says ~300 ns)
+  [PASS] V1b decay rate -> k^2/(rho_s c')                     2.159e-04 (tol 1.0e-02) 
+
+V2  isolated strip, k_y = 0, telegraph behaviour
+       39 strips resolved on the grid
+        t [ns]      total (k=0)      structure (mean std WITHIN a strip)
+             0.0     5.862500e+01     5.782801e-03
+             1.0     5.862500e+01     5.341714e-03
+            10.0     5.862500e+01     3.152066e-03
+           100.0     5.862500e+01     1.300587e-04
+          1000.0     5.862500e+01     1.198308e-04
+         10000.0     5.862500e+01     1.198308e-04
+       charge conservation |q(10 µs)/q(0) - 1| = 0.000e+00
+       structure relaxation std(10 µs)/std(0) = 2.072e-02
+       Charge in a 250 µm insulating gap, and charge on a strip with no y-gradient,
+       both have NO DC path to ground. That asymmetry between x (blocked) and
+       y (conducting) is the geometric origin of the measured X/Y sharing
+       difference — plan §1.
+
+       grid convergence of the residual (must fall ~1/nx):
+         nx     µm/sample   struct(10 µs)/struct(0)
+          390      80.00      3.8031e-01
+          780      40.00      1.2365e-01
+         1560      20.00      4.6105e-02
+         3120      10.00      2.0722e-02
+       ratio per doubling: 3.08, 2.68, 2.22  (first order -> ~2)
+       => a production run needs <=10 µm sampling in x, which is what plan §2
+          already specifies for the export grid.
+  [PASS] V2 strip charge conserved (no drain term)            0.000e+00 (tol 1.0e-06) 
+  [PASS] V2 residual converges at >= first order              0.000e+00 (tol 1.0e-09) (ratios 3.08, 2.68, 2.22)
+
+V3  prompt limit, late-time limit, no growing modes
+        t [ns]      sup|Psi|
+             0.0   8.863827e-01
+             1.0   8.752916e-01
+            10.0   6.575547e-01
+           100.0   1.230790e-01
+          1000.0   1.136966e-02
+  [PASS] V3 prompt via propagator == S/C direct               2.505e-16 (tol 1.0e-10) 
+  [PASS] V3 uniform sheet -> grounded conductor               2.924e-73 (tol 1.0e-06) 
+  [PASS] V3 no growing modes                                  0.000e+00 (tol 1.0e-12) 
+
+V4b explicit drain term
+        t/tau      sup|Psi| / prompt      exp(-t/tau)
+           0.0     1.000000e+00     1.0000e+00
+           1.0     3.743632e-01     3.6788e-01
+           3.0     9.604740e-02     4.9787e-02
+          10.0     2.269986e-03     4.5400e-05
+          30.0     4.198665e-06     9.3576e-14
+
+       C(k) at the 250 µm gap scale is 2.20x its k->0 value,
+       so gap-stranded charge drains ~2.2x slower than charge on the strips.
+       PREDICTION: the late-time tail is two-component, not a single
+       exponential — a fast strip component and a slower gap component. Worth
+       looking for in the measured tau_g fits, which currently assume one.
+  [PASS] V4b drain empties the sheet by t = 30 tau            4.199e-06 (tol 1.0e-03) 
+
+V4  global drain: assumption A1 vs the measured tau_g
+        rho_s      tau(A1, L=412 mm)    ratio to measured 5.3-7.3 µs
+        0.5 MΩ/sq        4.061 ms      x645
+        1.0 MΩ/sq        8.122 ms      x1,289
+        2.0 MΩ/sq       16.243 ms      x2,578
+        5.0 MΩ/sq       40.608 ms      x6,446
+
+       Even at the most favourable corner of the resistivity scan, A1 predicts a
+       drain three orders of magnitude SLOWER than what is measured.
+       to get 6.3 µs at  0.5 MΩ/sq the strips would have to be grounded
+         every   16.2 mm — not every 412 mm.
+       to get 6.3 µs at  1.0 MΩ/sq the strips would have to be grounded
+         every   11.5 mm — not every 412 mm.
+       to get 6.3 µs at  2.0 MΩ/sq the strips would have to be grounded
+         every    8.1 mm — not every 412 mm.
+       to get 6.3 µs at  5.0 MΩ/sq the strips would have to be grounded
+         every    5.1 mm — not every 412 mm.
+
+       CONCLUSION: A1 as literally stated is refuted by the data.
+       Candidate explanations, in the order worth testing:
+         (a) the strips are not the drain path at all — the measured tau_g may be
+             the pad-plane/front-end RC rather than sheet transport;
+         (b) there is a conductive path at a much finer pitch than the active width
+             (a grounding grid, or the paste contacting the bus through vias);
+         (c) rho_s is far below the scanned 0.5-5 MΩ/sq.
+       Until this is settled, the solver's tau_drain_s is an EXPLICIT INPUT and the
+       production scan should carry it as a nuisance parameter pinned to the
+       measurement, not derived from A1.
+  [FAIL] V4 A1 reproduces measured tau_g (EXPECTED FAIL)      2.809e+00 (tol 3.0e-01) <- refutes A1, see above
+
+==========================================================================
+solver correctness : 5/5 passed
+physics assumption : A1 REFUTED by the measured drain time
+
+  A1 being refuted is a RESULT, not a bug. It means the ESL
+  strips are not drained through their y-ends alone. The solver
+  is correct either way: it takes tau_drain_s as an explicit
+  input, so the production scan can be pinned to the measured
+  5.3-7.3 µs while the mechanism is worked out.
+==========================================================================

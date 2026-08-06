@@ -1,0 +1,548 @@
+<title>MX17 response simulation — overnight progress, 2026-08-07</title>
+<style>
+  :root {
+    color-scheme: light;
+    --paper:      #fbfbf9;
+    --paper-2:    #f2f3f1;
+    --ink:        #12161a;
+    --ink-2:      #414c56;
+    --ink-3:      #6b7680;
+    --rule:       #dde1de;
+    --accent:     #1b6f8c;   /* drift-field teal */
+    --accent-sub: #e6f0f3;
+    --copper:     #b0480f;   /* the refuted-assumption colour */
+    --copper-sub: #fbeee6;
+    --good:       #1b6b4c;
+    --good-sub:   #e6f2ec;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "DejaVu Sans Mono", Menlo, monospace;
+    --sans: ui-sans-serif, "Inter Tight", "Helvetica Neue", Arial, sans-serif;
+    --serif: ui-serif, "Iowan Old Style", "Charter", Georgia, serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --paper: #0e1215; --paper-2: #171d21;
+      --ink: #eef1f0; --ink-2: #b3bdc4; --ink-3: #7f8b93;
+      --rule: #262e33;
+      --accent: #57b3cf; --accent-sub: #12303a;
+      --copper: #e07a44; --copper-sub: #2e1a10;
+      --good: #5cbf95; --good-sub: #12291f;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --paper: #0e1215; --paper-2: #171d21;
+    --ink: #eef1f0; --ink-2: #b3bdc4; --ink-3: #7f8b93;
+    --rule: #262e33;
+    --accent: #57b3cf; --accent-sub: #12303a;
+    --copper: #e07a44; --copper-sub: #2e1a10;
+    --good: #5cbf95; --good-sub: #12291f;
+  }
+
+  body {
+    background: var(--paper); color: var(--ink);
+    font-family: var(--serif); font-size: 17px; line-height: 1.62;
+    margin: 0; padding: 0 1.25rem 6rem;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 47rem; margin: 0 auto; }
+  .wide { max-width: 66rem; margin: 2.5rem auto; }
+
+  h1, h2, h3 { font-family: var(--sans); text-wrap: balance; line-height: 1.2; }
+  h1 { font-size: 2.05rem; font-weight: 640; letter-spacing: -0.021em; margin: 0 0 .4rem; }
+  h2 {
+    font-size: 1.32rem; font-weight: 620; letter-spacing: -0.013em;
+    margin: 4rem 0 .2rem; padding-top: 1.1rem; border-top: 1px solid var(--rule);
+  }
+  h3 { font-size: 1.02rem; font-weight: 620; margin: 2.2rem 0 .3rem; letter-spacing: -0.006em; }
+  p { margin: .85rem 0; }
+  a { color: var(--accent); }
+
+  /* Section IDs are the plan's own stage names (S1, S3, T8) — they carry
+     meaning, so they get to be structural. */
+  .stage {
+    font-family: var(--mono); font-size: .72rem; font-weight: 600;
+    letter-spacing: .11em; text-transform: uppercase; color: var(--accent);
+    display: block; margin-bottom: .1rem;
+  }
+  .lede { font-size: 1.09rem; color: var(--ink-2); margin: 0 0 2rem; }
+  .meta {
+    font-family: var(--mono); font-size: .78rem; color: var(--ink-3);
+    border-bottom: 1px solid var(--rule); padding-bottom: 1.5rem; margin-bottom: 2rem;
+    display: flex; flex-wrap: wrap; gap: .4rem 1.5rem;
+  }
+
+  code, .num { font-family: var(--mono); font-size: .875em; font-variant-numeric: tabular-nums; }
+  code { background: var(--paper-2); padding: .1em .34em; border-radius: 3px; }
+
+  .tablewrap { overflow-x: auto; margin: 1.4rem 0; }
+  table { border-collapse: collapse; width: 100%; font-family: var(--sans); font-size: .87rem; }
+  th, td { text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-weight: 620; color: var(--ink-2); font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; }
+  td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  .pill {
+    display: inline-block; font-family: var(--mono); font-size: .7rem; font-weight: 600;
+    padding: .12em .5em; border-radius: 3px; letter-spacing: .04em; white-space: nowrap;
+  }
+  .pill.pass { background: var(--good-sub); color: var(--good); }
+  .pill.fail { background: var(--copper-sub); color: var(--copper); }
+  .pill.run  { background: var(--accent-sub); color: var(--accent); }
+
+  .callout {
+    border-left: 3px solid var(--copper); background: var(--copper-sub);
+    padding: 1rem 1.2rem; margin: 1.8rem 0; border-radius: 0 4px 4px 0;
+  }
+  .callout.info { border-left-color: var(--accent); background: var(--accent-sub); }
+  .callout h3 { margin-top: 0; color: var(--copper); }
+  .callout.info h3 { color: var(--accent); }
+
+  figure { margin: 2.2rem 0; }
+  figure img { width: 100%; height: auto; display: block; border-radius: 4px; background: #fff; }
+  figcaption { font-family: var(--sans); font-size: .82rem; color: var(--ink-3); margin-top: .7rem; line-height: 1.5; }
+  figcaption b { color: var(--ink-2); font-weight: 600; }
+
+  pre {
+    background: var(--paper-2); border: 1px solid var(--rule); border-radius: 4px;
+    padding: .9rem 1rem; overflow-x: auto; font-family: var(--mono);
+    font-size: .78rem; line-height: 1.5; margin: 1.3rem 0;
+  }
+  .eq {
+    background: var(--paper-2); border-left: 3px solid var(--rule);
+    padding: .8rem 1.1rem; margin: 1.3rem 0; font-family: var(--mono);
+    font-size: .84rem; overflow-x: auto; line-height: 1.7;
+  }
+  ul, ol { padding-left: 1.3rem; }
+  li { margin: .4rem 0; }
+  hr { border: 0; border-top: 1px solid var(--rule); margin: 3rem 0; }
+  .kicker { font-family: var(--sans); font-size: .8rem; text-transform: uppercase;
+            letter-spacing: .09em; color: var(--ink-3); font-weight: 600; }
+</style>
+
+<div class="wrap">
+
+<p class="kicker">MX17_Geant &middot; detector-response simulation</p>
+<h1>Overnight progress, 6&ndash;7 August 2026</h1>
+<p class="lede">The S1 dynamic weighting-potential solver is built and passes all five of its
+correctness tests. Along the way it refuted one of the plan's stated assumptions, and it
+predicts a much larger position-dependent effect than expected. The Geant4 side is
+unblocked. A 62-job Garfield campaign is running at CERN.</p>
+
+<div class="meta">
+  <span>plan: design/RESPONSE_SIM_PLAN.md</span>
+  <span>commits: 3c2c22b &rarr; baf2873</span>
+  <span>hosts: laptop + lxplus condor</span>
+</div>
+
+<h2><span class="stage">Summary</span>Where things stand</h2>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Task</th><th>What it is</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="num">T1</td><td>Python geometry constants, cross-checked against the C++ header</td><td><span class="pill pass">DONE</span></td></tr>
+<tr><td class="num">T3&ndash;T5</td><td>S1 weighting-potential solver + validation suite</td><td><span class="pill pass">DONE</span> 5/5 correctness</td></tr>
+<tr><td class="num">T8</td><td>Stage A: cluster <code>time</code>, creator process, active-area frame</td><td><span class="pill pass">DONE</span></td></tr>
+<tr><td class="num">T7</td><td>S3 avalanche calibration grid on lxplus</td><td><span class="pill run">RUNNING</span> 62 jobs</td></tr>
+<tr><td class="num">T2</td><td>Pad&harr;X/Y channel mapping from the via gerbers</td><td><span class="pill fail">NOT STARTED</span></td></tr>
+<tr><td class="num">T6</td><td>S2 woven-mesh unit cell on the desktop</td><td><span class="pill fail">NOT STARTED</span></td></tr>
+<tr><td class="num">T9+</td><td>Digitizer, DREAM electronics, end-to-end</td><td><span class="pill fail">NOT STARTED</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<p>The night went deep rather than wide, which is what you asked for: the S1 solver is the
+critical path and the highest-skill piece, so it got the hours. What that bought is
+below. T2 and T6 are the two things I would start next, and I have said why at the end.</p>
+
+<h2><span class="stage">Finding 1</span>Assumption A1 is refuted by your own data</h2>
+
+<p>The plan's assumption A1 (&sect;1) is that the ESL resistive strips are tied to the
+HV/ground bus at both <em>y</em>-ends of the active area. The plan also lists V4 as an
+acceptance test: the predicted late-time drain must land within a factor of about two of
+the measured <span class="num">&tau;<sub>g</sub> = 5.3&ndash;7.3 &micro;s</span>, &ldquo;else revisit A1&rdquo;.</p>
+
+<p>A strip of length <em>L</em> grounded at both ends and obeying the sheet diffusion
+equation has slowest mode <span class="num">sin(&pi;y/L)</span>, so its drain constant is
+<span class="num">&tau; = L&sup2;/(&pi;&sup2;D)</span> with
+<span class="num">D = 1/(&rho;<sub>s</sub>c&prime;)</span>. With <em>L</em> = 412 mm that gives:</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>&rho;<sub>s</sub></th><th class="n">&tau; predicted by A1</th><th class="n">ratio to measured</th><th class="n">grounding pitch that <em>would</em> give 6.3 &micro;s</th></tr></thead>
+<tbody>
+<tr><td class="num">0.5 M&Omega;/sq</td><td class="n">4.06 ms</td><td class="n">&times;645</td><td class="n">16.2 mm</td></tr>
+<tr><td class="num">1.0 M&Omega;/sq</td><td class="n">8.12 ms</td><td class="n">&times;1289</td><td class="n">11.5 mm</td></tr>
+<tr><td class="num">2.0 M&Omega;/sq</td><td class="n">16.24 ms</td><td class="n">&times;2578</td><td class="n">8.1 mm</td></tr>
+<tr><td class="num">5.0 M&Omega;/sq</td><td class="n">40.61 ms</td><td class="n">&times;6446</td><td class="n">5.1 mm</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout">
+<h3>A1 misses by three orders of magnitude</h3>
+<p>Across the entire resistivity scan, A1 predicts milliseconds where you measure
+microseconds. For the strips to be the drain path, they would have to be grounded every
+<strong>5&ndash;16 mm</strong>, not every 412 mm. This is not a marginal tension that a
+parameter tweak absorbs &mdash; it is a factor of 600 to 6000.</p>
+</div>
+
+<p>Three candidate explanations, in the order I would test them:</p>
+<ol>
+<li><b>The measured &tau;<sub>g</sub> is not sheet transport at all.</b> It may be the
+pad-plane / front-end RC. This is the cheapest to check and, to me, the most likely: a
+microsecond is a very natural electronics time constant and a very unnatural one for
+diffusion across 41 cm of 1 M&Omega;/sq paste.</li>
+<li><b>There is a conductive path at a much finer pitch than the active width</b> &mdash;
+a grounding grid, or the paste contacting bus copper through vias at a few-mm pitch.
+That would be a fabrication detail nobody has written down. Note this is exactly
+&sect;12 item 4, which the plan lists as an open fab-side question.</li>
+<li><b>&rho;<sub>s</sub> is far below the scanned range.</b> To reach 6.3 &micro;s through
+412 mm strips you would need &rho;<sub>s</sub> around 1 k&Omega;/sq, which is not a
+resistive-paste value at all.</li>
+</ol>
+
+<p>What I did about it: the solver takes <code>tau_drain_s</code> as an <em>explicit
+input</em> rather than deriving it from A1. The production scan should carry it as a
+nuisance parameter pinned to your measurement while the mechanism gets sorted out. That
+keeps the first-principles discipline honest &mdash; the drain is now visibly an input we
+do not understand, not a derived number hiding a wrong assumption.</p>
+
+</div>
+
+<div class="wide">
+<figure>
+  <img src="__FIG:s1_drain_vs_A1.png__" alt="Predicted global drain time versus ESL surface resistivity, for four grounding pitches, against the measured 5.3-7.3 microsecond band.">
+  <figcaption><b>The A1 gap.</b> Predicted drain time against resistivity, for four
+  grounding pitches. The grey band is your measured &tau;<sub>g</sub>; the teal band is the
+  plan's &rho;<sub>s</sub> scan. The A1 curve (412 mm, blue) passes nowhere near the
+  intersection. The 11.5 mm curve does.</figcaption>
+</figure>
+</div>
+
+<div class="wrap">
+
+<h2><span class="stage">Finding 2</span>The X/Y sharing asymmetry falls out of geometry alone</h2>
+
+<p>This is the headline the plan asks for in &sect;1: the measured detector shares charge
+differently in its two views (&tau;<sub>Y</sub> &asymp; 410 ns against &tau;<sub>X</sub>
+&asymp; 230 ns, k<sub>Y</sub> 1.8&ndash;2.9), and the simulation must reproduce that
+&ldquo;from geometry alone &mdash; it is a headline validation target&rdquo;.</p>
+
+<p>It does. Nothing was tuned: the only inputs are the confirmed strip geometry
+(550 &micro;m wide, 250 &micro;m gaps, running along <em>y</em>), the 150 &micro;m gap, and
+a resistivity from the middle of the scan.</p>
+
+</div>
+
+<div class="wide">
+<figure>
+  <img src="__FIG:s1_psi_evolution.png__" alt="Three panels: a log-scaled map of the prompt weighting potential around one driven pad, and cuts along x and along y at seven times from prompt to one microsecond.">
+  <figcaption><b>The mechanism, directly.</b> Left: the prompt weighting potential around
+  one driven 0.68 mm pad. Middle: cuts <em>across</em> the strips &mdash; the shaded bands are
+  the 250 &micro;m insulating gaps, and the profile stays pinned inside roughly one strip
+  because charge has no DC path across a gap. Right: cuts <em>along</em> the strips, where
+  transport is unimpeded and the profile spreads smoothly out to &plusmn;8 mm by 1 &micro;s.
+  Same charge, same time, two completely different kernels &mdash; purely because of which way
+  the strips run.</figcaption>
+</figure>
+
+<figure>
+  <img src="__FIG:s1_xy_anisotropy.png__" alt="RMS spread of the weighting potential along x and along y versus time, and their ratio against the measured band.">
+  <figcaption><b>Against the blind target.</b> The across-strip spread saturates near
+  0.68 mm &mdash; roughly one strip width, as it must &mdash; while the along-strip spread keeps
+  growing. Their ratio climbs through the measured k<sub>Y</sub> = 1.8&ndash;2.9 band
+  (green) at around 300 ns to 1 &micro;s, which is the right time scale for the measured
+  &tau; values. <b>Caveat:</b> this is an RMS over a finite window, so the 1 &micro;s
+  along-strip point is partly window-limited, and the comparison to
+  &tau;<sub>X</sub>/&tau;<sub>Y</sub> is indicative rather than like-for-like &mdash; those
+  are fitted time constants of a measured sharing kernel, not RMS widths. Doing that
+  properly needs the digitizer (T9). What is solid is the sign, the mechanism and the
+  order of magnitude.</figcaption>
+</figure>
+</div>
+
+<div class="wrap">
+
+<h2><span class="stage">Finding 3</span>The 31.2 mm beat is large, and it lives only in the X view</h2>
+
+<p>The 800 &micro;m ESL pitch against the 780 &micro;m pad pitch means the registration
+between them advances 20 &micro;m per pad and repeats after
+<span class="num">LCM = 31.2 mm</span> &mdash; 39 strips to 40 pads. The plan flags this as a
+prediction to look for in data. Two things came out of measuring it.</p>
+
+<p><b>The prompt kernel has exactly zero beat.</b> At <em>t</em> = 0<sup>+</sup> the sheet has
+not had time to conduct, so it behaves as a plain dielectric, &sigma;<sub>s</sub>(x) does not
+enter the equations at all, and the response is translation invariant. The beat is
+<em>purely</em> a property of the time-dependent part. My first attempt at this figure measured
+the prompt kernel and correctly showed a flat line; that was the figure being wrong, not
+the detector being boring.</p>
+
+<p><b>Once the sheet conducts, the modulation is very large:</b></p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Time after the charge lands</th><th class="n">Signal retained, min</th><th class="n">max</th><th class="n">peak-to-peak modulation</th></tr></thead>
+<tbody>
+<tr><td>30 ns</td><td class="n">0.562</td><td class="n">0.915</td><td class="n">49.2 %</td></tr>
+<tr><td>100 ns</td><td class="n">0.293</td><td class="n">0.877</td><td class="n">112.8 %</td></tr>
+<tr><td>300 ns</td><td class="n">0.153</td><td class="n">0.841</td><td class="n">182.8 %</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>A pad sitting over conducting paste is strongly coupled to the sheet and its signal
+drains quickly; a pad sitting over a gap is coupled to charge that has nowhere to go and
+holds its signal. At 100 ns the difference between the best and worst pad phase exceeds
+the mean.</p>
+
+<div class="callout info">
+<h3>A sharp, cheap test</h3>
+<p>A whole X channel is one <em>column</em> of pads, so every pad in it shares the same
+<em>x</em> and therefore the same strip phase &mdash; the beat survives. A Y channel is a
+<em>row</em> spanning all <em>x</em>, so it averages over all 40 phases and the beat washes
+out. <strong>The prediction is a 31.2 mm periodic modulation in the X view and none in the
+Y view.</strong> That is a distinctive signature, it needs no new data, and if it is absent
+at anything like this amplitude then something in the assumed strip geometry or
+registration is wrong &mdash; which would itself be worth knowing.</p>
+</div>
+
+</div>
+
+<div class="wide">
+<figure>
+  <img src="__FIG:s1_superperiod_beat.png__" alt="Left, the fraction of each pad sitting over conducting paste as the phase walks through one superperiod. Right, the signal retained at three times, showing large modulation.">
+  <figcaption><b>The beat.</b> Left: the pad-to-strip overlap walking through one 31.2 mm
+  superperiod, computed analytically rather than off the grid (the grid step and the phase
+  step are both 20 &micro;m, so sampling it aliases against itself &mdash; the first version of
+  this panel did exactly that). Right: how much signal each pad phase still holds at three
+  times.</figcaption>
+</figure>
+</div>
+
+<div class="wrap">
+
+<h2><span class="stage">S1</span>The solver, and one deviation from the plan</h2>
+
+<p>The physics is extended Ramo&ndash;Shockley for a resistive electrode (Riegler 2016).
+Driving channel <em>n</em> at V<sub>w</sub> and grounding everything else, each lateral
+Fourier mode of the stack gives an areal capacitance and a drive coupling:</p>
+
+<div class="eq">
+C(k) = &epsilon;&#8320; k coth(k g) + &epsilon;&#8320; &epsilon;_r k coth(k d)<br>
+S(k) = &epsilon;&#8320; &epsilon;_r k / sinh(k d)
+</div>
+
+<p>Charge conservation on the sheet then fixes both ends of the problem. The sheet charge
+cannot jump, so V(0<sup>+</sup>) = S/C &middot; V<sub>w</sub> &mdash; the prompt,
+pure-dielectric solution. And the sheet relaxes from there toward zero, i.e. toward
+behaving as a grounded conductor. <em>That decay is the signal.</em></p>
+
+<p>In the small-<em>k</em> limit C(k) &rarr; &epsilon;&#8320;(1/g + &epsilon;<sub>r</sub>/d) =
+c&prime;, and the relaxation becomes an exact Gaussian diffusion kernel with
+&sigma;&sup2;(t) = 2t/(&rho;<sub>s</sub>c&prime;) &mdash; which is the closed form the plan
+quotes, and the solver reproduces the plan's own sanity numbers:
+<span class="num">c&prime; = 4.72&times;10&#8315;&#8311; F/m&sup2;</span> (plan: ~5&times;10&#8315;&#8311;) and
+<span class="num">D = 2.12 m&sup2;/s</span> at 1 M&Omega;/sq (plan: ~2.0).</p>
+
+<h3>The deviation: no truncation parameter</h3>
+
+<p>The plan proposes expanding the patterned sheet in Bloch modes and truncating at
+|m| &le; M, starting at M = 12 with a convergence test. I did something else, and I think
+it is strictly better.</p>
+
+<p>Working on a periodic box whose length is an exact multiple of <em>both</em> lateral
+pitches &mdash; the 31.2 mm superperiod &mdash; makes the mode coupling
+<em>exactly</em> block-diagonal by residue class of the mode index. There is no
+truncation: the blocks are closed. The only approximation left is the grid's own Nyquist
+cut, which converges by refining a single number (<code>nx</code>) instead of two. Each
+block is solved by symmetric eigendecomposition, so time propagation is by exact
+exponentials with no stepping error, as &sect;3 requires.</p>
+
+<p>One consequence is worth stating because it is physics, not numerics: the coupling
+operator has a genuine null space, and it must not be regularised away. A mode supported
+entirely on the insulating gaps has zero eigenvalue and never decays. That is the correct
+statement that charge landing in a 250 &micro;m gap has no DC path to ground, and it is a
+large part of why the two views behave differently.</p>
+
+<h3>Validation</h3>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Test</th><th>What it proves</th><th class="n">Result</th><th>&nbsp;</th></tr></thead>
+<tbody>
+<tr><td class="num">V1</td><td>Full Bloch machinery vs the closed form, uniform sheet</td><td class="n">8.6&times;10&#8315;&#185;&#8310;</td><td><span class="pill pass">PASS</span></td></tr>
+<tr><td class="num">V1b</td><td>Decay rate &rarr; k&sup2;/(&rho;<sub>s</sub>c&prime;)</td><td class="n">2.2&times;10&#8315;&#8308;</td><td><span class="pill pass">PASS</span></td></tr>
+<tr><td class="num">V2</td><td>Strip charge conservation; first-order grid convergence</td><td class="n">0.0 / ratios 3.1, 2.7, 2.2</td><td><span class="pill pass">PASS</span></td></tr>
+<tr><td class="num">V3</td><td>Prompt limit, late-time limit, no growing modes</td><td class="n">2.5&times;10&#8315;&#185;&#8310;</td><td><span class="pill pass">PASS</span></td></tr>
+<tr><td class="num">V4b</td><td>Explicit drain term empties the sheet</td><td class="n">4.2&times;10&#8315;&#8310;</td><td><span class="pill pass">PASS</span></td></tr>
+<tr><td class="num">V4</td><td>A1 reproduces the measured &tau;<sub>g</sub></td><td class="n">off by &times;645&ndash;6446</td><td><span class="pill fail">REFUTED</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<p>V1 passing at <span class="num">8.6&times;10&#8315;&#185;&#8310;</span> &mdash; machine precision &mdash; is
+the load-bearing one. It exercises the block assembly, the similarity transform, the
+eigendecomposition and the propagator all at once against an answer known analytically,
+so a sign error or a mis-indexed Fourier coefficient could not survive it.</p>
+
+<p>Two of these tests were <em>wrong when I first wrote them</em>, and both times the solver
+was right. V2 originally asserted that the strips drain to ground; they do not and must
+not, because with no <em>y</em>-gradient and insulating gaps on both sides there is nowhere
+for the charge to go. V4b originally expected a single exponential. Both are noted in the
+source so the reasoning is not lost.</p>
+
+<div class="callout info">
+<h3>A second prediction, from the drain term</h3>
+<p>A uniform leak conductance gives mode <em>k</em> a drain rate g/C(k). At the 250 &micro;m
+gap scale C(k) is <span class="num">2.2&times;</span> its k&rarr;0 value, so charge stranded in
+the gaps drains about 2.2&times; slower than charge on the strips. <strong>The late-time
+tail should be two-component</strong>, where the current &tau;<sub>g</sub> fits assume a
+single exponential. Refitting the existing <code>rc_line_step2.py</code> data with two
+components would be cheap and would test this directly.</p>
+</div>
+
+</div>
+
+<div class="wide">
+<figure>
+  <img src="__FIG:s1_transfer_functions.png__" alt="Areal capacitance and prompt coupling versus lateral wavenumber for three kapton thicknesses.">
+  <figcaption><b>What the stack does to each mode.</b> C(k) and the prompt coupling
+  S(k)/C(k), for the three kapton thicknesses in the scan. Dotted lines mark the k&rarr;0
+  limit c&prime;. The dashed verticals are the feature scales that matter: the 800 &micro;m
+  ESL pitch and the 250 &micro;m gap. The kapton thickness is the strongest lever in the
+  whole stack and it is the one quantity we genuinely do not know.</figcaption>
+</figure>
+</div>
+
+<div class="wrap">
+
+<h2><span class="stage">T8</span>Stage A: Geant4 is unblocked</h2>
+
+<p>The <code>ClusterTree</code> had position and energy but no time. The plan calls this
+&ldquo;blocking for everything downstream&rdquo; and it is exactly right &mdash; every
+electron's drift time is measured from the ionisation time, so no waveform can be built
+without it. That is now in, along with two other things:</p>
+
+<ul>
+<li><code>time</code>, the global time at the step midpoint (matching the midpoint already
+used for the position).</li>
+<li><code>creator</code>, the process that made the track &mdash; cheap provenance that lets
+the digitizer separate delta rays from the primary's own ionisation. On a test run it
+splits <span class="num">primary / muIoni / eIoni</span> as you would expect.</li>
+<li>A new <code>Meta</code> tree carrying the world &rarr; active-area transform, captured
+from the <code>AmpGas</code> placement itself so it follows any future geometry edit rather
+than being hard-coded. Verified: local <em>z</em> spans
+<span class="num">0.011&ndash;30.173 mm</span>, which is the 150 &micro;m amplification gap
+plus the 30 mm drift gap, exactly as it should be.</li>
+</ul>
+
+<p>I also committed the pending as-built geometry work first, which is what lifted the
+plan's &sect;7 freeze on touching C++. It built clean and ran in all three variants
+(patterned / homogenized / legacy).</p>
+
+<div class="callout">
+<h3>You have three other Claude sessions live in this repo</h3>
+<p>At 23:14&ndash;23:17 something regenerated the design figures and deleted
+<code>build-rel/</code> underneath me &mdash; there are three other <code>claude</code>
+processes running in this working tree. Two things follow. First, the geometry commit I
+made will have swept up whatever those sessions had in progress at 23:22; that looked
+coherent and built cleanly, but it was not solely my work to commit. Second, I moved to my
+own build directory (<code>build-resp/</code>) so we are not fighting over the same one.
+Worth a look before you let those sessions commit anything on top.</p>
+</div>
+
+<h2><span class="stage">S3</span>The Garfield campaign at CERN</h2>
+
+<p>62 jobs submitted, all running, none finished as of writing. They are slower than I
+estimated &mdash; I sized them from a 33 s/electron measurement on this laptop and the
+workers are evidently slower, so expect them through the morning rather than overnight.
+Memory is comfortable at ~600 MB against a 6 GB request, and nothing has been evicted or
+held.</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Jobs</th><th>What</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td class="n">56</td><td>Avalanche calibration, 470&ndash;530 V in 10 V steps &times; 8 seed slices, 6400 seed electrons total</td><td>Gain, Polya &theta;, transverse &sigma;&#8320;, &alpha;(z), ion tail shape</td></tr>
+<tr><td class="n">2</td><td>Magboltz table, Ar/iC&#8324;H&#8321;&#8320;/H&#8322;O 94/5/1, amplification range</td><td>The bench gas is not dry &mdash; see below</td></tr>
+<tr><td class="n">4</td><td>Magboltz tables, drift-field range, wet and dry</td><td>v<sub>d</sub>, &sigma;<sub>T</sub>, &sigma;<sub>L</sub>, attachment for Stage B</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>On the gas: your det3 water fit already established that the bench runs Ar/iso 95/5
+with about 1% H&#8322;O, and that this is what reconciles the measured 36.6 &micro;m/ns with
+Magboltz. But there was no <code>.gas</code> table for that mixture &mdash; only the
+transport JSONs from the water grid. Simulating the dry mixture would have put every
+arrival-time observable in Stage B systematically wrong, so I added the wet mixture to
+<code>mm_config.py</code> and queued its tables. Penning is set manually there
+(<span class="num">rP = 0.40</span>, bracket 0.30&ndash;0.40) because Garfield has no
+Ar/iC&#8324;H&#8321;&#8320;/H&#8322;O ternary and <code>auto</code> would have silently run at
+rP = 0 &mdash; the same trap already documented for two other ternaries in that file.</p>
+
+<p>The worker writes the S2-dependent quantities &mdash; electron transparency, the
+funnelling map, the ion escape fraction &mdash; as explicit <code>null</code>s with a
+<code>uniform_field</code> provenance flag, so no downstream consumer can mistake a
+placeholder for a measurement. <code>collect.py</code> is written and ready; results merge
+and plot the moment they land.</p>
+
+<h2><span class="stage">Next</span>What I would do next, and what I need from you</h2>
+
+<h3>Needs a decision from you</h3>
+<ol>
+<li><b>The A1 problem.</b> Which of the three explanations do you find most plausible? If
+you think &tau;<sub>g</sub> is front-end RC rather than sheet transport, that changes what
+the solver's drain term even represents, and it is a half-hour job to refit the existing
+data with two components and check the 2.2&times; prediction.</li>
+<li><b>Pushing to GitHub.</b> I committed locally but did not push &mdash; you did not ask
+me to, and the lxplus clone is far behind at <code>8aaa0d2</code>. I rsynced the campaign
+to AFS directly instead. Say the word and I will push.</li>
+<li><b>The three other sessions</b> (see above) &mdash; worth reconciling before more
+commits land.</li>
+</ol>
+
+<h3>Ready to run, in priority order</h3>
+<ol>
+<li><b>T2, the pad&harr;X/Y mapping.</b> Now the single biggest blocker. Everything about
+channels &mdash; and the whole X-view beat prediction &mdash; depends on knowing which pads
+belong to which channel. It also settles the open x/y convention flagged in
+<code>ActiveAreaFrame.hh</code>. It is a gerber-parsing job, a few hours, no new physics.</li>
+<li><b>T6, the S2 mesh unit cell on the desktop.</b> The one thing genuinely wanting the
+big machine, and it supplies the transparency and funnelling that S3 currently writes as
+nulls.</li>
+<li><b>The S1 production scan.</b> The solver runs a parameter point in seconds, so the
+12-point &rho;<sub>s</sub> &times; d<sub>k</sub> grid is minutes of compute. What it needs
+first is a decision on the export strategy: the full four-dimensional
+&Psi;(x,y,z,t) the plan specifies in &sect;2 is several GB per point, so it wants either a
+local-window export or on-demand regeneration. I did not want to freeze that file contract
+while you were asleep.</li>
+</ol>
+
+<h3>Two things I did not get to</h3>
+<p>The PAI-model evaluation in a gas region (&sect;6 physics settings) is still open &mdash;
+cheap, worth having, does not block anything. And the desktop sat idle: S2 was the natural
+job for it, but writing a correct woven-mesh neBEM solve is a several-hour task in its own
+right and the S1 critical path was the better use of the night by your own priority
+ordering.</p>
+
+<hr>
+
+<p class="kicker">Reproduce anything here</p>
+<pre>source ~/PycharmProjects/nTof_x17/.venv/bin/activate
+
+# the validation suite (this is the definition of done for T3-T5)
+python -m response.solver.validate
+
+# every figure in this report, recomputed from the solver
+python -m response.solver.figures
+
+# the S3 campaign, once it lands
+rsync -av lxplus:/afs/cern.ch/user/d/dneff/work/mx17_response/avalanche/results/ \
+          ~/x17/response_sim/avalanche/
+python -m response.avalanche.collect ~/x17/response_sim/avalanche
+
+# check on it
+ssh lxplus condor_q</pre>
+
+</div>
