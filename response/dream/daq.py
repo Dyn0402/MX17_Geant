@@ -36,10 +36,13 @@ The det3 pedestal sits at 341 ADC, leaving ~3750 counts of headroom, i.e. an
 effective range of ~183 fC before clipping — and clipping is modelled, because
 the data reaches 4095.
 
-TIMING PHASE IS RANDOM PER EVENT. The 60 ns sampling clock has no relationship
-to the arrival time of a cosmic, so a fixed phase would produce a sampling
-artefact that no real run has: every pulse would be sampled at the same point
-on its rise. Each event draws a uniform phase over one sample period.
+TIMING PHASE IS RANDOM PER EVENT, BUT THERE IS ONLY ONE OF IT (fix 2026-08-07,
+audit A3). The 60 ns sampling clock has no relationship to the arrival time of
+a cosmic, so a fixed phase would produce a sampling artefact that no real run
+has: every pulse would be sampled at the same point on its rise. But there is
+ONE trigger per event, so the X and Y FEUs do NOT draw independently — see
+`TriggerPhase` below, which is where the whole convention is documented and
+where it was measured off real data.
 """
 
 from __future__ import annotations
@@ -77,6 +80,87 @@ N_SAMPLE = 32
 CM_OFFSET = 256
 ZS_NSIGMA = 5.0
 ZS_CHK_SMP = 1
+
+# ── The trigger fine timestamp (ftst) ────────────────────────────────────────
+# The FEU's 60 ns sampling clock is derived from the 100 MHz system clock the
+# TCM distributes (manual §"TCM distributes 100 MHz clock", and §3 "…or 10 ns
+# when working with the auxiliary trigger interface clock connected to the
+# TCM"), so one sample period is exactly 6 system ticks and `ftst` — the "fine
+# timestamp" of the last event, register field 26:24 — records which of those 6
+# ticks the trigger landed on.
+FTST_TICK_NS = 10.0
+N_FTST = int(round(SAMPLE_PERIOD_NS / FTST_TICK_NS))       # 6
+# Board-to-board constant between the two FEUs of one detector, in ticks.
+# MEASURED, not assumed, on the det3 long run (5-6-26, the same run the noise
+# model is built from): over 3 subruns x ~26k events,
+#
+#     ftst_04 == (ftst_03 + 4) % 6        for EVERY event, no exceptions,
+#
+# and each FEU's own ftst is uniform over 0..5 (4259..4398 per state). So the
+# two FEUs are NOT independently latched: one trigger, one phase, and a fixed
+# clock-alignment offset between the boards. The raw (unwrapped) difference
+# ftst_x - ftst_y therefore takes exactly two values, {-4, +2}, which is why
+# wft's dt_xy dict has exactly two keys in every real bundle — always a pair
+# {c, c-6} whose measured t0x - t0y differ by ~60 ns, i.e. by the one sample
+# period the window start jumps when the fine counter wraps.
+#
+# The constant is per RUN (cable/clock alignment), not universal: the 6-22 det3
+# bundle has keys {4, -2}, i.e. the other sign. Hence a parameter.
+FTST_OFFSET_TICKS_DET3 = 4
+
+
+class TriggerPhase:
+    """
+    One trigger phase per event, shared by both FEUs, with real ftst semantics.
+
+    Model, straight from the hardware: FEU i has clock edges at n*60 + b_i ns.
+    A trigger at t_trig arrives u_i = (t_trig - b_i) mod 60 ns after that FEU's
+    last edge; the FEU records ftst_i = floor(u_i / 10) and starts its window on
+    the next edge, i.e. 60 - u_i ns later. So
+
+        ftst_i          = floor(u_i / FTST_TICK_NS)
+        sample phase_i  = (SAMPLE_PERIOD - u_i) mod SAMPLE_PERIOD
+
+    and u_y - u_x is the fixed board constant. Both views see the SAME event at
+    the SAME time; only their sampling grids differ, by an amount that is
+    recorded in ftst and is therefore correctable downstream — which is exactly
+    what wft's `measure_dt_xy` does.
+
+    Before this class, `run.py` drew a fresh uniform phase for each view and
+    wrote ftst = 0, injecting ~24.5 ns rms of inter-plane jitter that no real
+    run has and that nothing downstream could remove (audit A3).
+
+    NOTE on sign: that ftst counts UP with u (rather than down) is a
+    convention this data cannot pin — wft measures dt_xy per ftst difference
+    and so self-calibrates either way. What the data does pin, and what this
+    reproduces, is the tick size, the uniformity, and the fixed X/Y offset.
+    """
+
+    def __init__(self, offset_ticks=FTST_OFFSET_TICKS_DET3,
+                 sample_period_ns=SAMPLE_PERIOD_NS, tick_ns=FTST_TICK_NS):
+        self.period = float(sample_period_ns)
+        self.tick = float(tick_ns)
+        self.n_ftst = int(round(self.period / self.tick))
+        self.offset_ticks = int(offset_ticks)
+
+    def draw(self, rng):
+        """One event: {view: (sample_phase_ns, ftst)} for the X and Y FEUs."""
+        return self.from_u(float(rng.uniform(0.0, self.period)))
+
+    def from_u(self, u_x_ns):
+        """Deterministic map from the X FEU's trigger offset u to both views."""
+        out = {}
+        for view, du in (("X", 0.0), ("Y", self.offset_ticks * self.tick)):
+            u = (u_x_ns + du) % self.period
+            out[view] = ((self.period - u) % self.period,
+                         int(u // self.tick) % self.n_ftst)
+        return out
+
+    def describe(self):
+        return {"tick_ns": self.tick, "n_ftst": self.n_ftst,
+                "sample_period_ns": self.period,
+                "xy_offset_ticks": self.offset_ticks,
+                "source": "det3 long run 5-6-26, measured per event"}
 
 
 class Daq:

@@ -13,7 +13,19 @@ we wrote, with the right numbers in the right places". Four checks:
      is the only end-to-end check of the derived 20.48 ADC/fC scale;
   4. channel/sample orientation is not transposed — the signal must appear on
      the channel it was injected into, at the sample it was injected at. A
-     transposed flatten survives every other check.
+     transposed flatten survives every other check;
+  5. ftst survives the round trip with the semantics the real FEUs use, and
+     the X/Y pair carries the fixed board offset (Fix 3);
+  6. the decoded file NAMES are ones wft can both discover and pair (Fix 8).
+
+THE PEDESTAL EVENTS ARE SIGNAL-FREE, and that is check 3's whole validity.
+The pre-fix version injected into EVERY event and then let FeuReader build its
+pedestal from those same events, so the injection rode into the pedestal
+through the common mode and 5 fC came back as 98.0 ADC against 102.4 predicted
+— a 4 % "discrepancy" that was purely the test contaminating itself (audit B2;
+with clean pedestal events it closes at 102.0/102.4). The first `n_ped` events
+are now empty, and the tolerance is tightened accordingly: at 10 % this check
+would have passed a +13 % gain error.
 
 wft imports scipy via its package __init__, which the system python lacks, so
 wft/io.py is loaded directly by path. If nTof_x17 is absent the wft-dependent
@@ -30,12 +42,16 @@ import os
 
 import numpy as np
 
-from .daq import ADC_PER_FC, Daq, N_CHAN, verify, write_decoded
+from .daq import (ADC_PER_FC, Daq, N_CHAN, TriggerPhase, verify,
+                  write_decoded)
 
 WFT_IO = os.path.expanduser("~/PycharmProjects/nTof_x17/wft/io.py")
 NOISE = os.path.expanduser("~/x17/response_sim/dream/noise_det3.json")
 
 INJ_CHAN, INJ_SAMPLE, INJ_FC = 100, 11, 5.0
+# Tolerance on the end-to-end ADC scale. 10 % (the pre-fix bar) would pass a
+# +13 % gain error; with a clean pedestal the check closes to well under 3 %.
+ADC_SCALE_TOL = 0.03
 
 
 def _load_wft_io():
@@ -52,7 +68,7 @@ def _load_wft_io():
     return mod
 
 
-def main(n_ev=40, seed=7):
+def main(n_ev=40, n_ped=40, seed=7):
     if not os.path.exists(NOISE):
         raise SystemExit(f"missing {NOISE}; run response.dream.noise "
                          "--characterise first")
@@ -60,12 +76,22 @@ def main(n_ev=40, seed=7):
         spec = json.load(f)
 
     d = Daq(spec, seed=seed)
-    q = np.zeros((n_ev, d.n_sample, N_CHAN), dtype=np.float32)
-    q[:, INJ_SAMPLE, INJ_CHAN] = INJ_FC
-    adc = d.to_adc(q, n_ev=n_ev)
+    # SIGNAL-FREE pedestal events FIRST (FeuReader takes its pedestal from the
+    # first n_ped entries), then the injected ones. See the header.
+    n_tot = n_ped + n_ev
+    q = np.zeros((n_tot, d.n_sample, N_CHAN), dtype=np.float32)
+    q[n_ped:, INJ_SAMPLE, INJ_CHAN] = INJ_FC
+    adc = d.to_adc(q, n_ev=n_tot)
+
+    # One trigger phase per event, both views, real ftst semantics (Fix 3).
+    trig = TriggerPhase(sample_period_ns=d.dt_ns)
+    rng = np.random.default_rng(seed + 3)
+    ph = [trig.draw(rng) for _ in range(n_tot)]
+    ftst = {v: np.array([p[v][1] for p in ph], dtype=np.uint16)
+            for v in ("X", "Y")}
 
     path = os.path.join(os.path.dirname(NOISE), "sim_decoded_acceptance.root")
-    write_decoded(path, adc)
+    write_decoded(path, adc, ftst=ftst["X"])
 
     ok = True
 
@@ -107,7 +133,7 @@ def main(n_ev=40, seed=7):
         print("\n" + ("PASS (partial)" if ok else "FAIL"))
         return 0 if ok else 1
 
-    r = io.FeuReader(path, n_ped=n_ev)
+    r = io.FeuReader(path, n_ped=n_ped)
     checks = [
         ("n_sample", r.n_sample, d.n_sample, 0),
         ("pedestal median [ADC]", float(np.median(r.ped)),
@@ -123,9 +149,11 @@ def main(n_ev=40, seed=7):
               f"{'OK' if good else 'FAIL'}")
 
     W = None
-    for _ev, _ftst, w in r.iter_events():
-        W = w
-        break
+    got_ftst = []
+    for ev, ft, w in r.iter_events():
+        got_ftst.append((int(ev), int(ft)))
+        if W is None and ev >= n_ped:
+            W = w                                # a SIGNAL event, not a pedestal one
     good = W.shape == (N_CHAN, d.n_sample)
     ok &= good
     print(f"  W shape              {str(W.shape):20s} want "
@@ -139,15 +167,17 @@ def main(n_ev=40, seed=7):
     # or fail on the seed rather than on the ADC scale.
     want_adc = INJ_FC * ADC_PER_FC
     amps = []
-    for _ev, _ftst, w in r.iter_events():
+    for ev, _ftst, w in r.iter_events():
+        if ev < n_ped:                  # pedestal events carry no injection
+            continue
         amps.append(float(w[INJ_CHAN, INJ_SAMPLE]))
     got_adc = float(np.mean(amps))
     rel = abs(got_adc - want_adc) / want_adc
-    good = rel <= 0.10
+    good = rel <= ADC_SCALE_TOL
     ok &= good
     print(f"  injected {INJ_FC:.0f} fC       {got_adc:10.1f}  want "
-          f"{want_adc:8.1f} ADC  ({rel:.1%}, mean of {len(amps)})  "
-          f"{'OK' if good else 'FAIL'}")
+          f"{want_adc:8.1f} ADC  ({rel:.1%} vs {ADC_SCALE_TOL:.0%}, mean of "
+          f"{len(amps)})  {'OK' if good else 'FAIL'}")
 
     # Orientation: the peak must be at the injected (channel, sample).
     pk = np.unravel_index(np.argmax(W), W.shape)
@@ -155,6 +185,43 @@ def main(n_ev=40, seed=7):
     ok &= good
     print(f"  peak location        {str(pk):20s} want "
           f"{(INJ_CHAN, INJ_SAMPLE)}  {'OK' if good else 'FAIL'}")
+
+    # --- 5. ftst round trip (Fix 3) ----------------------------------------
+    got = np.array([f for _e, f in sorted(got_ftst)], dtype=np.uint16)
+    good = np.array_equal(got, ftst["X"])
+    ok &= good
+    print(f"  ftst round trip      {len(got):5d} events matched"
+          f"{'':10s}{'OK' if good else 'FAIL'}")
+    # Data semantics: uniform over the 6 states, and the X/Y pair separated by
+    # the fixed board offset on EVERY event (never independently drawn).
+    n_states = len(np.unique(ftst["X"]))
+    good = n_states == trig.n_ftst
+    ok &= good
+    print(f"  ftst states          {n_states:5d} of {trig.n_ftst}"
+          f"{'':21s}{'OK' if good else 'FAIL'}")
+    dif = np.unique((ftst["Y"].astype(int) - ftst["X"].astype(int))
+                    % trig.n_ftst)
+    good = len(dif) == 1 and int(dif[0]) == trig.offset_ticks % trig.n_ftst
+    ok &= good
+    print(f"  ftst X->Y offset     {str(dif):20s} want "
+          f"[{trig.offset_ticks % trig.n_ftst}]      "
+          f"{'OK' if good else 'FAIL'}")
+
+    # --- 6. wft can discover AND pair the decoded names (Fix 8) ------------
+    from ..digitizer.run import decoded_path
+    fx = decoded_path("/tmp/mx17/run/sub/decoded_root/MX17_sim", "sim_000", 3)
+    fy = decoded_path("/tmp/mx17/run/sub/decoded_root/MX17_sim", "sim_000", 4)
+    good = fx.endswith("_03.root") and fy.endswith("_04.root")
+    ok &= good
+    print(f"  feu suffixes         {os.path.basename(fx)} / "
+          f"{os.path.basename(fy)}  {'OK' if good else 'FAIL'}")
+    # The pairing tag must MATCH across the two views or reco's by_tag dict
+    # silently never assembles a pair (wft/reco.py:449).
+    tx, ty = io.file_tag(fx), io.file_tag(fy)
+    good = tx == ty
+    ok &= good
+    print(f"  wft pairing tag      {tx!r} == {ty!r}  "
+          f"{'OK' if good else 'FAIL'}")
 
     print("\n" + ("PASS" if ok else "FAIL"))
     return 0 if ok else 1

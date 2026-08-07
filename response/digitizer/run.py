@@ -34,6 +34,31 @@ CALIB = "~/x17/response_sim/avalanche/aval_calib.json"
 DMAX = 3
 
 
+def decoded_path(prefix, tag, feu):
+    """
+    Decoded filename in the shape wft's own file handling requires.
+
+    TWO separate wft conventions ride on this name, and getting either wrong
+    produces a file that opens perfectly and yields nothing (audit A8, Fix 8):
+
+      * `wft/io.subrun_files` globs `*_{feu:02d}.root`, so the FEU id IS the
+        suffix, zero-padded — and it is also what keys the strip map. The old
+        hardcoded 07/08 named a DIFFERENT physical detector (mx17_2) while the
+        chain models det3, whose FEUs are 3 and 4.
+      * `wft/io.file_tag` pairs the X and Y file of one subrun by regexing
+        `_datrun_(.+)_\\d\\d\\.root$`, falling back to the whole basename. A
+        name without `_datrun_` therefore gives the two views DIFFERENT tags,
+        `reco.py`'s `by_tag` dict never assembles a pair, and the run
+        reconstructs zero events with no error anywhere.
+
+    So the name is built as `<prefix>_datrun_<tag>_<feu>.root`, mirroring the
+    real `MX17_long_run_datrun_260506_09H28_000_03.root`.
+    """
+    if "_datrun_" in os.path.basename(prefix):
+        return f"{prefix}_{feu:02d}.root"
+    return f"{prefix}_datrun_{tag}_{feu:02d}.root"
+
+
 def event_budget(cur, dt_s, dmax=DMAX):
     """
     Per-view budget, centred on that view's biggest channel. Reports BOTH the
@@ -125,6 +150,14 @@ def main():
                          "2000 truncates once shaping is on.")
     ap.add_argument("--no-shaper", action="store_true",
                     help="stop at induced charge, before the DREAM front end")
+    ap.add_argument("--pzc-residual", type=float, default=0.75,
+                    help="un-cancelled fraction beta of the 5 us CSA pole — "
+                         "the undershoot mechanism (shaper.py header). A "
+                         "hardware unknown: scan {0.5, 0.75, 1.0}; 0 = the "
+                         "pre-2026-08-07 no-undershoot behaviour")
+    ap.add_argument("--filter-model", choices=("sk", "crrc2"), default="sk",
+                    help="sk = manual topology (PZC pole + zeta=0.75 "
+                         "Sallen-Key); crrc2 = legacy stand-in for A/B")
     ap.add_argument("--no-ions", action="store_true",
                     help="electrons only (the pre-2026-08-07 behaviour)")
     ap.add_argument("--ion-model", choices=("measured", "analytic"),
@@ -137,8 +170,30 @@ def main():
     ap.add_argument("--out", default=None)
     ap.add_argument("--decoded-out", default=None,
                     help="write sim_decoded.root (T13). Two files are made, "
-                         "<prefix>_07.root (X view) and <prefix>_08.root (Y), "
-                         "mirroring the two FEUs the real detector reads out.")
+                         "<prefix>_<XID>.root (X view) and <prefix>_<YID>.root "
+                         "(Y), mirroring the two FEUs the real detector reads "
+                         "out; the ids come from --feu-ids.")
+    ap.add_argument("--feu-ids", type=int, nargs=2, default=(3, 4),
+                    metavar=("X_ID", "Y_ID"),
+                    help="FEU ids for the X and Y views. These ARE the decoded "
+                         "file suffixes, and wft keys its strip map off them "
+                         "(wft/io.py), so they must be the target run's own "
+                         "ids: det3 (the bench detector this chain mimics) is "
+                         "x->FEU 3, y->FEU 4 per its run_config.json. The old "
+                         "hardcoded 07/08 is a DIFFERENT physical detector "
+                         "(mx17_2), so a det3-configured wft found no files. "
+                         "An SPS-run comparison must set these from that run.")
+    ap.add_argument("--decoded-tag", default="sim_000",
+                    help="the '<date>_<time>_<idx>' field of the decoded file "
+                         "name. wft pairs the X and Y files of a subrun by it "
+                         "(wft/io.file_tag), so both views must share it — "
+                         "see decoded_path().")
+    ap.add_argument("--ftst-offset", type=int, default=None,
+                    metavar="TICKS",
+                    help="fixed X->Y FEU clock offset in 10 ns ftst ticks. "
+                         "Default: the value measured on the det3 long run "
+                         "(daq.FTST_OFFSET_TICKS_DET3 = 4). Per run, not "
+                         "universal — see response/dream/daq.TriggerPhase.")
     ap.add_argument("--noise", default="~/x17/response_sim/dream/noise_det3.json",
                     help="noise spec from response.dream.noise --characterise")
     a = ap.parse_args()
@@ -146,7 +201,8 @@ def main():
     cf = ClusterFile(a.clusters)
     dig = Digitizer(a.kernel, os.path.expanduser(a.calib), seed=a.seed,
                     with_ions=not a.no_ions, ion_model=a.ion_model)
-    shaper = None if a.no_shaper else DreamShaper()
+    shaper = None if a.no_shaper else DreamShaper(
+        filter_model=a.filter_model, pzc_residual=a.pzc_residual)
     info = dig.describe()
 
     print("Stage B over a real ClusterTree\n")
@@ -234,14 +290,29 @@ def main():
     # silently applied because the exact meaning of "inverted" (per connector
     # vs across the whole FEU) should be read off Mx17StripMap.RunConfig
     # instead of guessed a second time.
-    daq = adc_buf = None
+    daq = adc_buf = trig = ftst_buf = None
     if a.decoded_out:
-        from ..dream.daq import Daq, N_CHAN, charges_to_fc, write_decoded
+        from ..dream.daq import (Daq, N_CHAN, charges_to_fc, write_decoded,
+                                 TriggerPhase)
         with open(os.path.expanduser(a.noise)) as fh:
             daq = Daq(json.load(fh), seed=a.seed + 17)
+        # ONE trigger phase per event, shared by both FEUs, recorded in ftst
+        # with the semantics measured off det3 (daq.TriggerPhase).
+        from ..dream.daq import FTST_OFFSET_TICKS_DET3
+        trig = TriggerPhase(
+            offset_ticks=(FTST_OFFSET_TICKS_DET3 if a.ftst_offset is None
+                          else a.ftst_offset),
+            sample_period_ns=daq.dt_ns)
         adc_buf = {"X": [], "Y": []}
-        print(f"  decoded   writing {a.decoded_out}_07.root (X) and "
-              f"_08.root (Y), {daq.n_sample} samples x {daq.dt_ns:.0f} ns")
+        ftst_buf = {"X": [], "Y": []}
+        print(f"  decoded   writing "
+              f"{os.path.basename(decoded_path(a.decoded_out, a.decoded_tag, a.feu_ids[0]))}"
+              f" (X, FEU {a.feu_ids[0]}) and "
+              f"{os.path.basename(decoded_path(a.decoded_out, a.decoded_tag, a.feu_ids[1]))}"
+              f" (Y, FEU {a.feu_ids[1]}), "
+              f"{daq.n_sample} samples x {daq.dt_ns:.0f} ns")
+        print(f"  trigger   one phase per event, ftst {trig.n_ftst} states x "
+              f"{trig.tick:.0f} ns, X->Y offset {trig.offset_ticks} ticks")
 
     accX, accY, nX, nY = np.zeros(2 * DMAX + 1), np.zeros(2 * DMAX + 1), 0, 0
     pkX, pkY = np.zeros(2 * DMAX + 1), np.zeros(2 * DMAX + 1)
@@ -271,17 +342,22 @@ def main():
                    for k, v in cur.items()}
         if daq is not None:
             # Lay the 1 ns shaped channels into a dense 512-wide plane per
-            # view, then point-sample onto the 60 ns DAQ grid with a random
-            # phase (the sampling clock is uncorrelated with a cosmic).
+            # view, then point-sample onto the 60 ns DAQ grid. The phase is
+            # random per EVENT (the sampling clock is uncorrelated with a
+            # cosmic) but SHARED by the two views: one trigger, one phase,
+            # differing only by the fixed board offset, and recorded in ftst.
             from ..dream.daq import N_CHAN as _NC
+            phases = trig.draw(daq.rng)
             for view in ("X", "Y"):
                 plane = np.zeros((_NC, a.n_samp), dtype=np.float32)
                 for (v, idx), w in cur.items():
                     if v != view or not (0 <= idx < _NC):
                         continue
                     plane[idx, :len(w)] += w[:a.n_samp]
-                smp, _ph = daq.sample(plane)
+                ph, ftst = phases[view]
+                smp, _ph = daq.sample(plane, phase_ns=ph)
                 adc_buf[view].append(smp.T)          # (n_sample, n_chan)
+                ftst_buf[view].append(ftst)
 
         b = event_budget(cur, dig.lut.dt)
         if "X" in b:
@@ -371,12 +447,15 @@ def main():
            "shaper": shaper.describe() if shaper else None}
     if daq is not None:
         from ..dream.daq import charges_to_fc, write_decoded
-        for view, feu in (("X", "07"), ("Y", "08")):
+        res["trigger_phase"] = trig.describe()
+        for view, feu in (("X", a.feu_ids[0]), ("Y", a.feu_ids[1])):
             block = np.stack(adc_buf[view])                 # (n_ev, n_samp, ch)
             # Stage B works in elementary charges; the ADC scale is per fC.
             adc = daq.to_adc(charges_to_fc(block), n_ev=len(block))
-            path = f"{a.decoded_out}_{feu}.root"
-            write_decoded(path, adc)
+            path = decoded_path(a.decoded_out, a.decoded_tag, feu)
+            write_decoded(path, adc,
+                          event_ids=np.arange(len(block), dtype=np.uint64),
+                          ftst=np.asarray(ftst_buf[view], dtype=np.uint16))
             occ = float((adc.astype(np.int32)
                          - np.median(adc, axis=(0, 1))).max(axis=1).mean())
             print(f"  wrote {path}  {len(block)} events, "
