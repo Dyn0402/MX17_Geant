@@ -137,16 +137,26 @@ Read three things off it. (i) **Prompt charge division is essentially total**: t
 
 **The sound measurement.** Charge on the sheet spreads diffusively, so the induced-charge profile obeys σ²(t) = σ_p² + 2Dt, with σ_p the prompt electrostatic width before the sheet conducts at all. Both terms come from moments of the kernel — no normalisation, no saturation, no window choice:
 
-| ρ_s [MΩ/sq] | σ_p (d_k 75) | D fit | D exact | t(σ = one pad pitch), d_k 75 | d_k 50 |
-|---|---|---|---|---|---|
-| 0.5 | 222.6 µm | 3.712 | 4.235 | **75 ns** | 105 ns |
-| 1.0 | 222.4 µm | 1.856 | 2.118 | **151 ns** | 211 ns |
-| 2.0 | 221.8 µm | 0.928 | 1.059 | **301 ns** | 422 ns |
-| 5.0 | 220.4 µm | 0.372 | 0.424 | **753 ns** | 1055 ns |
+Over the **complete 12-point grid** (`python3 -m response.solver.spread ~/x17/response_sim/s1`):
 
-Two free validations fall out. σ_p is flat to <1 % across a factor 10 in ρ_s (it is a prompt geometric width, so it must be) while correctly *depending* on d_k (222 µm at 75 µm kapton, 212 µm at 50 µm — thicker kapton lets the image spread further). And D_fit/D_exact = 0.89 ± 0.02, flat to 1.7 % over that same factor 10 — the solver reproduces the 1/ρ_s law without being told it. The ~10 % deficit is expected rather than an error: D_exact uses c′ = C(k→0), while a profile of finite width samples k > 0 where C(k) > c′, hence slower effective diffusion.
+| d_k | σ_p | D_fit/D_exact | t(σ = one pad pitch) at ρ_s = 0.5 / 1 / 2 / 5 MΩ/sq |
+|---|---|---|---|
+| 50 µm | 211.9 ± 0.7 µm | 0.906 | 105 / 211 / 422 / 1055 ns |
+| 75 µm | 221.8 ± 0.8 µm | 0.877 | 75 / 151 / 301 / 753 ns |
+| 125 µm | 244.7 ± 1.0 µm | 0.834 | 50 / 101 / 202 / 505 ns |
 
-**What this says about ρ_s.** Taking the measured τ_X ≈ 230 ns / τ_Y ≈ 410 ns as the time to spread of order one pad pitch puts ρ_s at roughly **1.5–2.7 MΩ/sq** (d_k 75) or 1.1–2.0 (d_k 50) — the **middle of the existing scan**. The scanned range 0.5–5 MΩ/sq already brackets the data comfortably and does **not** need extending. Still indicative rather than a measurement, for the same reason as before: the data number is a fit to shaped waveforms with 180 ns peaking, and the legitimate comparison is T13b/T14.
+Two free validations fall out. σ_p is flat to <1 % across a factor 10 in ρ_s — it is a prompt geometric width, so it must be — while correctly *depending* on d_k, thicker kapton letting the image spread further. And D_fit/D_exact is constant to three decimals *within* each d_k row, so the solver reproduces the 1/ρ_s law exactly without being told it; the ~10 % deficit, and its growth with d_k, is expected rather than an error, because D_exact uses c′ = C(k→0) while a profile of finite width samples k > 0 where C(k) > c′.
+
+**What this says about ρ_s — and the degeneracy that stops it saying more.** Reading the measured τ_X ≈ 230 ns / τ_Y ≈ 410 ns as the time to spread of order one pad pitch gives ρ_s ≈ 1.5–2.7 MΩ/sq at d_k = 75 µm, but 1.1–1.9 at d_k = 50 and 2.3–4.1 at d_k = 125. **Every one of those is inside the existing 0.5–5 MΩ/sq scan, which therefore does not need extending** — but the spread alone cannot do better than that, because it constrains only the product: D = 1/(ρ_s·c′(d_k)), so ρ_s and d_k trade off exactly along a line.
+
+**σ_p is what breaks the degeneracy, and it is free.** The prompt width depends on d_k *alone* — 212 / 222 / 245 µm across the scan — and not at all on ρ_s. So the two parameters separate cleanly with two different observables:
+
+- **prompt** sharing width → d_k (independent of ρ_s),
+- **spreading rate** → ρ_s given that d_k.
+
+Concretely for T9/T14: fit the prompt (early-time, pre-spreading) charge profile to get d_k, then the time development to get ρ_s. Doing it the other way round, or fitting only the time development, leaves a one-parameter family that no amount of data will resolve. The 33 µm avalanche σ₀ from T7 (§5) is small enough not to contaminate this — but the drift diffusion is not, so the "prompt width" the digitizer sees is σ_p ⊕ σ_diffusion and the diffusion term has to be taken from the gas tables, not fitted, or the degeneracy comes straight back.
+
+All of this remains indicative rather than a measurement: the data numbers are fits to shaped waveforms with 180 ns peaking, and the legitimate comparison is T13b/T14.
 
 The X/Y asymmetry cannot be read off this table at all — σ_y here measures spreading *along* the strips, which is the Y-sharing direction only. Getting the §9 X-vs-Y asymmetry requires the x-direction profile, where transport is blocked by the inter-strip gaps; that is a T9 observable.
 
@@ -352,7 +362,7 @@ Use it via `source ~/PycharmProjects/nTof_x17/garfield_sim/setup_garfield.sh` �
 | **T2b** | **Comb channel kernels** — **DONE 2026-08-07** (`response/solver/kernels.py`). 2 distinct Y kernels + 40 distinct X kernels (§3); validated against the closed-form sum rule to 4e-7 with an exact plane partition; first charge-level predictions in §3. Remaining: the x/y sign convention vs `Mx17StripMap.py` connector numbering is still unverified | T2, T5 | laptop/desktop | comb G_n(t) exported for both channel types ✅; sum rule passes ✅ |
 | T3 | **S1 solver core** (uniform sheet first: V1) — **DONE 2026-08-07** (V1 at machine precision) | T1 | laptop | V1 passes to <1% |
 | T4 | S1 Bloch patterning (strips) + V2, V3 — **DONE 2026-08-07** (superperiod-commensurate box, no truncation parameter) | T3 | laptop | V2, V3 pass |
-| T5 | S1 boundary/drain + full grid export; V4, V5, V6 — solver + V4 (as redefined, charge level) **DONE 2026-08-07**; production grid export NOT started (export-strategy decision pending, several GB/point vs local-window vs on-demand); V5, V6 not run | T4 | laptop | all V pass; 48-run scan produced |
+| T5 | S1 boundary/drain + full grid export; V4, V5, V6 — solver + V4 (as redefined, charge level) **DONE 2026-08-07**. **Production grid COMPLETE 2026-08-07**: all 12 ρ_s × d_k points on EOS `response_sim/s1/` (27.7 GB), every one passing the closed-form sum rule at ~5e-7 with the plane partition exact to 4e-13; register at `s1/MANIFEST.csv` via `response.solver.manifest --check`. V5 (mesh-ripple) and V6 (W2 exposed inter-pad gaps) still not run | T4 | laptop/desktop | all V pass; grid produced ✅ |
 | T6 | S2 mesh unit cell | T0 | desktop | transparency curve; field map export |
 | T7 | S3 avalanche campaign — **DONE 2026-08-07**. 56/56 slices merged into `aval_calib.json` (7 voltage points, 470–530 V; result table below). Raw seed JSONs moved AFS → EOS `response_sim/avalanche/raw/`. Still open: verify the 6 Magboltz-table jobs' `.gas` outputs landed (they run through the nTof_x17 `garfield_sim` EOS workflow, NOT the mx17_response tree), and re-run once T6 supplies a real field map — this pass is uniform-field, with S2-dependent fields as explicit nulls carrying `uniform_field` provenance | T6 (or uniform-field first pass without T6) | lxplus | `aval_calib.json` grid ✅ |
 | T8 | Stage A schema upgrade — **DONE 2026-08-07** (`time`, `creator`, Meta tree with world→active-area transform) | geometry merge | laptop | §6 acceptance |
