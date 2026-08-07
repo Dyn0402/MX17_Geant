@@ -1,0 +1,60 @@
+{
+ "schema": "wet_cf4_bracket/1",
+ "source_json": "/eos/experiment/ntof/data/x17/response_sim/gas/wet_cf4_drift.json",
+ "source_schema": "wet_cf4_drift/1",
+ "gas_base": "Ar/CF4/iC4H10 88/10/2",
+ "pressure_torr": 720.8,
+ "temp_K": 293.15,
+ "ncoll": 5,
+ "E_Vcm": 233.0,
+ "measured_um_per_ns": [
+  13.0,
+  15.0
+ ],
+ "drift_gap_mm": 30.0,
+ "mixtures": {
+  "dry": {
+   "v_um_per_ns": 74.66226494419674,
+   "dT_sqrtcm": 0.021192684757089162,
+   "dL_sqrtcm": 0.019537636744599286,
+   "eta_per_cm": 0.0,
+   "sigma_T_um_30mm": 367.06806748068914,
+   "sigma_L_um_30mm": 338.40179501470567,
+   "in_measured_band": false
+  },
+  "H2O_1.0": {
+   "v_um_per_ns": 19.986349627154386,
+   "dT_sqrtcm": 0.017568713975237238,
+   "dL_sqrtcm": 0.021256670126788862,
+   "eta_per_cm": 0.0,
+   "sigma_T_um_30mm": 304.2990522875628,
+   "sigma_L_um_30mm": 368.17632659329877,
+   "in_measured_band": false
+  },
+  "H2O_1.5": {
+   "v_um_per_ns": 13.711897008791626,
+   "dT_sqrtcm": 0.01612811783999277,
+   "dL_sqrtcm": 0.019079798609734317,
+   "eta_per_cm": 0.0,
+   "sigma_T_um_30mm": 279.3471952932549,
+   "sigma_L_um_30mm": 330.4718059024186,
+   "in_measured_band": true
+  },
+  "H2O_2.0": {
+   "v_um_per_ns": 10.33577823999829,
+   "dT_sqrtcm": 0.015656658777449952,
+   "dL_sqrtcm": 0.01746679628346158,
+   "eta_per_cm": 0.0,
+   "sigma_T_um_30mm": 271.18128479312537,
+   "sigma_L_um_30mm": 302.53378608410696,
+   "in_measured_band": false
+  }
+ },
+ "bracket": {
+  "wet_min_um_per_ns": 10.33577823999829,
+  "wet_max_um_per_ns": 19.986349627154386,
+  "brackets_measured": true,
+  "verdict": "PASS"
+ },
+ "attachment_note": "eta_per_cm is identically 0.0 in EVERY bin of ALL FOUR mixtures over the tables full 40-500 V/cm range, wet included. Fix 6s survival term is therefore a NO-OP on this table, and the plan claim that CF4+H2O attachment matters for P1 is NOT supported by it. Treat as unresolved: most likely the Magboltz ElectronAttachment call did not populate at ncoll=5 rather than a physics statement that attachment vanishes."
+}
