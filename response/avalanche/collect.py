@@ -46,58 +46,105 @@ def polya_fit(gains):
             "gain_median": float(np.median(g))}
 
 
+Z_BINS, Z_RANGE = 60, (0.0, 150.0)
+
+
+def _moments(seq):
+    """(N, sum, sum of squares) of a list, via numpy so it is one pass."""
+    a = np.asarray(seq, dtype=float)
+    return int(a.size), float(a.sum()), float(np.square(a).sum())
+
+
+def reduce_file(path):
+    """
+    Parse ONE result file and immediately throw away everything that is not a
+    sufficient statistic.
+
+    This matters more than it looks. `r_end_um`, `t_end_ns` and `z_ion_um` hold
+    one entry per electron/ion — 4.5 MILLION each in a 200-avalanche slice, and
+    that is what makes each file 264 MB and the campaign 19 GB. The original
+    version json.load()ed every file and kept them all, which reached 6.5 GB
+    resident after 15 of 56 files and could not have finished on lxplus.
+
+    Everything downstream needs from those arrays is moments and one histogram,
+    all of which are exactly accumulable, so the merged numbers are unchanged —
+    this is a reorganisation, not an approximation. `gains` is kept whole: it
+    is one entry per avalanche (200), not per electron.
+    """
+    d = json.load(open(path))
+    r, c = d["results"], d["config"]
+    n_r, s_r, s_r2 = _moments(r["r_end_um"])
+    n_t, s_t, s_t2 = _moments(r["t_end_ns"])
+    hz, edges = np.histogram(np.asarray(r["z_ion_um"], dtype=float),
+                             bins=Z_BINS, range=Z_RANGE)
+    return {
+        "gas": c["gas_file"], "volt": c["voltage_V"], "nev": c["nev"],
+        "gains": list(r["gains"]),
+        "r": (n_r, s_r, s_r2), "t": (n_t, s_t, s_t2),
+        "zhist": hz, "zedges": edges,
+        "i_elec": np.asarray(r["i_elec"], dtype=float),
+        "i_ion": np.asarray(r["i_ion"], dtype=float),
+        "signal_dt_ns": r["signal_dt_ns"],
+        "field_model": d["provenance"]["field_model"],
+    }
+
+
 def load(indir):
-    """Group every result file by (gas, voltage)."""
+    """Group every result file by (gas, voltage), reduced on the way in."""
     points = defaultdict(list)
-    for f in sorted(glob.glob(os.path.join(indir, "aval_*.json"))):
+    files = sorted(glob.glob(os.path.join(indir, "aval_*.json")))
+    for i, f in enumerate(files, 1):
         try:
-            d = json.load(open(f))
+            s = reduce_file(f)
         except Exception as e:                       # partial transfer
             print(f"  skipping unreadable {os.path.basename(f)}: {e}")
             continue
-        c = d["config"]
-        points[(c["gas_file"], c["voltage_V"])].append(d)
+        points[(s["gas"], s["volt"])].append(s)
+        print(f"  [{i}/{len(files)}] {os.path.basename(f)}", flush=True)
     return points
+
+
+def _pooled(triples):
+    """Pooled (mean, std) from a list of (N, sum, sumsq)."""
+    n = sum(t[0] for t in triples)
+    if not n:
+        return None, None
+    s = sum(t[1] for t in triples)
+    s2 = sum(t[2] for t in triples)
+    mean = s / n
+    var = max(s2 / n - mean ** 2, 0.0)
+    return mean, np.sqrt(var)
 
 
 def merge(slices):
     """Merge seed slices of one (gas, voltage) point."""
-    gains, r_end, t_end, z_ion = [], [], [], []
-    i_el, i_ion, dt, nev = None, None, None, 0
-    for d in slices:
-        r = d["results"]
-        gains += r["gains"]
-        r_end += r["r_end_um"]
-        t_end += r["t_end_ns"]
-        z_ion += r["z_ion_um"]
-        n = d["config"]["nev"]
-        nev += n
-        # Signals are already per-avalanche averages; combine weighting by nev.
-        ie = np.asarray(r["i_elec"]) * n
-        ii = np.asarray(r["i_ion"]) * n
-        i_el = ie if i_el is None else i_el + ie
-        i_ion = ii if i_ion is None else i_ion + ii
-        dt = r["signal_dt_ns"]
+    gains = [g for s in slices for g in s["gains"]]
+    nev = sum(s["nev"] for s in slices)
+    # Signals are already per-avalanche averages; combine weighting by nev.
+    i_el = sum(s["i_elec"] * s["nev"] for s in slices)
+    i_ion = sum(s["i_ion"] * s["nev"] for s in slices)
 
-    out = {
+    r_mean, r_std = _pooled([s["r"] for s in slices])
+    t_mean, t_std = _pooled([s["t"] for s in slices])
+    n_r = sum(s["r"][0] for s in slices)
+    s_r2 = sum(s["r"][2] for s in slices)
+    zh = sum(s["zhist"] for s in slices)
+
+    return {
         "n_slices": len(slices), "nev_total": nev,
         "polya": polya_fit(gains),
-        "sigma0_um": float(np.sqrt(np.mean(np.square(r_end)))) if r_end else None,
-        "sigma0_rms_um": float(np.std(r_end)) if r_end else None,
-        "t_arrival_mean_ns": float(np.mean(t_end)) if t_end else None,
-        "t_arrival_rms_ns": float(np.std(t_end)) if t_end else None,
-        "signal_dt_ns": dt,
-        "i_elec": (i_el / nev).tolist() if i_el is not None else None,
-        "i_ion": (i_ion / nev).tolist() if i_ion is not None else None,
-        "alpha_z_hist": None,
-        "field_model": slices[0]["provenance"]["field_model"],
+        # sigma0 is the RMS radius sqrt(<r^2>), not the spread about the mean
+        "sigma0_um": float(np.sqrt(s_r2 / n_r)) if n_r else None,
+        "sigma0_rms_um": float(r_std) if r_std is not None else None,
+        "t_arrival_mean_ns": float(t_mean) if t_mean is not None else None,
+        "t_arrival_rms_ns": float(t_std) if t_std is not None else None,
+        "signal_dt_ns": slices[0]["signal_dt_ns"],
+        "i_elec": (i_el / nev).tolist(),
+        "i_ion": (i_ion / nev).tolist(),
+        "alpha_z_hist": {"counts": zh.tolist(),
+                         "edges": slices[0]["zedges"].tolist()},
+        "field_model": slices[0]["field_model"],
     }
-    if z_ion:
-        h, e = np.histogram(z_ion, bins=60, range=(0, 150))
-        out["alpha_z_hist"] = {"counts": h.tolist(), "edges": e.tolist()}
-    out["_gains"] = gains
-    out["_r_end"] = r_end
-    return out
 
 
 def main():
@@ -123,7 +170,6 @@ def main():
         print(f"  {key:<44s} nev={m['nev_total']:5d}  "
               f"gain={p['gain_mean']:9.1f}  theta={p['theta']:5.2f}  "
               f"sigma0={m['sigma0_um']:.1f} µm")
-        m.pop("_gains"), m.pop("_r_end")
         calib[key] = m
 
     out = a.out or os.path.join(a.indir, "aval_calib.json")
