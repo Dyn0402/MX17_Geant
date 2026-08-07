@@ -57,6 +57,24 @@ def event_budget(cur, dt_s, dmax=DMAX):
     integrated over the SAME window the DAQ uses (32 samples x 60 ns =
     1.92 us). Peak amplitude has no such invariance, IS genuinely changed by
     shaping, and is what §9's 1.00/0.16-0.19/0.06-0.08/0.03 row compares to.
+
+    ALSO REPORTED: peak TIME, and the width implied by area/peak. Area and
+    peak ratios are two numbers about the same waveform, and their quotient is
+    a shape statement that survives any per-channel normalisation:
+
+        w_d = (area_d / area_0) / (peak_d / peak_0)
+
+    is how much broader the d-th neighbour's pulse is than the central one.
+    The measured pair -- neighbour at ~3/4 the area but ~1/6 the peak -- says
+    w_1 ~ 4, i.e. the data's neighbour signal is four times broader than its
+    central one. That is the sharpest form of the §9 comparison and it needs
+    no absolute calibration at all.
+
+    Peak time gives the same physics independently and is quoted directly in
+    §9 (+54-61 ns median shift for d=+-1), so it is a target rather than a
+    derived quantity. Both exist because a model can match the area budget and
+    the peak budget separately while getting the arrival TIMING wrong, and
+    timing is what resistive spreading actually controls.
     """
     out = {}
     for view in ("X", "Y"):
@@ -65,16 +83,32 @@ def event_budget(cur, dt_s, dmax=DMAX):
             continue
         q = {c: float(np.sum(v) * dt_s) for c, v in chans.items()}
         pk = {c: float(np.max(v)) for c, v in chans.items()}
+        tp = {c: float(np.argmax(v) * dt_s * 1e9) for c, v in chans.items()}
         tot = sum(q.values())
         if tot <= 0:
             continue
         c0 = max(q, key=q.get)
         pk0 = pk.get(c0, 0.0)
+        q0, tp0 = q[c0], tp[c0]
+        ds = range(-dmax, dmax + 1)
+
+        def width(d):
+            # (area ratio) / (peak ratio): how much broader than the centre.
+            # Undefined where the neighbour has no signal at all, so report
+            # NaN rather than a zero that would average like a measurement.
+            a, p = q.get(c0 + d, 0.0) / q0, pk.get(c0 + d, 0.0) / pk0
+            return (a / p) if (p > 0 and pk0 > 0) else float("nan")
+
         out[view] = {
             "total": tot,
-            "share": [q.get(c0 + d, 0.0) / tot for d in range(-dmax, dmax + 1)],
+            "share": [q.get(c0 + d, 0.0) / tot for d in ds],
             "peak": [(pk.get(c0 + d, 0.0) / pk0) if pk0 > 0 else 0.0
-                     for d in range(-dmax, dmax + 1)],
+                     for d in ds],
+            # Shift of the neighbour's peak relative to the central channel's,
+            # the quantity §9 quotes as +54-61 ns for d=+-1.
+            "t_peak_shift_ns": [(tp[c0 + d] - tp0) if (c0 + d) in tp
+                                else float("nan") for d in ds],
+            "width_rel": [width(d) for d in ds],
         }
     return out
 
@@ -173,6 +207,10 @@ def main():
     accX, accY, nX, nY = np.zeros(2 * DMAX + 1), np.zeros(2 * DMAX + 1), 0, 0
     pkX, pkY = np.zeros(2 * DMAX + 1), np.zeros(2 * DMAX + 1)
     totX, totY = [], []
+    # Peak-time shift and relative width are collected per event and reduced
+    # with a MEDIAN, not a mean: §9 quotes a median shift, and width_rel is
+    # a ratio that can blow up on events where a neighbour is nearly empty.
+    tsX, tsY, wX, wY = [], [], [], []
     t0 = time.time()
     n_done = 0
     for ev, g in cf.events():
@@ -196,9 +234,11 @@ def main():
         if "X" in b:
             accX += np.array(b["X"]["share"]); pkX += np.array(b["X"]["peak"])
             nX += 1; totX.append(b["X"]["total"])
+            tsX.append(b["X"]["t_peak_shift_ns"]); wX.append(b["X"]["width_rel"])
         if "Y" in b:
             accY += np.array(b["Y"]["share"]); pkY += np.array(b["Y"]["peak"])
             nY += 1; totY.append(b["Y"]["total"])
+            tsY.append(b["Y"]["t_peak_shift_ns"]); wY.append(b["Y"]["width_rel"])
         n_done += 1
         if n_done % 50 == 0:
             el = time.time() - t0
@@ -223,6 +263,20 @@ def main():
           "0.06-0.08 / 0.03]")
     print(f"  {'X':>4s}" + "".join(f"{v:8.3f}" for v in pkX))
     print(f"  {'Y':>4s}" + "".join(f"{v:8.3f}" for v in pkY))
+
+    with np.errstate(invalid="ignore"):
+        tsXm = np.nanmedian(np.array(tsX, dtype=float), axis=0)
+        tsYm = np.nanmedian(np.array(tsY, dtype=float), axis=0)
+        wXm = np.nanmedian(np.array(wX, dtype=float), axis=0)
+        wYm = np.nanmedian(np.array(wY, dtype=float), axis=0)
+
+    print("\n  peak-time shift vs central [ns]  [measured §9: +54-61 for d=±1]")
+    print(f"  {'X':>4s}" + "".join(f"{v:8.1f}" for v in tsXm))
+    print(f"  {'Y':>4s}" + "".join(f"{v:8.1f}" for v in tsYm))
+
+    print("\n  relative width (area ratio)/(peak ratio)  [measured §9: ~4 at d=±1]")
+    print(f"  {'X':>4s}" + "".join(f"{v:8.2f}" for v in wXm))
+    print(f"  {'Y':>4s}" + "".join(f"{v:8.2f}" for v in wYm))
 
     c1X = 0.5 * (accX[DMAX - 1] + accX[DMAX + 1])
     c1Y = 0.5 * (accY[DMAX - 1] + accY[DMAX + 1])
