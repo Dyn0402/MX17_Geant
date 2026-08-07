@@ -1,10 +1,120 @@
 # MX17 Full Detector-Response Simulation — Implementation Plan
 
-**Status:** approved plan, ready for implementation. **Date:** 2026-08-06.
+**Status:** IN IMPLEMENTATION — the chain runs end to end and wft reads its output unmodified. See §0a for the state of play, what is certified, what is next, and the open problems. **Date:** 2026-08-06, last updated 2026-08-07.
 **Authority:** this document. Where it conflicts with older notes, this wins. Update it as decisions land ("living document").
 **Audience:** an implementing agent/developer who has NOT read the research behind this plan. Every stage gives the equation or the reference, the file contract, the host to run on, and acceptance criteria. When something is genuinely open, it is listed in §12 with the default to proceed with — do not block on §12 items.
 
-**Coordination rule (active now):** a parallel effort is updating the Geant4 geometry (`src/DetectorConstruction.cc`, `shared/MX17ModuleGeometry.hh`). Until that merges, do NOT edit existing C++ files in this repo. All new work in this plan lives in NEW files/directories, and Stage A (§6) starts only after the geometry work is committed.
+~~**Coordination rule:** a parallel effort is updating the Geant4 geometry; until it merges, do NOT edit existing C++ files.~~ **The geometry work has merged (2026-08-07)** and Stage A is done (T8). A parallel effort may still be active in this repo — check `git log` before editing C++.
+
+---
+
+## 0a. STATE OF PLAY — read this first (2026-08-07, end of session)
+
+**Nothing is running.** Desktop, lxplus and laptop are all idle; no condor jobs, no background
+solves. Every product listed below is complete and on EOS.
+
+### Where things are
+
+| what | where |
+|---|---|
+| S1 kernel grid, 12 points | EOS `response_sim/s1/` (26 GB) + `MANIFEST.csv` |
+| S3 avalanche calib | EOS `response_sim/avalanche/aval_calib_v2.json` (+ `raw/`, 19 GB) |
+| wet-CF₄ Magboltz | EOS `response_sim/gas/wet_cf4_drift.json` |
+| DREAM noise spec | laptop `~/x17/response_sim/dream/noise_det3.json` |
+| Stage B working set | desktop `~/mx17_stageb/` (kernels, clusters, calib, sim_decoded) |
+| measured-data source docs | `~/PycharmProjects/nTof_x17/sps_beam_test_26/analysis/` |
+
+Compute policy (§10): the **laptop is for orchestration only** — 16 GB, and another agent's jobs
+share it. Real work goes to the desktop (fast, but disk is the tightest in the fleet, ~91 % full) or
+lxplus/condor. Desktop reaches EOS only via `rsync … lxplus:/eos/…` with a live Kerberos ticket.
+
+### The chain, end to end
+
+Geant4 ClusterTree → drift/diffusion → mesh transparency (T6) → avalanche (S3) → S1 comb-kernel
+induction → ion longitudinal template → DREAM shaper → FEU sampling/ADC/noise → `sim_decoded_*.root`.
+**It runs, and wft's own `FeuReader` reads the output unmodified** (`run.py --decoded-out`).
+
+### What is certified, and against what
+
+| check | result | reference |
+|---|---|---|
+| S1 sum rule | 5e-7, plane partition 4e-13 | closed form S(0)/C(0) |
+| V5 mesh-as-plane | 7.8e-7 vs 1 % bar | exp(−2πg/p) |
+| T10 fast path, per channel | **1e-4** vs 2 % bar | `kernels.charge_budget_y/_x` |
+| S1 time-grid adequacy | <0.5 % vs 2 % bar | 4× denser re-solve (nt 60→240) |
+| charge audit | 1.5 % | product's own `channel_capture_prompt` |
+| ion template A/B | <1 % | analytic vs measured S3 v2 |
+| noise round-trip | 3.5 % / 1.5 % / 0.043 | det3 pedestals |
+| ADC scale end-to-end | 98.0 vs 102.4 ADC | derived 20.48 ADC/fC |
+| wet-CF₄ v_drift | 74.32 vs 74.7 µm/ns | nTof_x17 published Magboltz |
+
+### Next, in order
+
+1. **T6 field-map export** → then re-run S3 in the real field (current pass is `uniform_field`,
+   tagged as such in provenance).
+2. **T10 slow path** — Ψ at z > 0, i.e. the ion's *lateral* shape. Only the caching half of T10 is
+   certified; this is the last known physics approximation in the chain.
+3. **V6** — expose the 100 µm inter-pad gaps (W2) and re-solve; expected percent-level.
+4. **T13 completion** — wft *reconstruction*, not just io, through to `events.parquet`.
+5. **T13b** — τ_g closure with the unmodified `rc_line_step1/2.py`.
+6. **T14** — the blind comparison, ONCE (see principle 1).
+
+### Open questions and problems
+
+**P1 — which detector are we simulating? (blocks T14)** Three different setups are in play:
+
+| | gas | drift field |
+|---|---|---|
+| §9 targets (run_71) | Ar/CF₄/iC₄H₁₀ 88/10/2 + **1.3–1.7 % H₂O** | 233 V/cm |
+| noise source (det3 bench) | Ar/Iso 95/5 | 900 V over 30 mm |
+| **what Stage B simulates** | Ar/iC₄H₁₀ 95/5, dry | 333 V/cm |
+
+Must be settled before T14 means anything. Follow-on: if run_71's gas carried percent-level water,
+the det3 bench gas plausibly did too, and our dry Ar/iso Magboltz table inherits the same error.
+The wet-CF₄ table (with transverse diffusion) already exists on EOS for the run_71 point.
+
+**P2 — simulated MIPs saturate the ADC.** 16.5 % of events peg the 12-bit ADC at 490 V. That *is* a
+genuine det3 operating point (their HV scan runs 460–530 V), so it may be real behaviour at the top
+of their range — but it cannot be judged until P1 is settled.
+
+**P3 — the ion's lateral shape is frozen at z = 0.** Ions carry 90.8 % of the induced charge and
+currently get the surface kernel's lateral shape, the narrowest possible, because S1 solves only that
+plane. This is T10's slow path.
+
+**P4 — S3 runs in a uniform field.** Blocked on T6. Provenance is tagged `uniform_field` so it cannot
+be mistaken for the real thing.
+
+**P5 — FEU channel ordering.** det3's `run_config.json` gives `x_1..x_8 → FEU 3`, `y_1..y_8 → FEU 4`,
+connector-to-connector identity within a view, but **every connector on both views is `"inverted"`**.
+Whether that means per-connector or whole-FEU reversal is unresolved. Pure relabelling — changes
+nothing computed so far, matters only for a channel-by-channel comparison at T14.
+
+**P6 — DREAM undershoot is not predictable from this model.** `shaper.py` is CR-RC² (real double
+pole) standing in for a complex-pole Sallen-Key. The measured undershoot (−4 to −6 %) is a §9 target
+the model structurally cannot predict. Fixing it means implementing the actual biquad.
+
+**P7 — the c1 = 0.23–0.28 target is weak.** `RAW_RUN71_REANALYSIS` §6 states c1 as a cascade-model β
+"is not a robust observable in any of the passes" and directs users to the library + charge budget
+instead. Weight it below the area/peak table.
+
+**P8 — carried smaller items.** ESL registration phase unknown (assumed centred, §12 item 3); mesh
+weave 5.5 % scale systematic (67 vs 63.5 µm pitch); uproot writes counter-based jagged branches
+rather than true `std::vector` (invisible to wft, which is uproot-based; visible to a ROOT/C++
+consumer); desktop disk ~91 % full.
+
+### Two process rules earned the hard way
+
+**Do not re-derive the channel indexing.** Four separate times on 2026-08-07 an ad-hoc summation over
+the S1 arrays was wrong while the solver's own helpers were right — it cost most of an afternoon
+chasing a 23 % "loss" that was the inter-pad copper and a 59 % "residual" that was a 20 µm source
+position mismatch. The traps: y = 0 sits at `ny//2` (`_to_y0_origin`), rows alternate parity, X is
+indexed by absolute column mod the 40-pad superperiod, and `check_sum_rule` deliberately substitutes
+**fictitious 0.78 mm pitch-sized pads** so a closed form exists — production uses the real 0.68 mm
+pads and the right reference is the product's own `channel_capture_prompt`. Always certify against
+code that already passes a closed-form check.
+
+**Check amplitude and shape separately.** A 5.7× noise scale error passed a normalised
+autocorrelation check perfectly, because a pure scale error cannot move a normalised autocorrelation.
 
 ---
 
@@ -673,12 +783,12 @@ Use it via `source ~/PycharmProjects/nTof_x17/garfield_sim/setup_garfield.sh` �
 | T3 | **S1 solver core** (uniform sheet first: V1) — **DONE 2026-08-07** (V1 at machine precision) | T1 | laptop | V1 passes to <1% |
 | T4 | S1 Bloch patterning (strips) + V2, V3 — **DONE 2026-08-07** (superperiod-commensurate box, no truncation parameter) | T3 | laptop | V2, V3 pass |
 | T5 | S1 boundary/drain + full grid export; V4, V5, V6 — solver + V4 (as redefined, charge level) **DONE 2026-08-07**. **Production grid COMPLETE 2026-08-07**: all 12 ρ_s × d_k points on EOS `response_sim/s1/` (27.7 GB), every one passing the closed-form sum rule at ~5e-7 with the plane partition exact to 4e-13; register at `s1/MANIFEST.csv` via `response.solver.manifest --check`. V5 (mesh-ripple) and V6 (W2 exposed inter-pad gaps) still not run | T4 | laptop/desktop | all V pass; grid produced ✅ |
-| T6 | S2 mesh unit cell | T0 | desktop | transparency curve; field map export |
-| T7 | S3 avalanche campaign — **PARTLY DONE 2026-08-07**. Gain, Polya θ and σ₀ are good (7 points, 470–530 V, table below) and merged into `aval_calib.json`; raw seed JSONs moved AFS → EOS `response_sim/avalanche/raw/`. **But the induced-current shapes `i_elec`/`i_ion` came back identically zero in 56/56 slices** — cause found and fixed (see §5), campaign re-thrown 2026-08-07 into `results_v2/`. Still open: verify the 6 Magboltz-table jobs' `.gas` outputs landed (they run through the nTof_x17 `garfield_sim` EOS workflow, NOT the mx17_response tree), and re-run once T6 supplies a real field map — this pass is uniform-field, with S2-dependent fields as explicit nulls carrying `uniform_field` provenance | T6 (or uniform-field first pass without T6) | lxplus | `aval_calib.json` grid ✅ |
+| T6 | S2 mesh unit cell — **TRANSPARENCY DONE 2026-08-07** (`response/meshcell/mesh_transparency.C`): 0.873 at the bench field ratio 98, well above the 0.513 optical value; wired into Stage B as `DEFAULT_TRANSPARENCY`. Needs `sensor.SetArea(...)` explicitly, since a 2-D analytic field has no z extent. **FIELD-MAP EXPORT STILL OPEN**, and it is what blocks re-running S3 out of `uniform_field` | T0 | desktop | transparency ✅; field map ✗ |
+| T7 | S3 avalanche campaign — **PARTLY DONE 2026-08-07**. Gain, Polya θ and σ₀ are good (7 points, 470–530 V, table below) and merged into `aval_calib.json`; raw seed JSONs moved AFS → EOS `response_sim/avalanche/raw/`. **But the induced-current shapes `i_elec`/`i_ion` came back identically zero in 56/56 slices** — cause found and fixed (see §5), campaign re-thrown and **MERGED 2026-08-07** — all 56 v2 slices carry real currents, giving f_ion = 0.908, ion transit ~340 ns, mean ion birth height 13.84 µm (`aval_calib_v2.json`, on EOS). σ₀ and t_arrival agree with v1 to 0.4 %; gain scatters up to 10 % on small n, which is seed noise on a heavy-tailed Polya and cancels from every ratio. Still open: verify the 6 Magboltz-table jobs' `.gas` outputs landed (they run through the nTof_x17 `garfield_sim` EOS workflow, NOT the mx17_response tree), and re-run once T6 supplies a real field map — this pass is uniform-field, with S2-dependent fields as explicit nulls carrying `uniform_field` provenance | T6 (or uniform-field first pass without T6) | lxplus | `aval_calib.json` grid ✅ |
 | T8 | Stage A schema upgrade — **DONE 2026-08-07** (`time`, `creator`, Meta tree with world→active-area transform) | geometry merge | laptop | §6 acceptance |
-| T9 | Stage B fast path — **RUNS END TO END 2026-08-07** on synthetic deposits (`response/digitizer/`, self-test below). Remaining: the analytic ion term, real ClusterTree input (no Geant4 run exists yet), and per-event throughput work | T5, T7 | laptop | digitizes 10³ events; energy/charge bookkeeping closes |
+| T9 | Stage B fast path — **RUNS END TO END 2026-08-07** on synthetic deposits (`response/digitizer/`, self-test below). ~~Remaining: the analytic ion term, real ClusterTree input, per-event throughput~~ — **all three done**: measured ion template (`ions.measured_longitudinal`), real Geant4 ClusterTree input, and a 5.8× induction speed-up that turned out to be pure memory layout (time axis last), ~30 ms/event | T5, T7 | laptop | digitizes 10³ events; energy/charge bookkeeping closes |
 | T10 | Certify the fast path — **DONE 2026-08-07** (`response/digitizer/test_lut_vs_solver.py`). The LUT is compared per channel against `kernels.charge_budget_y`/`charge_budget_x`, the solver's own indexing whose closed-form sum rule passes at 4.8e-07. **Worst residual 1e-4** over 6 source positions against a 2 % bar — the windowing, x-striding, log→uniform time resampling, G→current differentiation and absolute-column→channel-offset re-indexing all preserve the per-channel charge to 0.01 %. Time-grid adequacy separately certified against a 4× denser re-solve (`test_time_grid.py`, residual <0.5 %). Still open as originally scoped: the Garfield ComponentGrid slow path for Ψ at z>0, which is a *different* approximation (the ion's lateral shape), not the caching this certifies | T5, T9 | desktop | ✅ 1e-4 residual |
-| T11 | Stage C DREAM (shaper from manual, sampling, gain) | T9 | laptop | shaped single-avalanche pulse; rise/peak vs measured template compared (report, don't tune) |
+| T11 | Stage C DREAM — **DONE 2026-08-07** (`response/dream/shaper.py`). Peaking time from the manual's Table 9 read as **5 %→100 %** (not 0→peak: a ~10 % difference in the shaping constant), code `(0xD023>>4)&0xF = 2` → 180 ns. Gain is NOT in register 1 — it is `state6/state7`, 2 bits per channel, `0xAAAA` = code 2 → 200 fC range into a fixed 2 V p-p output → **10 mV/fC**. Known limitation: CR-RC² stands in for a complex-pole Sallen-Key, so this model **cannot predict the measured −4 to −6 % undershoot** (P6) | T9 | laptop | ✅ |
 | T12 | Stage C noise from det3 pedestals + ZS port — **DONE 2026-08-07** (`response/dream/noise.py`, `daq.py`). Noise is dominated by *coherent* common mode (83 ADC vs 10 ADC per-channel) and is strongly correlated sample-to-sample from the 180 ns shaping, so it is generated from the measured **power spectrum**, not an rms. `selftest()` round-trips at 3.5 % / 1.5 % / 0.043. Firmware `tpc` ZS implemented (ZsTyp=1, ZsChkSmp=1, CmOffset=256, 5 σ) but OFF by default — wft needs dense data and the det3 reference runs are themselves dense | T11 | laptop | ✅ round-trip matches data pedestals |
 | T13 | End-to-end: sim decoded_root through wft unchanged — **CHAIN CLOSES 2026-08-07**. `run.py --decoded-out` runs Geant4 ClusterTree → drift → mesh → avalanche → S1 induction → ion → DREAM → FEU → `sim_decoded_{07,08}.root`, and wft's own `FeuReader` reads it **unmodified**, recovering pedestal (346 vs 341) and noise (11.1 vs 10.4) and yielding 512×32 waveforms with ~6 channels over 5 σ per muon. ADC scale is derived, not fitted (20.48 ADC/fC); a 5 fC injection returns 98.0 ADC against 102.4 predicted. Remaining: run wft's *reconstruction* (not just io) to events.parquet | T8–T12 | laptop | ✅ wft io reads sim unchanged; reco pending |
 | **T13b** | **τ_g closure at waveform level**: run the *unmodified* nTof_x17 `rc_line_step1/2.py` fit machinery on simulated waveforms produced with `tau_drain_s=None`; the apparent τ_g must land in the measured 5.3–7.3 µs and be position-flat along the strip. Also look for the predicted two-component tail (gap-deposit charge barely decays — kept ~0.70 at 1.4 µs deep in a gap). Charge-level version already passes: `response/validation/tau_g_reinterpretation.py` | T13 | laptop | apparent τ_g within the measured band with NO drain in the model |

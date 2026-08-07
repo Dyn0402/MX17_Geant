@@ -1,6 +1,7 @@
 # Build trees
 build-rel/
 build-resp/
+build-g4/
 build/
 cmake-build-*/
 
