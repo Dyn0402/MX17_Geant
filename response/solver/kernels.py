@@ -291,6 +291,55 @@ def nearest_column(x0_m):
     return int(np.argmin(dx))
 
 
+# ── ESL phase: where a point sits relative to the resistive strips ───────────
+# The production sheet is built with phase_m = ESL_PHASE_CENTERED_M, which puts
+# a strip CENTRE at x = 0 mod the 800 µm pitch. So the natural phase coordinate
+# is x mod pitch measured from a strip centre:
+#
+#     strip  : phase < 275 µm  or  phase >= 525 µm      (550 µm wide)
+#     gap    : 275 <= phase < 525 µm, gap centre at 400 µm
+#
+STRIP_CENTRE_PHASE_M = 0.0
+GAP_CENTRE_PHASE_M = C.ESL_PITCH_M / 2                     # 400 µm
+
+
+def esl_phase(x_m):
+    """Position within one ESL pitch, measured from a STRIP CENTRE [m]."""
+    return np.mod(np.asarray(x_m, dtype=float), C.ESL_PITCH_M)
+
+
+def on_strip(x_m):
+    """True where x sits on conductive ESL, under the production registration."""
+    ph = esl_phase(x_m)
+    half = C.ESL_WIDTH_M / 2
+    return (ph < half) | (ph >= C.ESL_PITCH_M - half)
+
+
+def column_nearest_phase(phase_want_m, parity=None):
+    """
+    Pad column whose centre is closest to a wanted ESL PHASE (circular metric).
+
+    `nearest_column` answers "which pad is nearest this x", which is the WRONG
+    selector whenever the question is "where does this deposit sit relative to
+    the resistive strips". The 800/780 µm beat advances the phase by only 20 µm
+    per pad, so the two pad centres straddling an arbitrary x can easily BOTH be
+    on-strip: audit 2026-08-07 A2 found exactly that, and the §3 "in-gap"
+    sharing row was a second on-strip deposit for the whole life of the product
+    set. Selecting in phase cannot make that mistake.
+
+    `parity` restricts the search to even (0) or odd (1) columns. With
+    `row0_parity = 0` the Y view owns the even columns, so pinning the parity
+    is what makes an on-strip/in-gap pair differ ONLY in ESL phase rather than
+    also swapping which view owns the pad under the deposit.
+    """
+    cols = np.arange(C.N_PAD_PER_SUPER)
+    if parity is not None:
+        cols = cols[cols % 2 == int(parity)]
+    dphi = np.abs((esl_phase(pad_x(cols)) - phase_want_m
+                   + C.ESL_PITCH_M / 2) % C.ESL_PITCH_M - C.ESL_PITCH_M / 2)
+    return int(cols[np.argmin(dphi)])
+
+
 def charge_budget_y(sy, gy, x0_m, dmax=3, row0_parity=0):
     """
     Charge on the Y channel at row offset d from the deposit's row, for a
@@ -308,9 +357,21 @@ def charge_budget_y(sy, gy, x0_m, dmax=3, row0_parity=0):
 
 
 def charge_budget_x(sx, gx, x0_m, dmax=3, y0_m=0.0):
-    """Charge on the X channel at column offset d from the column nearest x0."""
+    """
+    Charge on the X channel at column offset d from the column nearest x0.
+
+    y0 is FOLDED into the 1.56 mm comb period, mirroring `charge_budget_y`'s
+    x-fold above. The X box IS one comb period and its periodic images are the
+    rest of the comb, so folding is exact, not an approximation. Without it
+    (pre-2026-08-07, audit C4) an out-of-box y silently clamped to the box edge
+    — `argmin` over `sx.y` has no way to say "out of range" — so a caller
+    asking about y = 5 mm got the answer for y = 0.78 mm and no warning.
+    """
     ix = int(np.argmin(np.abs(sx.x - np.mod(x0_m, sx.lx))))
-    iy = int(np.argmin(np.abs(sx.y - y0_m)))
+    # sx.y is centred (it runs -ly/2 .. +ly/2), so fold into that window rather
+    # than into [0, ly).
+    y_fold = np.mod(y0_m + sx.ly / 2, sx.ly) - sx.ly / 2
+    iy = int(np.argmin(np.abs(sx.y - y_fold)))
     c0 = nearest_column(x0_m)
     return {d: gx[(c0 + d) % C.N_PAD_PER_SUPER][:, iy, ix].astype(float)
             for d in range(-dmax, dmax + 1)}
@@ -348,26 +409,41 @@ def sharing_report(sy, gy, sx, gx, times, verbose=True):
     The plan §9 charge-level sharing observables, for a deposit ON a resistive
     strip and one in an inter-strip GAP — the two cases V2/V4 showed behave
     completely differently, because gap charge has no DC path to ground.
+
+    Both deposits are selected by ESL PHASE, not by absolute x (audit
+    2026-08-07 A2 / Fix 2): the 800/780 µm beat advances the phase by only
+    20 µm per pad, so picking "the pad nearest x = 15.6 mm" landed BOTH rows on
+    a strip, and the "in-gap" row was a second on-strip deposit for the whole
+    life of the pre-fix product set.
+
+    The in-gap column is then forced to the SAME parity as the on-strip one, so
+    the pair differs only in ESL phase and not also in which view owns the pad
+    under the deposit (row 0 owns the even columns in Y, the odd ones in X).
     """
-    # ESL strips are centred on x = 0 (ESL_PHASE_CENTERED_M), so a strip centre
-    # sits at x = 0 mod 800 µm and a gap centre at 400 µm mod 800 µm.
     dmax = 3
     out = {}
-    for name, xoff in (("on-strip", 0.0), ("in-gap", C.ESL_PITCH_M / 2)):
-        # Land the deposit on the pad nearest the wanted ESL phase, near the
-        # middle of the box so nothing wraps. y0 = the centre of an even row.
-        x_want = C.SUPERPERIOD_M / 2
-        x_want = x_want - np.mod(x_want, C.ESL_PITCH_M) + xoff
-        c0 = nearest_column(x_want)
+    # on-strip is free to take the best phase match; in-gap follows its parity.
+    c_strip = column_nearest_phase(STRIP_CENTRE_PHASE_M)
+    for name, phase_want in (("on-strip", STRIP_CENTRE_PHASE_M),
+                             ("in-gap", GAP_CENTRE_PHASE_M)):
+        c0 = column_nearest_phase(phase_want, parity=c_strip % 2)
         x0 = float(pad_x(c0))
         # Which view owns the pad under the deposit: row j owns column i when
         # (i + j) is even, so with j = 0 the Y view owns it iff c0 is even.
         owner = "Y" if c0 % 2 == 0 else "X"
+        # The sheet conductivity the SOLVER actually sampled under the deposit:
+        # 0 means the deposit really is in a gap. This is the self-evidence the
+        # old report lacked.
+        sig = float(W.esl_sigma_profile(np.array([x0]), sy.rho_s,
+                                        phase_m=ESL_PHASE_CENTERED_M)[0])
 
         by = charge_budget_y(sy, gy, x0, dmax=dmax, row0_parity=0)
         bx = charge_budget_x(sx, gx, x0, dmax=dmax, y0_m=0.0)
         rec = {"x0_m": x0, "col": c0, "pad_owner": owner,
-               "esl_phase_um": float(np.mod(x0, C.ESL_PITCH_M) * 1e6)}
+               "esl_phase_um": float(esl_phase(x0) * 1e6),
+               "sigma_s_S_sq": sig,
+               "in_gap": bool(sig == 0.0),
+               "selector": "esl_phase"}
         for tag, b in (("X", bx), ("Y", by)):
             ds = list(range(-dmax, dmax + 1))
             q = np.array([b[d] for d in ds])            # (nd, nt), absolute charge
@@ -390,8 +466,10 @@ def sharing_report(sy, gy, sx, gx, times, verbose=True):
         out[name] = rec
 
         if verbose:
+            where = "IN GAP" if rec["in_gap"] else "ON STRIP"
             print(f"    -- deposit {name}: pad column {c0} at x0 = "
-                  f"{x0*1e3:.2f} mm, ESL phase {rec['esl_phase_um']:.0f} µm, "
+                  f"{x0*1e3:.2f} mm, ESL phase {rec['esl_phase_um']:.0f} µm "
+                  f"-> sigma_s = {sig:.3e} S/sq ({where}), "
                   f"pad owned by the {owner} view")
             for tag in ("X", "Y"):
                 r = rec[tag]
