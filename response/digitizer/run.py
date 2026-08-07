@@ -217,8 +217,20 @@ def main():
     print(f"  TRACK-LEVEL ±2 share   X {c2X:.3f}   Y {c2Y:.3f}")
     print(f"  X/Y charge balance     {xfrac:.3f} / {1-xfrac:.3f}"
           f"          [measured: 0.49/0.51]")
-    print(f"\n  impact point: "
-          f"{'FIXED (pencil beam, on a pad boundary)' if a.fixed_position else 'randomised over the 31.2 mm superperiod'}")
+    # Say what the impact-point sampling ACTUALLY is. --fixed-position means
+    # "add no post-hoc offset", which is correct when Stage A's gun already
+    # randomised (--beam-spread) and wrong only for a genuine pencil beam. The
+    # old wording asserted "pencil beam, on a pad boundary" either way, which
+    # mislabels every run over a spread production.
+    spread = float(np.ptp(np.mod(np.asarray(
+        [cf.x[g].mean() for _, g in cf.events()]) * 1e-3, C.PAD_PITCH_M)))
+    if not a.fixed_position:
+        src = "randomised in post over the 31.2 mm superperiod"
+    elif spread > 0.5 * C.PAD_PITCH_M:
+        src = "from Stage A's gun (--beam-spread); no post-hoc offset"
+    else:
+        src = "FIXED and sub-pitch-degenerate — a pencil beam on a pad boundary"
+    print(f"\n  impact point: {src}")
     missing = [n for n, on in (("ion tail", info["with_ions"]),
                                ("DREAM shaping", shaper is not None)) if not on]
     missing += ["ZS", "noise"]
