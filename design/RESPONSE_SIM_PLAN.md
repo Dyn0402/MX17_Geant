@@ -319,7 +319,7 @@ Three things, in order of how much they should be believed.
 
 3. **The checkerboard shows up exactly where §3 said it would.** At z = 0.5 mm the X view holds 0.990 on a single channel while the Y view's d=0 holds 0.006 — the deposit's pad belongs to X, and the Y row through it owns no pad there, so its charge sits on d=±1 (0.387) instead. The two views only become comparable once diffusion is wide enough to reach both combs.
 
-### First waveform-level comparison, and a NEGATIVE result that names the missing physics (2026-08-07)
+### First waveform-level comparison — ⚠️ WITHDRAWN, the filter was broken (2026-08-07)
 
 Full chain — Geant4 (gun spread over the superperiod) → drift → mesh (T6 transparency) → avalanche (S3) → induction (S1 comb kernels) → ion transit → DREAM shaper — over 400–600 muons per point, 30 ms/event on the desktop.
 
@@ -331,11 +331,91 @@ Full chain — Geant4 (gun spread over the superperiod) → drift → mesh (T6 t
 | 5.0 | 0.295 | 0.487 | 0.144 |
 | **measured (§9)** | **0.16–0.19** | **0.16–0.19** | **0.23–0.28** |
 
-**The two observables disagree in direction, and ρ_s cannot fix it.** The data's neighbour has ~¾ the *area* of the central channel but only ~⅙ the *peak* — charge arriving spread over a long time. Ours arrives too fast and too concentrated: too little area, too much peak. The obvious lever was ρ_s, since more resistive means slower and broader dispersion, which raises neighbour area and lowers neighbour peak together. It does — but only just: over a **factor 10** in ρ_s the X peak ratio moves 0.373 → 0.296, a mere −21 %, nowhere near 0.16–0.19, while the area c1 moves the **wrong way** (0.169 → 0.144, further below target). Pushing ρ_s beyond the scan would make the area worse to buy a fraction of the peak. Per the §9 firewall, that is missing physics, not a knob.
+⚠️ **This table and the conclusion drawn from it are WITHDRAWN.** They were produced through a
+charge-non-conserving ion filter. `apply_ion_transit` normalised the leading edge of its running
+mean by samples-so-far, `c[n]/(n+1)`, instead of by the rectangle length, `c[n]/L`. The ion
+delivers f_i/T per unit time from birth, so for t < T the answer is (1/T)∫₀ᵗx = c[n]/L. The bug
+inflated the first T = 340 ns — exactly where the peak lives — by up to **340×** and put **5.9**
+units of charge on the readout per unit induced. Because it is a *time-dependent* distortion and
+channels peak at different times, it did not cancel from inter-channel ratios.
 
-**The prime suspect was already documented as a limitation before the data pointed at it**, which is the good case. The ions carry ~97 % of the induced charge (§7), and `response/digitizer/ions.py` currently gives them the **surface kernel's lateral shape, frozen at z = 0** — the narrowest it can possibly be — because S1 solves only the z = 0 plane. The true Ψ_n broadens as the ion climbs the 150 µm gap toward the mesh. Restoring that broadening adds lateral width to the component that is *already slow*, which raises neighbour area **and** lowers neighbour peak: both of the directions the data demands, and via a mechanism ρ_s cannot mimic because it acts on the ion transit rather than on sheet transport.
+Nothing caught it because every check to that point compared ratios or shapes, and a
+charge-non-conserving filter passes those. `response/digitizer/test_longitudinal.py` now feeds
+each folding path a unit impulse, whose response is h itself — exact by inspection, with no
+reference implementation that could be wrong the same way.
 
-That makes **T10 the critical path**, not an optional rigour check: it needs S1 extended to z > 0 (the plan's §2 file contract already reserves `psi[t,z,y,x]` with "8–16 slices to mesh" for exactly this), or the Garfield `ComponentGrid` slow path. Secondary suspects, in order: inter-strip and inter-channel capacitance, which W1 omits entirely; and the possibility that the measured numbers come from a different drift field than the 333 V/cm assumed here.
+#### Redone after the fix (2026-08-07), and the conclusion inverts
+
+Same chain, same 400 muons, d_k = 75 µm, with the S3 v2 *measured* ion template:
+
+| ρ_s [MΩ/sq] | area c1, X | area c1, Y | peak ±1/0, X | peak ±1/0, Y |
+|---|---|---|---|---|
+| 0.5 | 0.209 | 0.140 | 0.500 | 0.647 |
+| 1.0 | 0.209 | 0.153 | 0.500 | 0.637 |
+| 2.0 | 0.209 | 0.174 | 0.497 | 0.619 |
+| 5.0 | 0.209 | 0.200 | 0.499 | 0.581 |
+| **measured (§9)** | **0.23–0.28** | **0.23–0.28** | **0.16–0.19** | **0.16–0.19** |
+
+**ρ_s moves both Y observables the right way at once** — area 0.140 → 0.200 *up* toward target
+while peak 0.647 → 0.581 comes *down*. The withdrawn claim that "the area moves the wrong way" was
+an artifact of the bug. What remains true is that the rates are far too slow to reach the targets.
+
+**The X view does not respond to ρ_s at all**, to three decimals, and that is real physics rather
+than a second bug — checked at both levels below it: the S1 product's `G_X` differs by 42 % between
+ρ_s = 0.5 and 2, and the digitizer's `I_X` by 11 %, so the dependence is present and simply does
+not reach the inter-channel budget. The ESL is **1-D strips**, so sheet transport is 1-D: charge
+moves *along* a strip and cannot cross the gap. With strips running along y, charge that moves stays
+in the same column, so the X view (columns) sees no inter-channel redistribution while the Y view
+(rows) sees all of it. `I_X` still shifts by 11 % because the arrival *time* on a column changes as
+charge redistributes within that column's comb — the budget is conserved, the shape is not.
+
+**This predicts a strong X/Y asymmetry in sharing that the measured numbers do not show**, both
+views sitting at 0.16–0.19 and 0.23–0.28. That is now a headline tension in its own right.
+
+**The dominant discrepancy is the neighbour pulse SHAPE.** Ours has area ratio 0.45 and peak ratio
+0.50 — a neighbour the *same width* as the central channel. The data's neighbour carries ~¾ the
+area at ~⅙ the peak, i.e. **~4× broader**. This is the sharpest statement available because it is a
+ratio of ratios and needs no absolute calibration.
+
+It also points at a mechanism, and the direction is uncomfortable for §8. Sharing that arrives by
+**diffusion** is deposited on the neighbour at the *same instant* as on the centre, so it predicts
+peak-time shift ≈ 0 and width ≈ 1. Sharing that arrives by **sheet transport** is late and broad.
+§9 measures a **+54–61 ns median peak-time shift**, which is direct evidence that the sharing is
+*not* diffusion-dominated — while §8 concluded from the z-dependence that it is. Both cannot stand.
+`run.py` now reports peak-time shift and relative width so the model can be put on the same axis;
+the run is in flight.
+
+If the tension survives, the coherent resolution is that the **drift field is not the assumed
+333 V/cm**. A higher field gives smaller σ_T, which removes prompt diffusion sharing and forces the
+measured c1 to come from the slow sheet instead — fixing the amount, the timing and the width
+together. §5 already records that v_drift is quoted three incompatible ways (39.1 dry Magboltz,
+36.6 in §1, 28.1 ± 0.7 bias-free micro-TPC), which is the same parameter under suspicion.
+
+**T10 is no longer the sole critical path.** The withdrawn argument for promoting it assumed the ion
+carried ~97 % of the charge with the narrowest possible lateral shape; the measured split is 90.8 %,
+and the A/B test below shows the ion model barely moves these observables at all. T10 remains worth
+doing for rigour, but the drift field and the X/Y asymmetry are ahead of it now.
+
+#### The measured ion template changes almost nothing (2026-08-07)
+
+S3 v2 supplies real `i_elec`/`i_ion`, so the analytic δ + rectangle can be tested rather than
+trusted. A/B at ρ_s = 2, same seed, same events, differing only in the ion model:
+
+| | analytic | measured S3 v2 |
+|---|---|---|
+| peak ±1, X | 0.493 / 0.498 | 0.500 / 0.494 |
+| area c1, X | 0.208 | 0.209 |
+
+The measurement also corrects the model's two numbers — f_ion 0.967 → **0.908**, transit 306 ns →
+**~340 ns**, mean ion birth height 5 µm → **13.84 µm** (`ions.py` assumed the avalanche sits "within
+microns of the anode"; the ionization profile is exponential with 1/α = 14 µm). The transit lands
+inside the ±30 % mobility band, so **§5's "single softest parameter" survives contact with the
+data** — and, more usefully, the observables turn out not to care.
+
+Two independent routes agree to four digits: Q_i/(Q_e+Q_i) = 0.9079 from the current integrals,
+1 − ⟨z⟩/g = 0.9077 from the `alpha_z` histogram. That agreement is *also* the proof that no ion
+charge was clipped by the 400 ns S3 window. The histogram's own decay length, 14.8 µm, matches
+g/ln(G) = 14.1 µm from the measured gain.
 
 **A trap in comparing the AREA budget once the front end is in (2026-08-07).** The ion smear and the DREAM shaper are both linear time-invariant filters applied *identically to every channel*, and for such a filter ∫(h⊛f) = ∫h·∫f. The integrated-charge ratio between channels is therefore **mathematically invariant** under them — switching shaping on cannot change the area budget over an infinite window. It appeared to (c1_X 0.201 → 0.146), and that was pure **window truncation**: the shaped tail runs ~12τ ≈ 1.2 µs past the last avalanche, and neighbour channels are fed later than the central one by resistive spreading, so a fixed window clips them harder. A control run at the identical window with shaping off returned exactly 0.201, as the invariance requires. Consequence: **the area budget is only comparable to data when integrated over the same window the DAQ uses** (32 samples × 60 ns = 1.92 µs), not an arbitrarily long one — and peak amplitude, which has no such invariance and *is* genuinely changed by shaping, is the more informative observable until the DAQ window is modelled in T12.
 
