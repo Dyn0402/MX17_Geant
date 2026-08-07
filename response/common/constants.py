@@ -32,7 +32,14 @@ AMP_GAP_M = AMP_GAP_UM * 1e-6
 ESL_WIDTH_UM = 550.0
 ESL_GAP_UM = 250.0
 ESL_PITCH_UM = ESL_WIDTH_UM + ESL_GAP_UM     # 800.0
-ESL_THICK_UM = 100.0                          # still a guess (NEEDED_INPUTS §6c)
+# As-built print thickness is 10 µm (user, 2026-08-07; AsBuiltSpec() sets
+# s.paste_um = 10.0). It does NOT enter the response model at all — S1 treats
+# the ESL as a zero-thickness sheet and absorbs the thickness into rho_s — so
+# this constant exists only for the header cross-check below, which reads the
+# ModuleSpec *declaration* default (still 100.0, kept because LegacySpec relies
+# on it) rather than the as-built assignment.
+ESL_THICK_UM = 100.0                          # header declaration default
+ESL_THICK_AS_BUILT_UM = 10.0                  # AsBuiltSpec value; unused by S1
 ESL_PITCH_M = ESL_PITCH_UM * 1e-6
 ESL_WIDTH_M = ESL_WIDTH_UM * 1e-6
 
