@@ -35,20 +35,46 @@ DMAX = 3
 
 
 def event_budget(cur, dt_s, dmax=DMAX):
-    """Per-view charge budget, centred on that view's biggest channel."""
+    """
+    Per-view budget, centred on that view's biggest channel. Reports BOTH the
+    integrated area and the peak amplitude, because they behave differently
+    under the front end and §9 quotes both.
+
+    WHY BOTH, and a trap in reading the area. The ion smear and the DREAM
+    shaper are linear time-invariant filters applied IDENTICALLY to every
+    channel, and for such a filter integral(h conv f) = integral(h) *
+    integral(f). So the inter-channel AREA ratio is mathematically invariant
+    under them: switching shaping on cannot change the area budget over an
+    infinite window.
+
+    It appeared to — c1_X went 0.201 -> 0.146 — and that was pure truncation:
+    the shaped tail runs ~12 tau = 1.2 us past the last avalanche, and the
+    NEIGHBOUR channels are fed later than the central one by resistive
+    spreading, so a fixed window clips them harder. A control run at the same
+    window with shaping off returned exactly 0.201, as the invariance requires.
+
+    Consequence: the area budget is only meaningful against data when
+    integrated over the SAME window the DAQ uses (32 samples x 60 ns =
+    1.92 us). Peak amplitude has no such invariance, IS genuinely changed by
+    shaping, and is what §9's 1.00/0.16-0.19/0.06-0.08/0.03 row compares to.
+    """
     out = {}
     for view in ("X", "Y"):
-        q = {k[1]: float(np.sum(v) * dt_s) for k, v in cur.items()
-             if k[0] == view}
-        if not q:
+        chans = {k[1]: v for k, v in cur.items() if k[0] == view}
+        if not chans:
             continue
+        q = {c: float(np.sum(v) * dt_s) for c, v in chans.items()}
+        pk = {c: float(np.max(v)) for c, v in chans.items()}
         tot = sum(q.values())
         if tot <= 0:
             continue
         c0 = max(q, key=q.get)
+        pk0 = pk.get(c0, 0.0)
         out[view] = {
             "total": tot,
             "share": [q.get(c0 + d, 0.0) / tot for d in range(-dmax, dmax + 1)],
+            "peak": [(pk.get(c0 + d, 0.0) / pk0) if pk0 > 0 else 0.0
+                     for d in range(-dmax, dmax + 1)],
         }
     return out
 
@@ -127,6 +153,7 @@ def main():
     rng_pos = np.random.default_rng(a.seed + 991)
 
     accX, accY, nX, nY = np.zeros(2 * DMAX + 1), np.zeros(2 * DMAX + 1), 0, 0
+    pkX, pkY = np.zeros(2 * DMAX + 1), np.zeros(2 * DMAX + 1)
     totX, totY = [], []
     t0 = time.time()
     n_done = 0
@@ -149,9 +176,11 @@ def main():
                    for k, v in cur.items()}
         b = event_budget(cur, dig.lut.dt)
         if "X" in b:
-            accX += np.array(b["X"]["share"]); nX += 1; totX.append(b["X"]["total"])
+            accX += np.array(b["X"]["share"]); pkX += np.array(b["X"]["peak"])
+            nX += 1; totX.append(b["X"]["total"])
         if "Y" in b:
-            accY += np.array(b["Y"]["share"]); nY += 1; totY.append(b["Y"]["total"])
+            accY += np.array(b["Y"]["share"]); pkY += np.array(b["Y"]["peak"])
+            nY += 1; totY.append(b["Y"]["total"])
         n_done += 1
         if n_done % 50 == 0:
             el = time.time() - t0
@@ -163,12 +192,19 @@ def main():
         return 1
     accX /= nX
     accY /= nY
+    pkX /= nX
+    pkY /= nY
     ds = list(range(-DMAX, DMAX + 1))
 
     print(f"\n  {n_done} events in {time.time()-t0:.0f} s\n")
     print(f"  {'d':>4s}" + "".join(f"{d:>8d}" for d in ds))
     print(f"  {'X':>4s}" + "".join(f"{v:8.3f}" for v in accX))
     print(f"  {'Y':>4s}" + "".join(f"{v:8.3f}" for v in accY))
+
+    print("\n  peak-amplitude ratios  [measured §9: 1.00 / 0.16-0.19 / "
+          "0.06-0.08 / 0.03]")
+    print(f"  {'X':>4s}" + "".join(f"{v:8.3f}" for v in pkX))
+    print(f"  {'Y':>4s}" + "".join(f"{v:8.3f}" for v in pkY))
 
     c1X = 0.5 * (accX[DMAX - 1] + accX[DMAX + 1])
     c1Y = 0.5 * (accY[DMAX - 1] + accY[DMAX + 1])
@@ -190,6 +226,7 @@ def main():
 
     res = {"n_events": n_done, "d": ds,
            "share_X": accX.tolist(), "share_Y": accY.tolist(),
+           "peak_X": pkX.tolist(), "peak_Y": pkY.tolist(),
            "c1_X": float(c1X), "c1_Y": float(c1Y),
            "c2_X": float(c2X), "c2_Y": float(c2Y),
            "x_fraction": float(xfrac),

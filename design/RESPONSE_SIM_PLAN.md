@@ -374,11 +374,18 @@ Procedure: predictions FIRST for the full ρ_s × d_k grid, as a band; then over
 
 | Host | Hardware | Use for | Don't use for |
 |---|---|---|---|
-| **laptop** (this machine) | i7-8550U 4c/8t, 16 GB, GTX 1050 4 GB | development, S1 solver, Stage B/C on ≤10⁴ events, analysis/plots, single-event Garfield checks | anything >1 h wall or >8 GB RAM |
+| **laptop** (this machine) | i7-8550U 4c/8t, 16 GB, GTX 1050 4 GB | **orchestration, code, small checks, plots.** Nothing heavy — see below | **any real compute.** S1 solves, Stage B runs, LUT builds |
 | **desktop** (`ssh desktop`) | Ryzen 7 5800X 8c/16t, 62 GB, RTX 3060 Ti 8 GB. Garfield++ ready at the pin (§10a); ⚠ home disk 20 GB free | one-off heavy: S2 neBEM/Elmer solves, medium Garfield campaigns, big single Geant4 runs, S1 if it outgrows laptop | systematic multi-point campaigns (no batch system); storing bulk output (ship results back to `~/x17/response_sim/`) |
 | **lxplus** (`ssh lxplus`) | HTCondor + CVMFS; LCG_109 view for the runtime, our own Garfield (§5a) | ALL systematic campaigns: S3 avalanche grid, gas tables, Stage A productions, Stage B parameter sweeps | interactive iteration |
 
 Existing lxplus workflow to reuse: `nTof_x17/garfield_sim/mm_condor_submit.py` and wrappers (AFS work dir `/afs/cern.ch/user/d/dneff/work/git/...`, EOS for tables). Copy the pattern, don't reinvent.
+
+**Laptop compute policy — HARDENED 2026-08-07 (user).** Push real compute to the desktop or lxplus; keep the laptop for orchestration, editing, and small checks. This is not a preference, it is a constraint that has already bitten twice today:
+
+- the digitizer LUT build peaks at ~3.7 GB and the Stage B run on top of it needs ~5 GB — on a 16 GB machine that only works if nothing else is running;
+- **it usually is.** Several agents share this repo and this machine. A parallel `scripts/gerber/extract_readout_pattern.py` was holding **9.9 GB of 15 GB**, and three consecutive Stage B runs were silently OOM-killed before the cause was found. The failure mode is a zero-length output file and no traceback, which reads exactly like a hang.
+
+So: S1 solves, Stage B/C runs, LUT builds and any Garfield work go to the desktop (62 GB) or lxplus. Check `free -g` and `ps --sort=-rss` before assuming a laptop job is hung — another agent's job is the likelier explanation.
 
 ### 10a. Desktop (`ssh desktop`, `dylan-MS-7C84`) — state as of 2026-08-06
 
