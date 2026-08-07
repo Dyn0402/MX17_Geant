@@ -447,6 +447,44 @@ Two independent routes agree to four digits: Q_i/(Q_e+Q_i) = 0.9079 from the cur
 charge was clipped by the 400 ns S3 window. The histogram's own decay length, 14.8 µm, matches
 g/ln(G) = 14.1 µm from the measured gain.
 
+#### The "missing 23 %" was the inter-pad gaps — and both failures were the test harness (2026-08-07)
+
+A charge audit reported the digitizer inducing only 0.675 of the deposited charge against an expected
+0.875, flat at every drift depth. Three explanations were tested and eliminated — not diffusion (the
+deficit moves 0.8 % while σ_T moves 8×), not the channel window (converges at 0.6753 by n_side = 8,
+and n_side must grow *together* with y_window because Y channels sit on the 0.78 mm pad pitch, so a
+3.9 mm window holds only ±5 of them however large n_side is), not a kernel time cut (opening t_max
+makes it *worse* at fixed n_side, which is charge dispersing into more channels).
+
+**The expectation was wrong, and the right number was already in every product's metadata.**
+`prompt_sum_rule` = S(0)/C(0) = 0.875 applies only to the **fictitious pitch-sized 0.78 mm pads** that
+`check_sum_rule` substitutes so that a closed form exists — with those, the checkerboard tiles the
+plane exactly. Production kernels use the **real 0.68 mm pads**, which do not tile: (0.68/0.78)² =
+0.760 of the plane is pad, and image charge on the 100 µm inter-pad gaps lands on no readout channel.
+`run_point` computes exactly this and stores it:
+
+| | |
+|---|---|
+| `sum_rule_expect` (tiling pads) | 0.875000 |
+| **`channel_capture_prompt`** (real pads) | **0.665023** |
+| digitizer measured | 0.6753 → within **1.5 %** |
+
+`channel_capture` is identical prompt and late (0.665023 both), which is the correct signature: a
+geometric partition cannot be time-dependent.
+
+**The T10 certification then "failed" at 59 % for an equally mundane reason.** The LUT keeps every
+4th x sample, so pad centres fall *between* LUT samples; evaluating the reference at a pad centre and
+the LUT at the nearest sample compares two source positions up to 20 µm apart, and the kernel's
+sub-pad dependence is strong enough (d=0 charge spans 0.22–0.35 across columns) that this alone reads
+as a 59 % residual. Drawing sources from the LUT grid — every LUT sample *is* a full-res sample — the
+residual drops to **1e-4**.
+
+**The lesson, recorded because it recurred four times today:** every ad-hoc re-derivation of the
+channel indexing was wrong (y = 0 sits at ny//2 via `_to_y0_origin`, rows alternate parity, X is
+indexed by absolute column mod the 40-pad superperiod), while the solver's own helpers were right
+every time. Certify against the code that already passes a closed-form check, not against a
+freshly-written summation.
+
 #### Chain closed end to end, and what the build found (2026-08-07)
 
 Three defects, all caught by internal checks rather than by any comparison with §9 — which is the
@@ -639,7 +677,7 @@ Use it via `source ~/PycharmProjects/nTof_x17/garfield_sim/setup_garfield.sh` �
 | T7 | S3 avalanche campaign — **PARTLY DONE 2026-08-07**. Gain, Polya θ and σ₀ are good (7 points, 470–530 V, table below) and merged into `aval_calib.json`; raw seed JSONs moved AFS → EOS `response_sim/avalanche/raw/`. **But the induced-current shapes `i_elec`/`i_ion` came back identically zero in 56/56 slices** — cause found and fixed (see §5), campaign re-thrown 2026-08-07 into `results_v2/`. Still open: verify the 6 Magboltz-table jobs' `.gas` outputs landed (they run through the nTof_x17 `garfield_sim` EOS workflow, NOT the mx17_response tree), and re-run once T6 supplies a real field map — this pass is uniform-field, with S2-dependent fields as explicit nulls carrying `uniform_field` provenance | T6 (or uniform-field first pass without T6) | lxplus | `aval_calib.json` grid ✅ |
 | T8 | Stage A schema upgrade — **DONE 2026-08-07** (`time`, `creator`, Meta tree with world→active-area transform) | geometry merge | laptop | §6 acceptance |
 | T9 | Stage B fast path — **RUNS END TO END 2026-08-07** on synthetic deposits (`response/digitizer/`, self-test below). Remaining: the analytic ion term, real ClusterTree input (no Geant4 run exists yet), and per-event throughput work | T5, T7 | laptop | digitizes 10³ events; energy/charge bookkeeping closes |
-| T10 | Stage B slow path (Garfield++ ComponentGrid delayed signals) + certify fast path | T5, T9 | desktop | <2% waveform residual fast vs slow |
+| T10 | Certify the fast path — **DONE 2026-08-07** (`response/digitizer/test_lut_vs_solver.py`). The LUT is compared per channel against `kernels.charge_budget_y`/`charge_budget_x`, the solver's own indexing whose closed-form sum rule passes at 4.8e-07. **Worst residual 1e-4** over 6 source positions against a 2 % bar — the windowing, x-striding, log→uniform time resampling, G→current differentiation and absolute-column→channel-offset re-indexing all preserve the per-channel charge to 0.01 %. Time-grid adequacy separately certified against a 4× denser re-solve (`test_time_grid.py`, residual <0.5 %). Still open as originally scoped: the Garfield ComponentGrid slow path for Ψ at z>0, which is a *different* approximation (the ion's lateral shape), not the caching this certifies | T5, T9 | desktop | ✅ 1e-4 residual |
 | T11 | Stage C DREAM (shaper from manual, sampling, gain) | T9 | laptop | shaped single-avalanche pulse; rise/peak vs measured template compared (report, don't tune) |
 | T12 | Stage C noise from det3 pedestals + ZS port — **DONE 2026-08-07** (`response/dream/noise.py`, `daq.py`). Noise is dominated by *coherent* common mode (83 ADC vs 10 ADC per-channel) and is strongly correlated sample-to-sample from the 180 ns shaping, so it is generated from the measured **power spectrum**, not an rms. `selftest()` round-trips at 3.5 % / 1.5 % / 0.043. Firmware `tpc` ZS implemented (ZsTyp=1, ZsChkSmp=1, CmOffset=256, 5 σ) but OFF by default — wft needs dense data and the det3 reference runs are themselves dense | T11 | laptop | ✅ round-trip matches data pedestals |
 | T13 | End-to-end: sim decoded_root through wft unchanged — **CHAIN CLOSES 2026-08-07**. `run.py --decoded-out` runs Geant4 ClusterTree → drift → mesh → avalanche → S1 induction → ion → DREAM → FEU → `sim_decoded_{07,08}.root`, and wft's own `FeuReader` reads it **unmodified**, recovering pedestal (346 vs 341) and noise (11.1 vs 10.4) and yielding 512×32 waveforms with ~6 channels over 5 σ per muon. ADC scale is derived, not fitted (20.48 ADC/fC); a 5 fC injection returns 98.0 ADC against 102.4 predicted. Remaining: run wft's *reconstruction* (not just io) to events.parquet | T8–T12 | laptop | ✅ wft io reads sim unchanged; reco pending |
