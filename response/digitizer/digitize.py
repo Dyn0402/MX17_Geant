@@ -100,13 +100,28 @@ class Digitizer:
                  # --ion-model analytic consumes it; the measured template
                  # remains the production default and is unaffected.
                  with_ions=True, z_aval_um=13.84, mu_ion=ION.MU_ION_CM2_VS,
-                 ion_model="measured", kernel_t_max_ns=None):
+                 ion_model="measured", kernel_t_max_ns=None,
+                 y_window_mm=None):
         # kernel_t_max_ns exists so the LUT window can be varied without
         # editing the default — the A1 before/after (test_window) and any
         # SPS-config run (64 x 60 ns frame -> 4200) both need it.
-        self.lut = (CombKernelLUT(kernel_path) if kernel_t_max_ns is None
-                    else CombKernelLUT(kernel_path,
-                                      t_max_ns=float(kernel_t_max_ns)))
+        # n_side is ONE quantity, not two. The LUT's X band is built with
+        # 2*n_side+1 channel offsets and `induce` books that same range, so a
+        # Digitizer asking for more channels than the band holds indexes off
+        # the end of it. They are wired from the same argument here.
+        #
+        # y_window_mm must grow WITH n_side or widening does nothing on the Y
+        # view: Y channels sit on the 0.78 mm pad pitch, so a 3.9 mm half-window
+        # holds only +-5 rows however large n_side is.
+        lut_kw = {"n_side": n_chan_side}
+        if kernel_t_max_ns is not None:
+            lut_kw["t_max_ns"] = float(kernel_t_max_ns)
+        if y_window_mm is not None:
+            lut_kw["y_window_mm"] = float(y_window_mm)
+        elif n_chan_side > 4:
+            # Default it to just past the outermost channel asked for.
+            lut_kw["y_window_mm"] = (n_chan_side + 1) * 0.78
+        self.lut = CombKernelLUT(kernel_path, **lut_kw)
         self.gas = (DriftGas(gas_table, v_scale=v_scale) if gas_table
                     else DriftGas(v_scale=v_scale))
         self.calib, self.calib_v = load_calib(calib_path, mesh_v)
@@ -335,5 +350,6 @@ class Digitizer:
             "ion_measured": self.ion_measured,
             "packet_mode": self.packet,
             "n_chan_side": self.n_side,
+            "y_window_mm": float(abs(self.lut.y_Y).max() * 1e3),
         }
         return d
