@@ -78,11 +78,53 @@ def impulse_check(f_e, T_ns, dt_ns):
     return ok
 
 
+def tail_check(f_e, T_ns, dt_ns, nt=1001):
+    """
+    An impulse in the LAST ion-transit-length of the window (audit A1).
+
+    `impulse_check` puts its impulse at t = 0, so it certifies the leading edge
+    and says nothing about what happens to charge delivered near the end of the
+    record — which is where the fix order suspected a second truncation bug.
+
+    There is no bug, and this pins the actual accounting. The ion spreads its
+    share flat over T, so an impulse at t0 delivers only the fraction that
+    still falls inside the window; the rest is beyond t_max and is outside the
+    model by construction, not lost inside it. What must hold exactly is that
+    the kept fraction is the geometric one, and that NOTHING is lost when the
+    impulse sits a full transit before the end.
+    """
+    L = max(1, int(round(T_ns / dt_ns)))
+    ok = True
+    # An impulse at t0 puts f_e at t0 and (1-f_e)/L on each of the L samples
+    # t0..t0+L-1, so the window keeps min(L, nt-t0) of the ion's L samples.
+    kept = lambda t0: f_e + (1 - f_e) * min(L, nt - t0) / L
+    for label, t0 in (("one transit before the end", nt - L),
+                      ("half a transit before", nt - L // 2),
+                      ("last sample", nt - 1)):
+        want = kept(t0)
+        g = _FakeLUT(nt=nt)
+        g.I_Y[:] = 0.0
+        g.I_X[:] = 0.0
+        g.I_Y[:, :, t0] = 1.0
+        g.I_X[:, :, t0] = 1.0
+        g.apply_ion_transit(f_e, T_ns)
+        got = float(g.I_Y[0, 0].sum())
+        good = abs(got - want) <= 2e-3
+        ok &= good
+        print(f"  impulse at {label:26s} area kept {got:.4f}  "
+              f"want {want:.4f}  {'OK' if good else 'FAIL'}")
+    return ok
+
+
 def main():
     f_e, T_ns, dt_ns = 0.0923, 340.0, 1.0
 
     print("impulse response (exact by inspection):")
     ok_imp = impulse_check(f_e, T_ns, dt_ns)
+    print()
+
+    print("window tail accounting (audit A1):")
+    ok_tail = tail_check(f_e, T_ns, dt_ns)
     print()
 
     a = _FakeLUT()
@@ -125,8 +167,9 @@ def main():
     print(f"  area drift {rel:.2e} (finite window; exact only for h fully "
           f"inside the record)")
 
-    print("\n" + ("PASS" if (ok and ok_imp) else "FAIL"))
-    return 0 if (ok and ok_imp) else 1
+    all_ok = ok and ok_imp and ok_tail
+    print("\n" + ("PASS" if all_ok else "FAIL"))
+    return 0 if all_ok else 1
 
 
 if __name__ == "__main__":

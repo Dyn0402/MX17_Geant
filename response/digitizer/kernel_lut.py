@@ -44,8 +44,20 @@ from ..common import constants as C
 class CombKernelLUT:
     """Windowed, uniform-time lookup of the comb-channel induced currents."""
 
-    def __init__(self, path, dt_ns=1.0, t_max_ns=1000.0, y_window_mm=3.9,
-                 x_stride=4, n_side=4):
+    # THE STORED WINDOW MUST COVER THE DAQ FRAME (fix 2026-08-07, audit A1).
+    # It was 1000 ns. The S1 product is solved to 10 us and the DAQ area window
+    # is 32 x 60 = 1.92 us (64 x 60 = 3.84 us in the SPS config), while sheet
+    # transport feeds d = +-2 on the ~0.6 us scale and d = +-3 past 1 us
+    # (D ~ 1 m^2/s at rho_s = 2 MOhm/sq). Truncating at 1 us therefore
+    # GUARANTEED the sim under-delivered the late halo — structurally, in the
+    # same direction as the headline §9 "missing broad slow halo" tension.
+    #
+    # 3000 ns covers the bench 1.92 us window plus the 340 ns ion transit plus
+    # margin. An SPS-config run should ask for 4200.
+    T_MAX_NS_DEFAULT = 3000.0
+
+    def __init__(self, path, dt_ns=1.0, t_max_ns=T_MAX_NS_DEFAULT,
+                 y_window_mm=3.9, x_stride=4, n_side=4):
         self.path = path
         self.n_side = n_side
         self.t = np.arange(0.0, t_max_ns + dt_ns, dt_ns) * 1e-9
@@ -240,6 +252,22 @@ class CombKernelLUT:
         The true Psi_n broadens as the ion climbs toward the mesh, so this
         under-estimates ion lateral sharing. T10 (Garfield ComponentGrid over
         the S1 time slices) is what replaces it.
+
+        ON THE "TRAILING-EDGE TRUNCATION" (audit A1, checked 2026-08-07 and NOT
+        a bug). The fix order asked for this convolution to be padded to
+        nt + L before truncating, on the theory that it was silently losing its
+        own tail the way the leading edge once did. It is not. The running mean
+        at sample n reads only x[n-L+1..n], so every output sample inside
+        [0, nt) is already complete and padding the record is a bit-for-bit
+        no-op (verified directly). The same holds for `apply_longitudinal`,
+        whose FFT is sized nt + len(h) - 1 and is therefore a genuine LINEAR
+        convolution, not a wrapped one.
+
+        What IS lost is the output beyond sample nt — for a 340 ns transit,
+        ~16 % of the delivered area on a decaying test record. That charge is
+        outside t_max by construction and no amount of padding recovers it;
+        only a longer window does. Which is the real content of A1, and is why
+        T_MAX_NS_DEFAULT moved 1000 -> 3000 above.
         """
         L = max(1, int(round(transit_ns / (self.dt * 1e9))))
         f_ion = 1.0 - f_electron

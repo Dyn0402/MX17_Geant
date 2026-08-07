@@ -144,10 +144,12 @@ def main():
     ap.add_argument("--kernel", required=True)
     ap.add_argument("--calib", default=CALIB)
     ap.add_argument("--max-events", type=int, default=0)
-    ap.add_argument("--n-samp", type=int, default=3200,
-                    help="1 ns samples. Must cover drift (~766 ns) + kernel "
-                         "window (1000 ns) + the shaped tail (~12 tau = 1.2 us). "
-                         "2000 truncates once shaping is on.")
+    ap.add_argument("--n-samp", type=int, default=4500,
+                    help="1 ns samples. Must cover drift (~770 ns) + the "
+                         "kernel window (kernel_lut.T_MAX_NS_DEFAULT = 3000 ns "
+                         "since 2026-08-07, was 1000) + the shaped tail "
+                         "(~12 tau = 1.2 us) — so 4500. The old 3200 default "
+                         "was sized for the 1000 ns kernel and truncates now.")
     ap.add_argument("--no-shaper", action="store_true",
                     help="stop at induced charge, before the DREAM front end")
     ap.add_argument("--pzc-residual", type=float, default=0.75,
