@@ -162,6 +162,16 @@ def main():
     cmp.SetElectricField(0., 0., e_field)
     # Readout weighting field, ψ = 1 - z/gap  ->  E_w = -∇ψ = +ẑ/gap.
     cmp.SetWeightingField(0., 0., 1.0 / gap_cm, "readout")
+    # ...AND the weighting POTENTIAL, which is not optional. Both
+    # AvalancheMicroscopic and AvalancheMC default to m_useWeightingPotential
+    # = true, i.e. they compute the induced current from ψ rather than from
+    # E_w. ComponentConstant has no ψ until this call, so without it
+    # WeightingPotential() returns 0 everywhere and EVERY signal comes out
+    # identically zero — silently, with the avalanche and the ion drift both
+    # running normally. That is what emptied i_elec/i_ion in the first
+    # campaign (56/56 slices). Anchoring ψ = 1 at the readout plane z = 0 with
+    # a constant weighting field gives ψ(z) = 1 - z/gap exactly.
+    cmp.SetWeightingPotential(0., 0., 0., 1.0)
 
     sensor = G.Sensor()
     sensor.AddComponent(cmp)
