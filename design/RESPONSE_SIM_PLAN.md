@@ -73,7 +73,12 @@ response/
 
 Large products (grids, libraries, waveform files) never go in git. **Canonical bulk store is EOS: `/eos/experiment/ntof/data/x17/response_sim/`** (user, 2026-08-07 — effectively unlimited under the nTOF allocation), laid out as `s1/ s2/ avalanche/raw/ clusters/ currents/`. `~/x17/response_sim/` on the laptop is a *working copy*, not the archive, and the desktop holds nothing permanently (20 GB free there is the tightest disk in the fleet).
 
-Transfer routing, because it is not symmetric: the laptop and lxplus both have Kerberos and can write EOS. The **desktop can reach lxplus and read EOS but cannot write it** — a bare `ssh desktop → lxplus` gets no AFS/krb token (it cannot even read `.bashrc`), so EOS writes fail with "Operation not permitted". Desktop products therefore route **desktop → laptop → EOS**. Anything produced on the desktop must also be drained on a `.done` marker written *after* the producer returns, never on file existence: rsync of a file numpy is still writing produces a silently truncated archive (cost us one bad 1 GB transfer). Every product file embeds: git hash of `response/`, the parameter YAML content, and a UTC timestamp. **No un-manifested runs** — one CSV manifest row per production run (copy the discipline from p2 `SIM_CAMPAIGN_PLAN.md` §"bookkeeping").
+Transfer routing. **All three hosts can write EOS** (desktop enabled 2026-08-07). Two details that are not obvious and will waste an afternoon if forgotten:
+
+- There is **no `/eos` mount and no `eos`/`xrdcp` client on the desktop.** Its access is via `ssh lxplus` with GSSAPI credential delegation — `~/.ssh/config` there already sets `GSSAPIAuthentication`/`GSSAPIDelegateCredentials yes`, so a plain `rsync … lxplus:/eos/…` works. There is no local `/eos/...` path to write to, so any script that assumes one fails with "No such file or directory".
+- That route depends on a **Kerberos ticket, which expires** (24 h; `klist` on the desktop to check). Before the ticket existed, desktop→lxplus could read EOS but writes failed with "Operation not permitted" and even `.bashrc` was unreadable — so a *silent* AFS/EOS permission failure in an unattended desktop job means the ticket lapsed, not that the code is wrong. Long campaigns should either renew it or fall back to desktop → laptop → EOS.
+
+Anything produced on the desktop must be drained on a `.done` marker written *after* the producer returns, never on file existence: rsync of a file numpy is still writing produces a silently truncated archive (cost us one bad 1 GB transfer). Every product file embeds: git hash of `response/`, the parameter YAML content, and a UTC timestamp. **No un-manifested runs** — one CSV manifest row per production run (copy the discipline from p2 `SIM_CAMPAIGN_PLAN.md` §"bookkeeping").
 
 Key file contracts (formats frozen here; extend, don't break):
 
@@ -187,6 +192,22 @@ Extract per point into `aval_calib.json`: mean gain ḡ, Polya θ (fit P(g) ∝ 
 Gases: Ar/iso 95/5 dry AND +1% H2O (tables partly exist in `~/PycharmProjects/nTof_x17/garfield_sim/results/` and on EOS — reuse; the condor workflow in that repo is the template). HV: 480–540 V mesh in 10 V steps (bench operating 490 V, SPS up to 625 V different gas — add Ar/CO2/iso 95/3/2 and Ar/CF4/iso 88/10/2 later).
 
 **Host: lxplus condor** (systematic campaign; reuse `garfield_sim/mm_condor_*` submission machinery). Quick single-point smoke tests: laptop.
+
+**Result, first pass (uniform field, Ar/iC₄H₁₀ 95/5 dry, 150 µm gap), 2026-08-07.** `aval_calib.json`, figure `design/figures/response/s3_avalanche_calib.png`:
+
+| V_mesh | mean gain | Polya θ | σ₀ at the ESL | nev |
+|---|---|---|---|---|
+| 470 | 23 107 | 1.42 | 34.3 µm | 1600 |
+| 480 | 31 387 | 1.54 | 34.0 µm | 1360 |
+| 490 | 44 472 | 1.64 | 33.7 µm | 1120 |
+| 500 | 60 309 | 1.84 | 33.4 µm | 880 |
+| 510 | 81 646 | 1.66 | 33.2 µm | 640 |
+| 520 | 112 447 | 1.95 | 32.6 µm | 480 |
+| 530 | 156 731 | 1.66 | 32.4 µm | 320 |
+
+Gain rises by ×6.8 over 60 V — an e-folding every **31 V**, which is the normal slope for a 150 µm bulk MM. At the 490 V bench operating point the gain is ≈4.4×10⁴. θ ≈ 1.4–1.9 with no real trend; the non-monotonicity is statistics, since nev falls 1600 → 320 as the avalanche size cap bites at high V, and θ here is a moment estimator. If θ(V) is ever wanted as a physical trend rather than a per-point constant, the high-V points need more events.
+
+**σ₀ ≈ 33 µm is the number to carry forward, and it is a strong constraint on T9.** The avalanche footprint at the ESL is **~24× smaller than the 780 µm pad pitch** and barely moves with voltage. Combined with the T2b finding that point-charge prompt sharing to d=±1 is near zero (§3), this means the avalanche's own size contributes essentially *nothing* to the measured c1 = 0.23–0.28. The sharing has to come from transverse diffusion over the 30 mm drift gap plus resistive spreading — nothing else is left. That is a sharp, testable corner for T9: if the digitizer cannot reach c1 ≈ 0.25 from diffusion + sheet transport alone, the model is missing physics, and per §9 the answer is to find it rather than to widen σ₀.
 
 ## 5a. Garfield++ version — PINNED (decided 2026-08-06)
 
@@ -328,7 +349,7 @@ Use it via `source ~/PycharmProjects/nTof_x17/garfield_sim/setup_garfield.sh` �
 | T4 | S1 Bloch patterning (strips) + V2, V3 — **DONE 2026-08-07** (superperiod-commensurate box, no truncation parameter) | T3 | laptop | V2, V3 pass |
 | T5 | S1 boundary/drain + full grid export; V4, V5, V6 — solver + V4 (as redefined, charge level) **DONE 2026-08-07**; production grid export NOT started (export-strategy decision pending, several GB/point vs local-window vs on-demand); V5, V6 not run | T4 | laptop | all V pass; 48-run scan produced |
 | T6 | S2 mesh unit cell | T0 | desktop | transparency curve; field map export |
-| T7 | S3 avalanche campaign — **jobs DONE 2026-08-07** (uniform-field first pass, 56/56 JSONs on AFS `~dneff/work/mx17_response/avalanche/results/`; S2-dependent fields are explicit nulls with `uniform_field` provenance). Remaining: rsync + `response/avalanche/collect.py` merge; verify the 6 Magboltz-table jobs' `.gas` outputs landed (they run through the nTof_x17 `garfield_sim` EOS workflow, NOT the mx17_response AFS tree) | T6 (or uniform-field first pass without T6) | lxplus | `aval_calib.json` grid |
+| T7 | S3 avalanche campaign — **DONE 2026-08-07**. 56/56 slices merged into `aval_calib.json` (7 voltage points, 470–530 V; result table below). Raw seed JSONs moved AFS → EOS `response_sim/avalanche/raw/`. Still open: verify the 6 Magboltz-table jobs' `.gas` outputs landed (they run through the nTof_x17 `garfield_sim` EOS workflow, NOT the mx17_response tree), and re-run once T6 supplies a real field map — this pass is uniform-field, with S2-dependent fields as explicit nulls carrying `uniform_field` provenance | T6 (or uniform-field first pass without T6) | lxplus | `aval_calib.json` grid ✅ |
 | T8 | Stage A schema upgrade — **DONE 2026-08-07** (`time`, `creator`, Meta tree with world→active-area transform) | geometry merge | laptop | §6 acceptance |
 | T9 | Stage B fast path (templates from S1 surface G + analytic ion term, first pass) | T5, T7 | laptop | digitizes 10³ events; energy/charge bookkeeping closes |
 | T10 | Stage B slow path (Garfield++ ComponentGrid delayed signals) + certify fast path | T5, T9 | desktop | <2% waveform residual fast vs slow |
@@ -342,7 +363,7 @@ Use it via `source ~/PycharmProjects/nTof_x17/garfield_sim/setup_garfield.sh` �
 
 ~~Parallelizable now (before geometry merge): T0–T7. T3–T5 is the critical path and the highest-skill task.~~ **State 2026-08-07:** geometry merged; T1–T5 (solver), T2, T7 (jobs), T8 done. The critical path is now **T2b (comb kernels) → S1 export decision → T9 (digitizer)**, with T6 (desktop mesh cell) and the T7 collect step parallel to it. Td can run immediately in nTof_x17.
 
-**State 2026-08-07, later:** T2b done and validated (§3). Running: the nominal comb-kernel production point on the **desktop** (ρ_s 1 MΩ/sq, d_k 75 µm, nx 3120 = 10 µm, ny 1024 = 48.75 µm, 61 log times; ~2.5 min per Y kernel), and the T7 `collect.py` merge on **lxplus** — run *there*, not locally, because the 56 raw seed JSONs are 19 GB and only the merged `aval_calib.json` needs to travel. Critical path is now **S1 export decision → T9**. The export decision has hard numbers at last, measured not estimated: **one grid point is 2.3 GB compressed and takes 6 minutes of desktop wall clock** (2 Y kernels at 139 s each, 40 X kernels in 67 s together, at nx 3120 / ny 1024 / nt 61). So the 12-point scan is ~28 GB and ~75 minutes of compute. Compute is a non-issue, and as of 2026-08-07 **storage is no longer a constraint either**: EOS `/eos/experiment/ntof/data/x17/response_sim/s1/` is effectively unlimited (§2). The earlier decision to defer the full grid until T9 was made purely on the desktop's 20 GB, so it no longer applies — **the full 12-point ρ_s × d_k grid is being produced** (~28 GB, ~75 min), desktop → laptop → EOS, with the desktop throttled to at most 3 resident points by the drain. Trimming the Y kernel's y range from ±25 mm to ±12.5 mm remains available if a *resident working set* is ever wanted small, but it is no longer needed for the archive.
+**State 2026-08-07, later:** T2b done and validated (§3). Running: the nominal comb-kernel production point on the **desktop** (ρ_s 1 MΩ/sq, d_k 75 µm, nx 3120 = 10 µm, ny 1024 = 48.75 µm, 61 log times; ~2.5 min per Y kernel), and the T7 `collect.py` merge on **lxplus** — run *there*, not locally, because the 56 raw seed JSONs are 19 GB and only the merged `aval_calib.json` needs to travel. Critical path is now **S1 export decision → T9**. The export decision has hard numbers at last, measured not estimated: **one grid point is 2.3 GB compressed and takes 6 minutes of desktop wall clock** (2 Y kernels at 139 s each, 40 X kernels in 67 s together, at nx 3120 / ny 1024 / nt 61). So the 12-point scan is ~28 GB and ~75 minutes of compute. Compute is a non-issue, and as of 2026-08-07 **storage is no longer a constraint either**: EOS `/eos/experiment/ntof/data/x17/response_sim/s1/` is effectively unlimited (§2). The earlier decision to defer the full grid until T9 was made purely on the desktop's 20 GB, so it no longer applies — **the full 12-point ρ_s × d_k grid is being produced** (~28 GB, ~75 min), with the desktop throttled to at most 3 resident points by the drain. The drain is routed desktop → laptop → EOS, which also leaves the laptop a complete working copy for analysis; the desktop can now push to EOS directly, so future *bulk-only* products (Stage B waveforms, S2 maps) should go straight there and skip the hop. Trimming the Y kernel's y range from ±25 mm to ±12.5 mm remains available if a *resident working set* is ever wanted small, but it is no longer needed for the archive.
 
 ## 12. Outstanding questions — REFERENCE ONLY
 
