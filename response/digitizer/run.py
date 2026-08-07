@@ -248,8 +248,14 @@ def main():
         print("  ions      DISABLED (electrons only)")
     if shaper:
         sh = shaper.describe()
+        # 'tau_ns' exists only on the legacy CR-RC^2 model; the manual-topology
+        # 'sk' model reports beta and the predicted undershoot instead. Reading
+        # it unconditionally crashed every run once 'sk' became the default.
+        extra = (f"tau {sh['tau_ns']:.1f} ns" if "tau_ns" in sh
+                 else f"beta {sh['pzc_residual_beta']:.2f}, undershoot "
+                      f"{sh['undershoot_pred_pct']:.1f}%")
         print(f"  DREAM     peaking {sh['t_peak_ns_5to100']:.0f} ns (5%->100%, "
-              f"code {sh['peaking_code']}), tau {sh['tau_ns']:.1f} ns, "
+              f"code {sh['peaking_code']}), {sh['filter_model']}, {extra}, "
               f"{sh['mV_per_fC']:.0f} mV/fC")
     else:
         print("  DREAM     DISABLED (charge level)")
