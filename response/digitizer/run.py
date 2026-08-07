@@ -135,6 +135,12 @@ def main():
     ap.add_argument("--fixed-position", action="store_true",
                     help="do NOT randomise the impact point (see below)")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--decoded-out", default=None,
+                    help="write sim_decoded.root (T13). Two files are made, "
+                         "<prefix>_07.root (X view) and <prefix>_08.root (Y), "
+                         "mirroring the two FEUs the real detector reads out.")
+    ap.add_argument("--noise", default="~/x17/response_sim/dream/noise_det3.json",
+                    help="noise spec from response.dream.noise --characterise")
     a = ap.parse_args()
 
     cf = ClusterFile(a.clusters)
@@ -204,6 +210,31 @@ def main():
     # this achieves the same sampling without re-running Geant4.
     rng_pos = np.random.default_rng(a.seed + 991)
 
+    # --- T13 decoded-file output ------------------------------------------
+    # The detector is 512 x 512 pads read out as 512 X channels and 512 Y
+    # channels, i.e. TWO 512-channel FEUs — which is why the data arrives as
+    # *_07.root and *_08.root. Stage B already works in absolute pad
+    # column/row (digitize.induce), and mx17_m1_map.csv gives
+    # channel_num = 0.78 mm * index on both axes, so the map is the identity:
+    # X channel = column, Y channel = row.
+    #
+    # ASSUMPTION, stated because it is unverifiable from this repo: the FEU
+    # connector permutation is taken as identity (FEU channel c -> connector
+    # c//64+1, local c%64 -> channel_num c). The real wiring lives in the DAQ
+    # detector config (`dream_feus` in Mx17StripMap.RunConfig), which is not
+    # mirrored here. A permutation is a pure relabelling — it cannot change any
+    # physics, and the simulation is self-consistent under it — but it WOULD
+    # matter for a channel-by-channel comparison against a real run, so it must
+    # be resolved before T14 rather than assumed away.
+    daq = adc_buf = None
+    if a.decoded_out:
+        from ..dream.daq import Daq, N_CHAN, write_decoded
+        with open(os.path.expanduser(a.noise)) as fh:
+            daq = Daq(json.load(fh), seed=a.seed + 17)
+        adc_buf = {"X": [], "Y": []}
+        print(f"  decoded   writing {a.decoded_out}_07.root (X) and "
+              f"_08.root (Y), {daq.n_sample} samples x {daq.dt_ns:.0f} ns")
+
     accX, accY, nX, nY = np.zeros(2 * DMAX + 1), np.zeros(2 * DMAX + 1), 0, 0
     pkX, pkY = np.zeros(2 * DMAX + 1), np.zeros(2 * DMAX + 1)
     totX, totY = [], []
@@ -230,6 +261,20 @@ def main():
             # waveform, which is what the data analysis sees.
             cur = {k: shaper.apply(v, dt_ns=dig.lut.dt * 1e9)
                    for k, v in cur.items()}
+        if daq is not None:
+            # Lay the 1 ns shaped channels into a dense 512-wide plane per
+            # view, then point-sample onto the 60 ns DAQ grid with a random
+            # phase (the sampling clock is uncorrelated with a cosmic).
+            from ..dream.daq import N_CHAN as _NC
+            for view in ("X", "Y"):
+                plane = np.zeros((_NC, a.n_samp), dtype=np.float32)
+                for (v, idx), w in cur.items():
+                    if v != view or not (0 <= idx < _NC):
+                        continue
+                    plane[idx, :len(w)] += w[:a.n_samp]
+                smp, _ph = daq.sample(plane)
+                adc_buf[view].append(smp.T)          # (n_sample, n_chan)
+
         b = event_budget(cur, dig.lut.dt)
         if "X" in b:
             accX += np.array(b["X"]["share"]); pkX += np.array(b["X"]["peak"])
@@ -316,6 +361,18 @@ def main():
            "x_fraction": float(xfrac),
            "digitizer": info, "clusters": ci,
            "shaper": shaper.describe() if shaper else None}
+    if daq is not None:
+        from ..dream.daq import write_decoded
+        for view, feu in (("X", "07"), ("Y", "08")):
+            block = np.stack(adc_buf[view])                 # (n_ev, n_samp, ch)
+            adc = daq.to_adc(block, n_ev=len(block))
+            path = f"{a.decoded_out}_{feu}.root"
+            write_decoded(path, adc)
+            occ = float((adc.astype(np.int32)
+                         - np.median(adc, axis=(0, 1))).max(axis=1).mean())
+            print(f"  wrote {path}  {len(block)} events, "
+                  f"mean per-event max excursion {occ:.0f} ADC")
+
     if a.out:
         with open(a.out, "w") as f:
             json.dump(res, f, indent=1)
