@@ -181,6 +181,18 @@ class CombKernelLUT:
         A rectangle convolution is a running mean, so cumsum gives it in O(N)
         with no FFT and no scipy.
 
+        THE LEADING-EDGE DENOMINATOR IS L, NOT n+1. Before the window fills,
+        this still divides by the FULL L. Writing it as a mean over the samples
+        seen so far — c[n]/(n+1) — is the natural thing to type and it is
+        wrong: the ion delivers f_i/T per unit time from the moment it is born,
+        so for t < T the answer is (1/T) * integral_0^t x, i.e. c[n]/L. The
+        n+1 version was in place 2026-08-07 and inflated the first T = 340 ns
+        by up to 340x, put 5.9 units of charge on the readout for every 1
+        induced, and — because it is a TIME-dependent distortion while channels
+        peak at different times — did not cancel from inter-channel ratios.
+        test_longitudinal.py pins this against an impulse, whose answer is
+        exact by inspection.
+
         THE APPROXIMATION, stated again because it is easy to forget once the
         number looks right: the ion keeps the SURFACE kernel's lateral shape.
         The true Psi_n broadens as the ion climbs toward the mesh, so this
@@ -203,7 +215,7 @@ class CombKernelLUT:
                 blk = flat[i:i + step]
                 c = np.cumsum(blk, axis=-1)
                 run = np.empty_like(c)
-                run[:, :L] = c[:, :L] / np.arange(1, L + 1, dtype=np.float32)
+                run[:, :L] = c[:, :L] / np.float32(L)
                 run[:, L:] = (c[:, L:] - c[:, :-L]) / np.float32(L)
                 out[i:i + step] = f_electron * blk + f_ion * run
             return out.reshape(a.shape)
@@ -212,6 +224,71 @@ class CombKernelLUT:
         self.I_X = smear(self.I_X)
         self.ion_transit_ns = transit_ns
         self.f_electron = f_electron
+        self.longitudinal_model = "analytic rectangle"
+
+    def apply_longitudinal(self, h, dt_h):
+        """
+        Fold a MEASURED longitudinal current profile into the LUT (T9 v2).
+
+        Same physics slot as apply_ion_transit, but h is an arbitrary measured
+        shape (response/digitizer/ions.measured_longitudinal) instead of the
+        analytic delta + rectangle, so it needs a real FIR rather than the
+        cumsum running mean.
+
+        The convolution is the right operation because the LUT holds the
+        response to charge delivered INSTANTANEOUSLY at the surface, and h is
+        how that charge is actually delivered in time. Total signal =
+        (impulse response) conv (delivery profile).
+
+        h is resampled onto the LUT's own dt by area-preserving accumulation,
+        not by interpolation: h is 0.2 ns Garfield sampling going onto a 1 ns
+        grid, and point-sampling a 5x coarser grid would throw away four
+        fifths of the prompt electron spike and silently rescale the charge
+        split. Renormalised after, so sum(h)*dt == 1 exactly.
+
+        THE APPROXIMATION IS UNCHANGED and is worth restating precisely
+        because a measured input makes it easy to believe the whole thing is
+        now measured: h is a purely LONGITUDINAL profile, measured with a flat
+        (whole-electrode) weighting field, so it carries no lateral
+        information at all. The ion still gets the surface kernel's lateral
+        shape frozen at z=0. This makes the timing and the charge split
+        first-principles; it does not touch T10.
+        """
+        h = np.asarray(h, dtype=np.float64)
+        nt = self.I_Y.shape[-1]
+
+        # --- area-preserving resample onto the LUT grid ----------------------
+        ratio = dt_h / self.dt
+        edges = (np.arange(len(h) + 1) * ratio)
+        idx = np.floor(edges[:-1]).astype(int)
+        nb = int(np.ceil(edges[-1]))
+        hb = np.bincount(idx, weights=h * dt_h, minlength=nb)[:nb]
+        hb = hb / hb.sum()                      # unit AREA on the coarse grid
+        if len(hb) > nt:
+            hb = hb[:nt]
+            hb = hb / hb.sum()
+
+        # --- chunked FFT convolution, truncated to the causal window ---------
+        nfft = 1 << int(np.ceil(np.log2(nt + len(hb) - 1)))
+        H = np.fft.rfft(hb, nfft)
+
+        def conv(a):
+            flat = a.reshape(-1, nt)
+            out = np.empty_like(flat)
+            step = max(1, int(2e6 // nfft))
+            for i in range(0, len(flat), step):
+                blk = flat[i:i + step]
+                y = np.fft.irfft(np.fft.rfft(blk, nfft, axis=-1) * H,
+                                 nfft, axis=-1)
+                out[i:i + step] = y[:, :nt].astype(np.float32)
+            return out.reshape(a.shape)
+
+        self.I_Y = conv(self.I_Y)
+        self.I_X = conv(self.I_X)
+        self.longitudinal_model = "S3 v2 measured"
+        self.ion_transit_ns = float(np.sum(np.arange(len(hb)) * hb)
+                                    * self.dt * 1e9)   # centroid, for the log
+        self.f_electron = None
 
     def nbytes(self):
         return self.I_Y.nbytes + self.I_X.nbytes

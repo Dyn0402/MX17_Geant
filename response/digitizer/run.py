@@ -93,6 +93,10 @@ def main():
                     help="stop at induced charge, before the DREAM front end")
     ap.add_argument("--no-ions", action="store_true",
                     help="electrons only (the pre-2026-08-07 behaviour)")
+    ap.add_argument("--ion-model", choices=("measured", "analytic"),
+                    default="measured",
+                    help="measured = the S3 v2 i_elec+i_ion template (needs a "
+                         "v2 calib); analytic = the delta + rectangle model")
     ap.add_argument("--seed", type=int, default=5)
     ap.add_argument("--fixed-position", action="store_true",
                     help="do NOT randomise the impact point (see below)")
@@ -101,7 +105,7 @@ def main():
 
     cf = ClusterFile(a.clusters)
     dig = Digitizer(a.kernel, os.path.expanduser(a.calib), seed=a.seed,
-                    with_ions=not a.no_ions)
+                    with_ions=not a.no_ions, ion_model=a.ion_model)
     shaper = None if a.no_shaper else DreamShaper()
     info = dig.describe()
 
@@ -116,10 +120,24 @@ def main():
           f"sigma_T(full gap)={info['gas']['sigma_T_um_full_gap']:.0f} µm")
     print(f"  avalanche gain={info['gain_mean']:.0f} sigma0={info['sigma0_um']:.1f} µm"
           f"   transparency={info['mesh_transparency']} [{info['transparency_source']}]")
-    if info["with_ions"]:
+    if info["with_ions"] and info.get("ion_measured"):
+        im = info["ion_measured"]
         io = info["ion"]
-        print(f"  ions      {io['f_ion']*100:.0f}% of the induced charge, "
-              f"flat over a {io['t_ion_transit_ns']:.0f} ns transit "
+        print(f"  ions      {im['f_ion']*100:.1f}% of the induced charge "
+              f"[S3 v2 MEASURED], 50/90/99% of the ion charge by "
+              f"{im['t_ion_50pct_ns']:.0f}/{im['t_ion_90pct_ns']:.0f}/"
+              f"{im['t_ion_99pct_ns']:.0f} ns")
+        print(f"            born at <z>={im['z_birth_mean_um']:.1f} µm; "
+              f"f_ion cross-check from z-hist {im['f_ion_from_z_hist']:.4f} "
+              f"vs {im['f_ion']:.4f} from the currents")
+        print(f"            analytic model predicted f_ion="
+              f"{io['f_ion']:.3f}, {io['t_ion_transit_ns']:.0f} ns "
+              f"({io['t_ion_transit_ns_lo']:.0f}-"
+              f"{io['t_ion_transit_ns_hi']:.0f} for mu ±30%)")
+    elif info["with_ions"]:
+        io = info["ion"]
+        print(f"  ions      {io['f_ion']*100:.0f}% of the induced charge "
+              f"[ANALYTIC], flat over a {io['t_ion_transit_ns']:.0f} ns transit "
               f"({io['t_ion_transit_ns_lo']:.0f}-{io['t_ion_transit_ns_hi']:.0f} "
               f"for mu +-30%)")
     else:

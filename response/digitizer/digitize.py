@@ -95,7 +95,8 @@ class Digitizer:
                  drift_v=DEFAULT_DRIFT_V, drift_gap_mm=DEFAULT_DRIFT_GAP_MM,
                  transparency=DEFAULT_TRANSPARENCY, v_scale=1.0,
                  n_chan_side=4, seed=12345, packet=False, gas_table=None,
-                 with_ions=True, z_aval_um=5.0, mu_ion=ION.MU_ION_CM2_VS):
+                 with_ions=True, z_aval_um=5.0, mu_ion=ION.MU_ION_CM2_VS,
+                 ion_model="measured"):
         self.lut = CombKernelLUT(kernel_path)
         self.gas = (DriftGas(gas_table, v_scale=v_scale) if gas_table
                     else DriftGas(v_scale=v_scale))
@@ -113,9 +114,23 @@ class Digitizer:
         self.v_drift = float(np.ravel(
             self.gas.v_drift_um_ns(self.E_drift))[0])
 
+        # The analytic description is built either way: when ion_model is
+        # "measured" it is no longer what drives the LUT, but it stays in the
+        # record as the first-principles prediction the measurement is
+        # checked against (see ions.py).
         self.with_ions = with_ions
+        self.ion_model = ion_model
         self.ion = ION.describe(C.AMP_GAP_M, mesh_v, mu_ion, z_aval_um * 1e-6)
-        if with_ions:
+        self.ion_measured = None
+        if with_ions and ion_model == "measured":
+            if "i_ion" not in self.calib:
+                raise SystemExit(
+                    "--ion-model measured needs an S3 v2 calib (with i_elec / "
+                    "i_ion); this one has none. Use --ion-model analytic, or "
+                    "point --calib at aval_calib_v2.json.")
+            h, dt_h, self.ion_measured = ION.measured_longitudinal(self.calib)
+            self.lut.apply_longitudinal(h, dt_h)
+        elif with_ions:
             self.lut.apply_ion_transit(self.ion["f_electron"],
                                        self.ion["t_ion_transit_ns"])
 
@@ -269,7 +284,9 @@ class Digitizer:
             "calib_voltage_V": self.calib_v,
             "field_model": self.calib.get("field_model"),
             "with_ions": self.with_ions,
+            "ion_model": self.ion_model,
             "ion": self.ion,
+            "ion_measured": self.ion_measured,
             "packet_mode": self.packet,
             "n_chan_side": self.n_side,
         }
