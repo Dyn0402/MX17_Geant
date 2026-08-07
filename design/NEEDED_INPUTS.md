@@ -79,7 +79,27 @@ inside and outside the 399.36 mm active window:
 | L6 X      | 0.4568 | 0.1194 | 0.3630 |
 | L7 fan-out| 0.5285 | 0.0584 | 0.3978 |
 
-FR4 filler (5 × 246.4 µm) still solves the CAD 1.70 mm body.
+**How the FR4 filler is obtained (and the assumption buried in it).** The CAD
+gives one number for the readout board: a 1.70 mm solid body, mesh front face
+to laminate back face. The model does not know the real internal dielectric
+split, so it treats the FR4 as the *residual*: it subtracts everything whose
+thickness we do think we know — mesh, amp gap, ESL, kapton, and the five 26 µm
+copper layers — and divides what is left equally over the five FR4 layers.
+
+The consequence is that **changing any other layer silently changes the FR4**.
+When the ESL went 100 → 10 µm, the residual grew by 90 µm and the FR4 filler
+went 246.4 → 264.4 µm per layer, keeping the board at exactly 1.7000 mm.
+
+That is a *choice*, and it may be the wrong one. It assumes the CAD 1.70 mm is
+the reliable number and the laminate takes up the slack. The alternative — that
+the dielectric stack is fixed and the real board is 1.61 mm — is equally
+consistent with what we know. The two differ by 90 µm of FR4, which is not
+nothing for backscatter off the board.
+
+**Needed:** a fab stackup drawing, which would settle the per-layer dielectric
+thicknesses and turn this residual into a real number. Until then, anyone
+reading a board-body thickness out of this model should know it is pinned to
+CAD by construction, not derived.
 
 Two corrections went in with this revision, both of which changed the as-built
 result (`--legacy-geometry` is unaffected and remains bit-identical):
@@ -139,7 +159,7 @@ M1 mass ever matters). The card inner edge is clipped 219.4 → 220.0 mm where
 the plain-ring gas-frame model has its outer wall (the real frame must be
 relieved there).
 
-## 6c. 🟡 Resistive layer: ESL strips 550/250 µm
+## 6c. 🟡 Resistive layer: ESL strips 550/250 µm — thickness still open
 
 **Confirmed (Dylan 2026-08-06):** vertical ESL resistive strips, 550 µm wide
 with 250 µm gaps (0.8 mm pitch — deliberately not the 0.78 mm pad pitch),
@@ -147,27 +167,50 @@ over 412 × 412 (the deposit boundary from `3498A_top-resist.gbr`; the strip
 artwork itself is not in the gerber set — the strips are built from the
 confirmed spec, not from a gerber).
 
+**Thickness ⬜ 10 µm — STILL NEEDS CONFIRMING.** Modelled as 10 µm since
+2026-08-07 (Dylan: "something like 10 µm"), replacing an earlier 100 µm guess.
+It is the right *order* for a screen-printed thick-film resistive layer — the
+ATLAS NSW resistive strips are ~15–20 µm, and 100 µm would be unusually thick
+for a single print pass — but "right order" is not a measurement. **Wanted: the
+ESL paste grade + fired thickness from the screen-printing house**, which would
+also pin the sheet resistivity that `design/RESPONSE_SIM_PLAN.md` currently
+scans over. A caliper measurement on a spare board would do.
+
+Sensitivity: this sets both the ESL material budget and the depth of the
+inter-strip gas grooves, and the grooves are scored as amplification gas — so
+the groove contribution scales linearly with it (2.0 % of amp-gas edep at
+10 µm; it was ~20 % at 100 µm).
+
 **Now built as real strips (default).** 515 strips of 550 µm on the 0.8 mm
-pitch, one `G4PVReplica` level inside a gas-filled `ResistLayer` envelope.
-Coverage works out to exactly 515 × 0.550 / 412 = 0.6875, i.e. the same total
-ESL mass as the old density-scaled slab — but the 250 µm inter-strip grooves
-are now **chamber gas** rather than reduced-density paste, which is what they
-physically are. This matters more than the copper pattern: the resist is the
-first solid the avalanche region sees and it is 100 µm thick, 4× a Cu layer.
+pitch, one `G4PVReplica` level inside a `ResistLayer` envelope. Coverage works
+out to exactly 515 × 0.550 / 412 = 0.6875, i.e. the same total ESL mass as the
+old density-scaled slab — but the 250 µm inter-strip grooves are now real
+chamber gas rather than reduced-density paste.
 `--homogenized-readout` restores the slab.
 
-**Scoring note:** the strips keep the exact volume name `ResistivePaste`, so
-`SteppingAction`'s `edepResistPaste` counter is unchanged in meaning. The gas
-in the grooves is deliberately **not** scored — it is not part of the `AmpGas`
-volume. That is the conservative choice (it preserves existing counter
-semantics); if the avalanche is considered to extend into the grooves, the
-envelope would instead have to be named `AmpGas`. **Worth a decision.**
+**Grooves are scored as amplification gas (Dylan, 2026-08-07).** The replica
+cell is named `AmpGas`, so ionisation in the grooves counts toward the
+amplification signal — right, because the grooves are only 10 µm deep at the
+bottom of a 150 µm gap, so the amplification field runs through them
+essentially undisturbed. The strips keep the exact name `ResistivePaste`, so
+`edepResistPaste` is unchanged in meaning. Measured effect: the grooves add
+**2.03 % of the amp-gas energy deposit**, matching the 2.04 % expected from
+0.3125 × 10 µm / (150 + 3.125) µm.
 
-**Still open:** the coat *thickness* — 100 µm remains a guess, and is now the
-dominant uncertainty on this layer. Also noted: the strip/pad pitch mismatch
-(0.80 vs 0.78 mm) means a slowly beating moiré between strips and pads;
-irrelevant for material budget, relevant for any charge-sharing model
-downstream.
+> ⚠️ **Caveat for anything consuming `ClusterTree`.** The groove cells are
+> thin, so Geant4 forces short steps there and each step writes its own row.
+> Grooves are 2.0 % of amp-gas *energy* but **21.7 %** of amp-gas *rows*
+> (mean 2.8 eV/row against 37.3 eV/row in the main gap). Sum `edep` or
+> `nPrimary`; do **not** count rows as a proxy for ionisation. `nPrimary`
+> itself is safe — `SteppingAction` carries the sub-W remainder
+> probabilistically (`G4UniformRand() < frac`), so it does not lose
+> ionisation to step segmentation.
+
+**Still open:** nothing major on this layer now. Noted: the strip/pad pitch
+mismatch (0.80 vs 0.78 mm) means a slowly beating moiré between strips and
+pads; irrelevant for material budget, relevant for any charge-sharing model
+downstream. The ESL sheet resistivity is still unknown (see
+`design/RESPONSE_SIM_PLAN.md`, which scans it).
 
 ## 6d. ✅ Bulk pillars
 

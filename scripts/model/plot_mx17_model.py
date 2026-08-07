@@ -91,7 +91,7 @@ STYLE = {
     "SupportPlate_Al":     ("#9a9aa2", 0.95),
 }
 DROP_PREFIX = ("AirGap", "ScintWall", "PlasticScint", "LS_", "LiqScint",
-               "BulkPillar", "World", "He3", "ResistCell")
+               "BulkPillar", "World", "He3")
 # Internals of the zoned / patterned readout copper layers. Each of these sits
 # INSIDE its PCB_Cu_<n> parent at the same z, so drawing them too would stack a
 # second copy of the layer on top of itself. The parent already carries the
@@ -134,6 +134,12 @@ def load_dump(path=DUMP):
     # sliver spanning the whole board thickness.
     if any(v["lv"] == "ResistLayer" for v in raw):
         raw = [v for v in raw if v["lv"] != "ResistivePaste"]
+    # The inter-strip grooves are named "AmpGas" so they get scored as
+    # amplification gas, which means the dump carries a 0.8 mm wide "AmpGas"
+    # replica cell alongside the real 410 mm amplification gap. Keep only the
+    # full-size one; the sliver would otherwise be drawn as its own layer.
+    raw = [v for v in raw if not (v["lv"] == "AmpGas"
+                                  and v["solid"].get("hx", 1e9) < 100.0)]
     vols = []
     for v in raw:
         s = v["solid"]
@@ -709,16 +715,22 @@ def fig_xsec(outdir):
     ax2.set_xlabel("x [mm]")
     ax2.set_title("Zoom: mesh → laminate (1.70 mm board body)")
     ax2.grid(alpha=0.25, lw=0.4)
+    # Thicknesses are read back out of the dump rather than hard-coded, so
+    # these labels cannot go stale when the geometry changes.
+    def um(name):
+        return zs[name][1] * 1000.0
     # "ResistLayer" in the patterned build, "ResistivePaste" in the
     # homogenized one — annotate whichever the dump actually contains.
     resist = "ResistLayer" if "ResistLayer" in zs else "ResistivePaste"
-    resist_lab = ("ESL strips 550/250 µm (100 µm)" if resist == "ResistLayer"
-                  else "paste (100 µm)")
-    for name, lab in [("Micromesh", "mesh (38 µm eff.)"),
-                      ("AmpGas", "amp gap (150 µm)"),
-                      (resist, resist_lab),
-                      ("PCB_Kapton", "kapton (50 µm)"),
-                      ("PCB_FR4_3", "5× Cu 26 µm (coverage-scaled)\n/ FR4 246.4 µm")]:
+    resist_lab = (f"ESL strips 550/250 µm ({um(resist):.0f} µm)"
+                  if resist == "ResistLayer" else f"paste ({um(resist):.0f} µm)")
+    for name, lab in [
+            ("Micromesh", f"mesh ({um('Micromesh'):.0f} µm eff.)"),
+            ("AmpGas", f"amp gap ({um('AmpGas'):.0f} µm)"),
+            (resist, resist_lab),
+            ("PCB_Kapton", f"kapton ({um('PCB_Kapton'):.0f} µm)"),
+            ("PCB_FR4_3", f"5× Cu {um('PCB_Cu_1'):.0f} µm (coverage-scaled)"
+                          f"\n/ FR4 {um('PCB_FR4_3'):.1f} µm")]:
         z0, t = zs[name]
         ax2.annotate(lab, xy=(30, z0 + t/2), xytext=(32, z0 + t/2),
                      fontsize=8, va="center", annotation_clip=False)
@@ -784,12 +796,14 @@ def fig_status(outdir):
          "weave spec is a P2-like placeholder", 0.55, "#9e9e9e", C_GUESS),
         ("amp",     "amplification gap — 150 µm",
          "confirmed (Dylan 2026-08-06)", 0.7, "#ffc4c4", C_HW),
-        ("paste",   "ESL resist strips — 550/250 µm → slab ×0.69",
-         "strip spec confirmed; 100 µm thickness still a guess", 0.45, "#555555", C_HW),
+        ("paste",   "ESL resist strips — 550/250 µm, 10 µm tall",
+         "strips built as real geometry, gaps are gas (scored);\n"
+         "10 µm thickness STILL UNCONFIRMED", 0.45, "#555555", C_ASSUME),
         ("pillars", "bulk pillars — Ø0.6 mm, 85×85 @ 4.68 mm",
          "exact grid from 3498A_bulk.gbr; in the amp gas", 0.4, "#e8e2d2", C_CAD),
         ("pcb",     "readout board — 1.70 mm body, 470²",
-         "CAD total; Cu = 5 gerber layers × 26 µm, density-scaled\nby measured coverage (L3–L7); FR4 filler solved", 0.9, "#cc6619", C_CAD),
+         "CAD total; Cu = L4/L5/L6 real pattern, L3/L7 zone-scaled;\n"
+         "FR4 is the residual — it absorbs any other layer's change", 0.9, "#cc6619", C_CAD),
         ("m1",      "M1 cards — flat on the board edges",
          "gerber-anchored position; 1.6 mm laminate assumed,\nMec8/pogo connectors omitted", 0.5, "#9fd49f", C_ASSUME),
         ("roh",     "rohacell — 5 mm, 470²", "CAD", 0.7, "#e8e89a", C_CAD),

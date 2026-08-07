@@ -86,7 +86,8 @@ struct ModuleSpec {
 
     // ── Amplification gap + resistive layer ──
     double amp_um        = 150.0;
-    double paste_um      = 100.0;
+    double paste_um      = 100.0;  // LegacySpec relies on this default — the
+                                   // as-built value is 10 µm, set in AsBuiltSpec
     double ampFace_mm    = 400.0;  // as-built 410
     double pasteFace_mm  = 0.0;    // 0 → ampFace; as-built 412 (resist-coat gerber)
     // ESL resistive strips: 550 µm wide / 250 µm gaps (confirmed 2026-08-06),
@@ -229,6 +230,15 @@ inline ModuleSpec AsBuiltSpec(double bulgeSag_mm = 8.0) {
     s.meshFace_mm    = 410.0;
     s.ampFace_mm     = 410.0;
     s.pasteFace_mm   = 412.0;   // resistive coat boundary (3498A_top-resist)
+    s.paste_um       = 10.0;    // screen-printed ESL film (Dylan 2026-08-07);
+                                // was a 100 µm guess, and 10 µm is itself still
+                                // UNCONFIRMED (design/NEEDED_INPUTS.md §6c).
+                                // Note the pcbTotal_mm solve treats FR4 as the
+                                // residual, so changing this silently moves the
+                                // FR4 filler (246.4 → 264.4 µm here) to keep the
+                                // board at the CAD 1.70 mm. That is an
+                                // assumption about which number is trustworthy,
+                                // not a check — see NEEDED_INPUTS §6.
     s.pasteCoverage  = 550.0 / 800.0;   // ESL strips 550/250 µm (confirmed)
     s.patternedResist  = true;  // real ESL strips, not a density-scaled slab
     s.patternedReadout = true;  // real 512×512 pad/X/Y copper
@@ -302,10 +312,17 @@ struct Module {
 //
 // `mother` is the 412 mm coat-boundary envelope, which is filled with the
 // CHAMBER GAS: the 250 µm grooves between strips are really gas, not
-// reduced-density paste as the homogenized slab implies. The strips keep the
-// exact name "ResistivePaste" because SteppingAction scores that volume by
-// name (edepResistPaste) — the envelope gas is deliberately NOT scored, which
-// preserves the existing meaning of that counter. See design/NEEDED_INPUTS.md.
+// reduced-density paste as the homogenized slab implies.
+//
+// Naming is load-bearing twice over:
+//   * the strips keep the exact name "ResistivePaste", so SteppingAction's
+//     edepResistPaste counter is unchanged in meaning;
+//   * the replica CELL is named "AmpGas" so the groove gas is scored as
+//     amplification gas (Dylan 2026-08-07). The grooves are only ~10 µm deep
+//     at the bottom of a 150 µm gap, so the amplification field runs through
+//     them essentially undisturbed. Note the cell, not the envelope, must
+//     carry the name: the cells tile the envelope exactly, so every step
+//     happens inside a cell and it is the cell name the navigator reports.
 //
 // Strips run along y on a 0.8 mm pitch, so one G4PVReplica level suffices.
 inline void BuildResistStrips(const ModuleSpec& s, const Materials& m,
@@ -317,9 +334,9 @@ inline void BuildResistStrips(const ModuleSpec& s, const Materials& m,
     const double span  = n * pitch;
 
     auto* cellLV = new G4LogicalVolume(
-        new G4Box("ResistCell", pitch/2, span/2, t/2), m.gas, "ResistCell");
+        new G4Box("AmpGas", pitch/2, span/2, t/2), m.gas, "AmpGas");
     cellLV->SetVisAttributes(new G4VisAttributes(false));
-    new G4PVReplica("ResistCell", cellLV, mother, kXAxis, n, pitch);
+    new G4PVReplica("AmpGas", cellLV, mother, kXAxis, n, pitch);
 
     auto* stripLV = new G4LogicalVolume(
         new G4Box("ResistivePaste", s.pasteStripW_mm*mm/2, span/2, t/2),

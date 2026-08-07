@@ -35,8 +35,10 @@ remaining assumptions in [`design/NEEDED_INPUTS.md`](design/NEEDED_INPUTS.md)):
   frame (440/410), 4× 1.62 mm field-cage PCBs lining the aperture
 - **Mesh**: woven SS 19/48 µm → 38 µm effective-density slab (fill 0.223);
   bulk pillars (Ø0.6 mm, 85×85 grid at 4.68 mm) stand in the amplification gap
-- **Resistive layer**: ESL strips 550/250 µm → 100 µm slab ×0.69, 412²
-- **Readout board**: 1.70 mm single body (mesh + 150 µm amp + 100 µm paste +
+- **Resistive layer**: 515 discrete ESL strips, 550 µm wide on a 0.8 mm pitch,
+  **10 µm** thick over 412²; the 250 µm inter-strip grooves are chamber gas and
+  are scored as `AmpGas` (they add 2.0 % of the amp-gas energy deposit)
+- **Readout board**: 1.70 mm single body (mesh + 150 µm amp + 10 µm ESL +
   laminate), 470², offset (+15,+15) from the active axis; copper = the five
   physical gerber layers (guard ring, pads, Y strips, X strips, fan-out),
   density-scaled by their measured coverage (`scripts/gerber/analyze_cu_coverage.py`).
@@ -59,6 +61,17 @@ off the production gerbers: 0.68 mm square pads on L4, and Ø0.50 mm dots +
 550 µm strips on the 0.8 mm pitch, inside a gas-filled envelope — so the 250 µm
 inter-strip grooves are real chamber gas, not reduced-density paste. Total ESL
 mass is unchanged (515 × 0.550 / 412 = 0.6875, exactly the old scale factor).
+
+The groove cells are named `AmpGas`, so groove ionisation is scored as
+amplification signal: they are only 10 µm deep at the bottom of a 150 µm gap,
+so the amplification field runs through them essentially undisturbed. They add
+2.0 % of the amp-gas energy deposit.
+
+> ⚠️ **If you consume `ClusterTree`**: the groove cells are thin, so Geant4
+> forces short steps and each writes its own row. The grooves are 2.0 % of
+> amp-gas *energy* but 21.7 % of amp-gas *rows*. Sum `edep` or `nPrimary` —
+> never count rows as a proxy for ionisation. (`nPrimary` is safe: the sub-W
+> remainder is carried probabilistically, so nothing is lost to segmentation.)
 
 L3 (guard ring) and L7 (fan-out) have irregular artwork and stay as the
 two-zone density-scaled sheets.
