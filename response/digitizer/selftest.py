@@ -88,12 +88,18 @@ def main():
     # resistive strip so the ESL phase is the on-strip case of §3.
     xw = C.SUPERPERIOD_M / 2
     xw = xw - np.mod(xw, C.ESL_PITCH_M)
-    c0 = K.nearest_column(xw)
-    x0_m = float(K.pad_x(c0))
+    phase = K.nearest_column(xw)                 # 0..39, the ESL phase index
+    x0_m = float(K.pad_x(phase))
     row0 = 0
     y0_m = K.PAD_ORIGIN_M + row0 * C.PAD_PITCH_M
     x0_mm, y0_mm = x0_m * 1e3, y0_m * 1e3
-    print(f"  deposit at pad column {c0}, x0={x0_mm:.2f} mm, row {row0}\n")
+    # digitize.induce labels X channels by ABSOLUTE column index, not by the
+    # 40-phase index. Looking them up by phase finds nothing and every X share
+    # comes back exactly 0.000 -- which is what the first run reported. Y was
+    # unaffected only because row 0 is 0 in both conventions.
+    c0 = int(round((x0_m - K.PAD_ORIGIN_M) / C.PAD_PITCH_M))
+    print(f"  deposit at pad column {c0} (ESL phase {phase}), "
+          f"x0={x0_mm:.2f} mm, row {row0}\n")
 
     print(f"{'z [mm]':>7s} {'sigma_T [µm]':>13s} "
           f"{'X: d=0':>8s} {'d=±1':>8s} {'d=±2':>8s} | "

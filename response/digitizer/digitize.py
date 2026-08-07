@@ -194,7 +194,11 @@ class Digitizer:
             y_rel = np.mod(y[i] - K.PAD_ORIGIN_M, 2 * pitch)
             jy = int(np.clip(round((y_rel - self.lut.y_X[0]) / dyx_step),
                              0, len(self.lut.y_X) - 1))
-            curX = self.lut.I_X[cols % C.N_PAD_PER_SUPER, :, jy, ix[i]]
+            # I_X's leading axis is the channel OFFSET d, not the absolute
+            # column: the LUT already resolved "which column is d pads away
+            # from this x" when it built the band. Indexing it by column here
+            # is what the size-9-axis IndexError was telling us.
+            curX = self.lut.I_X[:, :, jy, ix[i]]
 
             for j, d in enumerate(ds):
                 self._accumulate(out, ("Y", int(rows[j])), curY[j], q[i],

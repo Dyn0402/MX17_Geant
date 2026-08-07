@@ -70,7 +70,7 @@ class CombKernelLUT:
             self.I_Y = np.stack([self._resample(t_src, gy[0]),
                                  self._resample(t_src, gy[1])])
             del gy
-            self.I_Y = np.gradient(self.I_Y, self.dt, axis=1).astype(np.float32)
+            self.I_Y = self._to_current(self.I_Y, axis=1)
 
             # --- X: reindex from absolute column to channel OFFSET ------------
             # For an avalanche at x sample ix the nearest pad column is
@@ -88,7 +88,29 @@ class CombKernelLUT:
                 sel = gx[cols, :, :, np.arange(nx)]      # (nx, nt, jy)
                 band[j] = self._resample(t_src, np.transpose(sel, (1, 2, 0)))
             del gx
-            self.I_X = np.gradient(band, self.dt, axis=1).astype(np.float32)
+            self.I_X = self._to_current(band, axis=1)
+
+    def _to_current(self, G, axis):
+        """
+        Induced charge -> induced current, KEEPING THE PROMPT STEP.
+
+        G(0+) is not zero: it is the instantaneous electrostatic image, formed
+        before the sheet conducts at all, and on the ns grid it is a step. The
+        physical current is
+
+            i(t) = G(0+) delta(t)  +  dG/dt
+
+        and np.gradient represents only the second term. Dropping the first
+        silently deletes the single largest component of the signal — with a
+        centred gradient the time-integrated charge came out ~0 for the X view
+        and NEGATIVE for the Y view, because all that survived was the late
+        redistribution.
+
+        A backward difference with a zero prepended is both the delta and the
+        derivative at once, and it telescopes: cumsum(i)*dt == G exactly, so
+        charge is conserved by construction rather than by luck.
+        """
+        return (np.diff(G, prepend=0.0, axis=axis) / self.dt).astype(np.float32)
 
     def _resample(self, t_src, G):
         """

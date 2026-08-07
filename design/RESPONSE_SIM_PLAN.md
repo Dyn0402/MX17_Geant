@@ -286,6 +286,29 @@ Per event, per ionization cluster (vectorize over clusters):
 
 **Host:** laptop for development/small runs; **lxplus condor** for productions (pure python + npz — trivially portable); desktop for medium one-offs.
 
+### First Stage-B result — the ±1 share, predicted with nothing tuned (2026-08-07)
+
+`response/digitizer/selftest.py`, ρ_s 2 MΩ/sq, d_k 75 µm, S3 gain at 490 V, point deposits on a pad centre over a resistive strip. Shares within each view:
+
+| z [mm] | σ_T [µm] | X: d=0 | d=±1 | d=±2 | Y: d=0 | d=±1 | d=±2 |
+|---|---|---|---|---|---|---|---|
+| 0.5 | 107 | **0.990** | 0.005 | −0.000 | 0.006 | 0.387 | 0.003 |
+| 2 | 213 | 0.910 | 0.045 | 0.000 | 0.103 | 0.340 | 0.010 |
+| 5 | 337 | 0.724 | 0.137 | 0.001 | 0.187 | 0.275 | 0.046 |
+| 10 | 477 | 0.561 | 0.213 | 0.007 | 0.224 | 0.224 | 0.082 |
+| 20 | 674 | 0.417 | 0.262 | 0.028 | 0.229 | 0.192 | 0.111 |
+| 30 | 826 | 0.351 | **0.239** | 0.076 | 0.228 | 0.210 | 0.102 |
+
+Three things, in order of how much they should be believed.
+
+1. **c1 comes out right, and nothing was tuned to make it.** Integrating over clusters uniform in z across the 30 mm gap gives a track-level **c1_X = 0.202** against the measured **0.23–0.28**. Every input was fixed before this was run: the kernel from S1, the gain and σ₀ from the S3 campaign, the diffusion from the Magboltz table. The remaining ~15 % is the right size for what is still missing — the ion tail, the DREAM shaping, and the fact that the measured number comes out of the full wft chain rather than off a charge integral.
+
+2. **The z dependence is the real evidence, not the single number.** c1_X rises from 0.005 to 0.239, a factor 45, tracking σ_T. That is the diffusion signature and it is falsifiable: had the sharing come from the avalanche footprint or from induction geometry it would have been *flat* in z. Taken with T7's σ₀ = 33 µm and T2b's near-zero point-charge prompt sharing, this closes the argument — diffusion is the mechanism, by elimination and now by direct calculation.
+
+3. **The checkerboard shows up exactly where §3 said it would.** At z = 0.5 mm the X view holds 0.990 on a single channel while the Y view's d=0 holds 0.006 — the deposit's pad belongs to X, and the Y row through it owns no pad there, so its charge sits on d=±1 (0.387) instead. The two views only become comparable once diffusion is wide enough to reach both combs.
+
+Not yet included and each will move these numbers: the ion tail (electrons only so far), DREAM shaping, ZS, and noise.
+
 ## 8. Stage C — DREAM electronics
 
 1. Shaper: build the DREAM transfer function **from the manual** (`~/x17/Documents/dream/DREAM_User Manual_prod_v3.pdf`) at the register settings in the run config (`CosmicTb_MX17.cfg`, local copies in `~/x17/cosmic_bench/det_3/*/raw_daq_data/`; peaking-time code `(0xd023>>4)&0xF = 2` → 180 ns class per nTof_x17 notes). Convolve channel currents.
@@ -366,7 +389,7 @@ Use it via `source ~/PycharmProjects/nTof_x17/garfield_sim/setup_garfield.sh` �
 | T6 | S2 mesh unit cell | T0 | desktop | transparency curve; field map export |
 | T7 | S3 avalanche campaign — **DONE 2026-08-07**. 56/56 slices merged into `aval_calib.json` (7 voltage points, 470–530 V; result table below). Raw seed JSONs moved AFS → EOS `response_sim/avalanche/raw/`. Still open: verify the 6 Magboltz-table jobs' `.gas` outputs landed (they run through the nTof_x17 `garfield_sim` EOS workflow, NOT the mx17_response tree), and re-run once T6 supplies a real field map — this pass is uniform-field, with S2-dependent fields as explicit nulls carrying `uniform_field` provenance | T6 (or uniform-field first pass without T6) | lxplus | `aval_calib.json` grid ✅ |
 | T8 | Stage A schema upgrade — **DONE 2026-08-07** (`time`, `creator`, Meta tree with world→active-area transform) | geometry merge | laptop | §6 acceptance |
-| T9 | Stage B fast path (templates from S1 surface G + analytic ion term, first pass) | T5, T7 | laptop | digitizes 10³ events; energy/charge bookkeeping closes |
+| T9 | Stage B fast path — **RUNS END TO END 2026-08-07** on synthetic deposits (`response/digitizer/`, self-test below). Remaining: the analytic ion term, real ClusterTree input (no Geant4 run exists yet), and per-event throughput work | T5, T7 | laptop | digitizes 10³ events; energy/charge bookkeeping closes |
 | T10 | Stage B slow path (Garfield++ ComponentGrid delayed signals) + certify fast path | T5, T9 | desktop | <2% waveform residual fast vs slow |
 | T11 | Stage C DREAM (shaper from manual, sampling, gain) | T9 | laptop | shaped single-avalanche pulse; rise/peak vs measured template compared (report, don't tune) |
 | T12 | Stage C noise from det3 pedestals + ZS port | T11 | laptop | simulated pedestal PSD/σ matches data pedestals |

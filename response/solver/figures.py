@@ -207,39 +207,57 @@ def fig_beat(outdir, rho_s=1e6, d_k=75e-6, tau=6.3e-6, n_phase=40):
     different kernel. Plan §1 calls this out as a prediction to look for in
     data; here is its size.
     """
-    s = WeightingSolver(rho_s_ohm_sq=rho_s, d_kapton_m=d_k, nx=1560, ny=64,
+    # 10 µm sampling: the phase walks by 20 µm per pad, so a 20 µm grid aliases
+    # against the very quantity being measured.
+    s = WeightingSolver(rho_s_ohm_sq=rho_s, d_kapton_m=d_k, nx=3120, ny=64,
                         ly_m=0.0512, tau_drain_s=tau)
-    sig = W.esl_sigma_profile(s.x, rho_s)
-    prompt_peak, cover = [], []
-    xs = []
+
+    def coverage(x0):
+        """Analytic overlap of a pad with the conducting strips — no grid."""
+        half = C.PAD_SIZE_UM * 1e-6 / 2
+        u = np.linspace(x0 - half, x0 + half, 4001)
+        return float((np.mod(u, C.ESL_PITCH_M) < C.ESL_WIDTH_M).mean())
+
+    # The PROMPT kernel carries no beat at all, by construction: at t = 0+ the
+    # sheet is a plain dielectric and sigma_s(x) does not enter, so the prompt
+    # response is translation invariant. The beat can only appear once
+    # conduction has had time to act, so it must be measured at finite t.
+    t_probe = np.array([0.0, 30e-9, 100e-9, 300e-9])
+    xs, cover, keep = [], [], []
     for j in range(n_phase):
         x0 = (j + 0.5) * C.PAD_PITCH_M
         v = pad_pattern(s, x0_m=x0, y0_m=0.0)
-        p = s.prompt_potential(v)
+        p = s.solve(v, t_probe)
         i0 = np.argmin(np.abs(s.x - x0))
-        prompt_peak.append(p[s.ny // 2, i0])
-        # what fraction of this pad's footprint is covered by conducting paste
-        half = C.PAD_SIZE_UM * 1e-6 / 2
-        m = np.abs(((s.x - x0 + s.lx / 2) % s.lx) - s.lx / 2) <= half
-        cover.append((sig[m] > 0).mean())
+        # Ψ at the pad centre, relative to its own prompt value: how much of
+        # the signal this pad still holds after the sheet has relaxed.
+        keep.append([p[it, s.ny // 2, i0] / p[0, s.ny // 2, i0]
+                     for it in range(1, len(t_probe))])
+        cover.append(coverage(x0))
         xs.append(x0 * 1e3)
+    keep = np.array(keep)
 
-    fig, ax = plt.subplots(1, 2, figsize=(11, 4.0))
+    fig, ax = plt.subplots(1, 2, figsize=(11.5, 4.0))
     ax[0].plot(xs, cover, "o-", color=AQUA, ms=5)
     ax[0].set_xlabel("pad centre x within one superperiod  [mm]")
-    ax[0].set_ylabel("fraction of the pad under conducting paste")
-    ax[0].set_title("Pad-to-strip registration walks by 20 µm per pitch")
+    ax[0].set_ylabel("fraction of the pad over conducting paste")
+    ax[0].set_title("Pad-to-strip registration walks 20 µm per pitch\n"
+                    "and repeats after exactly 31.2 mm")
 
-    pp = np.array(prompt_peak)
-    ax[1].plot(xs, pp / pp.mean(), "o-", color=ORANGE, ms=5)
+    for i, t in enumerate(t_probe[1:]):
+        r = keep[:, i]
+        ax[1].plot(xs, r / r.mean(), "o-", color=SERIES[i], ms=5,
+                   label=f"t = {t*1e9:.0f} ns  "
+                         f"({(r.max()-r.min())/r.mean()*100:.1f} % p-p)")
     ax[1].set_xlabel("pad centre x within one superperiod  [mm]")
-    ax[1].set_ylabel("prompt Ψ at the pad centre / mean")
-    ax[1].set_title(f"Kernel modulation: "
-                    f"{(pp.max()-pp.min())/pp.mean()*100:.1f} % peak-to-peak")
+    ax[1].set_ylabel("Ψ(t) / Ψ(prompt) at the pad centre, / its mean")
+    ax[1].set_title("Kernel modulation appears only once the sheet conducts\n"
+                    "(the prompt kernel has exactly zero beat)")
+    ax[1].legend(fontsize=8.5)
     fig.suptitle("S1 — the 31.2 mm beat between the 800 µm ESL pitch and the "
                  "780 µm pad pitch", fontsize=12, y=1.03)
     _save(fig, outdir, "s1_superperiod_beat.png")
-    return xs, cover, pp
+    return xs, cover, keep
 
 
 # ── F5: the drain, and the A1 problem ────────────────────────────────────────
