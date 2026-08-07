@@ -360,7 +360,16 @@ Use it via `source ~/PycharmProjects/nTof_x17/garfield_sim/setup_garfield.sh` �
 9. DREAM ADC full-scale and mV/fC at our register settings if not unambiguous from the manual. *Default: manual values + one recorded global scale factor.*
 
 **Internal (resolve by doing):**
-10. Mesh weave pitch from fill factor 0.223 + 19 µm wire vs standard 400 lpi — reconcile in T6.
+10. ~~Mesh weave pitch from fill factor 0.223 + 19 µm wire vs standard 400 lpi — reconcile in T6.~~ **RESOLVED 2026-08-07, and there was never a conflict.** The header does not leave the pitch to be inferred from the fill factor — it states the weave directly (`meshWire_um = 19.0`, `meshOpen_um = 48.0`, so pitch = 67 µm = 379 lpi) and *derives* the fill as the areal-mass scale for a 2d-thick slab, `fill = πd/(4·pitch)` = 0.2227, which is the quoted 0.223. Against the bulk-MM standard 400 lpi / 18 µm wire (pitch 63.5 µm):
+
+    | | header 19/48 | standard 400 lpi / 18 µm | difference |
+    |---|---|---|---|
+    | d / pitch | 0.2836 | 0.2835 | **+0.04 %** |
+    | optical open fraction | 0.5133 | 0.5134 | −0.03 % |
+    | areal-mass fill | 0.2227 | 0.2226 | +0.04 % |
+    | pitch | 67.0 µm | 63.5 µm | +5.5 % |
+
+    The two are the **same weave geometry up to a uniform 5.5 % scale** — identical d/pitch, hence identical optical transparency, identical areal mass, and an identical *shape* of the electrostatic field pattern. The only physical difference is the absolute scale against the 150 µm gap: pitch/gap 0.447 vs 0.423. So per plan §4, use the header, and carry the 5.5 % pitch as a **systematic** in T6 rather than treating it as an inconsistency to be resolved. Note the header still flags the 19 µm wire as a "P2-like weave, placeholder" — the *scale* is the assumption, the weave family is not.
 11. Whether per-electron (vs per-cluster-packet) treatment changes closure observables — profile in T9.
 
 ## 13. References
