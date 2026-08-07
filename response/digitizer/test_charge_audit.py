@@ -199,6 +199,11 @@ def main():
     ap.add_argument("--kernel", required=True)
     ap.add_argument("--calib", required=True)
     ap.add_argument("--n-rep", type=int, default=6)
+    ap.add_argument("--n-side", type=int, default=4,
+                    help="channels either side of the centroid. The window "
+                         "leak this test measures is a property of THIS "
+                         "number, and it grows with the LUT time window — "
+                         "record 4 and 8 together (audit A1 sizing trap).")
     ap.add_argument("--ion-model", choices=("measured", "analytic"),
                     default="measured",
                     help="must match what the run being audited uses; the "
@@ -234,7 +239,7 @@ def main():
           f"{'OK' if good else 'FAIL'}\n")
 
     dig = Digitizer(a.kernel, os.path.expanduser(a.calib), seed=11,
-                    ion_model=a.ion_model)
+                    ion_model=a.ion_model, n_chan_side=a.n_side)
     cap = CaptureMap(a.kernel)
     print(f"  kernel  rho_s={dig.lut.describe()['rho_s_MOhm_sq']} MΩ/sq  "
           f"n_side={dig.n_side} (so {2*dig.n_side+1} channels per view)")

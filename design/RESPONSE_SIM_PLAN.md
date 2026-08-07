@@ -344,18 +344,27 @@ stands.
 same column parity so the pair differs only in phase, and prints σ_s(x₀) so an on-strip
 deposit cannot masquerade as a gap one again. Genuinely-in-gap pad centres exist only at
 columns 10–21; the pair is now column 35 (phase 10 µm, on strip) and column 15 (phase 410 µm,
-σ_s = 0). Indicative numbers from a coarse re-solve, showing the qualitative change the
-mislabelled row hid — **a gap deposit's charge cannot transport along a strip, so its owning
-view keeps its charge instead of draining away**:
+σ_s = 0 exactly).
 
-| deposit | X view total, prompt → late (10 µs) | Y view total, prompt → late |
-|---|---|---|
-| on-strip (col 35) | 0.882 → **0.366** | 0.004 → 0.143 |
-| in-gap (col 15) | 0.882 → **0.802** | 0.004 → 0.024 |
+**Regenerated at production resolution** (nx = 3120, ny = 512, nt = 60, ρ_s = 1 MΩ/sq,
+d_k = 75 µm; desktop, 2026-08-07):
 
-Production numbers must come from a full-resolution re-run of `run_point` (desktop, ~6 min);
-until then treat the table above as indicative and `meta.sharing["in-gap"]` in all 12 shipped
-products as **mislabelled**.
+| deposit | view | prompt share d=−3..+3 | view total | late (10 µs) share | view total | τ(1/e) |
+|---|---|---|---|---|---|---|
+| on-strip (col 35, phase 10 µm) | X | 0 0 0 **1.000** 0 0 0 | 0.8730 | 0 −0 0.006 **0.990** 0.004 −0 0 | **0.3662** | 42 ns |
+| | Y | 0.022 0 0.395 0.167 0.395 0 0.022 | 0.0028 | 0.241 0.003 0.255 0.001 0.255 0.003 0.241 | 0.1426 | 42 ns |
+| in-gap (col 15, phase 410 µm) | X | 0 0 0 **1.000** 0 0 0 | 0.8730 | 0 −0 0.012 **0.973** 0.016 0 −0 | **0.7938** | 52 ns |
+| | Y | 0.022 0 0.395 0.167 0.395 0 0.022 | 0.0028 | 0.083 0.090 0.269 0.117 0.269 0.090 0.083 | 0.0240 | 35 ns |
+
+The qualitative difference the mislabelled row hid, and the reason the check matters: **a gap
+deposit's charge has no conductive path along a strip, so the view that owns its pad keeps
+that charge instead of draining it away** — X view total 0.794 late against 0.366 on-strip,
+and the cross-view late feed into Y is ~6× smaller (0.024 vs 0.143). The two rows are now
+plainly different objects, where before they agreed to three digits.
+
+⚠️ `meta.sharing["in-gap"]` in all 12 SHIPPED products remains mislabelled — they predate the
+fix. Either re-run `run_point` for each (~90 s/point on the desktop) or read the sharing block
+only from products solved after 2026-08-07.
 
 Read three things off it. (i) **Prompt charge division is essentially total**: the view owning the pad under the deposit takes 0.870, the other view takes 0.001 — a factor ~870. The checkerboard does not "share" between views at t=0, it assigns. (ii) **The other view is fed only by sheet transport**, rising from 0.001 to 0.11–0.14 by 10 µs, and it arrives spread over ±3 channels rather than concentrated — so cross-view charge is a *late, diffuse* component. (iii) **The owning view's own total falls** (0.870 → 0.366) as charge migrates outside the ±3 window; the drain-free sheet conserves charge globally (the all-channel total is time-independent at 0.665) but not locally.
 
