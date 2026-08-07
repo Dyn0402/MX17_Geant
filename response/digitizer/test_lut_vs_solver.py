@@ -6,14 +6,30 @@ THE TWO-TIER CLAIM (plan principle 3): a rigorous slow path validates a fast
 path that is the production digitizer. Same physics, different caching. Until
 now the fast path had never been checked against anything but itself.
 
-THE REFERENCE. `response.solver.kernels.charge_budget_y` / `charge_budget_x`
-read the per-channel charge straight out of the S1 product with the indexing
-the solver itself uses — the same code path whose closed-form sum rule passes
-at 4.8e-07. That is the right reference precisely because hand-rolled indexing
-of these arrays is where the mistakes live: the Y kernels are stored with y = 0
-at ny//2 (`_to_y0_origin`), rows alternate parity, and X kernels are indexed by
-absolute column mod the 40-pad superperiod. Three separate ad-hoc attempts to
-reproduce the sum rule on 2026-08-07 all got it wrong.
+THE REFERENCE, AND EXACTLY WHAT IT IS WORTH (corrected 2026-08-07, audit A4).
+`response.solver.kernels.charge_budget_y` / `charge_budget_x` read the
+per-channel charge straight out of the S1 product with the solver's own
+conventions: the Y kernels are stored with y = 0 at ny//2 (`_to_y0_origin`),
+rows alternate parity, and X kernels are indexed by absolute column mod the
+40-pad superperiod. Three separate ad-hoc attempts to reproduce the sum rule on
+2026-08-07 all got that wrong, which is why the reference is the solver's code
+and not fresh indexing.
+
+This docstring used to claim `charge_budget_*` was "the same code path whose
+closed-form sum rule passes at 4.8e-07". IT IS NOT. The sum rule runs through
+`sum_over_rows` / `sum_over_columns` (kernels.py), which is separate indexing
+from `charge_budget_y` / `charge_budget_x`. So what this test certifies is
+narrower, and worth stating precisely — the trust hierarchy is three-tier:
+
+  1. CLOSED FORM. `check_sum_rule` certifies S(0)/C(0) = 0.875 exactly, but
+     only for the FICTITIOUS pitch-sized (0.78 mm) pads that tile the plane.
+     Production geometry is not this.
+  2. REAL-PAD ANCHOR. The production 0.68 mm capture, 0.665023, against the
+     semi-analytic (PAD_SIZE/PAD_PITCH)^2 x S(0)/C(0). Asserted in
+     `test_charge_audit.py` — it was a comment until the audit.
+  3. THIS TEST. Two INDEPENDENTLY WRITTEN indexings of the same product agree
+     to 1e-4. That is a strong check on the LUT's transformations and a weak
+     one on the product itself: a bug shared by both indexings survives it.
 
 THE THING UNDER TEST is everything the LUT does to that product on the way to
 the digitizer: window it in y, stride it in x, resample a 61-point log time
@@ -155,12 +171,73 @@ def certify(path, dmax=3, n_probe=6, seed=3):
     return ok
 
 
+def certify_off_grid(path, n_probe=20000):
+    """
+    C2: channel booking must be self-consistent for sources drawn OFF the LUT
+    grid — which is every real avalanche.
+
+    `certify` above deliberately probes ON the LUT grid, because comparing
+    per-channel charge at two different source positions is meaningless. That
+    blinds it to the booking question, which is not about charge values at all:
+    the LUT evaluates the kernel at the nearest stored x SAMPLE, so the column
+    it is serving as d = 0 is the one nearest THAT sample. Book the charge
+    against the column nearest the TRUE x instead — two roundings, onto a
+    40 µm grid and a 780 µm grid whose boundaries do not coincide — and near
+    every second pad boundary the two disagree by a whole pad.
+
+    So the invariant, which is exact and needs no tolerance, is that the booked
+    column is the one whose kernel the band actually holds:
+
+        lut.col_at(x)  ==  lut.col_of_x[lut.ix(x)]   (mod the superperiod)
+
+    and the pre-fix rule (round the true x onto the pad lattice) is reported
+    alongside, to show its disagreement rate is real rather than hypothetical.
+
+    NOT tested against `nearest_column` of the sample: at a pad boundary the
+    two pad centres are exactly equidistant, and `argmin` takes the lower index
+    while `rint` takes the even one. That is a tie-break difference on a source
+    sitting exactly on the boundary — both answers are equally right, and 14 of
+    80 boundary probes hit it. What must not differ is which kernel was used.
+    """
+    lut = CombKernelLUT(path)
+    rng = np.random.default_rng(17)
+
+    # Sources at pad boundaries +- 5 um, where the two conventions part, plus a
+    # uniform sample for the overall rate.
+    edges = (K.pad_x(np.arange(C.N_PAD_PER_SUPER)) + C.PAD_PITCH_M / 2)
+    probes = np.concatenate([edges - 5e-6, edges + 5e-6,
+                             rng.uniform(0, C.SUPERPERIOD_M, n_probe)])
+
+    ix = lut.ix(probes)
+    got = lut.col_at(probes, ix=ix)
+    band = lut.col_of_x[ix]                       # the kernel actually served
+    old = np.rint((probes - K.PAD_ORIGIN_M) / C.PAD_PITCH_M).astype(int)
+
+    n_bad = int((((got - band) % C.N_PAD_PER_SUPER) != 0).sum())
+    n_moved = int((((old - got) % C.N_PAD_PER_SUPER) != 0).sum())
+    n_edge = 2 * len(edges)
+    n_uni = int((((old - got) % C.N_PAD_PER_SUPER)[n_edge:] != 0).sum())
+
+    print(f"\n  off-grid booking (C2), {len(probes)} probes "
+          f"({n_edge} at pad boundaries +-5 um, {n_probe} uniform)")
+    print(f"    col_at serves the band's own column: {n_bad} disagreements"
+          f"   {'OK' if n_bad == 0 else 'FAIL'}")
+    print(f"    the pre-fix rule (round the TRUE x) differs on "
+          f"{n_moved}/{len(probes)} — {n_uni}/{n_probe} "
+          f"({n_uni/n_probe:.1%}) of the UNIFORM probes, which is the rate at "
+          f"which real avalanches were booked a pad off")
+    return n_bad == 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--kernel", required=True)
     ap.add_argument("--n-probe", type=int, default=6)
     a = ap.parse_args()
-    return 0 if certify(a.kernel, n_probe=a.n_probe) else 1
+    ok = certify(a.kernel, n_probe=a.n_probe)
+    ok &= certify_off_grid(a.kernel)
+    print("\n" + ("PASS" if ok else "FAIL"))
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":
