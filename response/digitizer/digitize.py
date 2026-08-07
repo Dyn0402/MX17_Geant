@@ -165,6 +165,7 @@ class Digitizer:
             return out
         pitch = C.PAD_PITCH_M
         ds = np.arange(-self.n_side, self.n_side + 1)
+        nd, nt = len(ds), len(self.lut.t)
 
         # Channel index of the pad nearest each avalanche, on the 0.78 mm
         # lattice: column from x, row from y.
@@ -174,41 +175,66 @@ class Digitizer:
 
         ok = np.isfinite(q) & (q > 0) & (k0 >= 0) & (k0 < n_samp)
         idx = np.flatnonzero(ok)
+        if idx.size == 0:
+            return out
 
-        # Pre-resolve the LUT axis indices once per avalanche.
         ix = self.lut.ix(x)
         dy_step = self.lut.y_Y[1] - self.lut.y_Y[0]
         dyx_step = self.lut.y_X[1] - self.lut.y_X[0]
 
-        for i in idx:
-            # --- Y view: channels are the ROWS row[i] + d -------------------
-            # Kernel argument is the deposit's offset from THAT channel's row.
-            rows = row[i] + ds
-            dy = y[i] - (K.PAD_ORIGIN_M + rows * pitch)
+        # Compact channel numbering, so the scatter target is a dense 2-D
+        # (channel, time) array that np.bincount can fill in one call.
+        rows_all = row[idx][:, None] + ds[None, :]
+        cols_all = col[idx][:, None] + ds[None, :]
+        keyY = np.unique(rows_all)
+        keyX = np.unique(cols_all)
+        nY, nX = len(keyY), len(keyX)
+        slotY = np.searchsorted(keyY, rows_all)
+        slotX = nY + np.searchsorted(keyX, cols_all)
+        acc = np.zeros((nY + nX) * n_samp)
+
+        # Chunked so the (chunk, nd, nt) gather stays a few tens of MB. The
+        # whole point is that the scatter happens ONCE per chunk via bincount
+        # rather than once per avalanche per channel: the arithmetic here is
+        # ~3e9 flops for a 500-event file and is memory-bandwidth bound, but a
+        # python loop over avalanches spends 3.4M interpreter round-trips doing
+        # a few kB of work each, which is what made it minutes instead of
+        # seconds.
+        step = max(1, int(4e6 // (nd * nt)))
+        tgrid = np.arange(nt)
+        for s in range(0, len(idx), step):
+            sl = idx[s:s + step]
+            n = len(sl)
+            r = row[sl][:, None] + ds[None, :]
+            dy = y[sl][:, None] - (K.PAD_ORIGIN_M + r * pitch)
             iy = np.clip(np.rint((dy - self.lut.y_Y[0]) / dy_step).astype(int),
                          0, len(self.lut.y_Y) - 1)
-            curY = self.lut.I_Y[rows % 2, :, iy, ix[i]]        # (nd, nt)
+            curY = self.lut.I_Y[r % 2, iy, ix[sl][:, None], :]      # (n, nd, nt)
 
-            # --- X view: channels are the COLUMNS col[i] + d ----------------
-            # The kernel for column c already knows where column c sits, so
-            # the deposit's ABSOLUTE x is what goes in — shifting x by the
-            # channel offset (as an earlier version did) double-counts the
-            # separation and destroys the 31.2 mm beat the X view carries.
-            cols = col[i] + ds
-            y_rel = np.mod(y[i] - K.PAD_ORIGIN_M, 2 * pitch)
-            jy = int(np.clip(round((y_rel - self.lut.y_X[0]) / dyx_step),
-                             0, len(self.lut.y_X) - 1))
-            # I_X's leading axis is the channel OFFSET d, not the absolute
-            # column: the LUT already resolved "which column is d pads away
-            # from this x" when it built the band. Indexing it by column here
-            # is what the size-9-axis IndexError was telling us.
-            curX = self.lut.I_X[:, :, jy, ix[i]]
+            y_rel = np.mod(y[sl] - K.PAD_ORIGIN_M, 2 * pitch)
+            jy = np.clip(np.rint((y_rel - self.lut.y_X[0]) / dyx_step
+                                 ).astype(int), 0, len(self.lut.y_X) - 1)
+            curX = np.moveaxis(self.lut.I_X[:, jy, ix[sl], :], 1, 0)
 
-            for j, d in enumerate(ds):
-                self._accumulate(out, ("Y", int(rows[j])), curY[j], q[i],
-                                 k0[i], n_samp)
-                self._accumulate(out, ("X", int(cols[j])), curX[j], q[i],
-                                 k0[i], n_samp)
+            # Time index of every sample, clipped INTO the last row and then
+            # masked, so the scatter never wraps a late avalanche around to
+            # t=0 (which would show up as a phantom prompt signal).
+            tt = k0[sl][:, None, None] + tgrid[None, None, :]
+            good = tt < n_samp
+            tt = np.where(good, tt, 0)
+            w = (q[sl][:, None, None] * good)
+
+            for slot, cur in ((slotY[s:s + step], curY),
+                              (slotX[s:s + step], curX)):
+                flat = (slot[:, :, None] * n_samp + tt).ravel()
+                acc += np.bincount(flat, weights=(cur * w).ravel(),
+                                   minlength=acc.size)
+
+        acc = acc.reshape(nY + nX, n_samp)
+        for j, r in enumerate(keyY):
+            out[("Y", int(r))] = acc[j]
+        for j, c in enumerate(keyX):
+            out[("X", int(c))] = acc[nY + j]
         return out
 
     @staticmethod

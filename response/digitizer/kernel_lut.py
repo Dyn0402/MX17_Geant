@@ -70,7 +70,7 @@ class CombKernelLUT:
             self.I_Y = np.stack([self._resample(t_src, gy[0]),
                                  self._resample(t_src, gy[1])])
             del gy
-            self.I_Y = self._to_current(self.I_Y, axis=1)
+            self.I_Y = self._time_last(self._to_current(self.I_Y, axis=1))
 
             # --- X: reindex from absolute column to channel OFFSET ------------
             # For an avalanche at x sample ix the nearest pad column is
@@ -88,7 +88,22 @@ class CombKernelLUT:
                 sel = gx[cols, :, :, np.arange(nx)]      # (nx, nt, jy)
                 band[j] = self._resample(t_src, np.transpose(sel, (1, 2, 0)))
             del gx
-            self.I_X = self._to_current(band, axis=1)
+            self.I_X = self._time_last(self._to_current(band, axis=1))
+
+    @staticmethod
+    def _time_last(a):
+        """
+        Move the time axis from position 1 to LAST, contiguously.
+
+        This is the single biggest lever on digitizer speed and it is pure
+        memory layout. With time slowest-varying, reading one channel's time
+        series strides ny*nx floats — 491 kB — between consecutive samples, so
+        1001 samples touch 1001 separate cache lines spread over 503 MB. The
+        induction ran at ~800 us per avalanche, about 22 Mflop/s, which is
+        absurd for 18k float operations. Time last makes the same series 3.9 kB
+        of sequential memory.
+        """
+        return np.ascontiguousarray(np.moveaxis(a, 1, -1))
 
     def _to_current(self, G, axis):
         """
