@@ -14,6 +14,27 @@ Simulate the complete MX17 response to MIPs from first principles: Geant4 ioniza
 
 Principles:
 1. **First-principles first.** No parameter is tuned to MX17 detector data on the first pass. Measured MX17 quantities (sharing fractions, peak-time shifts, response library — §9) are *blind validation targets*. Only after the blind comparison do we iterate.
+
+   ⚠️ **Blind means blind, and the comparison happens ONCE, at T14** (added 2026-08-07 after this was
+   violated repeatedly). Do not run §9 comparisons stage by stage as the chain is built. On
+   2026-08-07 the §9 numbers were consulted after almost every stage — the ρ_s scan, the ion
+   template, the timing diagnostics — and it produced churn rather than progress: T10 was promoted
+   to critical path and then demoted, a diffusion-vs-transport hypothesis was raised and refuted a
+   run later, and a headline conclusion was published and then withdrawn. It is premature on its own
+   terms as well: a mismatch cannot be attributed to anything while T10, T12 and T13 are missing or
+   stubbed, so every such comparison is uninterpretable by construction. And each look erodes the
+   blindness that is the only thing making the eventual comparison worth running.
+
+   **Validate on INTERNAL physics instead**, which is what actually finds defects: charge
+   conservation, sum rules, closed-form limits, impulse responses, LTI invariances, and agreement
+   between two independent routes to the same quantity. Every real bug caught on 2026-08-07 came
+   from one of those — the `apply_ion_transit` running mean that put 5.9 units of charge on the
+   readout per unit induced was caught by an impulse test, not by any data comparison.
+
+   **Inputs are not targets.** Which gas, which drift voltage, which mesh voltage are configuration
+   that must match the apparatus; setting them from logged run conditions is not tuning. The §9
+   *response* observables — sharing fractions, peak ratios, peak-time shifts, τ — are targets and
+   stay untouched until T14.
 2. **Staged, file-joined pipeline** (adopted from `~/CLionProjects/p2_geant/docs/SIM_CAMPAIGN_PLAN.md` §2): expensive stages run once, cheap stages re-run per parameter point. Every stage reads/writes documented files; any stage can be re-run in isolation.
 3. **Two-tier fidelity.** A rigorous slow path (Garfield++ delayed-signal formalism) validates a fast path (precomputed response-function convolution). The fast path is the production digitizer. Same physics, different caching.
 4. **Everything scanned that is unknown.** Resistivity, coverlay thickness, amplification gap are scan axes, not guesses.
@@ -318,6 +339,15 @@ Three things, in order of how much they should be believed.
 2. **The z dependence is the real evidence, not the single number.** c1_X rises from 0.005 to 0.239, a factor 45, tracking σ_T. That is the diffusion signature and it is falsifiable: had the sharing come from the avalanche footprint or from induction geometry it would have been *flat* in z. Taken with T7's σ₀ = 33 µm and T2b's near-zero point-charge prompt sharing, this closes the argument — diffusion is the mechanism, by elimination and now by direct calculation.
 
 3. **The checkerboard shows up exactly where §3 said it would.** At z = 0.5 mm the X view holds 0.990 on a single channel while the Y view's d=0 holds 0.006 — the deposit's pad belongs to X, and the Y row through it owns no pad there, so its charge sits on d=±1 (0.387) instead. The two views only become comparable once diffusion is wide enough to reach both combs.
+
+### ⚠️ PREMATURE §9 COMPARISONS — held pending T14 (2026-08-07)
+
+Everything in this subsection was a stage-by-stage §9 comparison run before the chain was
+complete, against principle 1 above. **The physics defects it uncovered are real and stand**
+(the charge-non-conserving ion filter, the 1-D ESL strip anisotropy, the measured ion
+template). **The data-facing conclusions do not** — they compared an incomplete chain against
+targets from a different gas at a different drift field, and are superseded by T14. Kept for
+the record of what was checked and what it cost.
 
 ### First waveform-level comparison — ⚠️ WITHDRAWN, the filter was broken (2026-08-07)
 
