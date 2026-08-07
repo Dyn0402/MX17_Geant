@@ -139,6 +139,27 @@ def _autocorr(q, nlag=6):
     return [float((q[:, :n - k] * q[:, k:]).mean() / denom) for k in range(nlag)]
 
 
+def _parseval_rms(amp, ns):
+    """
+    Rms of a real trace whose one-sided amplitude spectrum is `amp`.
+
+    The same identity `_coloured` is built on, read the other way round:
+
+        var = (1/ns^2) [ A_0^2 + A_nyq^2 + 2 sum_mid A_k^2 ]
+
+    Used to normalise, so it must follow numpy's rfft binning exactly — the
+    Nyquist bin exists only for even ns and, like DC, is NOT doubled.
+    """
+    a = np.asarray(amp, dtype=np.float64)
+    tot = a[0] ** 2
+    if ns % 2 == 0:
+        tot += a[-1] ** 2
+        mid = a[1:-1]
+    else:
+        mid = a[1:]
+    return float(np.sqrt(tot + 2.0 * np.sum(mid ** 2)) / ns)
+
+
 class NoiseModel:
     """Generates ADC noise with the measured spectrum, per 64-channel block."""
 
@@ -184,8 +205,17 @@ class NoiseModel:
         ch = ch.transpose(0, 2, 1)
         # Restore the per-channel sigma spread: the spectrum is an average over
         # channels, so scale each to its own measured sigma.
+        #
+        # THE DENOMINATOR IS THE TRACE'S OWN RMS, NOT median(sigma_chan)
+        # (fix 2026-08-07, audit C1). `_coloured` produces a trace whose rms is
+        # the Parseval rms of `amp_chan` — and `amp_chan` is the MEAN spectrum
+        # over channels, so that rms is sqrt(mean variance). Dividing by the
+        # MEDIAN sigma instead is only correct if the two coincide, and the
+        # sigma distribution is right-skewed, so mean-square > median^2 and
+        # every channel came out ~3.7 % loud. That is exactly the ~3.5 %
+        # residual `selftest` has always reported and always tolerated.
         scale = self.sigma_chan[:n_chan] / max(
-            float(np.median(self.sigma_chan)), 1e-9)
+            _parseval_rms(self.amp_chan, ns), 1e-9)
         ch = ch * scale[None, None, :]
 
         return cm + ch + self.ped[None, None, :n_chan]
@@ -210,10 +240,14 @@ def selftest(spec, n_ev=1500, seed=3):
     q = res.transpose(0, 2, 1).reshape(-1, m.ns)
     lag = _autocorr(q - q.mean(axis=1, keepdims=True))
 
+    # Tolerances tightened 2026-08-07 with the C1 scale fix: the per-channel
+    # residual was a systematic +3.5 % (the median-vs-Parseval bug) and is now
+    # 0.2 %, so a 10 % bar no longer tests anything. 3 % leaves room for the
+    # MAD estimator's own sampling error at this n_ev.
     rows = [
         ("sigma per channel [ADC]", spec["sigma_chan_median_adc"],
-         float(np.median(sig)), 0.10),
-        ("sigma common mode [ADC]", spec["sigma_cm_adc"], float(cms.std()), 0.10),
+         float(np.median(sig)), 0.03),
+        ("sigma common mode [ADC]", spec["sigma_cm_adc"], float(cms.std()), 0.05),
     ]
     ok = True
     print(f"  {'quantity':28s} {'data':>9s} {'model':>9s}  {'rel':>7s}")

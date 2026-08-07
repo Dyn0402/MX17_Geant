@@ -90,11 +90,19 @@ def main():
     print(f"{len(rows)} products in {a.indir}\n")
     print(f"{'file':34s} {'rho':>5s} {'d_k':>5s} {'sumrule':>9s} "
           f"{'tiling':>8s} {'capture':>8s} {'X frac':>7s}  git")
+    # A product with no sum-rule block carries None here, and formatting None
+    # with ':9.1e' raises TypeError — so `manifest --check`, whose entire job
+    # is to find exactly those products, used to die before it could report
+    # one (audit C13). Print the absence instead.
+    def num(v, fmt, width):
+        return f"{v:{fmt}}" if v is not None else f"{'absent':>{width}s}"
+
     for r in rows:
         print(f"{r['file']:34s} {r['rho_s_MOhm_sq']:5.1f} "
-              f"{r['d_kapton_um']:5.0f} {r['sum_rule_err']:9.1e} "
-              f"{r['tiling_err']:8.0e} {r['channel_capture_prompt']:8.4f} "
-              f"{r['x_fraction_prompt']:7.4f}  {r['git']}")
+              f"{r['d_kapton_um']:5.0f} {num(r['sum_rule_err'], '9.1e', 9)} "
+              f"{num(r['tiling_err'], '8.0e', 8)} "
+              f"{num(r['channel_capture_prompt'], '8.4f', 8)} "
+              f"{num(r['x_fraction_prompt'], '7.4f', 7)}  {r['git']}")
     print(f"\nwrote {out}  ({sum(r['bytes'] for r in rows)/1e9:.1f} GB total)")
 
     if not a.check:

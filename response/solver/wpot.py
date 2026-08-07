@@ -244,8 +244,6 @@ class WeightingSolver:
         self.sigma_x = sig_x
         self.sigma_hat = np.fft.fft(sig_x) / nx
 
-        self._eig_cache = {}
-
     # ── internals ────────────────────────────────────────────────────────────
 
     def _blocks(self):

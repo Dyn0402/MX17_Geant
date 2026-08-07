@@ -95,7 +95,11 @@ class Digitizer:
                  drift_v=DEFAULT_DRIFT_V, drift_gap_mm=DEFAULT_DRIFT_GAP_MM,
                  transparency=DEFAULT_TRANSPARENCY, v_scale=1.0,
                  n_chan_side=4, seed=12345, packet=False, gas_table=None,
-                 with_ions=True, z_aval_um=5.0, mu_ion=ION.MU_ION_CM2_VS,
+                 # 13.84 um, not the old hand-waved 5: it is the MEAN ion birth
+                 # height measured in the S3 v2 pass (audit C12). Only
+                 # --ion-model analytic consumes it; the measured template
+                 # remains the production default and is unaffected.
+                 with_ions=True, z_aval_um=13.84, mu_ion=ION.MU_ION_CM2_VS,
                  ion_model="measured"):
         self.lut = CombKernelLUT(kernel_path)
         self.gas = (DriftGas(gas_table, v_scale=v_scale) if gas_table
@@ -123,11 +127,24 @@ class Digitizer:
         self.ion = ION.describe(C.AMP_GAP_M, mesh_v, mu_ion, z_aval_um * 1e-6)
         self.ion_measured = None
         if with_ions and ion_model == "measured":
-            if "i_ion" not in self.calib:
+            # PRESENCE IS NOT VALIDITY. The shipped schema-1 calib carries
+            # `i_elec` / `i_ion` keys whose arrays are 2000 zeros, so a
+            # key-existence check passes, `measured_longitudinal` divides by a
+            # zero area, and the entire LUT becomes nan — silently, because nan
+            # currents still sum, still write, and still produce a decoded file.
+            # Found 2026-08-07 while re-running the charge audit. Check the
+            # CONTENT.
+            tmpl = [np.asarray(self.calib.get(k, []), dtype=float)
+                    for k in ("i_elec", "i_ion")]
+            if (any(t.size == 0 for t in tmpl)
+                    or not np.isfinite(np.concatenate(tmpl)).all()
+                    or abs(float(sum(t.sum() for t in tmpl))) == 0.0):
                 raise SystemExit(
-                    "--ion-model measured needs an S3 v2 calib (with i_elec / "
-                    "i_ion); this one has none. Use --ion-model analytic, or "
-                    "point --calib at aval_calib_v2.json.")
+                    "--ion-model measured needs an S3 v2 calib whose i_elec / "
+                    "i_ion templates are actually populated; this one's are "
+                    f"missing, all-zero or non-finite in {calib_path}. Use "
+                    "--ion-model analytic, or point --calib at "
+                    "aval_calib_v2.json.")
             h, dt_h, self.ion_measured = ION.measured_longitudinal(self.calib)
             self.lut.apply_longitudinal(h, dt_h)
         elif with_ions:
@@ -163,17 +180,37 @@ class Digitizer:
         y = ys * 1e-3 + self.rng.normal(0.0, sT * 1e-6)
         t = ts + zs * 1e3 / self.v_drift + self.rng.normal(0.0, st)
 
-        # Mesh transparency, then the avalanche footprint.
+        # Mesh transparency AND drift attachment, as ONE thinning (plan §7
+        # step 2, audit A6). Combining them keeps the statistics binomial and
+        # the truth accounting sees a single loss channel with two named
+        # factors, instead of two Bernoullis whose product is the same thing
+        # with more code. p_surv = eps_mesh * exp(-eta z); with a table that
+        # has no eta column (the dry production table) the second factor is
+        # exactly 1 and results are bit-identical at fixed seed.
+        p_surv = self.transparency * self.gas.survival(self.E_drift, zs)
         if self.packet:
-            surv = self.rng.binomial(n_e, self.transparency).astype(float)
+            surv = self.rng.binomial(n_e, p_surv).astype(float)
         else:
-            surv = (self.rng.random(len(w)) < self.transparency).astype(float)
+            surv = (self.rng.random(len(w)) < p_surv).astype(float)
         keep = surv > 0
         x, y, t, surv = x[keep], y[keep], t[keep], surv[keep]
         x += self.rng.normal(0.0, self.sigma0_um * 1e-6, len(x))
         y += self.rng.normal(0.0, self.sigma0_um * 1e-6, len(y))
 
-        gain = polya_sample(self.rng, self.gbar, self.theta, len(x)) * surv
+        # PACKET MODE DRAWS THE SUM, NOT A SCALED SINGLE DRAW (fix 2026-08-07,
+        # audit C3). `surv` electrons sharing one packet each avalanche
+        # INDEPENDENTLY, so the packet's gain is a sum of n independent Polyas
+        # = Gamma(n(1+theta), gbar/(1+theta)), with variance n*Var(g).
+        # Multiplying one single-electron draw by n instead gives n^2*Var(g) —
+        # the mean is right, so nothing in the budget noticed, but the
+        # avalanche-to-avalanche fluctuation was n times too wide. Production
+        # runs packet=False and is unaffected; this matters the moment §12
+        # item 11 turns packet mode on for speed.
+        if self.packet:
+            gain = self.rng.gamma(shape=surv * (1.0 + self.theta),
+                                  scale=self.gbar / (1.0 + self.theta))
+        else:
+            gain = polya_sample(self.rng, self.gbar, self.theta, len(x)) * surv
         return x, y, t, gain
 
     def induce(self, x, y, t, q, n_samp):
@@ -191,8 +228,13 @@ class Digitizer:
         nd, nt = len(ds), len(self.lut.t)
 
         # Channel index of the pad nearest each avalanche, on the 0.78 mm
-        # lattice: column from x, row from y.
-        col = np.rint((x - K.PAD_ORIGIN_M) / pitch).astype(int)
+        # lattice. The COLUMN comes from the LUT (lut.col_at), not from a second
+        # rounding of x here: the X band's d = 0 is defined per LUT x sample, and
+        # deriving the channel number independently put ~1.3 % of avalanches one
+        # pad off (audit C2). The ROW is unaffected — the Y kernels are indexed
+        # by a y OFFSET, not by an absolute row, so there is only one rounding.
+        ix = self.lut.ix(x)
+        col = self.lut.col_at(x, ix=ix)
         row = np.rint((y - K.PAD_ORIGIN_M) / pitch).astype(int)
         k0 = np.rint(t / (self.lut.dt * 1e9)).astype(int)
 
@@ -201,7 +243,6 @@ class Digitizer:
         if idx.size == 0:
             return out
 
-        ix = self.lut.ix(x)
         dy_step = self.lut.y_Y[1] - self.lut.y_Y[0]
         dyx_step = self.lut.y_X[1] - self.lut.y_X[0]
 

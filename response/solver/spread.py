@@ -144,8 +144,9 @@ def main():
 
     for dk in sorted({r["d_k_um"] for r in rows}):
         sp = np.array([r["sigma_prompt_um"] for r in rows if r["d_k_um"] == dk])
+        # np.ptp(sp), not sp.ptp(): the ndarray method was removed in NumPy 2.
         print(f"\nd_k = {dk:.0f} um: sigma_p = {sp.mean():.1f} +/- {sp.std():.1f} um "
-              f"across the whole rho_s scan (spread {sp.ptp():.1f} um).")
+              f"across the whole rho_s scan (spread {np.ptp(sp):.1f} um).")
     print("  sigma_p is the PROMPT image width, so it must be independent of "
           "rho_s (it is, to <1 %)\n  and must depend on d_k (it does: thicker "
           "kapton lets the image spread further).")

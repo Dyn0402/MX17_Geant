@@ -79,6 +79,11 @@ class CombKernelLUT:
             nx = len(self.x)
             col_of_x = np.rint((self.x - np.mod(_pad_origin(), C.SUPERPERIOD_M))
                                / C.PAD_PITCH_M).astype(int)
+            # KEPT, because it is the LUT's own definition of "which column is
+            # d=0 at this x sample" and the digitizer must book its channels on
+            # exactly that and not on a second, independent rounding of the
+            # true x. See `col_at` and audit C2.
+            self.col_of_x = col_of_x % C.N_PAD_PER_SUPER
             gx = d["G_X"][:, :, :, ::x_stride]
             band = np.empty((len(ds), len(self.t), gx.shape[2], nx),
                             dtype=np.float32)
@@ -147,9 +152,46 @@ class CombKernelLUT:
     # ── lookup ───────────────────────────────────────────────────────────────
 
     def ix(self, x0_m):
-        """x sample index, folded into the 31.2 mm superperiod."""
+        """
+        x sample index, folded into the 31.2 mm superperiod.
+
+        The metric is CIRCULAR: the axis is periodic, so a source in the last
+        half-stride before the seam is nearest to x[0], not to x[-1]. Clipping
+        there (the pre-2026-08-07 behaviour, audit C5) mapped 31.19 mm onto the
+        last sample, up to a full stride — 40 µm — away from the truth, and did
+        it only in that one sliver of x, which is the hardest kind of error to
+        notice in an average.
+        """
         xs = np.mod(np.asarray(x0_m, dtype=float), C.SUPERPERIOD_M)
-        return np.clip(np.rint(xs / self.dx).astype(int), 0, len(self.x) - 1)
+        return np.rint(xs / self.dx).astype(int) % len(self.x)
+
+    def col_at(self, x0_m, ix=None):
+        """
+        ABSOLUTE pad column whose kernel the LUT serves as d = 0 at x0.
+
+        The X band is built per LUT x SAMPLE: `band[d, ..., ix]` holds the
+        kernel of column `col_of_x[ix] + d`. The digitizer used to derive its
+        channel number independently, by rounding the true x onto the pad
+        lattice — two roundings of the same quantity onto grids that do not
+        share their boundaries. The LUT samples every 40 µm and pads are
+        780 µm apart, so at every second pad boundary the two answers differ by
+        a whole pad: ~1.3 % of avalanches were booked one channel off in X,
+        with the sign alternating (audit C2). Both tests were blind to it —
+        the charge audit sums over channels, and T10 draws its probes ON the
+        LUT grid where the two conventions agree by construction.
+
+        Resolved by making the LUT the single authority: take the column
+        modulo the superperiod from the LUT sample, and take only the
+        superperiod COUNT from the true x, which no rounding can disagree on.
+        """
+        if ix is None:
+            ix = self.ix(x0_m)
+        naive = np.rint((np.asarray(x0_m, dtype=float) - _pad_origin())
+                        / C.PAD_PITCH_M).astype(int)
+        # Snap to the nearest integer congruent to the LUT's local column.
+        d = (self.col_of_x[ix] - naive) % C.N_PAD_PER_SUPER
+        d = np.where(d > C.N_PAD_PER_SUPER // 2, d - C.N_PAD_PER_SUPER, d)
+        return naive + d
 
     def iy_Y(self, dy_m):
         return np.clip(
