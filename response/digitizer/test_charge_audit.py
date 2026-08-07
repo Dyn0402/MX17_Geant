@@ -199,6 +199,10 @@ def main():
     ap.add_argument("--kernel", required=True)
     ap.add_argument("--calib", required=True)
     ap.add_argument("--n-rep", type=int, default=6)
+    ap.add_argument("--kernel-t-max", type=float, default=None,
+                    help="LUT time window [ns]; default is "
+                         "kernel_lut.T_MAX_NS_DEFAULT. The leak depends on it, "
+                         "so the before/after needs both.")
     ap.add_argument("--n-side", type=int, default=4,
                     help="channels either side of the centroid. The window "
                          "leak this test measures is a property of THIS "
@@ -239,7 +243,8 @@ def main():
           f"{'OK' if good else 'FAIL'}\n")
 
     dig = Digitizer(a.kernel, os.path.expanduser(a.calib), seed=11,
-                    ion_model=a.ion_model, n_chan_side=a.n_side)
+                    ion_model=a.ion_model, n_chan_side=a.n_side,
+                    kernel_t_max_ns=a.kernel_t_max)
     cap = CaptureMap(a.kernel)
     print(f"  kernel  rho_s={dig.lut.describe()['rho_s_MOhm_sq']} MΩ/sq  "
           f"n_side={dig.n_side} (so {2*dig.n_side+1} channels per view)")
