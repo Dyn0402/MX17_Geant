@@ -417,6 +417,58 @@ Two independent routes agree to four digits: Q_i/(Q_e+Q_i) = 0.9079 from the cur
 charge was clipped by the 400 ns S3 window. The histogram's own decay length, 14.8 µm, matches
 g/ln(G) = 14.1 µm from the measured gain.
 
+#### ⚠️ The §9 targets are measured at an operating point the simulation does not simulate (2026-08-07)
+
+The timing run put numbers on the discriminator and refuted the diffusion-vs-transport framing
+above: our d=±1 peak-time shift is **+93 to +142 ns** against a measured **+54–61 ns** — our
+neighbour is not prompt at all, it is *twice as late* as the data's. Relative width stays ~1.0
+because the 180 ns DREAM shaping is common to every channel and dominates each pulse's width, so
+delay survives as a shift while broadening does not.
+
+Chasing that led to the source documents behind §9, and the mismatch is upstream of any of it.
+The matched area/peak table (`RAW_RUN71_REANALYSIS_2026-08-04.md` §4) is **one table from one run**,
+so the shape disagreement is internally consistent and cannot be dismissed as mixing datasets:
+
+| d | 0 | ±1 | ±2 | ±3 |
+|---|---:|---:|---:|---:|
+| measured window-integral area | 1.00 | 0.71–0.77 | 0.40–0.48 | 0.15–0.18 |
+| measured peak amplitude | 1.00 | 0.16–0.19 | 0.06–0.08 | 0.03 |
+| **ours** (ρ_s=2, area) | 1.00 | 0.45 | 0.09 | 0.011 |
+| **ours** (ρ_s=2, peak) | 1.00 | 0.50 | 0.13 | 0.018 |
+
+As shares this reads: the data puts **0.271** on the central strip and carries a broad slow halo out
+to ±3; we put **0.462** there and have essentially nothing past ±1. The ±1 share happens to agree
+(0.20 measured vs 0.209 ours) — which is why every earlier check passed. **The disagreement is in
+the halo and in the peak, not in c1.**
+
+But run_71 was taken in a **different gas at a different field than we simulate**:
+
+| | run_71 (the §9 source) | this simulation |
+|---|---|---|
+| gas | Ar/CF₄/iC₄H₁₀ 88/10/2 + **1.3–1.7 % H₂O** | Ar/iC₄H₁₀ 95/5, dry |
+| drift field | **233 V/cm** (700 V) | 333 V/cm |
+| v_drift | **13–15 µm/ns** measured | 39.1 µm/ns (dry Magboltz) |
+| T_drift | ≈ 2.1 µs | ≈ 0.77 µs |
+
+The data-side reanalysis establishes the water independently and quantitatively: dry Magboltz for
+that mixture gives 74.7 µm/ns at 233 V/cm against 13–15 measured, a factor ~5, and the measured
+v ∝ E (constant mobility) is the signature of vibrational cooling by a polar contaminant. Adding
+1 %/2 % H₂O brackets the measurement (20.1 / 10.4), fixing the water at 1.3–1.7 %.
+
+**So the model is being validated against a detector it is not a model of.** A ~3× slower drift over
+the same 30 mm means a ~3× longer arrival spread, which is exactly the broad late halo we are
+missing — before invoking any new physics. §5 already carried v_drift three incompatible ways
+(39.1 / 36.6 / 28.1 µm/ns); this is that open item, and it is larger than the spread suggested.
+
+This does not license tuning. The correct move under the §9 firewall is to **simulate the operating
+point the data was taken at** — Magboltz for Ar/CF₄/iC₄H₁₀ 88/10/2 + 1.5 % H₂O at 233 V/cm,
+including **transverse diffusion** — and only then compare. `nTof_x17`'s
+`drift_velocity_beamtest_cf4_wet{1,2}_CERN.json` carry v_drift only, so that run is still needed.
+
+One further caution on the targets: `RAW_RUN71_REANALYSIS` §6 records that **c1 as a cascade-model β
+is not a robust observable in any pass**, and directs users to the library + charge budget instead.
+The c1 = 0.23–0.28 line in §9 should be treated as weaker than the area/peak table above.
+
 **A trap in comparing the AREA budget once the front end is in (2026-08-07).** The ion smear and the DREAM shaper are both linear time-invariant filters applied *identically to every channel*, and for such a filter ∫(h⊛f) = ∫h·∫f. The integrated-charge ratio between channels is therefore **mathematically invariant** under them — switching shaping on cannot change the area budget over an infinite window. It appeared to (c1_X 0.201 → 0.146), and that was pure **window truncation**: the shaped tail runs ~12τ ≈ 1.2 µs past the last avalanche, and neighbour channels are fed later than the central one by resistive spreading, so a fixed window clips them harder. A control run at the identical window with shaping off returned exactly 0.201, as the invariance requires. Consequence: **the area budget is only comparable to data when integrated over the same window the DAQ uses** (32 samples × 60 ns = 1.92 µs), not an arbitrarily long one — and peak amplitude, which has no such invariance and *is* genuinely changed by shaping, is the more informative observable until the DAQ window is modelled in T12.
 
 Not yet included and each will move these numbers: the ion tail (electrons only so far), DREAM shaping, ZS, and noise.
