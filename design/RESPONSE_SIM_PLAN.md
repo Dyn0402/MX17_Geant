@@ -41,7 +41,7 @@ Anode stack, top (gas) to bottom. z=0 at the top surface of the ESL resistive la
 | 1 | Micromesh (grounded ref. for amp field; at −HV_mesh in reality) | woven SS, wire 2×19 µm crossing, fill factor 0.223 | `shared/MX17ModuleGeometry.hh` | good |
 | 2 | Amplification gap | **150 µm — CONFIRMED (user, 2026-08-06). Not 128. Do not scan.** | user; supersedes the "unverified" flag in `design/GEOMETRY_IMPLEMENTATION_NOTES.md` | fixed |
 | 2b | Pillars (inside the amp gap) | **Dynamask** dry-film (photoimageable solder mask; user 2026-08-06), Ø 0.60 mm on a 4.68 mm grid (3571 pillars), height = gap 150 µm; area coverage ≈ 1.3% | material: user; geometry: `3498A_bulk.gbr` | good |
-| 3 | **ESL resistive strips** | **550 µm wide, 250 µm gap, 800 µm pitch, running along y ("vertical")** | user/fab knowledge; NOT in gerbers (screen-printed after fab) | geometry good; ρ_s unknown → scan **{0.5, 1, 2, 5} MΩ/sq** |
+| 3 | **ESL resistive strips** | **550 µm wide, 250 µm gap, 800 µm pitch, running along y ("vertical")**; terminated on copper bus strips at both y-ends only (user 2026-08-07); print thickness ~10 µm (user estimate, unconfirmed — does NOT enter the model: S1 treats the ESL as a zero-thickness sheet, thickness is absorbed into ρ_s) | user/fab knowledge; NOT in gerbers (screen-printed after fab) | geometry good; ρ_s unknown → scan **{0.5, 1, 2, 5} MΩ/sq** |
 | 4 | Insulator between pad Cu and ESL | **kapton, thickness unknown** (NOT Dynamask — that is the pillar material only; user 2026-08-06). Default 75 µm, ε_r = 3.5 | user (material class); thickness assumed | scan **{50, 75, 125} µm** |
 | 5 | Pad plane (Cu) | 512×512 pads, **0.68 mm square on 0.78 mm pitch**, active area 399.36 mm | `design/gerbers/readout_pcb/DFS3498A_L2-pads.gbr` | exact |
 | 6 | Buried interconnect | pads bussed by vias to 512 Y-strip traces (L3-TrackY) and 512 X-strip traces (L4-TrackX), 0.1 mm traces on 0.78 mm pitch | gerbers | exact (in-plane); layer z-spacing unknown |
@@ -49,7 +49,7 @@ Anode stack, top (gas) to bottom. z=0 at the top surface of the ESL resistive la
 Critical geometric facts:
 - **Pitch mismatch / beat:** resistive pitch 800 µm vs readout pitch 780 µm. The ESL-to-pad registration phase advances 20 µm per pitch and repeats every **LCM = 31.2 mm** (39 resistive strips = 40 readout pitches). The response kernel is therefore **position-dependent with a 31.2 mm superperiod** in x. The solvers and the digitizer must carry the absolute x position, not just position-within-one-strip. This beat is itself a physics prediction to look for in data (position-dependent sharing/residuals with 31.2 mm period).
 - **Orientation and sharing anisotropy:** resistive strips run along y. Resistive transport moves charge along y → spreads signal across the *y-measuring* channels → the Y view has stronger, slower sharing (data: τ_Y ≈ 410 ns vs τ_X ≈ 230 ns; kY ≈ 1.8–2.9). Across x, gaps block DC transport; X-view sharing is diffusion + induction + weak inter-strip capacitance. The simulation must reproduce this asymmetry *from geometry alone* — it is a headline validation target.
-- **Strip biasing/grounding (assumption A1):** ESL strips are assumed connected to the HV/ground bus at both y-ends of the active area (AC-grounded through the bus). Measured global drain constant τ_g = 5.3–7.3 µs (nTof_x17 `rc_line_step2.py`) is the *validation* of whatever boundary we implement, not an input.
+- **Strip biasing/grounding — A1 CONFIRMED as hardware, τ_g REINTERPRETED (2026-08-07):** the ESL strips contact copper bus strips at both y-ends of the active area and **nothing in between** (user, 2026-08-07 — this is now a fact, not an assumption). The implied global drain is L²/(π²D) = 4–41 ms across the ρ_s scan. The quantity previously mislabeled here as "measured global drain constant τ_g = 5.3–7.3 µs" (nTof_x17 `rc_line_step2.py`) is **not a drain measurement**: it is fitted as T_Y = T_X ⊛ [δ + d/dt(Gaussian diffusion × e^(−t/τ_g))] on a ≤1.4 µs window with the measured X template as reference, so (i) any decay common to both views — electronics, a true global drain, HV sag — cancels by construction, and (ii) an ms-scale drain is a factor 0.9998 over the window, invisible. τ_g is the *extra decay of the Y view relative to X beyond the Gaussian toy model*, i.e. a kernel-shape observable. A drain-free S1 kernel of the true comb channel, pushed through the same toy fit, reproduces an apparent τ_g ≈ 2.2–3.3 µs for on-strip deposits and ∞ for gap deposits (charge level, ρ_s 1–2 MΩ/sq; `response/validation/tau_g_reinterpretation.py`); a strip/gap mixture lands in the measured 5.3–7.3 µs band, and the mechanism is position-flat along the strip and fleet-consistent, both as observed. Consequence for the solver: **`tau_drain_s=None` is the production default** (§3). The digitizer-level closure (run the actual rc_line fit on simulated waveforms) is task T13b.
 - Gas: Ar/iso 95/5 (+~1% H2O on the bench — matters, measured v_drift 36.6 µm/ns is far below dry Magboltz). Drift gap 30 mm at 1000 V typical bench.
 
 ---
@@ -100,7 +100,7 @@ At t=0⁺ the ESL acts as a dielectric (prompt/static solution); as t→∞ it a
 
 **Geometry model W1 (baseline).** Layers in z: grounded mesh plane at z=+g (treat as solid — justified: weave-scale field ripple decays as e^(−2πz/p_weave), negligible at the ESL for p_weave ≪ g; verify in V5) / gas ε=1 thickness g / ESL sheet at z=0 with σ_s(x) = 1/ρ_s on strips, 0 in gaps (periodic in x, period 800 µm, uniform in y) / kapton ε_r=3.5 thickness d_k / segmented pad plane at z=−d_k. (Pillars — Dynamask, 1.3% coverage — are ignored in the weighting solve; they matter only as dead/perturbed spots, checked in validation, and in S2 if included in the unit cell.) Buried trace layers are screened by the pad plane and ignored in W1 (W2 check in V6: expose 100 µm inter-pad gaps and re-run — expected percent-level).
 
-**Electrode definition.** A Y channel = one row of pads bussed together; an X channel = one column. (Confirm from the via pattern in `DFS3498A_pla1-2.gbr` which pads belong to X vs Y — likely alternating checkerboard; the parser in `scripts/` or nTof_x17 `common/Mx17StripMap.py` may already know. If checkerboard: an X channel is every-other-pad along a column. Document what you find in `response/common/`.)
+**Electrode definition — RESOLVED 2026-08-07 (T2, gerber-derived).** The checkerboard is confirmed, from the 0.1 mm connector stubs (the vias do NOT answer it — the plated through hole rings every layer on all 512×512 pads). A Y channel = one row's pads at (col+row) even; an X channel = one column's pads at (col+row) odd. **A channel is therefore a comb of 256 pads on a 1.56 mm pitch, not a solid line of 512 pads on 0.78 mm.** Extraction and proof: `response/common/channel_map.py` (262030/262144 pads assigned; the 114 stragglers are a 0.04% edge effect). All channel-level kernels must be built with comb drive patterns — the solid-line `pad_pattern`/`strip_pattern_y` in `wpot.py` are per-pad/limiting cases only (task T2b). The x/y sign convention vs `Mx17StripMap.py` connector numbering is still unverified.
 
 **Method.** Expand in lateral Fourier modes. In y (uniform sheet direction) modes decouple: continuous wavenumber k_y (discretize, ~200 log+linear points to k_y·L=π·400). In x the periodic conductivity couples k_x ↔ k_x + m·2π/p_ESL (Bloch): for each (k_y, k_x∈[0, 2π/p)) truncate to |m| ≤ M (start M=12, converge-test). Each dielectric layer gives an algebraic transfer relation per mode; the sheet gives the junction condition
 
@@ -110,13 +110,13 @@ n·(J_above − J_below) = −∇_T · [ σ_s(x) ∇_T V ]|_{z=0}   (+ ε0 ∂/�
 
 Result: per (k_y, Bloch block) a linear ODE system `dV/dt = A·V + b·Θ(t)` of dimension ~(2M+1); solve by eigendecomposition of A (exact exponentials — no time-stepping error). Assemble Ψ on the output grid at the 60 requested times. Runtime target: minutes per channel type on the laptop. Pure numpy.
 
-**Boundary/drain.** Finite strip length enters as the smallest k_y; additionally implement assumption A1 as a lumped leak rate 1/τ_g on the k_y→0 mode and check the late-time tail against the measured 5–7 µs (validation V4, not tuning).
+**Boundary/drain — AMENDED 2026-08-07.** Production default is **`tau_drain_s=None`** (strict charge conservation on the sheet). The real drain — copper bus at the two y-ends, §1 — is ms-scale, a factor ≥0.999 over any waveform window, and indistinguishable from no drain in every §9 observable; implementing it as a boundary condition buys nothing. The solver keeps the uniform-leak term (`tau_drain_s` explicit) strictly as a nuisance/systematic knob. Do NOT pin it to "the measured τ_g" — that number is not a drain (§1). Superseded: ~~implement A1 as a lumped leak 1/τ_g on the k_y→0 mode and check the tail against the measured 5–7 µs~~.
 
 **Validation (all must pass before S1 output is used):**
 - V1: set σ_s uniform (no gaps) → matches Riegler's closed-form uniform-layer solution (JINST 2016 eqns; also the Gaussian limit σ²(t)=2t/(ρ_s c′), c′=ε0(ε_r/d_k + 1/g)).
 - V2: single isolated strip, k_y only → matches 1D telegraph solution (Galan arXiv:1110.6640).
 - V3: charge conservation: Σ_n G_n(x0,y0,t) + charge remaining on sheet + mesh charge = 1 at all t; each G_n → its t→∞ electrostatic value.
-- V4: late-time drain tail within factor ~2 of measured τ_g = 5.3–7.3 µs (else revisit A1).
+- V4 — REDEFINED 2026-08-07 (the original "drain tail within factor ~2 of τ_g, else revisit A1" compared incommensurable observables and correctly "failed"; that failure is documented in `design/report/s1_validation.txt` and resolved in §1): the drain-free comb-channel kernel, fitted with the rc_line toy model (Gaussian line diffusion × exp(−t/τ_g), ≤1.4 µs window), must yield an apparent τ_g of the measured order for on-strip deposits and a much slower/no decay for gap deposits. Passed at charge level (2.2–3.3 µs on-strip, ∞ in-gap; `response/validation/tau_g_reinterpretation.py`). Final closure at waveform level is T13b.
 - V5: mesh-as-plane check: perturbative estimate of weave ripple amplitude at z=0 < 1%.
 - V6: W2 (exposed inter-pad gaps) shifts G_n by < few %.
 
@@ -231,7 +231,7 @@ Run the **unmodified** wft chain (`nTof_x17/wft/`) + the SPS-style kernel analys
 | Peak-amplitude ratios | 1.00 / 0.16–0.19 / 0.06–0.08 / 0.03 | same |
 | Full W_d(t) library, 3 drift fields | npz archive | `staging/run_71/reanalysis_2026-08-04/` (data disk) |
 | X vs Y sharing asymmetry | τ 230 vs 410 ns; kY 1.8–2.9 | `mx_june_wft/ANALYSIS_STATE_2026-07-31.md` |
-| Global drain τ_g | 5.3–7.3 µs | `rc_line_step2.py` results |
+| Apparent τ_g from the rc_line fit (differential Y-vs-X kernel decay, NOT a drain — §1) | 5.3–7.3 µs; predicted two-component (gap charge ~no decay) | `rc_line_step2.py` results; closure = T13b |
 | X/Y charge balance | 0.49/0.51 (det3) | `bench_constants.py` |
 | Undershoot | −4 to −6% | run_71 reanalysis |
 | Angular/position resolution | σ_θ 1.08–1.11°, core σ|r| 0.46 mm | `ANALYSIS_STATE_2026-07-31.md` |
@@ -279,36 +279,39 @@ Use it via `source ~/PycharmProjects/nTof_x17/garfield_sim/setup_garfield.sh` �
 | ID | Task | Depends | Host | Acceptance |
 |---|---|---|---|---|
 | T0 | Desktop env setup — **Garfield++ part DONE** (2026-08-06: pinned build, ctest 22/22, smoke test passes). Remaining: python stack (numpy/scipy/uproot) and, if wanted there, Geant4 | — | desktop | `python -c "import numpy"`; ~~garfield smoke test~~ ✅ |
-| T1 | `response/` package skeleton + `common/` geometry constants (parse/assert vs `MX17ModuleGeometry.hh`) + params YAML schema | — | laptop | unit tests pass |
-| T2 | Pad↔X/Y channel mapping from gerber via pattern (checkerboard question, §3) | T1 | laptop | map figure; agrees with `Mx17StripMap.py` channel count |
-| T3 | **S1 solver core** (uniform sheet first: V1) | T1 | laptop | V1 passes to <1% |
-| T4 | S1 Bloch patterning (strips) + V2, V3 | T3 | laptop | V2, V3 pass |
-| T5 | S1 boundary/drain + full grid export; V4, V5, V6 | T4 | laptop | all V pass; 48-run scan produced |
+| T1 | `response/` package skeleton + `common/` geometry constants (parse/assert vs `MX17ModuleGeometry.hh`) + params YAML schema — **DONE 2026-08-07** | — | laptop | unit tests pass |
+| T2 | Pad↔X/Y channel mapping from gerbers — **DONE 2026-08-07** (checkerboard confirmed from connector stubs, §3; `response/common/channel_map.py`) | T1 | laptop | map figure; agrees with `Mx17StripMap.py` channel count |
+| **T2b** | **Comb channel kernels** — replace the solid-line drive patterns in `wpot.py` with comb patterns built from `channel_map.py` (a Y channel = 256 pads on 1.56 mm along x at one row; X = the transpose). Every §9 sharing number must come from comb kernels. First priority. | T2, T5 | laptop | comb G_n(t) exported for both channel types; per-pad results reproduced as the single-pad limit |
+| T3 | **S1 solver core** (uniform sheet first: V1) — **DONE 2026-08-07** (V1 at machine precision) | T1 | laptop | V1 passes to <1% |
+| T4 | S1 Bloch patterning (strips) + V2, V3 — **DONE 2026-08-07** (superperiod-commensurate box, no truncation parameter) | T3 | laptop | V2, V3 pass |
+| T5 | S1 boundary/drain + full grid export; V4, V5, V6 — solver + V4 (as redefined, charge level) **DONE 2026-08-07**; production grid export NOT started (export-strategy decision pending, several GB/point vs local-window vs on-demand); V5, V6 not run | T4 | laptop | all V pass; 48-run scan produced |
 | T6 | S2 mesh unit cell | T0 | desktop | transparency curve; field map export |
-| T7 | S3 avalanche campaign | T6 (or uniform-field first pass without T6) | lxplus | `aval_calib.json` grid |
-| T8 | Stage A schema upgrade | geometry merge | laptop | §6 acceptance |
+| T7 | S3 avalanche campaign — **jobs DONE 2026-08-07** (uniform-field first pass, 56/56 JSONs on AFS `~dneff/work/mx17_response/avalanche/results/`; S2-dependent fields are explicit nulls with `uniform_field` provenance). Remaining: rsync + `response/avalanche/collect.py` merge; verify the 6 Magboltz-table jobs' `.gas` outputs landed (they run through the nTof_x17 `garfield_sim` EOS workflow, NOT the mx17_response AFS tree) | T6 (or uniform-field first pass without T6) | lxplus | `aval_calib.json` grid |
+| T8 | Stage A schema upgrade — **DONE 2026-08-07** (`time`, `creator`, Meta tree with world→active-area transform) | geometry merge | laptop | §6 acceptance |
 | T9 | Stage B fast path (templates from S1 surface G + analytic ion term, first pass) | T5, T7 | laptop | digitizes 10³ events; energy/charge bookkeeping closes |
 | T10 | Stage B slow path (Garfield++ ComponentGrid delayed signals) + certify fast path | T5, T9 | desktop | <2% waveform residual fast vs slow |
 | T11 | Stage C DREAM (shaper from manual, sampling, gain) | T9 | laptop | shaped single-avalanche pulse; rise/peak vs measured template compared (report, don't tune) |
 | T12 | Stage C noise from det3 pedestals + ZS port | T11 | laptop | simulated pedestal PSD/σ matches data pedestals |
 | T13 | End-to-end: sim decoded_root through wft unchanged | T8–T12 | laptop | wft runs, produces events.parquet |
+| **T13b** | **τ_g closure at waveform level**: run the *unmodified* nTof_x17 `rc_line_step1/2.py` fit machinery on simulated waveforms produced with `tau_drain_s=None`; the apparent τ_g must land in the measured 5.3–7.3 µs and be position-flat along the strip. Also look for the predicted two-component tail (gap-deposit charge barely decays — kept ~0.70 at 1.4 µs deep in a gap). Charge-level version already passes: `response/validation/tau_g_reinterpretation.py` | T13 | laptop | apparent τ_g within the measured band with NO drain in the model |
+| **Td** | *(nTof_x17 repo, data-side, can run any time)* Two-component refit of the measured rc_line templates: replace the single exp(−t/τ_g) with a strip+gap pair (amplitude ratio ~ the 550/250 area split as a starting point). A resolved second component is direct evidence for the kernel-shape reading of τ_g | — | laptop | refit result recorded either way |
 | T14 | Blind comparison (§9) + report | T13 | laptop/lxplus | prediction-band figures vs data |
 | T15 | Iterate: constrained tuning, systematics, feed kernel back to wft as physical model | T14 | — | documented parameter posterior |
 
-Parallelizable now (before geometry merge): T0–T7. T3–T5 is the critical path and the highest-skill task — implement with the validation tests as the definition of done.
+~~Parallelizable now (before geometry merge): T0–T7. T3–T5 is the critical path and the highest-skill task.~~ **State 2026-08-07:** geometry merged; T1–T5 (solver), T2, T7 (jobs), T8 done. The critical path is now **T2b (comb kernels) → S1 export decision → T9 (digitizer)**, with T6 (desktop mesh cell) and the T7 collect step parallel to it. Td can run immediately in nTof_x17.
 
 ## 12. Outstanding questions — REFERENCE ONLY
 
 **These are NOT being sent to anyone and will likely never be answered. They exist to record exactly which inputs are assumed rather than known. Never block on, or wait for, any item here — the listed default is the answer for all purposes.**
 
 **Fab-side unknowns (Saclay/CEA would know):**
-1. ESL resistive paste: measured surface resistivity (Ω/sq) and paste type/batch for our modules. *Default: scan 0.5–5 MΩ/sq.*
+1. ESL resistive paste: measured surface resistivity (Ω/sq) and paste type/batch for our modules. *Default: scan 0.5–5 MΩ/sq.* (2026-08-07: the τ_g reinterpretation in §1 removes the apparent pressure toward absurdly low ρ_s; the scan stands. Print thickness ~10 µm per user, unconfirmed — irrelevant to the thin-sheet model, useful only for sanity-checking ρ_s against paste volume resistivity.)
 2. Kapton thickness between pad Cu and ESL (material IS kapton — user 2026-08-06; pillars are Dynamask, a separate fact). *Default: 75 µm, ε_r 3.5, scan 50–125.*
 3. Screen-print registration: nominal alignment/tolerance of the 800 µm ESL pattern vs the 780 µm pad pattern (and vs active-area center). *Default: nominal aligned at center; the beat makes absolute phase measurable from data later.*
-4. ESL strip termination: how strips connect to the HV/ground bus (both ends? one end? via resistor?). *Default: A1 (§1).*
+4. ~~ESL strip termination: how strips connect to the HV/ground bus~~ **RESOLVED (user, 2026-08-07): copper bus strips at both y-ends of the active area, no connection anywhere in between. A1 confirmed as hardware; see §1 for why this never conflicted with the data.**
 5. ~~Amplification gap as built: 128 or 150 µm~~ **RESOLVED: 150 µm (user, 2026-08-06).**
 6. PCB internal stackup: layer z-spacings (pads→L3→L4). *Default: pads-only model W1; spacing irrelevant in W1.*
-7. Confirm pad↔X/Y bussing pattern (checkerboard?). *We will extract from via gerbers (T2); confirmation only.*
+7. ~~Confirm pad↔X/Y bussing pattern (checkerboard?)~~ **RESOLVED (T2, 2026-08-07): exact checkerboard, extracted from the connector stubs (not the vias — those ring every pad on both layers). A channel is a 256-pad comb on 1.56 mm pitch. See §3 and `response/common/channel_map.py`.**
 
 **DAQ-side unknowns:**
 8. Confirm `CosmicTb_MX17.cfg` on `daq:/mnt/cosmic_data/MX17/dream_config/` is byte-identical to the May copies we have locally (for the 6-27 det3 runs). *Default: trust local copies.*

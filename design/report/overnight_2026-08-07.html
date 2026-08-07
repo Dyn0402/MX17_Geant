@@ -144,7 +144,7 @@ unblocked, the pad&harr;channel checkerboard is confirmed straight from the gerb
 <tr><td class="num">T1</td><td>Python geometry constants, cross-checked against the C++ header</td><td><span class="pill pass">DONE</span></td></tr>
 <tr><td class="num">T3&ndash;T5</td><td>S1 weighting-potential solver + validation suite</td><td><span class="pill pass">DONE</span> 5/5 correctness</td></tr>
 <tr><td class="num">T8</td><td>Stage A: cluster <code>time</code>, creator process, active-area frame</td><td><span class="pill pass">DONE</span></td></tr>
-<tr><td class="num">T7</td><td>S3 avalanche calibration grid on lxplus</td><td><span class="pill run">RUNNING</span> 62 jobs</td></tr>
+<tr><td class="num">T7</td><td>S3 avalanche calibration grid on lxplus</td><td><span class="pill pass">DONE</span> by morning; 56/56 JSONs on AFS, collect pending</td></tr>
 <tr><td class="num">T2</td><td>Pad&harr;X/Y channel mapping from the gerbers</td><td><span class="pill pass">DONE</span> checkerboard confirmed</td></tr>
 <tr><td class="num">T6</td><td>S2 woven-mesh unit cell on the desktop</td><td><span class="pill fail">NOT STARTED</span></td></tr>
 <tr><td class="num">T9+</td><td>Digitizer, DREAM electronics, end-to-end</td><td><span class="pill fail">NOT STARTED</span></td></tr>
@@ -158,6 +158,44 @@ answered cleanly. T6 (the mesh unit cell) is the main thing left untouched, and 
 at the end.</p>
 
 <h2><span class="stage">Finding 1</span>Assumption A1 is refuted by your own data</h2>
+
+<div class="callout info">
+<h3>Addendum, 2026-08-07 daytime &mdash; resolved: A1 stands, &tau;<sub>g</sub> was never a drain</h3>
+<p>You confirmed the hardware: the strips contact copper bus strips at the two
+<em>y</em>-ends and <em>nothing in between</em>. The conflict below dissolves once
+&tau;<sub>g</sub> is traced to its source. <code>rc_line_step1/2.py</code> fits
+<span class="num">T<sub>Y</sub> = T<sub>X</sub> &#8855; [&delta; + d/dt(diffusion &middot; e<sup>&minus;t/&tau;g</sup>)]</span>
+on a &le;1.4 &micro;s window with the measured <b>X template as reference</b> &mdash; so any
+decay common to both views (DREAM shaping, HV sag, and crucially a <em>real</em> global
+drain) cancels by construction, and an ms-scale drain is a factor 0.9998 over the window
+anyway. &tau;<sub>g</sub> is the <em>extra decay of Y relative to X beyond the Gaussian toy
+model</em>: a kernel-shape observable, not a grounding measurement. The V4 comparison put
+incommensurable quantities side by side; none of the three candidate explanations below is
+needed (the first cancels in the observable, and the bench notes' &ldquo;vertical
+leak&rdquo; reading fails the same way).</p>
+<p>The decisive check: the S1 solver with <b>no drain at all</b>
+(<code>tau_drain_s=None</code>), driving the true comb channels from Finding 4, analysed
+with the bench's own toy fit (<code>response/validation/tau_g_reinterpretation.py</code>):</p>
+<div class="tablewrap">
+<table>
+<thead><tr><th>drain-free kernel, &rho;<sub>s</sub> 1&ndash;2 M&Omega;/sq</th><th class="n">apparent &tau;<sub>g</sub> from the toy fit</th></tr></thead>
+<tbody>
+<tr><td>Y comb, charge on-strip (three registration phases)</td><td class="n"><b>2.2&ndash;3.3 &micro;s</b></td></tr>
+<tr><td>Y comb, charge in a 250 &micro;m gap</td><td class="n">&infin; (keeps 0.70 of its signal at 1.4 &micro;s)</td></tr>
+<tr><td>X comb (column over a strip)</td><td class="n">drops to ~0.36 by 300 ns, then flat &mdash; &ldquo;X drain-free&rdquo;, as measured</td></tr>
+</tbody>
+</table>
+</div>
+<p>A drain-free detector <em>manufactures</em> a few-&micro;s apparent &ldquo;drain&rdquo;
+from non-Gaussian sheet relaxation plus comb sampling. On-strip alone sits ~&times;2 below
+the measured 5.3&ndash;7.3 &micro;s; the measured template averages strip and gap deposits
+(~31% of the area lands in gaps and barely decays), and a single-exponential fit to that
+mixture lands slower &mdash; in the measured band. The mechanism is position-flat along the
+strip and fleet-consistent, both exactly as observed. Plan updated (&sect;1, &sect;3, V4
+redefined, &sect;12 items 4/7 closed); <code>tau_drain_s=None</code> is now the production
+default; waveform-level closure is task T13b and the two-component-tail refit of the
+measured templates is task Td. The section below is kept as written overnight.</p>
+</div>
 
 <p>The plan's assumption A1 (&sect;1) is that the ESL resistive strips are tied to the
 HV/ground bus at both <em>y</em>-ends of the active area. The plan also lists V4 as an
@@ -532,14 +570,23 @@ funnelling map, the ion escape fraction &mdash; as explicit <code>null</code>s w
 placeholder for a measurement. <code>collect.py</code> is written and ready; results merge
 and plot the moment they land.</p>
 
+<div class="callout info">
+<h3>Addendum, 2026-08-07 daytime</h3>
+<p>The queue is empty and all <b>56/56</b> avalanche JSONs are on AFS under
+<code>~dneff/work/mx17_response/avalanche/results/</code> &mdash; ready for the
+<code>collect.py</code> rsync+merge. The six Magboltz-table jobs are <em>not</em> in that
+tree; they run through the nTof_x17 <code>garfield_sim</code> EOS workflow, so verify
+their <code>.gas</code> outputs landed before Stage B assumes they exist.</p>
+</div>
+
 <h2><span class="stage">Next</span>What I would do next, and what I need from you</h2>
 
 <h3>Needs a decision from you</h3>
 <ol>
-<li><b>The A1 problem.</b> Which of the three explanations do you find most plausible? If
-you think &tau;<sub>g</sub> is front-end RC rather than sheet transport, that changes what
-the solver's drain term even represents, and it is a half-hour job to refit the existing
-data with two components and check the 2.2&times; prediction.</li>
+<li><b>The A1 problem.</b> <b>Resolved 2026-08-07 daytime</b> &mdash; see the addendum in
+Finding 1: A1 stands as hardware, &tau;<sub>g</sub> is a differential kernel-shape
+observable, and a drain-free comb kernel reproduces it. The two-component refit (task Td)
+remains the cheap data-side check.</li>
 <li><b>Pushing to GitHub.</b> I committed locally but did not push &mdash; you did not ask
 me to, and the lxplus clone is far behind at <code>8aaa0d2</code>. I rsynced the campaign
 to AFS directly instead. Say the word and I will push.</li>
