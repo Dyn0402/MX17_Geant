@@ -319,6 +319,24 @@ Three things, in order of how much they should be believed.
 
 3. **The checkerboard shows up exactly where §3 said it would.** At z = 0.5 mm the X view holds 0.990 on a single channel while the Y view's d=0 holds 0.006 — the deposit's pad belongs to X, and the Y row through it owns no pad there, so its charge sits on d=±1 (0.387) instead. The two views only become comparable once diffusion is wide enough to reach both combs.
 
+### First waveform-level comparison, and a NEGATIVE result that names the missing physics (2026-08-07)
+
+Full chain — Geant4 (gun spread over the superperiod) → drift → mesh (T6 transparency) → avalanche (S3) → induction (S1 comb kernels) → ion transit → DREAM shaper — over 400–600 muons per point, 30 ms/event on the desktop.
+
+| ρ_s [MΩ/sq] | peak ±1/0, X | peak ±1/0, Y | area c1, X |
+|---|---|---|---|
+| 0.5 | 0.373 | 0.528 | 0.169 |
+| 1.0 | 0.342 | 0.516 | 0.159 |
+| 2.0 | 0.320 | 0.503 | 0.152 |
+| 5.0 | 0.295 | 0.487 | 0.144 |
+| **measured (§9)** | **0.16–0.19** | **0.16–0.19** | **0.23–0.28** |
+
+**The two observables disagree in direction, and ρ_s cannot fix it.** The data's neighbour has ~¾ the *area* of the central channel but only ~⅙ the *peak* — charge arriving spread over a long time. Ours arrives too fast and too concentrated: too little area, too much peak. The obvious lever was ρ_s, since more resistive means slower and broader dispersion, which raises neighbour area and lowers neighbour peak together. It does — but only just: over a **factor 10** in ρ_s the X peak ratio moves 0.373 → 0.296, a mere −21 %, nowhere near 0.16–0.19, while the area c1 moves the **wrong way** (0.169 → 0.144, further below target). Pushing ρ_s beyond the scan would make the area worse to buy a fraction of the peak. Per the §9 firewall, that is missing physics, not a knob.
+
+**The prime suspect was already documented as a limitation before the data pointed at it**, which is the good case. The ions carry ~97 % of the induced charge (§7), and `response/digitizer/ions.py` currently gives them the **surface kernel's lateral shape, frozen at z = 0** — the narrowest it can possibly be — because S1 solves only the z = 0 plane. The true Ψ_n broadens as the ion climbs the 150 µm gap toward the mesh. Restoring that broadening adds lateral width to the component that is *already slow*, which raises neighbour area **and** lowers neighbour peak: both of the directions the data demands, and via a mechanism ρ_s cannot mimic because it acts on the ion transit rather than on sheet transport.
+
+That makes **T10 the critical path**, not an optional rigour check: it needs S1 extended to z > 0 (the plan's §2 file contract already reserves `psi[t,z,y,x]` with "8–16 slices to mesh" for exactly this), or the Garfield `ComponentGrid` slow path. Secondary suspects, in order: inter-strip and inter-channel capacitance, which W1 omits entirely; and the possibility that the measured numbers come from a different drift field than the 333 V/cm assumed here.
+
 **A trap in comparing the AREA budget once the front end is in (2026-08-07).** The ion smear and the DREAM shaper are both linear time-invariant filters applied *identically to every channel*, and for such a filter ∫(h⊛f) = ∫h·∫f. The integrated-charge ratio between channels is therefore **mathematically invariant** under them — switching shaping on cannot change the area budget over an infinite window. It appeared to (c1_X 0.201 → 0.146), and that was pure **window truncation**: the shaped tail runs ~12τ ≈ 1.2 µs past the last avalanche, and neighbour channels are fed later than the central one by resistive spreading, so a fixed window clips them harder. A control run at the identical window with shaping off returned exactly 0.201, as the invariance requires. Consequence: **the area budget is only comparable to data when integrated over the same window the DAQ uses** (32 samples × 60 ns = 1.92 µs), not an arbitrarily long one — and peak amplitude, which has no such invariance and *is* genuinely changed by shaping, is the more informative observable until the DAQ window is modelled in T12.
 
 Not yet included and each will move these numbers: the ion tail (electrons only so far), DREAM shaping, ZS, and noise.
