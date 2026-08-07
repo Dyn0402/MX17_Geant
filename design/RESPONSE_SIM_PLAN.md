@@ -447,6 +447,39 @@ Two independent routes agree to four digits: Q_i/(Q_e+Q_i) = 0.9079 from the cur
 charge was clipped by the 400 ns S3 window. The histogram's own decay length, 14.8 µm, matches
 g/ln(G) = 14.1 µm from the measured gain.
 
+#### Chain closed end to end, and what the build found (2026-08-07)
+
+Three defects, all caught by internal checks rather than by any comparison with §9 — which is the
+case for principle 1's revision:
+
+1. **`apply_ion_transit` did not conserve charge** — normalised its leading edge by samples-so-far
+   instead of by the rectangle length, putting 5.9 units of charge on the readout per unit induced
+   and inflating the first 340 ns by up to 340×. Found by an impulse test whose answer is exact by
+   inspection.
+
+2. **The noise generator was 5.7× too loud** from a stray √ns — and the *autocorrelation still
+   matched perfectly*, because a pure scale error leaves a normalised autocorrelation untouched.
+   Amplitude and shape are now asserted separately. A second bug behind it: mean-subtracting each
+   trace before the FFT zeroes the DC bin, but the pedestal is already removed, so DC is genuine
+   baseline wander — and it is most of the common mode.
+
+3. **A 6200× units error** between Stage B and the DAQ. `induce()` returns elementary charges per
+   second and the shaper's `h` is peak-normalised, so the shaped waveform is in units of *e*, not
+   fC. Found by physics, not by a test: the median simulated MIP pegged the 12-bit ADC at 3888 of
+   3748 available counts. Half of every event saturating is something no cosmic run does.
+
+Also resolved from det3's `run_config.json` rather than assumed: the readout wiring is
+`x_1..x_8 → FEU 3` and `y_1..y_8 → FEU 4`, connector-to-connector identity within a view, but
+**every connector on both views is `"inverted"`** — the channel order inside each connector is
+reversed. That is a pure relabelling and changes no observable computed here; it matters only for a
+channel-by-channel comparison at T14, and is left explicit rather than guessed a second time.
+
+Open, and belonging to T14 setup rather than to the build: at 490 V the simulated MIP still
+saturates in 16.5 % of events. 490 V *is* a genuine det3 point (their HV scan runs 460–530 V), so
+this may be real behaviour at the top of their range rather than a modelling error — but the run to
+compare against, its voltage and its gas, all have to be settled before that question means
+anything.
+
 #### ⚠️ The §9 targets are measured at an operating point the simulation does not simulate (2026-08-07)
 
 The timing run put numbers on the discriminator and refuted the diffusion-vs-transport framing
@@ -608,8 +641,8 @@ Use it via `source ~/PycharmProjects/nTof_x17/garfield_sim/setup_garfield.sh` �
 | T9 | Stage B fast path — **RUNS END TO END 2026-08-07** on synthetic deposits (`response/digitizer/`, self-test below). Remaining: the analytic ion term, real ClusterTree input (no Geant4 run exists yet), and per-event throughput work | T5, T7 | laptop | digitizes 10³ events; energy/charge bookkeeping closes |
 | T10 | Stage B slow path (Garfield++ ComponentGrid delayed signals) + certify fast path | T5, T9 | desktop | <2% waveform residual fast vs slow |
 | T11 | Stage C DREAM (shaper from manual, sampling, gain) | T9 | laptop | shaped single-avalanche pulse; rise/peak vs measured template compared (report, don't tune) |
-| T12 | Stage C noise from det3 pedestals + ZS port | T11 | laptop | simulated pedestal PSD/σ matches data pedestals |
-| T13 | End-to-end: sim decoded_root through wft unchanged | T8–T12 | laptop | wft runs, produces events.parquet |
+| T12 | Stage C noise from det3 pedestals + ZS port — **DONE 2026-08-07** (`response/dream/noise.py`, `daq.py`). Noise is dominated by *coherent* common mode (83 ADC vs 10 ADC per-channel) and is strongly correlated sample-to-sample from the 180 ns shaping, so it is generated from the measured **power spectrum**, not an rms. `selftest()` round-trips at 3.5 % / 1.5 % / 0.043. Firmware `tpc` ZS implemented (ZsTyp=1, ZsChkSmp=1, CmOffset=256, 5 σ) but OFF by default — wft needs dense data and the det3 reference runs are themselves dense | T11 | laptop | ✅ round-trip matches data pedestals |
+| T13 | End-to-end: sim decoded_root through wft unchanged — **CHAIN CLOSES 2026-08-07**. `run.py --decoded-out` runs Geant4 ClusterTree → drift → mesh → avalanche → S1 induction → ion → DREAM → FEU → `sim_decoded_{07,08}.root`, and wft's own `FeuReader` reads it **unmodified**, recovering pedestal (346 vs 341) and noise (11.1 vs 10.4) and yielding 512×32 waveforms with ~6 channels over 5 σ per muon. ADC scale is derived, not fitted (20.48 ADC/fC); a 5 fC injection returns 98.0 ADC against 102.4 predicted. Remaining: run wft's *reconstruction* (not just io) to events.parquet | T8–T12 | laptop | ✅ wft io reads sim unchanged; reco pending |
 | **T13b** | **τ_g closure at waveform level**: run the *unmodified* nTof_x17 `rc_line_step1/2.py` fit machinery on simulated waveforms produced with `tau_drain_s=None`; the apparent τ_g must land in the measured 5.3–7.3 µs and be position-flat along the strip. Also look for the predicted two-component tail (gap-deposit charge barely decays — kept ~0.70 at 1.4 µs deep in a gap). Charge-level version already passes: `response/validation/tau_g_reinterpretation.py` | T13 | laptop | apparent τ_g within the measured band with NO drain in the model |
 | **Td** | *(nTof_x17 repo, data-side, can run any time)* Two-component refit of the measured rc_line templates: replace the single exp(−t/τ_g) with a strip+gap pair (amplitude ratio ~ the 550/250 area split as a starting point). A resolved second component is direct evidence for the kernel-shape reading of τ_g | — | laptop | refit result recorded either way |
 | T14 | Blind comparison (§9) + report | T13 | laptop/lxplus | prediction-band figures vs data |

@@ -218,14 +218,22 @@ def main():
     # channel_num = 0.78 mm * index on both axes, so the map is the identity:
     # X channel = column, Y channel = row.
     #
-    # ASSUMPTION, stated because it is unverifiable from this repo: the FEU
-    # connector permutation is taken as identity (FEU channel c -> connector
-    # c//64+1, local c%64 -> channel_num c). The real wiring lives in the DAQ
-    # detector config (`dream_feus` in Mx17StripMap.RunConfig), which is not
-    # mirrored here. A permutation is a pure relabelling — it cannot change any
-    # physics, and the simulation is self-consistent under it — but it WOULD
-    # matter for a channel-by-channel comparison against a real run, so it must
-    # be resolved before T14 rather than assumed away.
+    # THE REAL WIRING, resolved 2026-08-07 from det3's own run_config.json
+    # (`detectors[0].dream_feus` / `dream_feu_orientation`) rather than assumed:
+    #
+    #     x_1..x_8 -> FEU 3, connectors 1..8      y_1..y_8 -> FEU 4, connectors 1..8
+    #     every connector on BOTH views: "inverted"
+    #
+    # So connector-to-connector is the identity within a view (the structural
+    # assumption held), but the channel ORDER inside each connector is
+    # REVERSED, on both views — which the identity map here does not apply.
+    # This is a pure relabelling: it cannot change any physics and the
+    # simulation is self-consistent under it, so every observable computed here
+    # is unaffected. It matters only for a channel-by-channel comparison
+    # against a real run, i.e. at T14, and it is left explicit rather than
+    # silently applied because the exact meaning of "inverted" (per connector
+    # vs across the whole FEU) should be read off Mx17StripMap.RunConfig
+    # instead of guessed a second time.
     daq = adc_buf = None
     if a.decoded_out:
         from ..dream.daq import Daq, N_CHAN, charges_to_fc, write_decoded
