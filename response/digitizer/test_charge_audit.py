@@ -203,7 +203,7 @@ def main():
                     help="LUT time window [ns]; default is "
                          "kernel_lut.T_MAX_NS_DEFAULT. The leak depends on it, "
                          "so the before/after needs both.")
-    ap.add_argument("--n-side", type=int, default=4,
+    ap.add_argument("--n-side", type=int, default=8,
                     help="channels either side of the centroid. The window "
                          "leak this test measures is a property of THIS "
                          "number, and it grows with the LUT time window — "

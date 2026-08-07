@@ -94,7 +94,12 @@ class Digitizer:
     def __init__(self, kernel_path, calib_path, *, mesh_v=DEFAULT_MESH_V,
                  drift_v=DEFAULT_DRIFT_V, drift_gap_mm=DEFAULT_DRIFT_GAP_MM,
                  transparency=DEFAULT_TRANSPARENCY, v_scale=1.0,
-                 n_chan_side=4, seed=12345, packet=False, gas_table=None,
+                 # 8, not 4 (2026-08-07). With the LUT window corrected to
+                 # 3000 ns (audit A1) a +-4 channel window LEAKS 8-10 % of the
+                 # induced charge at every depth; +-8 holds it to <=0.6 %. The
+                 # two fixes are not separable — see test_charge_audit and
+                 # design/report/DESKTOP_RUNS_2026-08-07.md.
+                 n_chan_side=8, seed=12345, packet=False, gas_table=None,
                  # 13.84 um, not the old hand-waved 5: it is the MEAN ion birth
                  # height measured in the S3 v2 pass (audit C12). Only
                  # --ion-model analytic consumes it; the measured template

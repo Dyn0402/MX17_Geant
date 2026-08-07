@@ -155,7 +155,7 @@ def main():
                          "(kernel_lut.T_MAX_NS_DEFAULT = 3000). Used to record "
                          "the audit-A1 before/after and for the SPS 64-sample "
                          "frame, which wants 4200.")
-    ap.add_argument("--n-side", type=int, default=4,
+    ap.add_argument("--n-side", type=int, default=8,
                     help="channels either side of the centroid that are "
                          "computed. Sets the LUT band AND the booking range. "
                          "Raising it widens y_window_mm with it, which is "

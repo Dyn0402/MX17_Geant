@@ -57,7 +57,7 @@ class CombKernelLUT:
     T_MAX_NS_DEFAULT = 3000.0
 
     def __init__(self, path, dt_ns=1.0, t_max_ns=T_MAX_NS_DEFAULT,
-                 y_window_mm=3.9, x_stride=4, n_side=4):
+                 y_window_mm=7.02, x_stride=4, n_side=8):
         self.path = path
         self.n_side = n_side
         self.t = np.arange(0.0, t_max_ns + dt_ns, dt_ns) * 1e-9
