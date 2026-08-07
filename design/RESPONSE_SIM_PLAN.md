@@ -321,6 +321,21 @@ Three things, in order of how much they should be believed.
 
 Not yet included and each will move these numbers: the ion tail (electrons only so far), DREAM shaping, ZS, and noise.
 
+### Track level, on real Geant4 tracks (2026-08-07)
+
+500 normal-incidence 4 GeV muons through the full 30 mm gap, 337 primary electrons/event, run through Stage B at ρ_s 2 MΩ/sq, d_k 75 µm, with T6's measured mesh transparency. 200 events, 19 s (93 ms/event):
+
+| d | −3 | −2 | −1 | 0 | +1 | +2 | +3 |
+|---|---|---|---|---|---|---|---|
+| X | 0.006 | 0.048 | 0.205 | **0.482** | 0.198 | 0.036 | 0.004 |
+| Y | 0.045 | 0.112 | 0.161 | **0.283** | 0.165 | 0.112 | 0.047 |
+
+**c1_X = 0.201, c1_Y = 0.163** against the measured 0.23–0.28, and an **X/Y charge balance of 0.506/0.494** against the measured 0.49/0.51 — both untuned, with every input fixed before the run. The remaining deficit in c1 is the right size and sign for what is still missing (ion tail, DREAM shaping, ZS, noise).
+
+**A trap in the Stage A generator, worth knowing before anyone reads a positional observable off this file.** The gun is a **pencil beam at (0, 0)**, and 512 pads is even, so the active-area centre falls exactly on a pad *boundary*. Every muon therefore lands at the one x where "the channel with the most charge" is a coin flip: in a first 200-event run 216 events rounded one way and 256 the other, producing a spurious X-view asymmetry (d=−1 → 0.308 against d=+1 → 0.093) that is entirely an artifact of the beam position. A sub-pitch scan confirmed the digitizer itself is symmetric to 0.019 once the impact point is averaged. `run.py` now offsets each event by a uniform draw over the 31.2 mm superperiod in x and 1.56 mm in y — exact rather than approximate, since the stack is periodic with those periods — and the X profile comes back symmetric (0.205 / 0.482 / 0.198). **The proper fix is to randomise the gun in Stage A**; until then, do not use `--fixed-position` for any §9 comparison.
+
+Note also that the *cluster* x range in that file spans −140 to +104 mm while the *track* positions are all at x ≈ 0: those wide clusters are delta rays, and mistaking the cluster range for the beam spread is what hid the pencil beam at first.
+
 ## 8. Stage C — DREAM electronics
 
 1. Shaper: build the DREAM transfer function **from the manual** (`~/x17/Documents/dream/DREAM_User Manual_prod_v3.pdf`) at the register settings in the run config (`CosmicTb_MX17.cfg`, local copies in `~/x17/cosmic_bench/det_3/*/raw_daq_data/`; peaking-time code `(0xd023>>4)&0xF = 2` → 180 ns class per nTof_x17 notes). Convolve channel currents.
