@@ -228,7 +228,7 @@ def main():
     # be resolved before T14 rather than assumed away.
     daq = adc_buf = None
     if a.decoded_out:
-        from ..dream.daq import Daq, N_CHAN, write_decoded
+        from ..dream.daq import Daq, N_CHAN, charges_to_fc, write_decoded
         with open(os.path.expanduser(a.noise)) as fh:
             daq = Daq(json.load(fh), seed=a.seed + 17)
         adc_buf = {"X": [], "Y": []}
@@ -362,10 +362,11 @@ def main():
            "digitizer": info, "clusters": ci,
            "shaper": shaper.describe() if shaper else None}
     if daq is not None:
-        from ..dream.daq import write_decoded
+        from ..dream.daq import charges_to_fc, write_decoded
         for view, feu in (("X", "07"), ("Y", "08")):
             block = np.stack(adc_buf[view])                 # (n_ev, n_samp, ch)
-            adc = daq.to_adc(block, n_ev=len(block))
+            # Stage B works in elementary charges; the ADC scale is per fC.
+            adc = daq.to_adc(charges_to_fc(block), n_ev=len(block))
             path = f"{a.decoded_out}_{feu}.root"
             write_decoded(path, adc)
             occ = float((adc.astype(np.int32)

@@ -56,6 +56,20 @@ ADC_BITS, ADC_MAX = 12, 4095
 INPUT_RANGE_FC = 200.0
 ADC_PER_FC = (1 << ADC_BITS) / INPUT_RANGE_FC      # 20.48
 
+# UNITS, and the trap in them. digitize.induce() returns current in ELEMENTARY
+# CHARGES per second, and shaper.apply() multiplies by dt and convolves with a
+# PEAK-NORMALISED h — so the shaped waveform is in units of e, and its peak
+# equals the input charge for instantaneous delivery. Feeding that straight
+# into an fC scale over-scales by 1/1.6e-4 ~ 6200x, which saturated the 12-bit
+# ADC on every event and was caught by the median simulated MIP pegging at
+# 3888 of 3748 available counts. Convert explicitly.
+FC_PER_E = 1.602176634e-4                          # 1 e = 1.602e-19 C = 1.6e-4 fC
+
+
+def charges_to_fc(q_e):
+    """Shaped waveform in elementary charges -> fC, the unit to_adc expects."""
+    return np.asarray(q_e, dtype=np.float32) * FC_PER_E
+
 # CosmicTb_MX17.cfg (det3): sample period 60 ns, 32 samples, ZsTyp 1 (tpc),
 # ZsChkSmp 1, CmOffset 256, "Sys PedRun Threshold 5" sigma.
 SAMPLE_PERIOD_NS = 60.0
