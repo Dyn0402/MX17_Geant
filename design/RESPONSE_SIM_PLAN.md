@@ -49,7 +49,9 @@ check (the code reproducing itself, which catches regressions and nothing else).
 | T10 fast path, per channel | **1e-4** vs 2 % bar | `kernels.charge_budget_y/_x` | internal — two independent indexings agree |
 | T10 off-grid booking (C2) | exact, 0 disagreements | LUT band's own column | internal |
 | S1 time-grid adequacy | <0.5 % vs 2 % bar | 4× denser re-solve (nt 60→240) | internal |
-| charge audit | ~2 %, per position | `sum_over_rows`+`sum_over_columns` at the probe's own (x,y) | internal |
+| charge audit | **≤0.6 % at every depth** (n_side 8, t_max 3000) | `sum_over_rows`+`sum_over_columns` at the probe's own (x,y) | internal |
+| ny grid convergence | **0.452 % vs a 0.3 % bar — FAILS** | ny=1024 re-solve, smeared 150 µm | internal |
+| avalanche survival | P(g>0) = 1.0, 0/4080 seeds | S3 raw slices on EOS | anchor |
 | ion template A/B | <1 % | analytic vs measured S3 v2 | internal |
 | noise round-trip | **0.2 % / 1.5 % / 0.043** | det3 pedestals | internal |
 | ADC scale end-to-end | **101.1 vs 102.4 ADC (1.2 %)** | derived 20.48 ADC/fC | anchor (datasheet-derived scale) |
@@ -79,6 +81,30 @@ Notes on rows the audit corrected:
 
 ### ⚠️ Full-chain audit 2026-08-07 — read `design/report/AUDIT_2026-08-07.md` before T13b/T14
 ### → implementation spec for the fixes: `design/report/AUDIT_FIXES_2026-08-07.md`
+### → what the compute-side runs actually found: `design/report/DESKTOP_RUNS_2026-08-07.md`
+
+**Three of the audit's own conclusions did not survive being run** (details in DESKTOP_RUNS):
+
+1. **A1's direction is wrong.** Rebuilding the LUT with a window that covers the DAQ frame
+   does NOT raise the halo shares. c1_Y *falls* 11.5 % at the DAQ window (32 % over the full
+   record) and c1_X does not move at all (+0.1 % over a 3× change in t_max). The corrected
+   prediction sits further from the measured 0.23–0.28, not closer. Recorded as a prediction
+   revision; the §9 firewall forbids tuning it back.
+2. **A1's second cause does not exist.** The longitudinal convolutions were never losing
+   their tail — both are already linear convolutions and padding them is bit-for-bit
+   identical. The only defect was `t_max` itself.
+3. **A7's avalanche-survival bias is zero, not unknown.** P(g>0) = 1.0, with 0 of 4080 seed
+   electrons failing to multiply at the three lowest voltages (survival can only rise with
+   field). The conditional Polya is the unconditional one and the shipped calib is unbiased.
+
+**And one thing the fix order got exactly right, which turned out to matter most:** the
+sizing trap. Opening the time window at a fixed `n_side = 4` LOSES 8–10 % of the induced
+charge at every depth. **Production defaults are now `t_max_ns = 3000` AND `n_side = 8`
+(`y_window_mm = 7.02`) — they are not separable**, and shipping the window fix alone would
+have made the charge accounting five times worse than the bug it fixed.
+
+⚠️ **C6 FAILS**: at the 150 µm smear floor the ny = 512 grid is off by 0.452 % against the
+0.3 % bar, so production wants **ny = 1024** (~2× cost). Blocked on desktop disk, not compute.
 
 Five adversarial reviews of the whole chain, run before any data comparison. Headlines: the
 digitizer LUT truncates kernels at 1 µs (biases the d=±2/3 halo LOW — the direction of the
