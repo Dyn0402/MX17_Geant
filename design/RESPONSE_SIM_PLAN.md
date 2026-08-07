@@ -36,17 +36,63 @@ induction → ion longitudinal template → DREAM shaper → FEU sampling/ADC/no
 
 ### What is certified, and against what
 
-| check | result | reference |
-|---|---|---|
-| S1 sum rule | 5e-7, plane partition 4e-13 | closed form S(0)/C(0) |
-| V5 mesh-as-plane | 7.8e-7 vs 1 % bar | exp(−2πg/p) |
-| T10 fast path, per channel | **1e-4** vs 2 % bar | `kernels.charge_budget_y/_x` |
-| S1 time-grid adequacy | <0.5 % vs 2 % bar | 4× denser re-solve (nt 60→240) |
-| charge audit | 1.5 % | product's own `channel_capture_prompt` |
-| ion template A/B | <1 % | analytic vs measured S3 v2 |
-| noise round-trip | 3.5 % / 1.5 % / 0.043 | det3 pedestals |
-| ADC scale end-to-end | 98.0 vs 102.4 ADC | derived 20.48 ADC/fC |
-| wet-CF₄ v_drift | 74.32 vs 74.7 µm/ns | nTof_x17 published Magboltz |
+Two columns matter as much as the numbers: whether a row is an **anchor** (checked against
+something outside the code — a closed form, a datasheet, data) or an **internal-consistency**
+check (the code reproducing itself, which catches regressions and nothing else). The audit of
+2026-08-07 found several rows reading as anchors that are not, and they are relabelled here.
+
+| check | result | reference | kind |
+|---|---|---|---|
+| S1 sum rule | 5e-7, plane partition 4e-13 | closed form S(0)/C(0) | anchor (tiling pads only) |
+| real-pad capture | 0.665023 vs 0.665023, 5e-9 | (PAD_SIZE/PAD_PITCH)² × S(0)/C(0) | anchor — **asserted** since 2026-08-07 |
+| V5 mesh-as-plane | 7.8e-7 vs 1 % bar | exp(−2πg/p) | **analytic bound, not a test** (see below) |
+| T10 fast path, per channel | **1e-4** vs 2 % bar | `kernels.charge_budget_y/_x` | internal — two independent indexings agree |
+| T10 off-grid booking (C2) | exact, 0 disagreements | LUT band's own column | internal |
+| S1 time-grid adequacy | <0.5 % vs 2 % bar | 4× denser re-solve (nt 60→240) | internal |
+| charge audit | ~2 %, per position | `sum_over_rows`+`sum_over_columns` at the probe's own (x,y) | internal |
+| ion template A/B | <1 % | analytic vs measured S3 v2 | internal |
+| noise round-trip | **0.2 % / 1.5 % / 0.043** | det3 pedestals | internal |
+| ADC scale end-to-end | **101.1 vs 102.4 ADC (1.2 %)** | derived 20.48 ADC/fC | anchor (datasheet-derived scale) |
+| wet-CF₄, dry column | 74.66 vs 74.7 µm/ns | nTof_x17 published Magboltz | anchor — but **dry vs dry** |
+| wet-CF₄ bracket | **PASS**, wet span 10.3–20.0 µm/ns | measured 13–15 µm/ns at 233 V/cm | anchor — `design/report/WET_CF4_BRACKET_2026-08-07.md` |
+
+Notes on rows the audit corrected:
+- **V5** — `v5_mesh_ripple.py` EVALUATES exp(−2πng/p) and compares it to a 1 % bar. Nothing is
+  tested against anything, so this is an analytic bound, not a test. (This resolves the §0a
+  "certified" vs T5 "still not run" contradiction: both were half right.)
+- **charge audit** — the old "1.5 %" was measured against the grid-MEAN capture, and was an
+  EXCESS, which no leak can produce. It was the reference: capture ranges 0.25–0.89 across the
+  cell and a handful of probes do not average to the mean. Now evaluated per position; what
+  remains is a genuine ~2 % window deficit at n_side = 4, to be re-recorded after the Fix 1
+  LUT rebuild (which truncates late charge in the same direction).
+- **ADC scale** — the old "98.0 vs 102.4" gap was the test injecting signal into every event and
+  then taking its pedestal from those same events. With signal-free pedestal events it closes to
+  1.2 %, and the tolerance is tightened from 10 % (which would have passed a +13 % gain error)
+  to 3 %.
+- **noise round-trip** — the 3.5 % per-channel residual was a real +3.7 % scale bug (C1),
+  not estimator noise; it is 0.2 % now and the bar is 3 %.
+- **per-product sum rule** — `kernels.py:492-493` re-checks only t ≤ ~0.2 ns on a reduced grid.
+  The full-axis claim rests on the original T2b run, whose parameters are not recorded.
+- **V1's "Riegler closed form"** shares `stack_coeffs` with the code under test. The reviewer
+  re-derived C(k), S(k) by hand and they ARE correct, but the certification is narrower than
+  "against an independent closed form"; an FD Laplace solve would make σ_p independent.
+
+### ⚠️ Full-chain audit 2026-08-07 — read `design/report/AUDIT_2026-08-07.md` before T13b/T14
+### → implementation spec for the fixes: `design/report/AUDIT_FIXES_2026-08-07.md`
+
+Five adversarial reviews of the whole chain, run before any data comparison. Headlines: the
+digitizer LUT truncates kernels at 1 µs (biases the d=±2/3 halo LOW — the direction of the
+headline §9 tension) — rebuild before concluding anything about the halo; the §3 "in-gap"
+sharing row is actually a second on-strip deposit (`nearest_column` picks by absolute x, not
+ESL phase) — no genuine in-gap numbers exist in any product; the decoded output gives X and Y
+independent trigger phases and writes ftst=0 (uncorrectable fake inter-plane jitter); the
+"wet-CF₄" cert row is dry-vs-dry (the wet bracket check is unrecorded); attachment is absent
+(blocks P1); the S3 calib drops the avalanche-survival factor (gain biased high, feeds P2);
+sim FEU naming 07/08 contradicts det3's 3/4. Also resolved there: the 98.0-vs-102.4 ADC gap
+(test artifact, scale correct), the phantom "avalanche size cap" (no cap exists), and P5's
+inversion ambiguity (reference decoder reverses per connector, unconditionally). P6 is
+resolved (below). The solver core, unit chains, Polya/diffusion statistics, and the decoded
+schema were verified clean, several by hand re-derivation.
 
 ### Next, in order
 
@@ -84,14 +130,39 @@ plane. This is T10's slow path.
 **P4 — S3 runs in a uniform field.** Blocked on T6. Provenance is tagged `uniform_field` so it cannot
 be mistaken for the real thing.
 
-**P5 — FEU channel ordering.** det3's `run_config.json` gives `x_1..x_8 → FEU 3`, `y_1..y_8 → FEU 4`,
-connector-to-connector identity within a view, but **every connector on both views is `"inverted"`**.
-Whether that means per-connector or whole-FEU reversal is unresolved. Pure relabelling — changes
-nothing computed so far, matters only for a channel-by-channel comparison at T14.
+**P5 — FEU channel ordering — the ambiguity is RESOLVED; the relabelling is still not applied.**
+det3's `run_config.json` gives `x_1..x_8 → FEU 3`, `y_1..y_8 → FEU 4`, connector-to-connector
+identity within a view, but **every connector on both views is `"inverted"`**. What "inverted"
+means is no longer open: `Mx17StripMap.apply_orientation` reverses within `n_channels = 64`,
+i.e. **per connector, unconditionally** (audit 2026-08-07 B3). The simulation still writes the
+deliberate identity mapping, which is pure relabelling and changes nothing computed so far; it
+matters only for a channel-by-channel comparison at T14.
 
-**P6 — DREAM undershoot is not predictable from this model.** `shaper.py` is CR-RC² (real double
-pole) standing in for a complex-pole Sallen-Key. The measured undershoot (−4 to −6 %) is a §9 target
-the model structurally cannot predict. Fixing it means implementing the actual biquad.
+Two mechanical consequences are now handled (Fix 8): the decoded files are named by the target
+run's **FEU ids** (`--feu-ids`, default `3 4` for det3 — the old hardcoded `07/08` is a
+different physical detector, mx17_2, and wft keys its strip map off that suffix), and the
+basename carries `_datrun_<tag>_` so that `wft/io.file_tag` can PAIR the X and Y file of a
+subrun. Without the tag `reco.py`'s `by_tag` dict never assembles a pair and the run
+reconstructs zero events with no error anywhere.
+
+Still genuinely open: the **x/y sign convention** (`ActiveAreaFrame.hh:29-38` is a placeholder).
+A flip inverts checkerboard parity AND the 31.2 mm beat phase, and there is no guard for it —
+the beat phase against absolute channel number, at T14, is the only in-data check.
+
+**P6 — DREAM undershoot — RESOLVED 2026-08-07, and the original premise was wrong.** The fix was
+never the biquad: the manual (§2.1.4) sets the Sallen-Key damping to ζ = 0.75 precisely "so that the
+global filter response exhibits a 1 % only undershoot" — the complex poles cannot produce −4 to −6 %.
+The mechanism is the **CSA main pole**: Rf·Cf = 5 µs (state1<31> = 0 in `CosmicTb_MX17.cfg`; the
+FEU 1 trigger-plane override `0x881F 0xD043` = 50 µs + 283 ns pins the register word order), which
+the PZC exists to cancel (§2.1.3) and evidently does not cancel completely. `shaper.py` now
+implements the manual topology (PZC real pole + ζ = 0.75 SK; reproduces the manual's 1 % as −1.12 %)
+times a residual high-pass `1 − β/(1 + sτ_f)`, τ_f = 5 µs. β (the un-cancelled fraction) is not in
+the datasheet → **scan/nuisance parameter like ρ_s**, default 0.75, `--pzc-residual`. Indicative:
+the measured −4 to −6 % depth maps to β ≈ 0.6–0.9 and the −30 % end-of-drift-ladder lobe at 700 V
+(run_71 reanalysis §3) independently to β ≈ 0.85–0.9 — two features, one parameter, consistent. At
+T14 the undershoot target selects β; the ladder-lobe shape and the late-window sag are then
+cross-checks, not fits. Side effects now in the model: ~1–2 % peak loss (β-dependent) and ∫h =
+(1−β)·∫h_nom, so long-window area budgets are no longer shaper-invariant.
 
 **P7 — the c1 = 0.23–0.28 target is weak.** `RAW_RUN71_REANALYSIS` §6 states c1 as a cascade-model β
 "is not a robust observable in any of the passes" and directs users to the library + charge budget
@@ -257,8 +328,34 @@ Production point (ρ_s 1 MΩ/sq, d_k 75 µm, nx 3120, ny 1024, 61 log times, dra
 |---|---|---|---|---|---|
 | on-strip (pad owned by X) | X | 0 0 0 **1.000** 0 0 0 | 0.870 | 0 0 0.006 **0.990** 0.004 0 0 | 0.366 |
 | | Y | 0 0 0.258 0.485 0.258 0 0 | **0.001** | 0.241 0.003 0.255 0.001 0.255 0.003 0.241 | 0.143 |
-| in-gap (pad owned by Y) | X | 0 0 0.243 0.515 0.243 0 0 | **0.001** | 0 0 0.004 **0.991** 0.005 0 0 | 0.365 |
-| | Y | 0 0 0 **1.000** 0 0 0 | 0.870 | 0.002 0.323 0.005 0.338 0.005 0.323 0.002 | 0.111 |
+| ~~in-gap (pad owned by Y)~~ | ~~X~~ | ~~0 0 0.243 0.515 0.243 0 0~~ | ~~**0.001**~~ | ~~0 0 0.004 **0.991** 0.005 0 0~~ | ~~0.365~~ |
+| | ~~Y~~ | ~~0 0 0 **1.000** 0 0 0~~ | ~~0.870~~ | ~~0.002 0.323 0.005 0.338 0.005 0.323 0.002~~ | ~~0.111~~ |
+
+⚠️ **The struck-through "in-gap" row was never in a gap** (audit 2026-08-07 A2, fixed by Fix 2).
+`nearest_column` selected the deposit by nearest pad centre in ABSOLUTE x, and the 800/780 µm
+beat advances the ESL phase by only 20 µm per pad, so both candidate pads near x = 15.6 mm sat
+~10 µm from a **strip centre**. The row above is a second ON-STRIP deposit differing from the
+first only in pad-ownership parity — which is exactly why its late X total (0.365) was
+indistinguishable from the on-strip row's (0.366). The G arrays themselves were never affected,
+and `tau_g_reinterpretation.py` selects by an explicit phase cut, so its "∞ in-gap" conclusion
+stands.
+
+`sharing_report` now selects by ESL phase (`column_nearest_phase`), pins both deposits to the
+same column parity so the pair differs only in phase, and prints σ_s(x₀) so an on-strip
+deposit cannot masquerade as a gap one again. Genuinely-in-gap pad centres exist only at
+columns 10–21; the pair is now column 35 (phase 10 µm, on strip) and column 15 (phase 410 µm,
+σ_s = 0). Indicative numbers from a coarse re-solve, showing the qualitative change the
+mislabelled row hid — **a gap deposit's charge cannot transport along a strip, so its owning
+view keeps its charge instead of draining away**:
+
+| deposit | X view total, prompt → late (10 µs) | Y view total, prompt → late |
+|---|---|---|
+| on-strip (col 35) | 0.882 → **0.366** | 0.004 → 0.143 |
+| in-gap (col 15) | 0.882 → **0.802** | 0.004 → 0.024 |
+
+Production numbers must come from a full-resolution re-run of `run_point` (desktop, ~6 min);
+until then treat the table above as indicative and `meta.sharing["in-gap"]` in all 12 shipped
+products as **mislabelled**.
 
 Read three things off it. (i) **Prompt charge division is essentially total**: the view owning the pad under the deposit takes 0.870, the other view takes 0.001 — a factor ~870. The checkerboard does not "share" between views at t=0, it assigns. (ii) **The other view is fed only by sheet transport**, rising from 0.001 to 0.11–0.14 by 10 µs, and it arrives spread over ±3 channels rather than concentrated — so cross-view charge is a *late, diffuse* component. (iii) **The owning view's own total falls** (0.870 → 0.366) as charge migrates outside the ±3 window; the drain-free sheet conserves charge globally (the all-channel total is time-independent at 0.665) but not locally.
 
@@ -307,10 +404,10 @@ Result: per (k_y, Bloch block) a linear ODE system `dV/dt = A·V + b·Θ(t)` of 
 
 **Validation (all must pass before S1 output is used):**
 - V1: set σ_s uniform (no gaps) → matches Riegler's closed-form uniform-layer solution (JINST 2016 eqns; also the Gaussian limit σ²(t)=2t/(ρ_s c′), c′=ε0(ε_r/d_k + 1/g)).
-- V2: single isolated strip, k_y only → matches 1D telegraph solution (Galan arXiv:1110.6640).
+- V2: single isolated strip, k_y only. **What the implementation actually tests** (its own docstring, corrected here 2026-08-07) is charge conservation and the convergence order — NOT the Galan closed form this line used to name. A genuine comparison against the 1D telegraph solution (Galan arXiv:1110.6640) is still to be written.
 - V3: charge conservation: Σ_n G_n(x0,y0,t) + charge remaining on sheet + mesh charge = 1 at all t; each G_n → its t→∞ electrostatic value.
 - V4 — REDEFINED 2026-08-07 (the original "drain tail within factor ~2 of τ_g, else revisit A1" compared incommensurable observables and correctly "failed"; that failure is documented in `design/report/s1_validation.txt` and resolved in §1): the drain-free comb-channel kernel, fitted with the rc_line toy model (Gaussian line diffusion × exp(−t/τ_g), ≤1.4 µs window), must yield an apparent τ_g of the measured order for on-strip deposits and a much slower/no decay for gap deposits. Passed at charge level (2.2–3.3 µs on-strip, ∞ in-gap; `response/validation/tau_g_reinterpretation.py`). Final closure at waveform level is T13b.
-- V5: mesh-as-plane check: perturbative estimate of weave ripple amplitude at z=0 < 1%.
+- V5: mesh-as-plane check: perturbative estimate of weave ripple amplitude at z=0 < 1%. **This is an analytic BOUND, not a test** — `v5_mesh_ripple.py` evaluates exp(−2πng/p) and compares it to the bar; nothing is checked against anything. Physically fine, but §0a and T5 used to describe it as "certified" and "still not run" respectively, and both were half right.
 - V6: W2 (exposed inter-pad gaps) shifts G_n by < few %.
 
 Numbers to expect (sanity): c′ ≈ 5×10⁻⁷ F/m²; sheet diffusivity D = 1/(ρ_s c′) ≈ 2.0 m²/s at 1 MΩ/sq → relaxation of a 130 µm feature in ~8 ns, of one 800 µm pitch in ~0.3 µs.
@@ -351,7 +448,9 @@ Gases: Ar/iso 95/5 dry AND +1% H2O (tables partly exist in `~/PycharmProjects/nT
 | 520 | 112 447 | 1.95 | 32.6 µm | 480 |
 | 530 | 156 731 | 1.66 | 32.4 µm | 320 |
 
-Gain rises by ×6.8 over 60 V — an e-folding every **31 V**, which is the normal slope for a 150 µm bulk MM. At the 490 V bench operating point the gain is ≈4.4×10⁴. θ ≈ 1.4–1.9 with no real trend; the non-monotonicity is statistics, since nev falls 1600 → 320 as the avalanche size cap bites at high V, and θ here is a moment estimator. If θ(V) is ever wanted as a physical trend rather than a per-point constant, the high-V points need more events.
+Gain rises by ×6.8 over 60 V — an e-folding every **31 V**, which is the normal slope for a 150 µm bulk MM. At the 490 V bench operating point the gain is ≈4.4×10⁴. θ ≈ 1.4–1.9 with no real trend; the non-monotonicity is statistics, since nev falls 1600 → 320 at high V and θ here is a moment estimator. If θ(V) is ever wanted as a physical trend rather than a per-point constant, the high-V points need more events.
+
+⚠️ **Correction 2026-08-07 (audit A7).** This paragraph used to attribute the falling nev to "the avalanche size cap biting at high V". **There is no cap** — `--max-avalanche` defaults to 0 (uncapped) and the falling nev is simply the deliberate per-voltage schedule in `mx17_aval_points.txt`. The real defect in this calibration is different and unfixed: `avalanche/collect.py:38` fits the Polya on `g[g > 0]`, i.e. CONDITIONAL on the avalanche surviving, the per-slice `survival` field present in each raw JSON is dropped by `reduce_file`/`merge`, and `digitize.py` then applies that conditional Polya to every mesh-surviving electron. Per-electron charge is therefore biased HIGH by 1/P(g>0), by an amount not recoverable from the shipped calib — it needs the raw slices on EOS (`response_sim/avalanche/raw/`, 19 GB, process on lxplus). This feeds the P2 saturation puzzle. Fix 7 in `design/report/AUDIT_FIXES_2026-08-07.md`.
 
 **The induced-current shapes were empty, and why (2026-08-07).** `i_elec` and `i_ion` came back identically zero in all 56 slices. Root cause: both `AvalancheMicroscopic` and `AvalancheMC` default to `m_useWeightingPotential = true`, i.e. they compute the induced current from the weighting **potential**, not the weighting field. `ComponentConstant` has no weighting potential until `SetWeightingPotential()` is called, and the campaign set only the weighting *field*. So `WeightingPotential()` returned 0 everywhere and every signal was zero — silently, with the avalanche and the ion drift both running normally, which is why gain, θ and σ₀ are unaffected and still trustworthy. Confirmed by direct test:
 
@@ -705,7 +804,7 @@ Note also that the *cluster* x range in that file spans −140 to +104 mm while 
 2. Sampling: 60 ns (bench, 32 samp) / 60 ns 64 samp (SPS config) with uniform-random trigger phase; ftst semantics as in data.
 3. Gain/ADC: charge→ADC scale from the manual's mV/fC + ADC full scale; leave one global scale factor free-but-recorded (this is the one place absolute calibration enters; it does not affect shapes/sharing).
 4. Noise: per-channel Gaussian σ from the det3 pedestal runs (raw fdf/decoded root at `~/x17/cosmic_bench/det3/mx17_det3_saturday_scan_6-27-26/*/raw_daq_data/MX17_pedestals_pedthr_260627_16H35_*` and the standalone 6-22 run) **plus** the common-mode component per 64-ch block (measure covariance from pedestal data; inject correlated noise; the analysis CNS step then removes most of it, as in data). Optional pink/coherent extras only if pedestal PSD demands.
-5. Saturation at 3550 ADC (clip, plus reproduce the repeated-constant pathology only if needed later). ZS: port `nTof_x17/mx_july_beam_qa/26_zs_sim_extract.py` (DREAM firmware ZS: `ZsTyp=1`, `ZsChkSmp=4`, N·σ thresholds); RAW mode = no ZS.
+5. Saturation: the ADC is 12-bit and clips at **0..4095**, which is what the code does and what the data reaches. (The "3550" this line used to give is not a clip at all — it is wft's *censoring threshold* on pedestal-subtracted W, `wft/model.py:57`. Code was right, plan was wrong; corrected 2026-08-07.) Plus the repeated-constant pathology only if needed later. ZS: port `nTof_x17/mx_july_beam_qa/26_zs_sim_extract.py` (DREAM firmware ZS: `ZsTyp=1`, **`ZsChkSmp=1`** — the code matches det3's own config; `ZsChkSmp=4` is the July-beam setting and was wrong here), N·σ thresholds; RAW mode = no ZS. If ZS is ever switched on, take `ZsChkSmp` from the run config rather than a constant, and first verify whether the firmware keeps pre-samples.
 6. Output in the exact `decoded_root` schema (§2) so `wft/io.py` reads simulation as if it were data.
 
 **Host:** laptop.
@@ -788,7 +887,7 @@ Use it via `source ~/PycharmProjects/nTof_x17/garfield_sim/setup_garfield.sh` �
 | T8 | Stage A schema upgrade — **DONE 2026-08-07** (`time`, `creator`, Meta tree with world→active-area transform) | geometry merge | laptop | §6 acceptance |
 | T9 | Stage B fast path — **RUNS END TO END 2026-08-07** on synthetic deposits (`response/digitizer/`, self-test below). ~~Remaining: the analytic ion term, real ClusterTree input, per-event throughput~~ — **all three done**: measured ion template (`ions.measured_longitudinal`), real Geant4 ClusterTree input, and a 5.8× induction speed-up that turned out to be pure memory layout (time axis last), ~30 ms/event | T5, T7 | laptop | digitizes 10³ events; energy/charge bookkeeping closes |
 | T10 | Certify the fast path — **DONE 2026-08-07** (`response/digitizer/test_lut_vs_solver.py`). The LUT is compared per channel against `kernels.charge_budget_y`/`charge_budget_x`, the solver's own indexing whose closed-form sum rule passes at 4.8e-07. **Worst residual 1e-4** over 6 source positions against a 2 % bar — the windowing, x-striding, log→uniform time resampling, G→current differentiation and absolute-column→channel-offset re-indexing all preserve the per-channel charge to 0.01 %. Time-grid adequacy separately certified against a 4× denser re-solve (`test_time_grid.py`, residual <0.5 %). Still open as originally scoped: the Garfield ComponentGrid slow path for Ψ at z>0, which is a *different* approximation (the ion's lateral shape), not the caching this certifies | T5, T9 | desktop | ✅ 1e-4 residual |
-| T11 | Stage C DREAM — **DONE 2026-08-07** (`response/dream/shaper.py`). Peaking time from the manual's Table 9 read as **5 %→100 %** (not 0→peak: a ~10 % difference in the shaping constant), code `(0xD023>>4)&0xF = 2` → 180 ns. Gain is NOT in register 1 — it is `state6/state7`, 2 bits per channel, `0xAAAA` = code 2 → 200 fC range into a fixed 2 V p-p output → **10 mV/fC**. Known limitation: CR-RC² stands in for a complex-pole Sallen-Key, so this model **cannot predict the measured −4 to −6 % undershoot** (P6) | T9 | laptop | ✅ |
+| T11 | Stage C DREAM — **DONE 2026-08-07** (`response/dream/shaper.py`). Peaking time from the manual's Table 9 read as **5 %→100 %** (not 0→peak: a ~10 % difference in the shaping constant), code `(0xD023>>4)&0xF = 2` → 180 ns. Gain is NOT in register 1 — it is `state6/state7`, 2 bits per channel, `0xAAAA` = code 2 → 200 fC range into a fixed 2 V p-p output → **10 mV/fC**. ~~Known limitation: CR-RC² stands in for a complex-pole Sallen-Key, so this model **cannot predict the measured −4 to −6 % undershoot** (P6)~~ **UPDATED 2026-08-07: undershoot mechanism found and implemented — residual CSA-pole (5 µs) high-pass, β scan parameter; see P6 (resolved)** | T9 | laptop | ✅ |
 | T12 | Stage C noise from det3 pedestals + ZS port — **DONE 2026-08-07** (`response/dream/noise.py`, `daq.py`). Noise is dominated by *coherent* common mode (83 ADC vs 10 ADC per-channel) and is strongly correlated sample-to-sample from the 180 ns shaping, so it is generated from the measured **power spectrum**, not an rms. `selftest()` round-trips at 3.5 % / 1.5 % / 0.043. Firmware `tpc` ZS implemented (ZsTyp=1, ZsChkSmp=1, CmOffset=256, 5 σ) but OFF by default — wft needs dense data and the det3 reference runs are themselves dense | T11 | laptop | ✅ round-trip matches data pedestals |
 | T13 | End-to-end: sim decoded_root through wft unchanged — **CHAIN CLOSES 2026-08-07**. `run.py --decoded-out` runs Geant4 ClusterTree → drift → mesh → avalanche → S1 induction → ion → DREAM → FEU → `sim_decoded_{07,08}.root`, and wft's own `FeuReader` reads it **unmodified**, recovering pedestal (346 vs 341) and noise (11.1 vs 10.4) and yielding 512×32 waveforms with ~6 channels over 5 σ per muon. ADC scale is derived, not fitted (20.48 ADC/fC); a 5 fC injection returns 98.0 ADC against 102.4 predicted. Remaining: run wft's *reconstruction* (not just io) to events.parquet | T8–T12 | laptop | ✅ wft io reads sim unchanged; reco pending |
 | **T13b** | **τ_g closure at waveform level**: run the *unmodified* nTof_x17 `rc_line_step1/2.py` fit machinery on simulated waveforms produced with `tau_drain_s=None`; the apparent τ_g must land in the measured 5.3–7.3 µs and be position-flat along the strip. Also look for the predicted two-component tail (gap-deposit charge barely decays — kept ~0.70 at 1.4 µs deep in a gap). Charge-level version already passes: `response/validation/tau_g_reinterpretation.py` | T13 | laptop | apparent τ_g within the measured band with NO drain in the model |
