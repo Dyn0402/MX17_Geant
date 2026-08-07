@@ -28,6 +28,7 @@ import numpy as np
 from ..common import constants as C
 from .clusters import ClusterFile
 from .digitize import Digitizer
+from ..dream.shaper import DreamShaper
 
 CALIB = "~/x17/response_sim/avalanche/aval_calib.json"
 DMAX = 3
@@ -58,8 +59,14 @@ def main():
     ap.add_argument("--kernel", required=True)
     ap.add_argument("--calib", default=CALIB)
     ap.add_argument("--max-events", type=int, default=0)
-    ap.add_argument("--n-samp", type=int, default=2000,
-                    help="1 ns samples; must cover drift time + kernel window")
+    ap.add_argument("--n-samp", type=int, default=3200,
+                    help="1 ns samples. Must cover drift (~766 ns) + kernel "
+                         "window (1000 ns) + the shaped tail (~12 tau = 1.2 us). "
+                         "2000 truncates once shaping is on.")
+    ap.add_argument("--no-shaper", action="store_true",
+                    help="stop at induced charge, before the DREAM front end")
+    ap.add_argument("--no-ions", action="store_true",
+                    help="electrons only (the pre-2026-08-07 behaviour)")
     ap.add_argument("--seed", type=int, default=5)
     ap.add_argument("--fixed-position", action="store_true",
                     help="do NOT randomise the impact point (see below)")
@@ -67,7 +74,9 @@ def main():
     a = ap.parse_args()
 
     cf = ClusterFile(a.clusters)
-    dig = Digitizer(a.kernel, os.path.expanduser(a.calib), seed=a.seed)
+    dig = Digitizer(a.kernel, os.path.expanduser(a.calib), seed=a.seed,
+                    with_ions=not a.no_ions)
+    shaper = None if a.no_shaper else DreamShaper()
     info = dig.describe()
 
     print("Stage B over a real ClusterTree\n")
@@ -80,7 +89,23 @@ def main():
     print(f"  gas       v_drift={info['gas']['v_um_per_ns']:.1f} µm/ns  "
           f"sigma_T(full gap)={info['gas']['sigma_T_um_full_gap']:.0f} µm")
     print(f"  avalanche gain={info['gain_mean']:.0f} sigma0={info['sigma0_um']:.1f} µm"
-          f"   transparency={info['mesh_transparency']} [{info['transparency_source']}]\n")
+          f"   transparency={info['mesh_transparency']} [{info['transparency_source']}]")
+    if info["with_ions"]:
+        io = info["ion"]
+        print(f"  ions      {io['f_ion']*100:.0f}% of the induced charge, "
+              f"flat over a {io['t_ion_transit_ns']:.0f} ns transit "
+              f"({io['t_ion_transit_ns_lo']:.0f}-{io['t_ion_transit_ns_hi']:.0f} "
+              f"for mu +-30%)")
+    else:
+        print("  ions      DISABLED (electrons only)")
+    if shaper:
+        sh = shaper.describe()
+        print(f"  DREAM     peaking {sh['t_peak_ns_5to100']:.0f} ns (5%->100%, "
+              f"code {sh['peaking_code']}), tau {sh['tau_ns']:.1f} ns, "
+              f"{sh['mV_per_fC']:.0f} mV/fC")
+    else:
+        print("  DREAM     DISABLED (charge level)")
+    print()
 
     # RANDOMISE THE IMPACT POINT unless explicitly told not to.
     #
@@ -117,6 +142,11 @@ def main():
         if len(x) == 0:
             continue
         cur = dig.induce(x, y, t, q, a.n_samp)
+        if shaper is not None:
+            # Shape each channel. The budget then integrates the SHAPED
+            # waveform, which is what the data analysis sees.
+            cur = {k: shaper.apply(v, dt_ns=dig.lut.dt * 1e9)
+                   for k, v in cur.items()}
         b = event_budget(cur, dig.lut.dt)
         if "X" in b:
             accX += np.array(b["X"]["share"]); nX += 1; totX.append(b["X"]["total"])
@@ -153,15 +183,18 @@ def main():
           f"          [measured: 0.49/0.51]")
     print(f"\n  impact point: "
           f"{'FIXED (pencil beam, on a pad boundary)' if a.fixed_position else 'randomised over the 31.2 mm superperiod'}")
-    print("\n  Charge level, electrons only: no ion tail, no DREAM shaping,")
-    print("  no ZS, no noise. Each of those moves these numbers.")
+    missing = [n for n, on in (("ion tail", info["with_ions"]),
+                               ("DREAM shaping", shaper is not None)) if not on]
+    missing += ["ZS", "noise"]
+    print(f"\n  still missing: {', '.join(missing)}")
 
     res = {"n_events": n_done, "d": ds,
            "share_X": accX.tolist(), "share_Y": accY.tolist(),
            "c1_X": float(c1X), "c1_Y": float(c1Y),
            "c2_X": float(c2X), "c2_Y": float(c2Y),
            "x_fraction": float(xfrac),
-           "digitizer": info, "clusters": ci}
+           "digitizer": info, "clusters": ci,
+           "shaper": shaper.describe() if shaper else None}
     if a.out:
         with open(a.out, "w") as f:
             json.dump(res, f, indent=1)

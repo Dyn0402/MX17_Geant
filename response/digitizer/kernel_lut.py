@@ -163,6 +163,56 @@ class CombKernelLUT:
                     / (self.y_X[1] - self.y_X[0])).astype(int),
             0, len(self.y_X) - 1)
 
+    def apply_ion_transit(self, f_electron, transit_ns):
+        """
+        Fold the ion transit into the stored kernels, ONCE.
+
+        Physics (plan §7 step 5, response/digitizer/ions.py): a pair born at
+        height z in the amplification gap splits its induced charge z/g to the
+        electron and 1 - z/g to the ion, and a Micromegas avalanche sits
+        microns off the anode, so the ions carry ~97 %. The ion delivers that
+        share not promptly but spread FLAT over its transit — a rectangle, not
+        a decaying tail.
+
+        Done here rather than per avalanche because every avalanche shares the
+        same shape, so this is one pass over the LUT instead of 150k
+        convolutions per file.
+
+        A rectangle convolution is a running mean, so cumsum gives it in O(N)
+        with no FFT and no scipy.
+
+        THE APPROXIMATION, stated again because it is easy to forget once the
+        number looks right: the ion keeps the SURFACE kernel's lateral shape.
+        The true Psi_n broadens as the ion climbs toward the mesh, so this
+        under-estimates ion lateral sharing. T10 (Garfield ComponentGrid over
+        the S1 time slices) is what replaces it.
+        """
+        L = max(1, int(round(transit_ns / (self.dt * 1e9))))
+        f_ion = 1.0 - f_electron
+
+        def smear(a):
+            # Chunk over the leading axes and stay in float32. Promoting the
+            # whole array to float64 for the cumsum tripled a 1.9 GB LUT and
+            # got the process OOM-killed on a 16 GB laptop; the running mean
+            # needs no extra precision here because the kernel is float32 to
+            # begin with.
+            flat = a.reshape(-1, a.shape[-1])
+            out = np.empty_like(flat)
+            step = max(1, int(4e6 // a.shape[-1]))
+            for i in range(0, len(flat), step):
+                blk = flat[i:i + step]
+                c = np.cumsum(blk, axis=-1)
+                run = np.empty_like(c)
+                run[:, :L] = c[:, :L] / np.arange(1, L + 1, dtype=np.float32)
+                run[:, L:] = (c[:, L:] - c[:, :-L]) / np.float32(L)
+                out[i:i + step] = f_electron * blk + f_ion * run
+            return out.reshape(a.shape)
+
+        self.I_Y = smear(self.I_Y)
+        self.I_X = smear(self.I_X)
+        self.ion_transit_ns = transit_ns
+        self.f_electron = f_electron
+
     def nbytes(self):
         return self.I_Y.nbytes + self.I_X.nbytes
 

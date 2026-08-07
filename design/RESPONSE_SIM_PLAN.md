@@ -319,6 +319,8 @@ Three things, in order of how much they should be believed.
 
 3. **The checkerboard shows up exactly where §3 said it would.** At z = 0.5 mm the X view holds 0.990 on a single channel while the Y view's d=0 holds 0.006 — the deposit's pad belongs to X, and the Y row through it owns no pad there, so its charge sits on d=±1 (0.387) instead. The two views only become comparable once diffusion is wide enough to reach both combs.
 
+**A trap in comparing the AREA budget once the front end is in (2026-08-07).** The ion smear and the DREAM shaper are both linear time-invariant filters applied *identically to every channel*, and for such a filter ∫(h⊛f) = ∫h·∫f. The integrated-charge ratio between channels is therefore **mathematically invariant** under them — switching shaping on cannot change the area budget over an infinite window. It appeared to (c1_X 0.201 → 0.146), and that was pure **window truncation**: the shaped tail runs ~12τ ≈ 1.2 µs past the last avalanche, and neighbour channels are fed later than the central one by resistive spreading, so a fixed window clips them harder. A control run at the identical window with shaping off returned exactly 0.201, as the invariance requires. Consequence: **the area budget is only comparable to data when integrated over the same window the DAQ uses** (32 samples × 60 ns = 1.92 µs), not an arbitrarily long one — and peak amplitude, which has no such invariance and *is* genuinely changed by shaping, is the more informative observable until the DAQ window is modelled in T12.
+
 Not yet included and each will move these numbers: the ion tail (electrons only so far), DREAM shaping, ZS, and noise.
 
 ### Track level, on real Geant4 tracks (2026-08-07)

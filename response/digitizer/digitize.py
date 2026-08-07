@@ -45,6 +45,7 @@ from ..common import constants as C
 from ..solver import kernels as K
 from .gas import DriftGas
 from .kernel_lut import CombKernelLUT
+from . import ions as ION
 
 # Bench operating point (plan §1, §5). Everything here is recorded per run.
 DEFAULT_DRIFT_V = 1000.0
@@ -93,7 +94,8 @@ class Digitizer:
     def __init__(self, kernel_path, calib_path, *, mesh_v=DEFAULT_MESH_V,
                  drift_v=DEFAULT_DRIFT_V, drift_gap_mm=DEFAULT_DRIFT_GAP_MM,
                  transparency=DEFAULT_TRANSPARENCY, v_scale=1.0,
-                 n_chan_side=4, seed=12345, packet=False, gas_table=None):
+                 n_chan_side=4, seed=12345, packet=False, gas_table=None,
+                 with_ions=True, z_aval_um=5.0, mu_ion=ION.MU_ION_CM2_VS):
         self.lut = CombKernelLUT(kernel_path)
         self.gas = (DriftGas(gas_table, v_scale=v_scale) if gas_table
                     else DriftGas(v_scale=v_scale))
@@ -110,6 +112,12 @@ class Digitizer:
         self.sigma0_um = self.calib["sigma0_um"]
         self.v_drift = float(np.ravel(
             self.gas.v_drift_um_ns(self.E_drift))[0])
+
+        self.with_ions = with_ions
+        self.ion = ION.describe(C.AMP_GAP_M, mesh_v, mu_ion, z_aval_um * 1e-6)
+        if with_ions:
+            self.lut.apply_ion_transit(self.ion["f_electron"],
+                                       self.ion["t_ion_transit_ns"])
 
     # ── the physics ──────────────────────────────────────────────────────────
 
@@ -260,6 +268,8 @@ class Digitizer:
             "sigma0_um": self.sigma0_um,
             "calib_voltage_V": self.calib_v,
             "field_model": self.calib.get("field_model"),
+            "with_ions": self.with_ions,
+            "ion": self.ion,
             "packet_mode": self.packet,
             "n_chan_side": self.n_side,
         }
