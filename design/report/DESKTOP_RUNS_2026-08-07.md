@@ -126,9 +126,15 @@ depth), and there the ny = 512 grid contributes 0.45 % — above the plan's own 
 the plan's stated rule, **production needs ny = 1024**. Cost is ~2× per point (26 → 52 s per
 Y kernel) and ~2× disk.
 
-**Not acted on yet, and here is the blocker:** a full 12-point grid at ny = 1024 needs ~27 GB
-and the desktop has 28 GB free on `/media/ucla`, 11 GB on `/`, 7 GB on `/media/dylan/data`.
-This wants either a disk decision or a one-point-at-a-time regeneration.
+**Acted on: the 12-point grid is running on lxplus condor**, cluster 13352202, writing to EOS
+`response_sim/s1_ny1024/` — the desktop could not hold it (28 GB free on `/media/ucla`
+against ~27 GB needed), EOS has 39 PB. Submission in `scripts/condor/`.
+
+**The ny = 512 grid is kept, not retired** (decision 2026-08-07). The two directories are not
+interchangeable and the difference is recorded in `scripts/condor/README.md`: `s1/` still
+carries the pre-Fix-2 mislabelled `meta.sharing["in-gap"]` block and the 0.45 % transverse
+grid systematic, so new work reads `s1_ny1024/`. The G arrays in `s1/` are otherwise sound —
+Fix 2 was a reporting bug, never a kernel one.
 
 ---
 

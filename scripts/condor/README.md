@@ -8,6 +8,23 @@ after the minimum realistic 150 µm transverse smear, against a 0.3 % bar.
 Output goes to EOS `response_sim/s1_ny1024/`, not AFS — a point is ~2.3 GB and
 the AFS work quota is 50 GB total.
 
+## BOTH grids are kept. Which one to use.
+
+`response_sim/s1/` (ny = 512) is **not** retired — decision 2026-08-07. Two
+directories now exist and they are not interchangeable:
+
+| | `s1/` | `s1_ny1024/` |
+|---|---|---|
+| ny | 512 (97.5 µm) | 1024 (48.8 µm) |
+| prompt pad-edge error after 150 µm smear | 0.452 % | reference |
+| `meta.sharing["in-gap"]` | **MISLABELLED** (pre-Fix 2: selected by absolute x, so it is a second *on-strip* deposit) | correct, phase-selected |
+| use for | reproducing pre-2026-08-07 results | **everything new** |
+
+So: read the sharing block ONLY from `s1_ny1024/`, and treat any `s1/` number
+that depends on the transverse grid as carrying a ~0.45 % systematic at the
+shallowest depths. The G arrays in `s1/` are otherwise fine — the Fix 2 bug was
+in the *reporting*, never in the kernels.
+
 ## Connecting
 
 `ssh lxplus` works; `ssh dneff@lxplus.cern.ch` does NOT. The alias in
