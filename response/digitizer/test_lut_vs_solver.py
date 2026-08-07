@@ -84,22 +84,41 @@ def certify(path, dmax=3, n_probe=6, seed=3):
           f"(NOT sum_rule_expect = {meta['sum_rule_expect']:.3f}: that is the "
           f"tiling-pad closed form)\n")
 
+    # THE SOURCE POSITION MUST EXIST IN BOTH GRIDS. The LUT keeps every
+    # x_stride-th x sample, so pad centres generally fall BETWEEN LUT samples —
+    # evaluating the reference at a pad centre and the LUT at the nearest
+    # sample compares two different source positions, up to 20 um apart. That
+    # is not a small error here: the kernel's dependence on sub-pad position is
+    # strong (the d=0 charge ranges 0.22-0.35 across columns), and a first
+    # version of this test read 59 % "residual" that was entirely this.
+    # lut.x == xfull[::x_stride], so every LUT sample is exactly a full-res
+    # sample: pick sources FROM the LUT grid and index the reference at
+    # x_stride times that index.
+    stride = int(round((lut.x[1] - lut.x[0]) / (sy.x[1] - sy.x[0])))
+    assert np.allclose(lut.x, sy.x[::stride][:len(lut.x)]), \
+        "LUT x grid is not a subsample of the product's x grid"
+
     rng = np.random.default_rng(seed)
     worst = 0.0
     ok = True
 
     for _ in range(n_probe):
         c0 = int(rng.integers(0, C.N_PAD_PER_SUPER))
-        x0 = float(K.pad_x(c0))
+        # nearest LUT sample to this pad centre, then the identical full-res x
+        ix = int(np.argmin(np.abs(lut.x - float(K.pad_x(c0)))))
+        x0 = float(lut.x[ix])
+        ix_ref = ix * stride
+        # the reference's own channel assignment, at that exact x
+        c0 = K.nearest_column(x0)
         par = 0                                  # deposit on an even row
 
         ref_y = K.charge_budget_y(sy, gy, x0, dmax=dmax, row0_parity=par)
         ref_x = K.charge_budget_x(sx, gx, x0, dmax=dmax, y0_m=0.0)
+        assert int(np.argmin(np.abs(sy.x - np.mod(x0, sy.lx)))) == ix_ref, \
+            "reference did not land on the same x sample as the LUT"
 
         # --- the same quantities out of the LUT ---------------------------
         # LUT holds CURRENT on a uniform grid, so charge = cumulative integral.
-        ix = int(np.argmin(np.abs(lut.x - np.mod(x0, lut.x[-1] - lut.x[0]
-                                                 + (lut.x[1] - lut.x[0])))))
         got_y, got_x = {}, {}
         for dd in range(-dmax, dmax + 1):
             # Y channel d rows away: its kernel parity is (par+d)%2 and the
