@@ -41,6 +41,13 @@ struct SimConfig {
     // this CSV file (two columns: energy_MeV, probability) instead of using
     // the fixed 'energy' value above.
     std::string spectrum_file;
+    // Transverse beam spread [mm]. 0 = a pencil beam at (0,0), which is the
+    // historical default but is a TRAP for any position-dependent readout
+    // study: 512 pads is even, so the active-area centre sits exactly on a pad
+    // BOUNDARY and every primary lands where the "which channel is biggest"
+    // assignment is a coin flip. For response-chain work set this to at least
+    // the 31.2 mm ESL/pad superperiod so every strip phase is sampled.
+    double beam_spread_mm = 0.0;
 
     // ── LS cell wall parameters (from Full_Geant geometry) ───────────────
     double cfrpThickness_mm  = 2.0;    // Structural CFRP wall [mm]

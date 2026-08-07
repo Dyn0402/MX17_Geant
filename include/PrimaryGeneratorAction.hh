@@ -24,6 +24,8 @@ private:
     double SampleSpectrum() const;
 
     std::unique_ptr<G4ParticleGun> fGun;
+    G4ThreeVector fGunPos;                 // nominal gun position
+    double        fBeamSpread = 0.0;       // transverse spread [G4 length]
     const SimConfig&               fConfig;
     const DetectorConstruction*    fDetCon;
 

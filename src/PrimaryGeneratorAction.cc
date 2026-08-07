@@ -63,7 +63,9 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(const SimConfig& cfg,
     if (useDetZ && fDetCon)
         gunZ = fDetCon->GetHe3GasCenterZ();
 
-    fGun->SetParticlePosition(G4ThreeVector(0, 0, gunZ));
+    fGunPos = G4ThreeVector(0, 0, gunZ);
+    fBeamSpread = cfg.beam_spread_mm * mm;
+    fGun->SetParticlePosition(fGunPos);
 
     // Load Sr-90/Y-90 spectrum if requested
     if (!cfg.spectrum_file.empty()) {
@@ -125,6 +127,15 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* event) {
     if (fUseSpectrum) {
         double E = SampleSpectrum();
         fGun->SetParticleEnergy(E * MeV);
+    }
+    // Spread the impact point when asked. Uniform over a square, centred on
+    // the beam axis: for the response chain what matters is sampling every
+    // ESL-vs-pad phase and every sub-pitch position uniformly, which a
+    // uniform square of at least one 31.2 mm superperiod does exactly.
+    if (fBeamSpread > 0.0) {
+        const G4double dx = (G4UniformRand() - 0.5) * fBeamSpread;
+        const G4double dy = (G4UniformRand() - 0.5) * fBeamSpread;
+        fGun->SetParticlePosition(fGunPos + G4ThreeVector(dx, dy, 0.));
     }
     fGun->GeneratePrimaryVertex(event);
 }
