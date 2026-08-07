@@ -139,6 +139,8 @@ class Digitizer:
 
         p = self.calib["polya"]
         self.gbar, self.theta = p["gain_mean"], p["theta"]
+        # P(g>0) from the S3 calib; absent in schema <= 2, where it is 1.0.
+        self.aval_survival = float(p.get("survival", 1.0))
         self.sigma0_um = self.calib["sigma0_um"]
         self.v_drift = float(np.ravel(
             self.gas.v_drift_um_ns(self.E_drift))[0])
@@ -209,10 +211,22 @@ class Digitizer:
         # step 2, audit A6). Combining them keeps the statistics binomial and
         # the truth accounting sees a single loss channel with two named
         # factors, instead of two Bernoullis whose product is the same thing
-        # with more code. p_surv = eps_mesh * exp(-eta z); with a table that
-        # has no eta column (the dry production table) the second factor is
-        # exactly 1 and results are bit-identical at fixed seed.
-        p_surv = self.transparency * self.gas.survival(self.E_drift, zs)
+        # with more code. p_surv = eps_mesh * exp(-eta z) * P(avalanche > 0);
+        # with a table that has no eta column (the dry production table) the
+        # second factor is exactly 1 and results are bit-identical at fixed seed.
+        #
+        # The THIRD factor closes the conditional-Polya decomposition (audit
+        # A7): `polya_sample` draws from P(g | g > 0), so seeds that produce no
+        # avalanche at all must be removed here or the per-electron charge is
+        # high by 1/P(g>0). Folding it into the SAME thinning rather than adding
+        # a second Bernoulli keeps the statistics binomial and consumes no extra
+        # randoms, so a calib with survival = 1 is bit-identical. Measured over
+        # all 56 S3 raw slices, survival IS 1.0 at every voltage (0 of 6400
+        # seeds failed to multiply) — design/report/DESKTOP_RUNS_2026-08-07.md —
+        # so this is exact bookkeeping today, not a correction. A v2 calib has
+        # no `survival` field, hence the 1.0 default.
+        p_surv = (self.transparency * self.gas.survival(self.E_drift, zs)
+                  * self.aval_survival)
         if self.packet:
             surv = self.rng.binomial(n_e, p_surv).astype(float)
         else:
@@ -346,6 +360,10 @@ class Digitizer:
             "mesh_transparency": self.transparency,
             "transparency_source": "T6 measured (2026-08-07), bench ratio 98",
             "gain_mean": self.gbar, "polya_theta": self.theta,
+            "aval_survival": self.aval_survival,
+            "aval_survival_source": (
+                "S3 calib" if "survival" in self.calib.get("polya", {})
+                else "absent from calib (schema <= 2), assumed 1.0"),
             "sigma0_um": self.sigma0_um,
             "calib_voltage_V": self.calib_v,
             "field_model": self.calib.get("field_model"),

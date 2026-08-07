@@ -141,18 +141,36 @@ from the shipped calib".
 The first two are true. **The third makes no difference, because P(g>0) = 1.** Streamed from
 EOS (`xrdcp`, ~264 MB per slice, parsed and deleted one at a time):
 
-| V | survival | seeds | zero-gain seeds |
-|---|---|---|---|
-| 470 | 1.0 | 1600 | **0** |
-| 480 | 1.0 | 1360 | **0** |
-| 490 | 1.0 | 1120 | **0** |
-| 500–530 | *sweep still running at time of writing* | | |
+**Complete: all 56 slices, 0 download failures** (`design/report/aval_survival_2026-08-07.json`):
 
-Not one seed electron out of 4080 failed to multiply, at the three LOWEST voltages — and
-survival can only rise with field. So `survival × mean(conditional Polya)` and the direct
-mean over all seeds are the same number, the two routes the acceptance asks to compare agree
-trivially, and the shipped calib is unbiased. **Carrying `survival` into a v3 calib is still
-worth doing as bookkeeping, but it will not move the P2 saturation fraction.**
+| V | survival | seeds | zero-gain seeds | mean gain |
+|---|---|---|---|---|
+| 470 | **1.0000** | 1600 | 0 | 23 107 |
+| 480 | **1.0000** | 1360 | 0 | 31 387 |
+| 490 | **1.0000** | 1120 | 0 | 44 472 |
+| 500 | **1.0000** | 880 | 0 | 60 309 |
+| 510 | **1.0000** | 640 | 0 | 81 645 |
+| 520 | **1.0000** | 480 | 0 | 112 447 |
+| 530 | **1.0000** | 320 | 0 | 156 731 |
+| **total** | | **6400** | **0** | |
+
+Not one seed electron in 6400 failed to multiply, at any voltage. So
+`survival × E[g | g>0]` and the direct mean over all seeds are the same number — the two
+routes the acceptance asks to compare agree identically, not approximately — and the shipped
+calib was never biased. **A7's 1/P(g>0) correction is exactly 1, and this does not move the
+P2 saturation fraction.**
+
+Two independent consistency checks fall out of the same numbers: the gain at the 490 V bench
+point is 4.45 × 10⁴, matching plan §5's "≈4.4 × 10⁴"; and gain rises ×6.78 over the 60 V
+span, an e-folding every 31.3 V, against §5's "×6.8 over 60 V, e-folding every 31 V".
+
+Implemented anyway as bookkeeping, because "it happens to be 1 here" and "it is 1 by
+construction" are different statements: `collect.py` now carries `survival`, its binomial
+error and the unconditional mean into an `aval_calib/3` calib and **asserts the
+decomposition identity** at merge time; `digitize.py` folds it into the same single thinning
+as mesh transparency and attachment, so a calib with survival = 1 is bit-identical (verified:
+same 1770 survivors from the same seed) and a future non-unit value cannot be silently
+ignored.
 
 Also confirmed from the raw config blocks: `"max_avalanche": 0` — the "avalanche size cap"
 of plan §5 does not exist, exactly as the audit said.

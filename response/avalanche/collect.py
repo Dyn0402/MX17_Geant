@@ -33,17 +33,42 @@ def polya_fit(gains):
     exactly  var/mean^2 = 1/(1+theta).  That is a moment estimator, not a
     likelihood fit — it is unbiased enough for a calibration constant and it
     cannot fail to converge, which matters in an unattended pipeline.
+
+    THE FIT IS CONDITIONAL ON SURVIVAL (`g > 0`), and that conditioning is now
+    carried explicitly rather than silently dropped — audit A7. The digitizer
+    applies this Polya to every mesh-surviving electron, so if some seeds
+    produced no avalanche at all the per-electron charge would be biased high
+    by 1/P(g>0). `survival` records P(g>0) so the decomposition is closed:
+
+        E[g]  =  survival * E[g | g > 0]
+
+    MEASURED 2026-08-07 over all 56 raw slices (all 7 voltages, 6400 seed
+    electrons): survival is EXACTLY 1.0 everywhere — not one seed failed to
+    multiply — so the conditional Polya IS the unconditional one and the
+    shipped calib was never biased. The field is kept because "it happens to be
+    1 here" and "it is 1 by construction" are different statements, and only
+    the first is true.
     """
     g = np.asarray(gains, dtype=float)
+    n_all = len(g)
     g = g[g > 0]
     if len(g) < 10:
         return None
     mean = g.mean()
     rel_var = g.var(ddof=1) / mean ** 2
     theta = 1.0 / rel_var - 1.0
+    surv = len(g) / n_all if n_all else float("nan")
     return {"gain_mean": float(mean), "theta": float(theta),
             "rel_var": float(rel_var), "n": int(len(g)),
-            "gain_median": float(np.median(g))}
+            "gain_median": float(np.median(g)),
+            # P(g>0) and its binomial error, and the UNCONDITIONAL mean the
+            # digitizer actually needs. The two routes must agree by identity;
+            # asserted in merge().
+            "survival": float(surv),
+            "survival_err": float(np.sqrt(max(surv * (1 - surv), 0.0) / n_all))
+            if n_all else float("nan"),
+            "n_seeds": int(n_all),
+            "gain_mean_uncond": float(surv * mean)}
 
 
 Z_BINS, Z_RANGE = 60, (0.0, 150.0)
@@ -124,6 +149,19 @@ def merge(slices):
     i_el = sum(s["i_elec"] * s["nev"] for s in slices)
     i_ion = sum(s["i_ion"] * s["nev"] for s in slices)
 
+    # THE ACCEPTANCE CHECK (audit A7), asserted here where both routes to the
+    # mean charge per drifted electron are in scope:
+    #     survival * mean(conditional Polya)  ==  mean over ALL seeds incl zeros
+    # It is an identity, so any disagreement is an accounting bug, not physics.
+    pol = polya_fit(gains)
+    if pol is not None:
+        direct = float(np.mean(np.asarray(gains, dtype=float)))
+        via = pol["gain_mean_uncond"]
+        if abs(via - direct) > 1e-6 * max(abs(direct), 1.0):
+            raise AssertionError(
+                f"survival decomposition broken: survival*E[g|g>0] = {via:.6g} "
+                f"but the direct mean over all seeds is {direct:.6g}")
+
     r_mean, r_std = _pooled([s["r"] for s in slices])
     t_mean, t_std = _pooled([s["t"] for s in slices])
     n_r = sum(s["r"][0] for s in slices)
@@ -132,7 +170,7 @@ def merge(slices):
 
     return {
         "n_slices": len(slices), "nev_total": nev,
-        "polya": polya_fit(gains),
+        "polya": pol,
         # sigma0 is the RMS radius sqrt(<r^2>), not the spread about the mean
         "sigma0_um": float(np.sqrt(s_r2 / n_r)) if n_r else None,
         "sigma0_rms_um": float(r_std) if r_std is not None else None,
@@ -169,11 +207,14 @@ def main():
         p = m["polya"]
         print(f"  {key:<44s} nev={m['nev_total']:5d}  "
               f"gain={p['gain_mean']:9.1f}  theta={p['theta']:5.2f}  "
+              f"surv={p['survival']:.4f}+-{p['survival_err']:.4f}  "
               f"sigma0={m['sigma0_um']:.1f} µm")
         calib[key] = m
 
-    out = a.out or os.path.join(a.indir, "aval_calib.json")
-    json.dump({"schema": "aval_calib/1", "points": calib}, open(out, "w"))
+    out = a.out or os.path.join(a.indir, "aval_calib_v3.json")
+    # v3: same content as v2 plus the survival block (audit A7). Bumped so a
+    # consumer can require it rather than discover its absence at runtime.
+    json.dump({"schema": "aval_calib/3", "points": calib}, open(out, "w"))
     print(f"wrote {out}")
 
     # ── figures ──────────────────────────────────────────────────────────────
