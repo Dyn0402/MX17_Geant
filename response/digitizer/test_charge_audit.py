@@ -89,8 +89,11 @@ def main():
             continue
         ratio = float(np.mean(got / want))
         leak = 1.0 - ratio
-        sig = dig.gas.sigma_T_um(dig.E_drift, z_mm) if hasattr(
-            dig.gas, "sigma_T_um") else float("nan")
+        # DriftGas returns arrays for array-like fields; take a scalar.
+        try:
+            sig = float(np.ravel(dig.gas.sigma_T_um(dig.E_drift, z_mm))[0])
+        except Exception:
+            sig = float("nan")
         good = leak <= TOL_LEAK
         ok &= good
         print(f"  {z_mm:7.1f} {sig:13.0f} {ratio:19.4f} {leak:8.2%}  "
