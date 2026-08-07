@@ -331,9 +331,12 @@ class WeightingSolver:
                 # u = C^1/2 v0, propagate in the eigenbasis, come back
                 u0 = np.sqrt(Cvec) * v0
                 coef = Q.conj().T @ u0
-                for it, t in enumerate(times):
-                    u = Q @ (np.exp(-w * t) * coef)
-                    out_hat[it, iy, idx] = u / np.sqrt(Cvec)
+                # All requested times at once: exp(-w_a t_k) is a (nb, nt)
+                # outer product, so the whole propagation is one matmul. Same
+                # arithmetic as the per-time loop, ~50x less python overhead,
+                # which matters once nt = 61 and ny = 512.
+                u = Q @ (np.exp(-np.outer(w, times)) * coef[:, None])
+                out_hat[:, iy, idx] = (u / np.sqrt(Cvec)[:, None]).T
             if progress and iy % 128 == 0:
                 print(f"  ky {iy}/{self.ny}", flush=True)
 
