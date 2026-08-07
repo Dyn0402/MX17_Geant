@@ -150,6 +150,11 @@ def main():
                          "since 2026-08-07, was 1000) + the shaped tail "
                          "(~12 tau = 1.2 us) — so 4500. The old 3200 default "
                          "was sized for the 1000 ns kernel and truncates now.")
+    ap.add_argument("--kernel-t-max", type=float, default=None,
+                    help="override the LUT time window [ns] "
+                         "(kernel_lut.T_MAX_NS_DEFAULT = 3000). Used to record "
+                         "the audit-A1 before/after and for the SPS 64-sample "
+                         "frame, which wants 4200.")
     ap.add_argument("--no-shaper", action="store_true",
                     help="stop at induced charge, before the DREAM front end")
     ap.add_argument("--pzc-residual", type=float, default=0.75,
@@ -202,7 +207,8 @@ def main():
 
     cf = ClusterFile(a.clusters)
     dig = Digitizer(a.kernel, os.path.expanduser(a.calib), seed=a.seed,
-                    with_ions=not a.no_ions, ion_model=a.ion_model)
+                    with_ions=not a.no_ions, ion_model=a.ion_model,
+                    kernel_t_max_ns=a.kernel_t_max)
     shaper = None if a.no_shaper else DreamShaper(
         filter_model=a.filter_model, pzc_residual=a.pzc_residual)
     info = dig.describe()
