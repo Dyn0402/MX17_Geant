@@ -1,4 +1,24 @@
 ==========================================================================
+!! SUPERSEDED IN PART — read this first (2026-08-07) !!
+
+This is the log of the 2026-08-06 run, kept as the record of it. Its V1, V1b,
+V2, V3 and V4b results stand. Its V4 section does NOT: the "A1 REFUTED" verdict
+at the bottom compared incommensurable quantities. The measured tau_g of
+5.3-7.3 us is not a drain measurement at all — it is the decay of the Y-view
+kernel relative to X beyond a Gaussian toy model, fitted on a <=1.4 us window
+where any decay common to both views cancels by construction and an ms-scale
+drain is invisible.
+
+A1 (ESL strips contacting copper bus at both y-ends and nowhere between) is
+CONFIRMED hardware, and a drain-free kernel reproduces the apparent tau_g.
+See design/RESPONSE_SIM_PLAN.md §1 and §3, and
+response/validation/tau_g_reinterpretation.py. Production default is
+tau_drain_s=None.
+
+V4 has since been redefined (plan §3) and passes at charge level.
+==========================================================================
+
+==========================================================================
 S1 weighting-potential solver — acceptance tests
 gap 150 µm (confirmed) | ESL 550/250 µm on 800 µm | pads 780 µm | superperiod 31.2 mm
 ==========================================================================
