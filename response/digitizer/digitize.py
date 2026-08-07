@@ -50,9 +50,13 @@ from .kernel_lut import CombKernelLUT
 DEFAULT_DRIFT_V = 1000.0
 DEFAULT_DRIFT_GAP_MM = 30.0
 DEFAULT_MESH_V = 490.0
-# Mesh electron transparency. T6 will replace this with a measured curve; until
-# then it is an explicit input, NOT a hidden constant.
-DEFAULT_TRANSPARENCY = 0.95
+# Mesh electron transparency — MEASURED, T6 (response/meshcell/mesh_transparency.C,
+# 2026-08-07). At the bench point (E_drift 333 V/cm over the 30 mm gap against
+# 32.7 kV/cm in the 150 um amplification gap, ratio 98) the woven-mesh cell gives
+# 0.873. The curve is remarkably flat: 0.854-0.876 across field ratios 33-653,
+# because even the lowest ratio here is far above the ~10-20 where transparency
+# starts to collapse. Superseded the 0.95 that was assumed before T6 ran.
+DEFAULT_TRANSPARENCY = 0.873
 
 
 def load_calib(path, mesh_v):
@@ -225,7 +229,7 @@ class Digitizer:
             "gas": self.gas.describe(self.E_drift, self.drift_gap_mm),
             "E_drift_Vcm": self.E_drift,
             "mesh_transparency": self.transparency,
-            "transparency_source": "ASSUMED (T6 pending)",
+            "transparency_source": "T6 measured (2026-08-07), bench ratio 98",
             "gain_mean": self.gbar, "polya_theta": self.theta,
             "sigma0_um": self.sigma0_um,
             "calib_voltage_V": self.calib_v,
