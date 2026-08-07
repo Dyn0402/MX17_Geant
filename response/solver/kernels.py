@@ -360,14 +360,23 @@ def sharing_report(sy, gy, sx, gx, times, verbose=True):
         rec = {"x0_m": x0, "col": c0, "pad_owner": owner,
                "esl_phase_um": float(np.mod(x0, C.ESL_PITCH_M) * 1e6)}
         for tag, b in (("X", bx), ("Y", by)):
-            q = {d: np.asarray(b[d], dtype=float) for d in b}
-            norm = max(q[d][0] for d in q)          # the prompt peak over d
+            ds = list(range(-dmax, dmax + 1))
+            q = np.array([b[d] for d in ds])            # (nd, nt), absolute charge
+            # Normalise per TIME SLICE, by that view's total over the window.
+            # Not by the d=0 or the prompt peak: with a checkerboard the peak
+            # channel alternates with d and can be near zero at t=0, and
+            # dividing by it turns an ordinary kernel into ratios of 20-100.
+            tot = q.sum(axis=0)
+            share = q / np.where(np.abs(tot) > 1e-30, tot, np.nan)
             rec[tag] = {
-                "d": list(range(-dmax, dmax + 1)),
-                "prompt": [float(q[d][0] / norm) for d in range(-dmax, dmax + 1)],
-                "late": [float(q[d][-1] / norm) for d in range(-dmax, dmax + 1)],
-                "peak_prompt_q": float(norm),
-                "tau_1e_s": _tau_1e(times, q[1] / max(abs(q[1]).max(), 1e-30)),
+                "d": ds,
+                "share_prompt": [float(v) for v in share[:, 0]],
+                "share_late": [float(v) for v in share[:, -1]],
+                "q_prompt": [float(v) for v in q[:, 0]],
+                "q_late": [float(v) for v in q[:, -1]],
+                "view_total_prompt": float(tot[0]),
+                "view_total_late": float(tot[-1]),
+                "tau_1e_s": _tau_1e(times, q[ds.index(1)]),
             }
         out[name] = rec
 
@@ -377,12 +386,13 @@ def sharing_report(sy, gy, sx, gx, times, verbose=True):
                   f"pad owned by the {owner} view")
             for tag in ("X", "Y"):
                 r = rec[tag]
-                bp = " ".join(f"{v:6.3f}" for v in r["prompt"])
-                bl = " ".join(f"{v:6.3f}" for v in r["late"])
+                bp = " ".join(f"{v:6.3f}" for v in r["share_prompt"])
+                bl = " ".join(f"{v:6.3f}" for v in r["share_late"])
                 tau = r["tau_1e_s"]
-                print(f"       {tag}  d=-3..3  prompt {bp}")
-                print(f"       {' '*len(tag)}          late {bl}"
-                      f"   tau(1/e) "
+                print(f"       {tag}  d=-3..3  prompt {bp}   "
+                      f"(view total {r['view_total_prompt']:.4f})")
+                print(f"       {' '*len(tag)}          late {bl}   "
+                      f"(view total {r['view_total_late']:.4f})   tau(1/e) "
                       f"{'n/a' if np.isnan(tau) else f'{tau*1e9:.0f} ns'}")
     return out
 
