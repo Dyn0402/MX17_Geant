@@ -133,17 +133,22 @@ Read three things off it. (i) **Prompt charge division is essentially total**: t
 
 **ρ_s scan, 2026-08-07 (d_k 75 µm, four points, desktop).** The position-independent quantities are exactly ρ_s-independent, as they must be: the all-channel total (0.6650), the 0.500/0.500 prompt balance, and the sum rule (passes at 4.6–5.1×10⁻⁷ at every point) are all fixed by the k=0 mode and by symmetry, not by transport. The ρ_s dependence is entirely in the *timing*, and it is clean:
 
-| ρ_s [MΩ/sq] | τ(1/e) X | τ(1/e) Y | Y/X | Y-view charge still within ±3 at 10 µs |
-|---|---|---|---|---|
-| 0.5 | 19 ns | 24 ns | 1.26 | 0.103 |
-| 1.0 | 42 ns | 42 ns | 1.00 | 0.143 |
-| 2.0 | 76 ns | 92 ns | 1.21 | 0.194 |
-| 5.0 | 202 ns | 245 ns | 1.21 | 0.275 |
+⚠️ **A first version of this section quoted a `τ(1/e)` per view and concluded that the measured τ sits "at the top of the scanned range, nearest 5 MΩ/sq", recommending the scan be extended above 5. That was wrong and is withdrawn.** The estimator — time for the d=+1 neighbour to cover 1−1/e of the way from its prompt value to its maximum — is unsound whenever `tau_drain_s=None`, because a charge-conserving sheet never saturates: the "maximum" is just the value at the 10 µs window edge, so the normalisation is set by where the window was cut. It moved τ_X from 42 ns to 1169 ns on a d_k change that can shift real timescales by at most 1.44. See `response/solver/spread.py`.
 
-τ scales linearly in ρ_s, exactly as D = 1/(ρ_s c′) requires — a free check on the solver. Two things to take from it:
+**The sound measurement.** Charge on the sheet spreads diffusively, so the induced-charge profile obeys σ²(t) = σ_p² + 2Dt, with σ_p the prompt electrostatic width before the sheet conducts at all. Both terms come from moments of the kernel — no normalisation, no saturation, no window choice:
 
-- **The measured τ_X ≈ 230 ns / τ_Y ≈ 410 ns sit at the top of the scanned range**, nearest ρ_s ≈ 5 MΩ/sq, and above every lower point by a wide margin. This is the first evidence of any kind that bears on §12 item 1, and it points to the *high* end — the opposite of the pressure the old (mistaken) τ_g-as-drain reading was applying. Treat it as indicative, not as a measurement: the estimator here is the 1/e rise of a point-charge charge-level kernel, and the data number is a fit to shaped waveforms with 180 ns peaking. It is a reason to extend the scan above 5 MΩ/sq when T9 lands, not a reason to pin ρ_s now.
-- **The sign of the X/Y asymmetry comes out right from geometry alone** — Y spreading is the slower one (Y/X ≈ 1.2) — which is the §9 headline the model was supposed to reproduce without tuning. The *size* is not right yet (data Y/X ≈ 1.78), but with a mismatched estimator that gap is not yet meaningful.
+| ρ_s [MΩ/sq] | σ_p (d_k 75) | D fit | D exact | t(σ = one pad pitch), d_k 75 | d_k 50 |
+|---|---|---|---|---|---|
+| 0.5 | 222.6 µm | 3.712 | 4.235 | **75 ns** | 105 ns |
+| 1.0 | 222.4 µm | 1.856 | 2.118 | **151 ns** | 211 ns |
+| 2.0 | 221.8 µm | 0.928 | 1.059 | **301 ns** | 422 ns |
+| 5.0 | 220.4 µm | 0.372 | 0.424 | **753 ns** | 1055 ns |
+
+Two free validations fall out. σ_p is flat to <1 % across a factor 10 in ρ_s (it is a prompt geometric width, so it must be) while correctly *depending* on d_k (222 µm at 75 µm kapton, 212 µm at 50 µm — thicker kapton lets the image spread further). And D_fit/D_exact = 0.89 ± 0.02, flat to 1.7 % over that same factor 10 — the solver reproduces the 1/ρ_s law without being told it. The ~10 % deficit is expected rather than an error: D_exact uses c′ = C(k→0), while a profile of finite width samples k > 0 where C(k) > c′, hence slower effective diffusion.
+
+**What this says about ρ_s.** Taking the measured τ_X ≈ 230 ns / τ_Y ≈ 410 ns as the time to spread of order one pad pitch puts ρ_s at roughly **1.5–2.7 MΩ/sq** (d_k 75) or 1.1–2.0 (d_k 50) — the **middle of the existing scan**. The scanned range 0.5–5 MΩ/sq already brackets the data comfortably and does **not** need extending. Still indicative rather than a measurement, for the same reason as before: the data number is a fit to shaped waveforms with 180 ns peaking, and the legitimate comparison is T13b/T14.
+
+The X/Y asymmetry cannot be read off this table at all — σ_y here measures spreading *along* the strips, which is the Y-sharing direction only. Getting the §9 X-vs-Y asymmetry requires the x-direction profile, where transport is blocked by the inter-strip gaps; that is a T9 observable.
 
 Caveat, and it matters for reading any of the above against §9: these are **point-charge, charge-level** kernels. A real avalanche has transverse extent and the electrons arrive with diffusion spread, both comparable to the pad pitch, so the "all on one channel" prompt result will be substantially smeared before it reaches a waveform. The τ(1/e) values the run prints (7–42 ns) are likewise *not* comparable to the measured τ_X ≈ 230 ns / τ_Y ≈ 410 ns, which come from fits to shaped waveforms with a 180 ns peaking time. Both comparisons become legitimate only at T9/T11.
 
@@ -370,7 +375,7 @@ Use it via `source ~/PycharmProjects/nTof_x17/garfield_sim/setup_garfield.sh` �
 **These are NOT being sent to anyone and will likely never be answered. They exist to record exactly which inputs are assumed rather than known. Never block on, or wait for, any item here — the listed default is the answer for all purposes.**
 
 **Fab-side unknowns (Saclay/CEA would know):**
-1. ESL resistive paste: measured surface resistivity (Ω/sq) and paste type/batch for our modules. *Default: scan 0.5–5 MΩ/sq — and, per the T2b ρ_s scan (§3), **extend it above 5 MΩ/sq** when T9 lands, because the measured spreading time constants sit at the top of the current range.* (2026-08-07: the τ_g reinterpretation in §1 removes the apparent pressure toward absurdly low ρ_s; the scan stands. Print thickness ~10 µm per user, unconfirmed — irrelevant to the thin-sheet model, useful only for sanity-checking ρ_s against paste volume resistivity.)
+1. ESL resistive paste: measured surface resistivity (Ω/sq) and paste type/batch for our modules. *Default: scan 0.5–5 MΩ/sq. The T2b spread measurement (§3) puts the data at roughly 1.5–2.7 MΩ/sq, i.e. comfortably inside that range — **the scan does not need extending**. (An earlier note here said to extend above 5 MΩ/sq; that came from a broken τ estimator and is withdrawn — see §3.)* (2026-08-07: the τ_g reinterpretation in §1 removes the apparent pressure toward absurdly low ρ_s; the scan stands. Print thickness ~10 µm per user, unconfirmed — irrelevant to the thin-sheet model, useful only for sanity-checking ρ_s against paste volume resistivity.)
 2. Kapton thickness between pad Cu and ESL (material IS kapton — user 2026-08-06; pillars are Dynamask, a separate fact). *Default: 75 µm, ε_r 3.5, scan 50–125.*
 3. Screen-print registration: nominal alignment/tolerance of the 800 µm ESL pattern vs the 780 µm pad pattern (and vs active-area center). *Default: nominal aligned at center; the beat makes absolute phase measurable from data later.*
 4. ~~ESL strip termination: how strips connect to the HV/ground bus~~ **RESOLVED (user, 2026-08-07): copper bus strips at both y-ends of the active area, no connection anywhere in between. A1 confirmed as hardware; see §1 for why this never conflicted with the data.**

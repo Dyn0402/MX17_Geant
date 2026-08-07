@@ -320,10 +320,19 @@ def charge_budget_x(sx, gx, x0_m, dmax=3, y0_m=0.0):
 
 def _tau_1e(times, frac):
     """
-    Rise time constant of a neighbour share: when it reaches 1 - 1/e of the way
-    from its prompt value to its maximum. Charge-level analogue of the measured
-    tau_X ~ 230 ns / tau_Y ~ 410 ns (plan §9) — not the same estimator as the
-    waveform fit in the data, so compare orders and the X:Y RATIO, not digits.
+    DEPRECATED — do not use this as a transport timescale. Kept only so old
+    products' meta blocks stay interpretable.
+
+    It returns when a neighbour's charge covers 1 - 1/e of the way from its
+    prompt value to its maximum. With tau_drain_s=None (the production default)
+    the sheet conserves charge and the kernel NEVER saturates, so "maximum" is
+    just the value at the window edge and the whole quantity is a function of
+    where the window was cut. It moved tau_X from 42 ns to 1169 ns on a d_k
+    change that can move real timescales by at most 1.44, and briefly supported
+    a wrong conclusion about rho_s.
+
+    Use response/solver/spread.py instead: sigma^2(t) = sigma_p^2 + 2Dt from
+    moments of the kernel, which needs no normalisation and no saturation.
     """
     f = np.asarray(frac, dtype=float)
     a, b = f[0], f.max()
