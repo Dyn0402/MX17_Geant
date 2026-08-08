@@ -225,6 +225,26 @@ schema were verified clean, several by hand re-derivation.
    y-resolution of the 100 µm gap (~2 cells/gap at ny=1024 → ~few % of the 27 % effect;
    mitigate with fractional-coverage masks + a Richardson check against the static solver).
    Then re-run T10 against the W2 kernels (T10 row).
+   **STARTED 2026-08-08 evening — prototype DONE, fan-out SUBMITTED (commit c425d69).**
+   `response/solver/wpot_w2.py` (dynamic W2: gap free-charge constraint at all t → C_eff
+   Schur complement, exact Bloch families) + `w2_validate.py` (8-test battery, ALL PASS:
+   family-vs-dense 7e-12, prompt-vs-CG 3e-14, ρ_s-scaling exact 1e-12, both W1 reductions ==
+   certified wpot at 7e-12, tiling sum rule 1.3e-16, production-vs-prototype 3e-8) +
+   `w2_production.py` (real-arithmetic memory-ordered family jobs + combine). Two lessons the
+   sizing did not predict: **(a) constraint masks must be HARD** — fractional coverage on the
+   boundary support enforces the full floating-gap equation on partially-covered metal cells
+   (whose only global solution is Vd = 0): capture read −14.8 % at ny=512 and 0 at ny=64
+   before the snap (`mask_snap`, default on). **(b) the y-resolution systematic, measured**
+   (hard-mask CG ladder vs V6 static 0.852998): ny=512 −1.29 %, ny=1024 −3.14 %, ny=2496
+   −1.50 %; machinery Richardson 0.854171 = V6 +0.14 % (the full-box↔static cross-validation).
+   So the ny=512 run carries a ~1–3 % grid systematic on ABSOLUTE amplitude — small against
+   the 27 % it fixes; the ny=1024 W2 upgrade needs the y-parity/mirror-family reduction first
+   (49,920-mode families otherwise). Submitted: 66 family jobs (64 Y-box + 2 X-box, each
+   serving all 42 kernels AND all 4 ρ_s — eigenvectors are ρ_s-invariant), canaries y0/x0 =
+   cluster 13353067, rest gated on their logs; slabs → EOS
+   `response_sim/s1_w2_ny512/slabs/`, then `w2_production combine` (cheap, anywhere) writes
+   the 4 `greens_comb_w2_*` products. Job scripts: `scripts/condor/{run_w2_family.sh,
+   w2_canary.sub, w2_rest.sub}`.
 4. **T13 completion** — wft *reconstruction*, not just io, through to `events.parquet`.
 5. **T13b** — τ_g closure with the unmodified `rc_line_step1/2.py`.
 6. **T14** — the blind comparison, ONCE (see principle 1), **against det3 cosmic-bench data** (P1
