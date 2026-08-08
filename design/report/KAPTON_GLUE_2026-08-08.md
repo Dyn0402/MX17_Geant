@@ -210,12 +210,33 @@ The timeline settles the rest:
 | **fix `42390d1`** | **Aug 7, 13:20** |
 | `aval_calib_v2.json` (real currents) | Aug 7, 15:35 |
 
-So the archived raw is the **pre-fix** campaign, and v2 came from a post-fix
-re-run whose raw was never uploaded. The gap is **archival, not physical**, and
-v2's templates are independently validated inside v2 itself: f_ion from the
-current integrals (0.9079) and from the α_z histogram (0.9077) agree to four
-digits, which is also the proof that no ion charge was lost off the end of the
-400 ns window.
+So the raw on EOS is the **pre-fix** campaign, and v2 came from a post-fix
+re-run. The gap is **archival, not physical**, and v2's templates are
+independently validated inside v2 itself: f_ion from the current integrals
+(0.9079) and from the α_z histogram (0.9077) agree to four digits, which is
+also the proof that no ion charge was lost off the end of the 400 ns window.
+
+### …and the v2 raw is not missing at all
+
+Correcting myself twice on the same point. I first wrote that v2's raw "was
+never uploaded", which implied it was gone. It is not: **`results_v2/` on AFS
+holds all 56 post-fix slices**, dated Aug 7 14:14–14:46 — after the 13:20 fix
+and before v2 was built at 15:35. Found by accident, because the on-disk
+`mx17_aval.sub` remaps job output to `results_v2/` and my re-run landed there.
+
+The real defect is therefore **a labelling one on EOS**, and it is worse than a
+missing directory because it is actively misleading:
+
+| location | what it actually is |
+|---|---|
+| EOS `avalanche/raw/` (19 GB, Aug 7 11:38) | the **PRE-FIX** campaign — every `i_elec`/`i_ion` identically zero |
+| AFS `avalanche/results_v2/` (19 GB, Aug 7 14:14–14:46) | the **v2** campaign that `aval_calib_v2.json` was built from |
+
+Anyone reaching for "the raw" on EOS gets the superseded one under a name that
+does not say so. **Action: upload `results_v2/` to EOS and rename the existing
+`raw/` to something that states it is the pre-fix campaign.** Until then the
+zero-template guard in `digitize.py` is the only thing standing between that
+directory and a silently `nan` LUT.
 
 v2 is a genuinely different realization, not the same slices re-reduced — its
 470 V gain is 22854.3 against the archived raw's 23107.4 (~1 %).
