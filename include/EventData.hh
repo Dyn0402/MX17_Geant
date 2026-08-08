@@ -28,6 +28,17 @@ struct IonizationCluster {
 struct EventData {
     int eventID = -1;
 
+    // Primary vertex, world frame [mm]. Recorded so the impact point is TRUTH
+    // rather than something reconstructed from the cluster centroid (audit
+    // C14). It also lets the response chain tell that Stage A already
+    // randomised the impact point (--beam-spread) and so must not randomise it
+    // a second time in post.
+    double vertexX = 0.0;
+    double vertexY = 0.0;
+    double vertexZ = 0.0;
+    // The half-width Stage A actually used, 0 for a pencil beam.
+    double beamSpread = 0.0;
+
     // ── Micromegas gas scoring ─────────────────────────────────────────────
     double edepDrift = 0.0;
     double edepAmp   = 0.0;

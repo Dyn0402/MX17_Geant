@@ -69,6 +69,24 @@ class ClusterFile:
         self.volume = vol[keep]
         self.path = path
 
+        # DID STAGE A ALREADY RANDOMISE THE IMPACT POINT? (audit C14)
+        # run.py offsets every event over the superperiod unless told not to,
+        # which is right for a pencil beam and WRONG on top of a Stage A that
+        # already spread the gun: the result is still statistically fine but
+        # the provenance says "pencil beam" when it was not, and the truth
+        # impact point recorded by C9 would no longer be the one Stage A used.
+        # `beamSpread` is authoritative; older files without it fall back to
+        # None and the caller keeps its previous behaviour.
+        self.beam_spread_mm = None
+        self.vertex = None
+        try:
+            e = f["EventTree"].arrays(["vertexX", "vertexY", "beamSpread"],
+                                      library="np")
+            self.beam_spread_mm = float(e["beamSpread"][0])
+            self.vertex = np.stack([e["vertexX"], e["vertexY"]], axis=1)
+        except (KeyError, ValueError, IndexError):
+            pass
+
     def events(self):
         """Yield (eventID, slice) per event, in file order."""
         order = np.argsort(self.event, kind="stable")
@@ -88,6 +106,7 @@ class ClusterFile:
             "z_mm_range": [float(self.z.min()), float(self.z.max())],
             "t_ns_range": [float(self.t.min()), float(self.t.max())],
             "active_width_mm": self.active_width_mm,
+            "beam_spread_mm": self.beam_spread_mm,
         }
 
 

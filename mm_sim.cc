@@ -22,6 +22,8 @@
 
 #include <iostream>
 #include <string>
+#include <fstream>
+#include <iterator>
 #include <ctime>
 
 void PrintUsage() {
@@ -160,6 +162,20 @@ int main(int argc, char** argv) {
         UI->ApplyCommand("/run/beamOn " + std::to_string(config.nEvents));
     } else {
         UI->ApplyCommand("/control/execute " + macroFile);
+        // A MACRO THAT DOES NOT BEAM ON STILL HAS TO RUN (audit C14).
+        // macros/run_default.mac sets verbosity and cuts and says in its own
+        // header that "the run is launched by the C++ main() after this
+        // macro" -- but main() only did that when NO macro was given, so
+        // passing the default macro silently ran zero events and produced an
+        // empty file. Launch the run unless the macro launched it itself.
+        std::ifstream mf(macroFile);
+        std::string body((std::istreambuf_iterator<char>(mf)),
+                          std::istreambuf_iterator<char>());
+        if (body.find("/run/beamOn") == std::string::npos) {
+            G4cout << "mm_sim: " << macroFile << " contains no /run/beamOn; "
+                   << "running " << config.nEvents << " events" << G4endl;
+            UI->ApplyCommand("/run/beamOn " + std::to_string(config.nEvents));
+        }
     }
 
     delete runManager;

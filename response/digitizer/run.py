@@ -289,6 +289,16 @@ def main():
     # this achieves the same sampling without re-running Geant4.
     rng_pos = np.random.default_rng(a.seed + 991)
 
+    # DO NOT RANDOMISE TWICE (audit C14). Stage A can already spread the gun
+    # (--beam-spread), and offsetting again in post is not wrong statistically
+    # but it mislabels the provenance and, since C9, would make the recorded
+    # truth impact point differ from the one Stage A used. Files predating the
+    # `beamSpread` branch report None, in which case the old behaviour stands.
+    stage_a_spread = bool(ci.get("beam_spread_mm"))
+    if stage_a_spread and not a.fixed_position:
+        print(f"  impact    Stage A already spread the beam over "
+              f"{ci['beam_spread_mm']:.1f} mm — NOT offsetting again in post")
+
     # --- T13 decoded-file output ------------------------------------------
     # The detector is 512 x 512 pads read out as 512 X channels and 512 Y
     # channels, i.e. TWO 512-channel FEUs — which is why the data arrives as
@@ -358,7 +368,7 @@ def main():
         if a.max_events and n_done >= a.max_events:
             break
         ox = oy = 0.0
-        if not a.fixed_position:
+        if not a.fixed_position and not stage_a_spread:
             ox = rng_pos.uniform(0.0, C.SUPERPERIOD_M * 1e3)
             oy = rng_pos.uniform(0.0, 2 * C.PAD_PITCH_M * 1e3)
         x, y, t, q = dig.transport(cf.x[g] + ox, cf.y[g] + oy,
@@ -497,7 +507,10 @@ def main():
     # mislabels every run over a spread production.
     spread = float(np.ptp(np.mod(np.asarray(
         [cf.x[g].mean() for _, g in cf.events()]) * 1e-3, C.PAD_PITCH_M)))
-    if not a.fixed_position:
+    if stage_a_spread:
+        src = (f"from Stage A's gun (--beam-spread "
+               f"{ci['beam_spread_mm']:.1f} mm); no post-hoc offset")
+    elif not a.fixed_position:
         src = "randomised in post over the 31.2 mm superperiod"
     elif spread > 0.5 * C.PAD_PITCH_M:
         src = "from Stage A's gun (--beam-spread); no post-hoc offset"

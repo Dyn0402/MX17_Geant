@@ -21,6 +21,17 @@ not any more: with the P6 residual-pole model int(h) = (1 - beta) int(h_nom),
 so shaping no longer preserves the integral and "true charge" measured after it
 would silently carry the shaper's beta.
 
+THERE ARE TWO TRUTH IMPACT POINTS AND THEY ARE NOT THE SAME NUMBER. Stage A's
+EventTree records the primary VERTEX (where the particle entered, audit C14);
+`x_true_mm` / `y_true_mm` here are the CHARGE-WEIGHTED MEAN ARRIVAL POINT at
+the ESL. They differ by track inclination over the 30 mm gap and, much more
+violently, by delta rays dragging the charge centroid away from the track.
+Measured on 40 normal-incidence muons: mean difference 0.16-0.19 mm, sd
+0.7-1.3 mm, worst case 8.2 mm. Neither is wrong — a position reconstruction
+should be scored against the arrival point, a tracking study against the
+vertex — but comparing one to the other and calling the difference an error
+would be a mistake.
+
     from .truth import TruthWriter
     tw = TruthWriter()
     tw.add(event_id, ...)

@@ -29,6 +29,17 @@ struct RunAction::Impl {
     Int_t    br_nPrimDrift, br_nPrimAmp;
     Int_t    br_nClusDrift, br_nClusAmp;
     Bool_t   br_primInDrift, br_primInAmp;
+    Double_t br_vertexX, br_vertexY, br_vertexZ, br_beamSpread;
+
+    // Meta tree. These MUST live as long as the tree does: TTree::Branch
+    // stores the ADDRESS, so holding them in a local block left every Meta
+    // branch pointing at dead stack once the block exited (audit C14). The
+    // Fill() happened inside the block so the data was correct, but any later
+    // touch of those branches was undefined behaviour waiting to happen.
+    Double_t br_meta_x0, br_meta_y0, br_meta_z0;
+    Double_t br_meta_sx, br_meta_sy, br_meta_sz;
+    Double_t br_meta_w;
+    Bool_t   br_meta_valid;
 
     // EventTree — full/sr90 modes
     Double_t br_edepHe3Gas, br_edepResistPaste;
@@ -117,6 +128,11 @@ void RunAction::BeginOfRunAction(const G4Run*) {
     fImpl->evtTree->Branch("nClusAmp",   &fImpl->br_nClusAmp);
     fImpl->evtTree->Branch("primInDrift",&fImpl->br_primInDrift);
     fImpl->evtTree->Branch("primInAmp",  &fImpl->br_primInAmp);
+    // Truth impact point and the spread Stage A applied (audit C14).
+    fImpl->evtTree->Branch("vertexX",    &fImpl->br_vertexX);
+    fImpl->evtTree->Branch("vertexY",    &fImpl->br_vertexY);
+    fImpl->evtTree->Branch("vertexZ",    &fImpl->br_vertexZ);
+    fImpl->evtTree->Branch("beamSpread", &fImpl->br_beamSpread);
 
     if (isFull) {
         fImpl->evtTree->Branch("edepHe3Gas",      &fImpl->br_edepHe3Gas);
@@ -175,19 +191,23 @@ void RunAction::BeginOfRunAction(const G4Run*) {
     // for the open x/y-convention caveat (task T2).
     {
         const MX17::ActiveAreaFrame& fr = MX17::TheActiveAreaFrame();
-        Double_t m_x0 = fr.x0, m_y0 = fr.y0, m_z0 = fr.z0;
-        Double_t m_sx = fr.sx, m_sy = fr.sy, m_sz = fr.sz;
-        Double_t m_w  = fr.activeWidth_mm;
-        Bool_t   m_valid = fr.valid;
+        fImpl->br_meta_x0 = fr.x0;
+        fImpl->br_meta_y0 = fr.y0;
+        fImpl->br_meta_z0 = fr.z0;
+        fImpl->br_meta_sx = fr.sx;
+        fImpl->br_meta_sy = fr.sy;
+        fImpl->br_meta_sz = fr.sz;
+        fImpl->br_meta_w  = fr.activeWidth_mm;
+        fImpl->br_meta_valid = fr.valid;
         fImpl->metaTree = new TTree("Meta", "world -> active-area transform");
-        fImpl->metaTree->Branch("origin_x_mm", &m_x0);
-        fImpl->metaTree->Branch("origin_y_mm", &m_y0);
-        fImpl->metaTree->Branch("origin_z_mm", &m_z0);
-        fImpl->metaTree->Branch("sign_x",      &m_sx);
-        fImpl->metaTree->Branch("sign_y",      &m_sy);
-        fImpl->metaTree->Branch("sign_z",      &m_sz);
-        fImpl->metaTree->Branch("active_width_mm", &m_w);
-        fImpl->metaTree->Branch("valid",       &m_valid);
+        fImpl->metaTree->Branch("origin_x_mm", &fImpl->br_meta_x0);
+        fImpl->metaTree->Branch("origin_y_mm", &fImpl->br_meta_y0);
+        fImpl->metaTree->Branch("origin_z_mm", &fImpl->br_meta_z0);
+        fImpl->metaTree->Branch("sign_x",      &fImpl->br_meta_sx);
+        fImpl->metaTree->Branch("sign_y",      &fImpl->br_meta_sy);
+        fImpl->metaTree->Branch("sign_z",      &fImpl->br_meta_sz);
+        fImpl->metaTree->Branch("active_width_mm", &fImpl->br_meta_w);
+        fImpl->metaTree->Branch("valid",       &fImpl->br_meta_valid);
         fImpl->metaTree->Fill();
         if (!fr.valid)
             G4cerr << "RunAction: WARNING active-area frame not reported by the "
@@ -292,6 +312,10 @@ void RunAction::RecordEvent(const EventData& data) {
     fImpl->br_nClusAmp   = static_cast<int>(data.ampClusters.size());
     fImpl->br_primInDrift = data.primaryInDrift;
     fImpl->br_primInAmp   = data.primaryInAmp;
+    fImpl->br_vertexX     = data.vertexX;
+    fImpl->br_vertexY     = data.vertexY;
+    fImpl->br_vertexZ     = data.vertexZ;
+    fImpl->br_beamSpread  = data.beamSpread;
 
     if (isFull) {
         fImpl->br_edepHe3Gas      = data.edepHe3Gas;

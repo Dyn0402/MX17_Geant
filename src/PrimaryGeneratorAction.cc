@@ -137,5 +137,7 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* event) {
         const G4double dy = (G4UniformRand() - 0.5) * fBeamSpread;
         fGun->SetParticlePosition(fGunPos + G4ThreeVector(dx, dy, 0.));
     }
+    // The vertex is published by EventAction, which reads it back off the
+    // G4Event -- no coupling needed here (audit C14).
     fGun->GeneratePrimaryVertex(event);
 }

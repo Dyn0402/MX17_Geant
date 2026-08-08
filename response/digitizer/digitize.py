@@ -136,6 +136,9 @@ class Digitizer:
         self.n_side = n_chan_side
         self.packet = packet
         self.rng = np.random.default_rng(seed)
+        # Avalanches landing off the readout, counted for provenance (C14).
+        self.n_outside = 0
+        self.n_seen = 0
 
         p = self.calib["polya"]
         self.gbar, self.theta = p["gain_mean"], p["theta"]
@@ -315,7 +318,20 @@ class Digitizer:
         row = np.rint((y - K.PAD_ORIGIN_M) / pitch).astype(int)
         k0 = np.rint(t / (self.lut.dt * 1e9)).astype(int)
 
-        ok = np.isfinite(q) & (q > 0) & (k0 >= 0) & (k0 < n_samp)
+        # FIDUCIAL: charge landing off the board is not readout charge (audit
+        # C14). `induce` returns every channel it computed, but run.py's DAQ
+        # writer drops anything outside 0..511 when it lays the dense plane —
+        # so the budget normalised over channels the decoded file does not
+        # contain, and the two paths disagreed for out-of-area delta rays.
+        # Dropping the avalanche here makes them agree, and the count is
+        # reported rather than swallowed.
+        inside = ((col >= -self.n_side) & (col < C.PAD_N + self.n_side)
+                  & (row >= -self.n_side) & (row < C.PAD_N + self.n_side))
+        self.n_outside += int((~inside).sum())
+        self.n_seen += int(inside.size)
+
+        ok = (np.isfinite(q) & (q > 0) & (k0 >= 0) & (k0 < n_samp)
+              & inside)
         idx = np.flatnonzero(ok)
         if idx.size == 0:
             return out
@@ -411,6 +427,8 @@ class Digitizer:
             "ion_measured": self.ion_measured,
             "packet_mode": self.packet,
             "n_chan_side": self.n_side,
+            "avalanches_outside_readout": self.n_outside,
+            "avalanches_seen": self.n_seen,
             "y_window_mm": float(abs(self.lut.y_Y).max() * 1e3),
         }
         return d

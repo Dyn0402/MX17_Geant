@@ -27,14 +27,30 @@ void EventAction::BeginOfEventAction(const G4Event* event) {
 }
 
 void EventAction::EndOfEventAction(const G4Event* event) {
+    // TRUTH IMPACT POINT (audit C14). The event carries its own primary
+    // vertex, so record it rather than making the response chain infer the
+    // impact point from a cluster centroid. `beamSpread` travels with it so a
+    // consumer can tell that Stage A ALREADY randomised the impact point and
+    // must not randomise it a second time in post.
+    if (event->GetNumberOfPrimaryVertex() > 0) {
+        const G4PrimaryVertex* v = event->GetPrimaryVertex(0);
+        fData.vertexX = v->GetX0() / mm;
+        fData.vertexY = v->GetY0() / mm;
+        fData.vertexZ = v->GetZ0() / mm;
+    }
+    fData.beamSpread = fConfig.beam_spread_mm;
+
     // Pass event summary to RunAction for accumulation / writing
     fRunAction->RecordEvent(fData);
 
     if (fConfig.verbose && (fData.eventID % 1000 == 0)) {
         G4cout << "[Event " << fData.eventID << "]"
-               << "  Edep_drift=" << fData.edepDrift / eV << " eV"
+               // SteppingAction already stores these AS eV (edep/eV), so a
+               // second /eV inflated the verbose print by 1e6. Files were
+               // never affected -- this line is the only consumer.
+               << "  Edep_drift=" << fData.edepDrift << " eV"
                << "  N_prim_drift=" << fData.nPrimaryDrift
-               << "  Edep_amp=" << fData.edepAmp / eV << " eV"
+               << "  Edep_amp=" << fData.edepAmp << " eV"
                << "  N_prim_amp=" << fData.nPrimaryAmp
                << G4endl;
     }
