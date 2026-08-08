@@ -257,24 +257,45 @@ class P2Evaluator:
         T[:, :3, :] = verts.transpose(2, 0, 1)
         T[:, 3, :] = 1.0
         self.M = np.linalg.inv(T)             # (nelems, 4, 4)
-        self.finder = m.element_finder()
+        self.nelems = n
+        from scipy.spatial import cKDTree
+        self.tree = cKDTree(np.mean(p[:, t], axis=1).T)
 
     def _find(self, pts):
-        """element_finder that tolerates points outside the mesh.
+        """Locate containing elements: k-NN centroid candidates + our own
+        vectorized barycentric test.
 
-        skfem raises ValueError for ANY not-found point in a batch; isolate
-        offenders by recursive bisection so one bad point does not poison the
-        rest (cost O(log N) extra calls per bad point).
+        skfem's element_finder re-tests the ENTIRE batch against ALL elements
+        if any single point misses its 10 nearest candidates — a 234 GiB
+        allocation on the production mesh (grid points on the domain walls
+        miss by float roundoff). Here stragglers escalate through larger k
+        in small chunks, and genuinely-outside points return -1 instead of
+        raising.
         """
         N = pts.shape[1]
-        try:
-            return self.finder(pts[0], pts[1], pts[2])
-        except ValueError:
-            if N == 1:
-                return np.array([-1], dtype=np.int64)
-            h = N // 2
-            return np.concatenate([self._find(pts[:, :h]),
-                                   self._find(pts[:, h:])])
+        P = np.vstack([pts, np.ones((1, N))])            # (4, N)
+        res = np.full(N, -1, dtype=np.int64)
+        remaining = np.arange(N)
+        for k, chunk in ((16, 100000), (256, 4096), (4096, 256)):
+            if remaining.size == 0:
+                break
+            kk = min(k, self.nelems)
+            nxt = []
+            for s in range(0, remaining.size, chunk):
+                idx = remaining[s:s + chunk]
+                cand = self.tree.query(pts[:, idx].T, kk)[1]
+                cand = cand.reshape(len(idx), kk)
+                lam = np.einsum("nkij,jn->nki", self.M[cand], P[:, idx])
+                inside = (lam >= -1e-9).all(axis=2)      # (n, kk)
+                found = inside.any(axis=1)
+                first = np.argmax(inside, axis=1)
+                res[idx[found]] = cand[np.arange(len(idx))[found],
+                                       first[found]]
+                nxt.append(idx[~found])
+            remaining = np.concatenate(nxt) if nxt else np.array([], int)
+            if kk == self.nelems:
+                break
+        return res
 
     def __call__(self, pts):
         """pts (3, N) -> (val, grad(3,N), ok mask). Not-found -> ok=False."""
@@ -516,10 +537,6 @@ def run(tag, lc_wire, lc_far, grid_step, nev_note, do_refine_gate, jobs):
     outname = os.path.join(HERE, f"meshfield_{tag}.txt")
     cm = 1e-4  # um -> cm
     t_grid = time.time()
-
-    # Make sure the (lazy) element finder exists BEFORE forking, so workers
-    # share it copy-on-write instead of each rebuilding the KD-tree.
-    ev(np.array([[0.], [20.], [-50.]]))
 
     # Context for the module-level worker (fork-inherited; Pool cannot
     # pickle closures).
