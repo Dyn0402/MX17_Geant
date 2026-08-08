@@ -3,6 +3,15 @@
 2026-08-08. Closes plan §1 row 4, which had carried "thickness unknown" since
 2026-08-06 and a `{50, 75, 125} µm` scan.
 
+> ⚠️ **Superseded the same evening for ABSOLUTE amplitude (V6,
+> `V6_PAD_GAPS_2026-08-08.md`):** the dielectric stack below is correct and
+> stands, but the kernels solved with it are still the W1 boundary model, which
+> grounds the 100 µm inter-pad channels — that costs 27 % of the prompt capture
+> and invents a 4.5× sub-pad amplitude modulation. Nothing in this report is
+> wrong; it is incomplete: the `s1_ny1024` `_g19um` grid it certifies is good
+> for ratios/sharing/z-dependence but NOT for absolute normalization until the
+> W2 re-solve (plan §0a) lands.
+
 ## Verdict
 
 The kapton is **50 µm, confirmed** — `pcbKapton_um` in

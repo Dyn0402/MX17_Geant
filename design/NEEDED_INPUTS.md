@@ -65,6 +65,16 @@ relevant to very-low-energy electron emission off the surfaces.
 
 ## 6. 🟡 Readout PCB internal stackup
 
+> **Partially closed for the RESPONSE side 2026-08-08 (V6,
+> `design/report/V6_PAD_GAPS_2026-08-08.md`):** the internal dielectric split
+> does not propagate into the induced signal — bracketing the board under the
+> inter-pad gaps from "ground at the pad plane" to "no conductor at all" moves
+> prompt capture by only 1.7 %, so the ±90 µm FR4 ambiguity below is irrelevant
+> to the weighting solve. The fab stackup drawing is still wanted for the
+> GEANT4/material-budget side (backscatter off the board) and to settle the
+> header's kapton→L3→FR4→pads ordering question — but it is no longer a
+> response-chain blocker.
+
 **Now measured (2026-08-06, rev 2).** The copper is modelled as the five
 physical gerber layers (L3 guard ring, L4 pads, L5 Y strips, L6 X strips,
 L7 fan-out; L8 carries only the outline stroke), each a 26 µm sheet

@@ -206,6 +206,25 @@ schema were verified clean, several by hand re-derivation.
    spurious sub-pad amplitude modulation that the real board does not have
    (`design/report/V6_PAD_GAPS_2026-08-08.md`). The check is done; **the W2 re-solve it implies
    is not, and that is the new blocker for any absolute amplitude.**
+   **Sized 2026-08-08 evening — brute force is AFFORDABLE and is the chosen route (user):**
+   ~770 core-h ±2× = one overnight condor fan-out (~128 jobs × 4 cores × 32 GB, ~1.5–2 h wall
+   each), all 4 ρ_s points and all 42 kernels. The V6 report's "dense over 3120 modes per k_y"
+   is structurally wrong in both directions: the gap lattice also couples ky (families of
+   N≈24,960 at ny=512, 64 independent ky-classes, halved again by y-parity) — but three exact
+   reductions collapse the cost: the eigendecomposition is drive-independent (one per family
+   serves all 42 kernels), it serves the whole ρ_s grid (M ∝ 1/ρ_s: eigenvectors invariant,
+   eigenvalues scale), and everything is real-symmetric at the production registration (8×
+   faster eigh than complex). The effective-diagonal C_eff/S_eff route is NOT the production
+   path: measuring its neglected off-diagonal scattering is half the brute-force operator
+   anyway, and it structurally cannot fix the 4.5× sub-pad modulation (inherently
+   off-diagonal). Dev cost is the real cost: 3–5 focused days; main risk = Bloch index
+   bookkeeping (a bug class W1's small exact blocks never exposed). Sequencing: prototype ONE
+   family block on the desktop, validated against `v6_pad_gaps.py`'s static solve at t=0 and
+   the gap→0 W1 identity, then submit the 128-job grid with the `s1_ny1024` condor pattern
+   (SendCredential, pinned OMP threads, new product tag — no silent overwrite). Watch the
+   y-resolution of the 100 µm gap (~2 cells/gap at ny=1024 → ~few % of the 27 % effect;
+   mitigate with fractional-coverage masks + a Richardson check against the static solver).
+   Then re-run T10 against the W2 kernels (T10 row).
 4. **T13 completion** — wft *reconstruction*, not just io, through to `events.parquet`.
 5. **T13b** — τ_g closure with the unmodified `rc_line_step1/2.py`.
 6. **T14** — the blind comparison, ONCE (see principle 1), **against det3 cosmic-bench data** (P1
