@@ -390,6 +390,12 @@ class CombKernelLUT:
             "product": self.path.split("/")[-1],
             "rho_s_MOhm_sq": self.meta["rho_s_ohm_sq"] / 1e6,
             "d_kapton_um": self.meta["d_kapton_m"] * 1e6,
+            # Absent d_glue_m == a pre-2026-08-08 bare-kapton solve. Surfaced
+            # in describe() so a run's provenance says which dielectric stack
+            # its kernel came from; the two differ by 4.5 % in S(0)/C(0).
+            "d_glue_um": self.meta.get("d_glue_m", 0.0) * 1e6,
+            "stack": ("kapton+glue" if "d_glue_m" in self.meta
+                      else "LEGACY bare-kapton"),
             "dt_ns": self.dt * 1e9,
             "t_max_ns": self.t[-1] * 1e9,
             "dx_um": self.dx * 1e6,

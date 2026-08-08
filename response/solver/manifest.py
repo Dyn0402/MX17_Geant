@@ -47,6 +47,11 @@ def row(path):
         "file": os.path.basename(path),
         "rho_s_MOhm_sq": m["rho_s_ohm_sq"] / 1e6,
         "d_kapton_um": m["d_kapton_m"] * 1e6,
+        # No d_glue_m == solved before 2026-08-08, i.e. bare kapton with no
+        # lamination adhesive. Reported as 0 rather than blank so the column
+        # sorts, but see `stack` below for the flag that actually matters.
+        "d_glue_um": m.get("d_glue_m", 0.0) * 1e6,
+        "stack": ("kapton+glue" if "d_glue_m" in m else "LEGACY bare-kapton"),
         "nx": m.get("nx"), "ny": m.get("ny"),
         "sum_rule_err": sr.get("err"),
         "tiling_err": sr.get("tiling_err"),
@@ -115,15 +120,26 @@ def main():
     # existing point as a hole.
     from ..common import constants as C
     key = lambda r, d: (round(float(r), 6), round(float(d), 6))
-    have = {key(r["rho_s_MOhm_sq"], r["d_kapton_um"]) for r in rows}
-    want = {key(r / 1e6, d) for r in C.RHO_S_SCAN_OHM_SQ
-            for d in C.KAPTON_THICK_UM_SCAN}
+    # Kapton thickness stopped being a scan axis on 2026-08-08 (it is 50 µm,
+    # confirmed), so the grid is over rho_s alone. Legacy bare-kapton products
+    # are deliberately NOT counted as covering a point: four of them sit at
+    # d_k = 50 µm and would otherwise report the grid complete while every one
+    # of them was solved without the lamination adhesive.
+    legacy = [r for r in rows if r["stack"].startswith("LEGACY")]
+    have = {key(r["rho_s_MOhm_sq"], r["d_kapton_um"]) for r in rows
+            if not r["stack"].startswith("LEGACY")}
+    want = {key(r / 1e6, C.KAPTON_THICK_UM) for r in C.RHO_S_SCAN_OHM_SQ}
     holes = sorted(want - have)
 
     if bad:
         print(f"\nFAIL: {len(bad)} product(s) miss the sum rule "
               f"(tol {SUM_RULE_TOL:.0e}): "
               + ", ".join(r["file"] for r in bad))
+    if legacy:
+        print(f"\n{len(legacy)} LEGACY product(s) solved on the bare-kapton "
+              f"stack (no lamination glue), superseded 2026-08-08 and not "
+              f"counted toward the grid:\n    "
+              + ", ".join(r["file"] for r in legacy))
     if holes:
         print(f"\nincomplete grid, {len(holes)} point(s) missing: "
               + ", ".join(f"rho={r:g}M/d_k={d:g}um" for r, d in holes))

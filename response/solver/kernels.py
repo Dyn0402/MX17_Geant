@@ -278,9 +278,29 @@ def sum_over_columns(sx, gx):
 
 # ── Observables ──────────────────────────────────────────────────────────────
 
-def prompt_sum_rule(d_k, gap=C.AMP_GAP_M, eps_r=C.KAPTON_EPS_R):
-    """S(0)/C(0): the fraction of the charge's image that lands on the pad plane."""
-    return (eps_r / d_k) / (eps_r / d_k + 1.0 / gap)
+def prompt_sum_rule(d_k, gap=C.AMP_GAP_M, eps_r=C.KAPTON_EPS_R,
+                    d_g=None, glue_eps_r=C.GLUE_EPS_R):
+    """
+    S(0)/C(0): the fraction of the charge's image that lands on the pad plane.
+
+    The insulator is kapton + lamination glue in SERIES, so what enters is the
+    series thickness, not the kapton alone:
+
+        S(0)/C(0) = (eps_k/d_eff) / (eps_k/d_eff + 1/gap),
+        d_eff     = d_k + d_g (eps_k/eps_g)
+
+    Getting this wrong is not a small error and it is not cosmetic — every
+    solve is certified against this number. Bare 50 µm kapton gives 0.913043;
+    the real kapton+glue stack gives 0.881583 (the old 75 µm single-layer
+    default gave 0.875000). Pass d_g=0.0 to reproduce the pre-2026-08-08
+    value, which is REQUIRED when checking a legacy product: its stored
+    sum_rule_expect was computed on the bare-kapton stack, so recomputing it
+    with the glue would report a 4.5 % failure that is really a version skew.
+    """
+    d_eff = C.insulator_d_eff_m(
+        d_k, eps_r,
+        (C.GLUE_THICK_UM * 1e-6 if d_g is None else d_g), glue_eps_r)
+    return (eps_r / d_eff) / (eps_r / d_eff + 1.0 / gap)
 
 
 def nearest_column(x0_m):
@@ -558,6 +578,13 @@ def run_point(rho_s, d_k, times, nx=3120, ny=512, outdir=None, verbose=True,
           f"   [data, charge-integrated: 0.49/0.51]")
 
     res = {"rho_s_ohm_sq": rho_s, "d_kapton_m": d_k, "sum_rule_expect": expect,
+           # The dielectric stack this product was solved with. Recorded
+           # explicitly because a bare-kapton solve and a kapton+glue solve are
+           # otherwise indistinguishable on disk, and they differ by 4.5 % in
+           # the sum rule. Absent field == solved before 2026-08-08 == no glue.
+           "d_glue_m": C.GLUE_THICK_UM * 1e-6,
+           "glue_eps_r": C.GLUE_EPS_R,
+           "d_insulator_eff_m": C.insulator_d_eff_m(d_k),
            "channel_capture_prompt": float(tbar[0]),
            "channel_capture_late": float(tbar[-1]),
            "x_fraction_prompt": float(xfrac[0]),
@@ -575,7 +602,13 @@ def run_point(rho_s, d_k, times, nx=3120, ny=512, outdir=None, verbose=True,
 
     if outdir:
         os.makedirs(outdir, exist_ok=True)
-        tag = f"rho{rho_s/1e6:g}M_dk{d_k*1e6:g}um"
+        # The glue is IN the tag. Without it a kapton+glue solve at 50 µm and
+        # the legacy bare-kapton solve at 50 µm produce byte-different kernels
+        # under one filename, and the second silently overwrites the first on
+        # EOS. `_g0um` is therefore not the same name as the pre-2026-08-08
+        # product, which is the point: a fresh file, not an overwrite.
+        d_g = C.GLUE_THICK_UM * 1e-6
+        tag = f"rho{rho_s/1e6:g}M_dk{d_k*1e6:g}um_g{d_g*1e6:.0f}um"
         path = os.path.join(outdir, f"greens_comb_{tag}.npz")
         np.savez_compressed(
             path,
@@ -593,7 +626,9 @@ def main():
     ap.add_argument("--quick", action="store_true",
                     help="coarse grid, one scan point — a few seconds")
     ap.add_argument("--rho", type=float, default=1.0, help="MΩ/sq")
-    ap.add_argument("--dk", type=float, default=75.0, help="µm")
+    ap.add_argument("--dk", type=float, default=C.KAPTON_THICK_UM,
+                    help="kapton µm (50 = confirmed as-built; the glue is "
+                         "added on top of this by the solver)")
     ap.add_argument("--nx", type=int, default=3120)
     ap.add_argument("--ny", type=int, default=512)
     ap.add_argument("--nt", type=int, default=60)
@@ -610,9 +645,10 @@ def main():
         a.nx, a.ny, a.nt = 3120, 256, 12
 
     times = log_times(a.nt)
-    grid = ([(r, d * 1e-6) for r in C.RHO_S_SCAN_OHM_SQ
-             for d in C.KAPTON_THICK_UM_SCAN] if a.scan
-            else [(a.rho * 1e6, a.dk * 1e-6)])
+    # Kapton is 50 µm, confirmed — not a scan axis since 2026-08-08. --scan is
+    # now rho_s alone, which is the one parameter still genuinely unknown.
+    grid = ([(r, C.KAPTON_THICK_UM * 1e-6) for r in C.RHO_S_SCAN_OHM_SQ]
+            if a.scan else [(a.rho * 1e6, a.dk * 1e-6)])
 
     for rho_s, d_k in grid:
         run_point(rho_s, d_k, times, nx=a.nx, ny=a.ny, outdir=a.outdir)

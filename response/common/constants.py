@@ -56,11 +56,54 @@ PAD_PITCH_M = PAD_PITCH_UM * 1e-6
 ACTIVE_WIDTH_MM = PAD_N * PAD_PITCH_UM * 1e-3   # 399.36
 
 # ── Insulator between pad copper and the ESL ─────────────────────────────────
-# Material IS kapton (user 2026-08-06); the thickness is NOT known.
-# plan §1 row 4: default 75 µm, scan {50, 75, 125}.
+# TWO dielectrics in series, not one. The ESL is screen-printed on the top face
+# of a kapton coverlay whose bottom face is LAMINATED to the pad copper with an
+# adhesive, so the pad sees kapton + glue. Layer order is fixed and matters:
+# C(k) is the admittance looking down from the ESL and is NOT symmetric under
+# swapping the layers (2.9 % at k = 2/pad-pitch), even though S(k) is.
+#
+# Kapton thickness is now KNOWN: 50 µm, confirmed 2026-08-08 against
+# shared/MX17ModuleGeometry.hh (pcbKapton_um) and the MX17_Full_Geant PCB stack,
+# and cross-checked below. It is no longer a scan axis — the {50, 75, 125} scan
+# is retired (plan §1 row 4).
 KAPTON_EPS_R = 3.5
-KAPTON_THICK_UM_DEFAULT = 75.0
-KAPTON_THICK_UM_SCAN = (50.0, 75.0, 125.0)
+KAPTON_THICK_UM = 50.0
+
+# The glue is an ESTIMATE, and it is now the dominant uncertainty in the stack.
+# Reasoning, in order of how much each step is worth trusting:
+#  1. A 50 µm (2 mil) polyimide coverlay is supplied with an acrylic adhesive
+#     layer; the standard pairing for 2 mil film is 1 mil = 25 µm of adhesive.
+#     Common alternatives are 12.5 and 35 µm, hence the bracket below.
+#  2. Acrylic/epoxy coverlay adhesive has eps_r ~ 3.0-3.5. The stack is barely
+#     sensitive to it: over that whole range the series thickness moves ~5 %.
+#  3. What is supplied is NOT what ends up over the pad. Vacuum lamination
+#     drives adhesive into the 100 µm trenches between the 680 µm pads, which
+#     are 26 µm deep, so the over-pad layer is thinner by the trench volume:
+#     t_pad = t_supplied - (1 - pad_coverage) * t_cu.  That is the electrically
+#     relevant thickness, because the pad face is the electrode.
+# Net: 25 µm supplied -> 18.8 µm over the pad. NOT a production scan axis; the
+# bracket exists for sensitivity checks only.
+GLUE_EPS_R = 3.2
+GLUE_THICK_SUPPLIED_UM = 25.0
+GLUE_THICK_SUPPLIED_UM_BRACKET = (12.5, 25.0, 35.0)
+PAD_CU_THICK_UM = 26.0            # L4 copper (design/NEEDED_INPUTS.md §6)
+
+
+def glue_over_pad_um(t_supplied_um: float = GLUE_THICK_SUPPLIED_UM,
+                     t_cu_um: float = PAD_CU_THICK_UM) -> float:
+    """
+    Adhesive thickness left over the pad face after lamination [µm].
+
+    Volume bookkeeping per unit area, referred to the pad top: the adhesive
+    first fills the inter-pad trench, (1 - coverage) * t_cu, and what remains
+    sits above the pads. Clipped at 0 — a coverlay too thin to fill the trench
+    would not laminate, and this returns 0 rather than a negative gap.
+    """
+    coverage = (PAD_SIZE_UM / PAD_PITCH_UM) ** 2      # 0.76003, exact
+    return max(0.0, t_supplied_um - (1.0 - coverage) * t_cu_um)
+
+
+GLUE_THICK_UM = glue_over_pad_um()                    # 18.76 µm
 
 # ── The pitch beat ───────────────────────────────────────────────────────────
 # ESL 800 µm against pads 780 µm: the registration phase advances 20 µm per
@@ -76,20 +119,46 @@ assert abs(N_ESL_PER_SUPER * ESL_PITCH_UM - SUPERPERIOD_UM) < 1e-9
 assert abs(N_PAD_PER_SUPER * PAD_PITCH_UM - SUPERPERIOD_UM) < 1e-9
 
 
+def insulator_d_eff_m(kapton_m: float = KAPTON_THICK_UM * 1e-6,
+                      eps_r: float = KAPTON_EPS_R,
+                      glue_m: float = GLUE_THICK_UM * 1e-6,
+                      glue_eps_r: float = GLUE_EPS_R) -> float:
+    """
+    Thickness of a SINGLE kapton layer with the same series capacitance as the
+    real kapton + glue stack [m]:
+
+        d_eff = d_kapton + d_glue * (eps_kapton / eps_glue)
+
+    Use only where one number is genuinely needed (reporting, c'). It is exact
+    at k -> 0 and wrong where the kernels live: substituted into the
+    single-layer stack it understates S(k) by 0.3 % at k = 1/pad-pitch and
+    5.3 % at 5/pad-pitch. The solver uses the real two-layer cascade
+    (response/solver/wpot.py::stack_coeffs), never this.
+    """
+    return kapton_m + glue_m * (eps_r / glue_eps_r)
+
+
 def c_prime(gap_m: float = AMP_GAP_M,
-            kapton_m: float = KAPTON_THICK_UM_DEFAULT * 1e-6,
-            eps_r: float = KAPTON_EPS_R) -> float:
+            kapton_m: float = KAPTON_THICK_UM * 1e-6,
+            eps_r: float = KAPTON_EPS_R,
+            glue_m: float = GLUE_THICK_UM * 1e-6,
+            glue_eps_r: float = GLUE_EPS_R) -> float:
     """
     Areal capacitance c' seen by the resistive sheet [F/m^2].
 
-        c' = eps0 * (eps_r / d_kapton + 1 / gap)
+        c' = eps0 * (1/gap + 1/(d_kapton/eps_kapton + d_glue/eps_glue))
 
-    This is the k -> 0 limit of the stack's total areal capacitance (see
-    response/solver/wpot.py), and it is what sets the sheet diffusivity
-    D = 1 / (rho_s c'). Plan §3 quotes c' ~ 5e-7 F/m^2 and D ~ 2.0 m^2/s at
-    1 MΩ/sq, which these defaults reproduce.
+    the two insulating layers adding in SERIES. This is the k -> 0 limit of the
+    stack's total areal capacitance (response/solver/wpot.py) and is what sets
+    the sheet diffusivity D = 1/(rho_s c').
+
+    Plan §3 quoted c' ~ 5e-7 F/m^2 and D ~ 2.0 m^2/s at 1 MΩ/sq from the old
+    75 µm single-layer default. The kapton+glue stack lands at essentially the
+    same place (d_eff = 70.5 µm), so those figures survive — but they survive
+    by accident, and a bare 50 µm kapton with no glue would NOT reproduce them.
     """
-    return EPS0 * (eps_r / kapton_m + 1.0 / gap_m)
+    d_eff = insulator_d_eff_m(kapton_m, eps_r, glue_m, glue_eps_r)
+    return EPS0 * (1.0 / gap_m + eps_r / d_eff)
 
 
 def sheet_diffusivity(rho_s_ohm_sq: float, **kw) -> float:
@@ -129,7 +198,7 @@ def assert_against_header(path: str = _HEADER) -> dict:
         return float(m.group(1)) if m else None
 
     fields = ("amp_um", "paste_um", "padPitch_mm", "padSize_mm",
-              "pasteStripW_mm", "pasteStripPitch_mm", "padN")
+              "pasteStripW_mm", "pasteStripPitch_mm", "padN", "pcbKapton_um")
     found = {f: grab(f) for f in fields}
 
     checks = [
@@ -140,6 +209,12 @@ def assert_against_header(path: str = _HEADER) -> dict:
         ("pasteStripW_mm", found["pasteStripW_mm"], ESL_WIDTH_UM * 1e-3),
         ("pasteStripPitch_mm", found["pasteStripPitch_mm"], ESL_PITCH_UM * 1e-3),
         ("padN", found["padN"], PAD_N),
+        # Added 2026-08-08, when the kapton stopped being a scan axis. This is
+        # the layer the ESL is printed on and the pads sit under, so the
+        # response model and the G4 geometry must not disagree about it. NOTE
+        # the lamination adhesive is NOT in the header and so is not checked
+        # here — it is a response-model estimate (see GLUE_THICK_UM).
+        ("pcbKapton_um", found["pcbKapton_um"], KAPTON_THICK_UM),
     ]
     bad = []
     for name, header_val, py_val in checks:

@@ -52,13 +52,24 @@ def _save(fig, outdir, name):
 def fig_transfer(outdir):
     """C(k) and S(k): what the layer stack does to each lateral mode."""
     k = np.logspace(1, 6, 500)
+    d_k = C.KAPTON_THICK_UM * 1e-6
+    # Kapton is confirmed 50 µm, so the interesting axis is no longer its
+    # thickness but the lamination glue: how much adhesive is left over the pad.
+    # The bare-kapton curve is the pre-2026-08-08 model, kept as the reference
+    # that shows how much the glue actually matters.
+    cases = [(0.0, "bare kapton 50 µm (superseded)")]
+    cases += [(C.glue_over_pad_um(t) * 1e-6,
+               f"+ glue {C.glue_over_pad_um(t):.1f} µm"
+               + (" (production)" if t == C.GLUE_THICK_SUPPLIED_UM else ""))
+              for t in C.GLUE_THICK_SUPPLIED_UM_BRACKET]
     fig, ax = plt.subplots(1, 2, figsize=(11, 4.0))
-    for i, d_um in enumerate(C.KAPTON_THICK_UM_SCAN):
-        Cv, Sv = stack_coeffs(k, C.AMP_GAP_M, d_um * 1e-6)
-        ax[0].loglog(k, Cv * 1e6, color=SERIES[i], label=f"kapton {d_um:.0f} µm")
-        ax[1].semilogx(k, Sv / Cv, color=SERIES[i], label=f"kapton {d_um:.0f} µm")
-        ax[0].axhline(C.c_prime(kapton_m=d_um * 1e-6) * 1e6, color=SERIES[i],
-                      ls=":", lw=1.2)
+    for i, (d_g, lab) in enumerate(cases):
+        Cv, Sv = stack_coeffs(k, C.AMP_GAP_M, d_k, d_glue_m=d_g)
+        ls = "-" if d_g else "--"
+        ax[0].loglog(k, Cv * 1e6, color=SERIES[i], ls=ls, label=lab)
+        ax[1].semilogx(k, Sv / Cv, color=SERIES[i], ls=ls, label=lab)
+        ax[0].axhline(C.c_prime(kapton_m=d_k, glue_m=d_g) * 1e6,
+                      color=SERIES[i], ls=":", lw=1.2)
     for a in ax:
         for feat, lab in ((C.ESL_PITCH_UM, "800 µm ESL pitch"),
                           (C.PAD_PITCH_UM, None),

@@ -128,22 +128,59 @@ def _csch(x):
     return out
 
 
-def stack_coeffs(k, gap_m, d_kapton_m, eps_r=C.KAPTON_EPS_R):
+def _sech(x):
+    """1/cosh(x), underflowing to 0 for large x instead of overflowing."""
+    e = np.exp(-np.abs(np.asarray(x, dtype=float)))
+    return 2.0 * e / (1.0 + e * e)
+
+
+def stack_coeffs(k, gap_m, d_kapton_m, eps_r=C.KAPTON_EPS_R,
+                 d_glue_m=None, glue_eps_r=C.GLUE_EPS_R):
     """
     Areal capacitance C(k) and drive coupling S(k) of the W1 stack [F/m^2].
 
-    C(k) = eps0 k coth(k g) + eps0 eps_r k coth(k d)
-    S(k) = eps0 eps_r k / sinh(k d)
+    The insulator between the ESL and the grounded pad plane is TWO dielectrics
+    in series — the kapton coverlay the ESL is printed on, then the adhesive
+    that laminates it to the pad copper. Each behaves as a transmission line of
+    characteristic admittance Y_i = eps0 eps_i k over electrical length k d_i,
+    terminated by the pad plane (a short). Cascading the two ABCD matrices:
 
-    At k = 0 these reduce to C = eps0(1/g + eps_r/d) = c' and S = eps0 eps_r/d.
+        r_i  = tanh(k d_i) / Y_i
+        S    = sech(k d_k) sech(k d_g) / (r_k + r_g)
+        Y_in = [1 + (Y_k/Y_g) tanh(k d_k) tanh(k d_g)] / (r_k + r_g)
+        C    = eps0 k coth(k g) + Y_in
+
+    written with tanh/sech so it stays finite at every k d. ORDER MATTERS: the
+    kapton is the layer against the ESL and the glue the layer against the pads.
+    S(k) is reciprocal and does not care, but Y_in is the admittance seen from
+    the ESL side and does — swapping them moves C(k) by 2.9 % at k = 2/pad-pitch.
+
+    `d_glue_m=None` means "use the production glue"; pass 0.0 for the bare
+    single-kapton stack, which this reduces to exactly (verified to 3e-16).
+
+    At k = 0: C = eps0(1/g + 1/(d_k/eps_k + d_g/eps_g)) = c', and
+    S = eps0/(d_k/eps_k + d_g/eps_g).
     """
     k = np.asarray(k, dtype=float)
+    if d_glue_m is None:
+        d_glue_m = C.GLUE_THICK_UM * 1e-6
     kg = k * gap_m
-    kd = k * d_kapton_m
+    kdk, kdg = k * d_kapton_m, k * d_glue_m
+    small = k < 1e-6
+    k_safe = np.where(small, 1.0, k)
+
+    # r_i = tanh(k d_i)/Y_i -> d_i/(eps0 eps_i) as k -> 0.
+    def _r(d, eps):
+        return np.where(small, d / (C.EPS0 * eps),
+                        np.tanh(k * d) / (C.EPS0 * eps * k_safe))
+
+    r_tot = _r(d_kapton_m, eps_r) + _r(d_glue_m, glue_eps_r)
+    s_drv = _sech(kdk) * _sech(kdg) / r_tot
+    cross = np.where(small, 0.0,
+                     (eps_r / glue_eps_r) * np.tanh(kdk) * np.tanh(kdg))
+    c_ins = (1.0 + cross) / r_tot
     c_gas = C.EPS0 * np.where(kg < 1e-6, 1.0 / gap_m, k * _coth(kg))
-    c_kap = C.EPS0 * eps_r * np.where(kd < 1e-6, 1.0 / d_kapton_m, k * _coth(kd))
-    s_drv = C.EPS0 * eps_r * np.where(kd < 1e-6, 1.0 / d_kapton_m, k * _csch(kd))
-    return c_gas + c_kap, s_drv
+    return c_gas + c_ins, s_drv
 
 
 # ── Conductivity pattern ─────────────────────────────────────────────────────
@@ -192,7 +229,7 @@ class WeightingSolver:
     def __init__(self, rho_s_ohm_sq, d_kapton_m, gap_m=C.AMP_GAP_M,
                  eps_r=C.KAPTON_EPS_R, n_super=1, nx=3120,
                  ly_m=0.0512, ny=1024, phase_m=0.0, uniform_sheet=False,
-                 tau_drain_s=None):
+                 tau_drain_s=None, d_glue_m=None, glue_eps_r=C.GLUE_EPS_R):
         n_esl = C.N_ESL_PER_SUPER * n_super          # ESL periods in the box
         if nx % n_esl:
             raise ValueError(
@@ -202,6 +239,11 @@ class WeightingSolver:
         self.d_k = d_kapton_m
         self.gap = gap_m
         self.eps_r = eps_r
+        # The lamination adhesive, in series with the kapton and on the pad
+        # side of it. None = production value; 0.0 = the bare-kapton stack
+        # every product solved before 2026-08-08 used.
+        self.d_g = (C.GLUE_THICK_UM * 1e-6 if d_glue_m is None else d_glue_m)
+        self.glue_eps_r = glue_eps_r
         self.uniform_sheet = uniform_sheet
 
         # ── The global drain (assumption A1, plan §3 "Boundary/drain") ───────
@@ -222,7 +264,8 @@ class WeightingSolver:
         # (strips grounded at their two y-ends) does NOT reduce to a uniform
         # leak — see drain_time_from_strip_ends() and validate.py V4.
         self.tau_drain = tau_drain_s
-        self.g_leak = (C.c_prime(gap_m, d_kapton_m, eps_r) / tau_drain_s
+        self.g_leak = (C.c_prime(gap_m, d_kapton_m, eps_r,
+                                 self.d_g, glue_eps_r) / tau_drain_s
                        if tau_drain_s else 0.0)
 
         self.lx = C.SUPERPERIOD_M * n_super
@@ -260,7 +303,8 @@ class WeightingSolver:
         """
         kx = self.kx[idx]
         k = np.hypot(kx, ky)
-        Cvec, _ = stack_coeffs(k, self.gap, self.d_k, self.eps_r)
+        Cvec, _ = stack_coeffs(k, self.gap, self.d_k, self.eps_r,
+                           self.d_g, self.glue_eps_r)
 
         # M_ab = sigma_hat[j_a - j_b] * (kx_a kx_b + ky^2)
         dj = (idx[:, None] - idx[None, :]) % self.nx
@@ -298,7 +342,8 @@ class WeightingSolver:
         vhat = np.fft.fft2(np.asarray(vpad_xy, dtype=float))
         KX, KY = np.meshgrid(self.kx, self.ky, indexing="xy")
         k = np.hypot(KX, KY)
-        Cv, Sv = stack_coeffs(k, self.gap, self.d_k, self.eps_r)
+        Cv, Sv = stack_coeffs(k, self.gap, self.d_k, self.eps_r,
+                           self.d_g, self.glue_eps_r)
         return np.real(np.fft.ifft2(vhat * (Sv / Cv)))
 
     def solve(self, vpad_xy, times_s, progress=False):
@@ -324,7 +369,8 @@ class WeightingSolver:
             for idx in blocks:
                 Cvec, w, Q = self._solve_block(idx, ky)
                 _, Sv = stack_coeffs(np.hypot(self.kx[idx], ky),
-                                     self.gap, self.d_k, self.eps_r)
+                                     self.gap, self.d_k, self.eps_r,
+                                     self.d_g, self.glue_eps_r)
                 v0 = (Sv / Cvec) * vhat[iy, idx]        # prompt amplitude
                 # u = C^1/2 v0, propagate in the eigenbasis, come back
                 u0 = np.sqrt(Cvec) * v0
@@ -355,7 +401,8 @@ class WeightingSolver:
         vhat = np.fft.fft2(np.asarray(vpad_xy, dtype=float))
         KX, KY = np.meshgrid(self.kx, self.ky, indexing="xy")
         k = np.hypot(KX, KY)
-        Cv, Sv = stack_coeffs(k, self.gap, self.d_k, self.eps_r)
+        Cv, Sv = stack_coeffs(k, self.gap, self.d_k, self.eps_r,
+                           self.d_g, self.glue_eps_r)
         sig = 1.0 / self.rho_s
         out = np.empty((len(times), self.ny, self.nx))
         for it, t in enumerate(times):
@@ -368,7 +415,7 @@ class WeightingSolver:
 
 def drain_time_from_strip_ends(rho_s_ohm_sq, strip_len_m=0.412,
                                gap_m=C.AMP_GAP_M,
-                               d_kapton_m=C.KAPTON_THICK_UM_DEFAULT * 1e-6,
+                               d_kapton_m=C.KAPTON_THICK_UM * 1e-6,
                                eps_r=C.KAPTON_EPS_R):
     """
     Drain time constant implied by assumption A1 taken literally.
