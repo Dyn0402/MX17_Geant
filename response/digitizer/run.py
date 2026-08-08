@@ -548,7 +548,7 @@ def main():
 
         # The truth sidecar goes next to the decoded files, keyed by the same
         # eventIds (C9).
-        tpath = f"{a.decoded_out}_truth.npz"
+        tpath = f"{a.decoded_out}_truth.parquet"
         truth.write(tpath, meta={"digitizer": info, "clusters": ci,
                                  "shaper": shaper.describe() if shaper else None,
                                  "n_empty_events": n_empty})

@@ -8,12 +8,18 @@ means a simulated run cannot answer "how well did the reconstruction do", only
 "did it run". This writes the other half — what actually happened — as a
 sidecar keyed by eventId, so any reconstruction output can be joined against it.
 
-WHY NPZ AND NOT PARQUET. The fix order allows either. The response chain runs
-on the system python3, which has numpy and uproot but NO pyarrow or pandas
-(checked 2026-08-08), so a parquet sidecar could not be written by the process
-that produces it. npz needs nothing extra and the S1 products are already npz.
-The per-channel arrays are jagged, so they are stored CSR-style — one flat
-array plus an offsets array — which is exact and needs no object dtype.
+FORMAT: PARQUET, with npz as an explicit fallback. The fix order asked for
+parquet and the rest of the chain reads parquet (wft writes events.parquet), so
+that is the default. It needs pyarrow, which the nTof_x17 venv has —
+`~/PycharmProjects/nTof_x17/.venv/bin/python` is the interpreter to run this
+chain with. Where pyarrow is genuinely absent (a bare condor worker, say) the
+writer falls back to npz and SAYS SO on stdout rather than switching format
+silently, because a sidecar that is sometimes one format and sometimes another
+without telling you is worse than either.
+
+The per-channel arrays are jagged. In parquet they are list columns; in npz
+they are stored CSR-style — one flat array plus an offsets array — which is
+exact and needs no object dtype. `load()` hides the difference.
 
 WHAT IS AND IS NOT TRUTH HERE. The charges recorded are the induced charge per
 channel BEFORE the DREAM shaper. That distinction used to be cosmetic and is
@@ -35,7 +41,7 @@ would be a mistake.
     from .truth import TruthWriter
     tw = TruthWriter()
     tw.add(event_id, ...)
-    tw.write("sim_truth.npz")
+    tw.write("sim_truth.parquet")
 """
 
 from __future__ import annotations
@@ -46,7 +52,7 @@ SCHEMA = "mx17_truth/1"
 
 
 class TruthWriter:
-    """Accumulates per-event truth, then writes one npz."""
+    """Accumulates per-event truth, then writes one parquet (or npz) file."""
 
     def __init__(self):
         self.ev = []            # scalars, one row per event
@@ -75,6 +81,47 @@ class TruthWriter:
         self.ch_off.append(len(self.ch_q))
 
     def write(self, path, meta=None):
+        """
+        Write the sidecar. `path` may end in .parquet or .npz; anything else
+        gets the extension of whichever backend is actually used.
+        """
+        import json
+        base = path[:-8] if path.endswith(".parquet") else (
+            path[:-4] if path.endswith(".npz") else path)
+        try:
+            import pyarrow            # noqa: F401
+        except ImportError:
+            print(f"  [truth] pyarrow not available — writing npz instead of "
+                  f"parquet. Use ~/PycharmProjects/nTof_x17/.venv/bin/python "
+                  f"for the parquet sidecar the rest of the chain reads.")
+            return self._write_npz(base + ".npz", meta)
+        return self._write_parquet(base + ".parquet", meta)
+
+    def _write_parquet(self, path, meta):
+        import json
+        import pandas as pd
+        cols = ("event_id", "n_electron_in", "n_seed", "q_seed_total",
+                "x_true_mm", "y_true_mm", "t0_ns", "offset_x_mm", "offset_y_mm")
+        df = pd.DataFrame(self.ev, columns=cols) if self.ev else \
+            pd.DataFrame({c: [] for c in cols})
+        df["event_id"] = df["event_id"].astype("int64")
+        for c in ("n_electron_in", "n_seed"):
+            df[c] = df[c].astype("int64")
+        # Per-channel truth as list columns, one row per event.
+        off = self.ch_off
+        df["chan_view"] = [["X" if v == 0 else "Y"
+                            for v in self.ch_view[off[i]:off[i + 1]]]
+                           for i in range(len(self.ev))]
+        df["chan_index"] = [list(self.ch_idx[off[i]:off[i + 1]])
+                            for i in range(len(self.ev))]
+        df["chan_q_electrons"] = [list(self.ch_q[off[i]:off[i + 1]])
+                                  for i in range(len(self.ev))]
+        df.to_parquet(path, index=False)
+        with open(path.replace(".parquet", ".meta.json"), "w") as f:
+            json.dump({"schema": SCHEMA, **(meta or {})}, f, indent=1)
+        return path
+
+    def _write_npz(self, path, meta=None):
         import json
         a = np.array(self.ev, dtype=np.float64) if self.ev else np.zeros((0, 9))
         np.savez_compressed(
@@ -98,13 +145,25 @@ class TruthWriter:
 
 
 def load(path):
-    """Read a truth sidecar back as a dict of arrays (jagged stays CSR)."""
+    """
+    Read a truth sidecar written in either format.
+
+    Returns a dict of arrays. Jagged per-channel data stays in whatever shape
+    its backend used; use `channels_of` rather than touching it directly.
+    """
+    if path.endswith(".parquet"):
+        import pandas as pd
+        return pd.read_parquet(path)
     with np.load(path, allow_pickle=False) as d:
         return {k: d[k] for k in d.files}
 
 
 def channels_of(t, i):
     """Per-channel truth of row i as [(view, index, charge), ...]."""
+    if hasattr(t, "iloc"):                       # a pandas DataFrame
+        r = t.iloc[i]
+        return [(str(v), int(c), float(q)) for v, c, q in
+                zip(r["chan_view"], r["chan_index"], r["chan_q_electrons"])]
     lo, hi = int(t["chan_offset"][i]), int(t["chan_offset"][i + 1])
     return [("X" if v == 0 else "Y", int(c), float(q))
             for v, c, q in zip(t["chan_view"][lo:hi], t["chan_index"][lo:hi],
