@@ -183,6 +183,29 @@ def main():
                                                  True, True):
             sys.exit(f"[aval] failed to load field map {args.field_map}")
         field_map_grid.SetMedium(gas)
+
+        # --voltage does NOT change the field in this branch — the map is a
+        # fixed, pre-solved dataset (solve_fieldmap.py bakes in V_MESH at
+        # solve time; ComponentGrid just interpolates it). A campaign that
+        # sweeps --voltage against one field map is sweeping a label, not the
+        # physics: caught after a 56-slice, "7-voltage" run all measured the
+        # identical 490 V field, because mx17_aval_points.txt was carried over
+        # unchanged from the uniform_field campaign where --voltage WAS the
+        # physics. Warn loudly rather than let it happen silently again, and
+        # record the map's true voltage instead of trusting the caller's.
+        map_json = os.path.splitext(args.field_map)[0] + ".json"
+        if os.path.exists(map_json):
+            with open(map_json) as f:
+                map_v = json.load(f)["potentials_V"]["anode"]
+            if abs(map_v - args.voltage) > 0.5:
+                print(f"[aval] WARNING: --voltage {args.voltage} does not "
+                      f"match {map_json}'s anode potential {map_v} V. The "
+                      f"field is fixed by the map, NOT by --voltage; this "
+                      f"run's actual physics is at {map_v} V regardless of "
+                      f"the --voltage flag. Recording {map_v} as voltage_V.",
+                      flush=True)
+            args.voltage = map_v
+            e_field = args.voltage / gap_cm  # recompute for the corrected voltage
         # Capture the map's own z-extent BEFORE enabling periodicity — the
         # bounding box becomes laterally infinite afterwards (gates_check.C).
         # This is the SOURCE OF TRUTH for the anode/ESL plane: solve_fieldmap
