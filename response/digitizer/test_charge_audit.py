@@ -51,7 +51,7 @@ TOL_ANCHOR = 0.005
 
 # ── RESOLVED 2026-08-07: THE "MISSING 23 %" WAS THE INTER-PAD GAPS ──────────
 #
-# This test originally asserted against prompt_sum_rule = S(0)/C(0) = 0.875 and
+# This test originally asserted against prompt_sum_rule = S(0)/C(0) and
 # reported a flat ~33 % deficit at every drift depth. That expectation was
 # WRONG, and the right number was already sitting in every product's metadata.
 #
@@ -65,6 +65,15 @@ TOL_ANCHOR = 0.005
 #     sum_rule_expect (tiling pads)   0.875000
 #     channel_capture_prompt (real)   0.665023   <- the correct reference
 #     digitizer measured              0.675300   <- within 1.5 %
+#
+# ⚠️ Those three numbers are from the 75 µm SINGLE-LAYER product this was first
+# run on, kept because they are the worked example. They are NOT the production
+# values: the insulator is kapton + lamination glue in series (2026-08-08), so
+# S(0)/C(0) = 0.881583 and channel_capture_prompt = 0.670026. The ratio that
+# carries the argument is unchanged and is what matters —
+# capture / sum_rule = (0.68/0.78)^2 = 0.76003 exactly, on every product.
+# The reference is read from the product's meta, so nothing here needs editing
+# when the stack changes; only this comment would go stale, hence this note.
 #
 # The reference is now read from the product's own meta. Note that
 # channel_capture is identical prompt and late (0.665023 both), which is the

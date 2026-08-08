@@ -38,7 +38,7 @@ X kernels from absolute column to channel offset. Any of those can silently
 scramble or lose charge.
 
 WHAT THE RIGHT TOTAL IS, since this cost an afternoon. The closed-form
-`prompt_sum_rule` = S(0)/C(0) = 0.875 applies ONLY to the fictitious
+`prompt_sum_rule` = S(0)/C(0) applies ONLY to the fictitious
 pitch-sized (0.78 mm) pads that `check_sum_rule` substitutes so that a closed
 form exists. Production kernels use the REAL 0.68 mm pads, which do not tile:
 (0.68/0.78)^2 = 0.760 of the plane is pad and the rest is inter-pad gap, whose
