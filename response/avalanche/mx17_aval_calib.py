@@ -191,14 +191,23 @@ def main():
         # later job — plan §7 step 6), just re-anchored to the map's z datum:
         # ψ = 1 at the ESL (z = fm_z_anode), ψ = 0 at the mesh underside.
         anode_z_cm = fm_z_anode * 1e-4
+        pitch_cm_area = 67.0e-4
         wcmp = G.ComponentConstant()
         wcmp.SetWeightingField(0., 0., 1.0 / gap_cm, "readout")
         wcmp.SetWeightingPotential(0., 0., anode_z_cm, 1.0)
+        # wcmp is used ONLY for its weighting field/potential (added via
+        # AddElectrode below, never AddComponent), but Garfield still probes
+        # every electrode component's GetMedium() along the trajectory; with
+        # no area set that falls through to the base Component::GetMedium(),
+        # which throws ("geometry is not set") rather than returning nullptr.
+        # An explicit area makes it behave like an ordinary out-of-medium
+        # point instead.
+        wcmp.SetArea(-10 * pitch_cm_area, -10 * pitch_cm_area, gzlo.value,
+                     10 * pitch_cm_area, 10 * pitch_cm_area, gzhi.value)
 
         sensor = G.Sensor()
         sensor.AddComponent(field_map_grid)
         sensor.AddElectrode(wcmp, "readout")
-        pitch_cm_area = 67.0e-4
         sensor.SetArea(-10 * pitch_cm_area, -10 * pitch_cm_area, gzlo.value,
                        10 * pitch_cm_area, 10 * pitch_cm_area, gzhi.value)
 
