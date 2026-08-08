@@ -96,6 +96,15 @@ def parse_args():
     p.add_argument("--max-avalanche", type=int, default=0,
                    help="Cap avalanche size (0 = uncapped). Only for smoke tests; "
                         "a cap biases the gain distribution and is recorded.")
+    p.add_argument("--field-map", default=None,
+                   help="Path to a meshfield_<tag>.txt map from "
+                        "solve_fieldmap.py (T6, FIELD_MAP_RUNBOOK.md). When "
+                        "given, this replaces the uniform-field "
+                        "ComponentConstant with the real woven-mesh field via "
+                        "ComponentGrid; seed electrons start above the mesh "
+                        "and transparency/funnelling become emergent instead "
+                        "of assumed nulls. --voltage/--gap-um must match the "
+                        "map's own geometry (see the map's .json).")
     return p.parse_args()
 
 
@@ -153,29 +162,88 @@ def main():
     if not gas.LoadIonMobility(ion_file):
         sys.exit(f"[aval] failed to load ion mobility {ion_file}")
 
-    # ── Uniform-field parallel plate ─────────────────────────────────────────
-    # Lateral half-size: generous, so nothing leaves the area sideways.
-    half = 0.05   # cm = 500 µm
-    cmp = G.ComponentConstant()
-    cmp.SetArea(-half, -half, 0.0, half, half, gap_cm)
-    cmp.SetMedium(gas)
-    cmp.SetElectricField(0., 0., e_field)
-    # Readout weighting field, ψ = 1 - z/gap  ->  E_w = -∇ψ = +ẑ/gap.
-    cmp.SetWeightingField(0., 0., 1.0 / gap_cm, "readout")
-    # ...AND the weighting POTENTIAL, which is not optional. Both
-    # AvalancheMicroscopic and AvalancheMC default to m_useWeightingPotential
-    # = true, i.e. they compute the induced current from ψ rather than from
-    # E_w. ComponentConstant has no ψ until this call, so without it
-    # WeightingPotential() returns 0 everywhere and EVERY signal comes out
-    # identically zero — silently, with the avalanche and the ion drift both
-    # running normally. That is what emptied i_elec/i_ion in the first
-    # campaign (56/56 slices). Anchoring ψ = 1 at the readout plane z = 0 with
-    # a constant weighting field gives ψ(z) = 1 - z/gap exactly.
-    cmp.SetWeightingPotential(0., 0., 0., 1.0)
+    # ── Field: either the uniform-field parallel plate, or the T6 woven-mesh
+    #    map loaded through ComponentGrid (FIELD_MAP_RUNBOOK.md) ─────────────
+    field_map_grid = None  # keep a reference alive for the sensor's lifetime
+    if args.field_map:
+        # Geometry constants MUST track solve_fieldmap.py exactly (wire radius
+        # and kiss overlap are fixed by the weave, not user-adjustable here).
+        fm_wire_r, fm_overlap = 9.5, 1.0          # um
+        fm_z_off = fm_wire_r - fm_overlap / 2.0   # um, wire-axis |z| offset
+        fm_z_under = -(fm_z_off + fm_wire_r)      # um, mesh underside
+        fm_z_anode = fm_z_under - args.gap_um     # um, ESL surface
 
-    sensor = G.Sensor()
-    sensor.AddComponent(cmp)
-    sensor.AddElectrode(cmp, "readout")
+        field_map_grid = G.ComponentGrid()
+        if not field_map_grid.LoadElectricField(args.field_map, "xyz",
+                                                 True, True):
+            sys.exit(f"[aval] failed to load field map {args.field_map}")
+        field_map_grid.SetMedium(gas)
+        # Capture the map's own z-extent BEFORE enabling periodicity — the
+        # bounding box becomes laterally infinite afterwards (gates_check.C).
+        gxlo, gylo, gzlo = ctypes.c_double(), ctypes.c_double(), ctypes.c_double()
+        gxhi, gyhi, gzhi = ctypes.c_double(), ctypes.c_double(), ctypes.c_double()
+        field_map_grid.GetBoundingBox(gxlo, gylo, gzlo, gxhi, gyhi, gzhi)
+        field_map_grid.EnablePeriodicityX()
+        field_map_grid.EnablePeriodicityY()
+
+        # Readout weighting field/potential: same parallel-plate ansatz as
+        # the uniform-field pass (S1's real weighting potential is a separate,
+        # later job — plan §7 step 6), just re-anchored to the map's z datum:
+        # ψ = 1 at the ESL (z = fm_z_anode), ψ = 0 at the mesh underside.
+        anode_z_cm = fm_z_anode * 1e-4
+        wcmp = G.ComponentConstant()
+        wcmp.SetWeightingField(0., 0., 1.0 / gap_cm, "readout")
+        wcmp.SetWeightingPotential(0., 0., anode_z_cm, 1.0)
+
+        sensor = G.Sensor()
+        sensor.AddComponent(field_map_grid)
+        sensor.AddElectrode(wcmp, "readout")
+        pitch_cm_area = 67.0e-4
+        sensor.SetArea(-10 * pitch_cm_area, -10 * pitch_cm_area, gzlo.value,
+                       10 * pitch_cm_area, 10 * pitch_cm_area, gzhi.value)
+
+        # Seed electrons above the mesh, spread over one unit cell, so
+        # transparency and funnelling are measured, not assumed (runbook
+        # "What S3 does next"). z chosen deep enough in the drift bulk that
+        # the mesh's near-field perturbation is negligible (matches
+        # gates_check.C's G7 transparency probe).
+        seed_z0_cm = 180.0e-4
+        pitch_cm = 67.0e-4
+        seed_rng = np.random.default_rng(args.seed)
+
+        def sample_xy():
+            return (seed_rng.uniform(-pitch_cm / 2, pitch_cm / 2),
+                    seed_rng.uniform(-pitch_cm / 2, pitch_cm / 2))
+    else:
+        # Lateral half-size: generous, so nothing leaves the area sideways.
+        half = 0.05   # cm = 500 µm
+        cmp = G.ComponentConstant()
+        cmp.SetArea(-half, -half, 0.0, half, half, gap_cm)
+        cmp.SetMedium(gas)
+        cmp.SetElectricField(0., 0., e_field)
+        # Readout weighting field, ψ = 1 - z/gap  ->  E_w = -∇ψ = +ẑ/gap.
+        cmp.SetWeightingField(0., 0., 1.0 / gap_cm, "readout")
+        # ...AND the weighting POTENTIAL, which is not optional. Both
+        # AvalancheMicroscopic and AvalancheMC default to m_useWeightingPotential
+        # = true, i.e. they compute the induced current from ψ rather than from
+        # E_w. ComponentConstant has no ψ until this call, so without it
+        # WeightingPotential() returns 0 everywhere and EVERY signal comes out
+        # identically zero — silently, with the avalanche and the ion drift both
+        # running normally. That is what emptied i_elec/i_ion in the first
+        # campaign (56/56 slices). Anchoring ψ = 1 at the readout plane z = 0 with
+        # a constant weighting field gives ψ(z) = 1 - z/gap exactly.
+        cmp.SetWeightingPotential(0., 0., 0., 1.0)
+
+        sensor = G.Sensor()
+        sensor.AddComponent(cmp)
+        sensor.AddElectrode(cmp, "readout")
+
+        anode_z_cm = 0.0
+        seed_z0_cm = gap_cm - 1.0e-4
+
+        def sample_xy():
+            return (0.0, 0.0)
+
     dt = args.tmax_ns / args.nbins
     sensor.SetTimeWindow(0., dt, args.nbins)
 
@@ -197,8 +265,6 @@ def main():
         pass
 
     # ── Run ──────────────────────────────────────────────────────────────────
-    # Seed electron starts 1 µm below the mesh, on axis, at rest.
-    z0 = gap_cm - 1.e-4
     gains, r_end, t_end, z_ion = [], [], [], []
     n_ion_total, n_ion_drifted = 0, 0
     t_start = time.time()
@@ -209,7 +275,8 @@ def main():
     sensor.ClearSignal()
 
     for iev in range(args.nev):
-        aval.AvalancheElectron(0., 0., z0, 0., 0.1, 0., 0., 0.)
+        x0, y0 = sample_xy()
+        aval.AvalancheElectron(x0, y0, seed_z0_cm, 0., 0.1, 0., 0., 0.)
 
         ne = aval.GetNumberOfElectronEndpoints()
         n_at_anode = 0
@@ -221,14 +288,17 @@ def main():
             aval.GetElectronEndpoint(i, xs, ys, zs, ts, es,
                                      xe, ye, ze, te, ee, status)
             # Where this electron was born = where an ionisation happened
-            # (the i = 0 entry is the seed electron itself, excluded).
+            # (the i = 0 entry is the seed electron itself, excluded). Height
+            # is recorded ABOVE THE ANODE, matching the uniform-field
+            # convention that ions.py/kernel_lut.py's alpha_z histogram
+            # expects (z=0 at anode).
             if i > 0:
-                z_ion.append(zs.value * 1e4)
+                z_ion.append((zs.value - anode_z_cm) * 1e4)
                 ion_seeds.append((xs.value, ys.value, zs.value, ts.value))
             # Reached the anode?
-            if ze.value < 1.e-5:              # within 0.1 µm of z = 0
+            if abs(ze.value - anode_z_cm) < 1.e-5:   # within 0.1 µm
                 n_at_anode += 1
-                r_end.append(math.hypot(xe.value, ye.value) * 1e4)
+                r_end.append(math.hypot(xe.value - x0, ye.value - y0) * 1e4)
                 t_end.append(te.value)
         gains.append(n_at_anode)
 
@@ -265,7 +335,8 @@ def main():
     out = {
         "schema": "mx17_aval_calib/1",
         "provenance": {
-            "field_model": "uniform_field",
+            "field_model": ("meshfield:" + os.path.basename(args.field_map))
+                           if args.field_map else "uniform_field",
             "garfield_pin": os.environ.get("MX17_GARFIELD_PIN", "unknown"),
             "script_git": git_hash(__file__),
             "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -285,6 +356,8 @@ def main():
             "penning_rp": args.penning_rp if args.penning == "manual" else None,
             "ion_mobility_file": os.path.basename(ion_file),
             "max_avalanche": args.max_avalanche,
+            "field_map_file": os.path.basename(args.field_map)
+                              if args.field_map else None,
         },
         "results": {
             "gains": gains.tolist(),
@@ -301,8 +374,15 @@ def main():
             "n_ion_total": n_ion_total,
             "n_ion_drifted": n_ion_drifted,
         },
-        # S2 observables this uniform-field pass cannot produce. Explicitly null
-        # so a consumer cannot mistake a placeholder for a measurement.
+        # S2 observables this script does not itself extract. Under
+        # uniform_field they are impossible in principle (explicit null).
+        # Under a field map they are physically present in this run (seed
+        # electrons above the mesh, so "survival" above already reflects
+        # transparency losses, and r_end_um already reflects funnelling) but
+        # not reduced to a per-point epsilon/funnel-map here — that is the
+        # dedicated transparency-curve / funnel-map deliverable, so the
+        # explicit-null contract is kept for both modes to avoid a consumer
+        # mistaking an un-reduced run for that measurement.
         "s2_pending": {
             "transparency_eps": None,
             "funnel_map": None,
