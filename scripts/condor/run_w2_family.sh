@@ -11,7 +11,11 @@ mkdir -p "$WORK"
 cd "$SRC"
 export MX17_SKIP_HEADER_CHECK=1
 # scipy is required (dsyevd path) and the system python3 has none — LCG does.
+# The LCG setup script is not `set -u`-clean (unbound COMPILER at line 18) —
+# it killed the first canary pair instantly. Relax nounset around it only.
+set +u
 source /cvmfs/sft.cern.ch/lcg/views/LCG_105/x86_64-el9-gcc12-opt/setup.sh
+set -u
 export OMP_NUM_THREADS=${OMP_NUM_THREADS:-4}
 export OPENBLAS_NUM_THREADS=$OMP_NUM_THREADS
 export MKL_NUM_THREADS=$OMP_NUM_THREADS
