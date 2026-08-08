@@ -89,16 +89,50 @@ GLUE_THICK_SUPPLIED_UM_BRACKET = (12.5, 25.0, 35.0)
 PAD_CU_THICK_UM = 26.0            # L4 copper (design/NEEDED_INPUTS.md §6)
 
 
+# Which quantity the supplied thickness refers to. This is an OPEN question and
+# it is not a physics question — it is what the vendor/process number means:
+#
+#   "conserved" — the quoted thickness is the AS-SUPPLIED coating on the
+#       coverlay, and lamination redistributes it. The inter-pad channels must
+#       fill from somewhere and the only source is the adhesive itself, so the
+#       over-pad layer thins by the channel volume. Three things argue for this
+#       being the physical picture: adhesive FLOW is a specified, required
+#       property of coverlay (void-free encapsulation of copper topography is
+#       the whole point, and "low-flow" coverlay is a separate product because
+#       flow is the default); a heated vacuum press exists precisely to fill
+#       the channels rather than trap air; and on a 400 mm panel the interior
+#       is a closed system, since the flow path to a free edge is ~200 mm of
+#       viscous thermoset. The 50 µm film cannot dip into a 100 µm channel
+#       either — span/thickness = 2, so it is rigid there and sits flat on the
+#       pad tops.
+#
+#   "uniform" — the quoted thickness is the FINAL bond line over the copper,
+#       i.e. the process spec already accounts for flow. Then no correction
+#       applies.
+#
+# Settled by a datasheet or a fab process sheet, not by argument. "conserved"
+# is the default because it is the one derivable from geometry we know exactly;
+# the difference is ~0.010 in S(0)/C(0), well inside the spread from the
+# supplied thickness itself (12-35 µm -> 0.893 to 0.856).
+GLUE_FLOW_MODEL = "conserved"                         # or "uniform"
+
+
 def glue_over_pad_um(t_supplied_um: float = GLUE_THICK_SUPPLIED_UM,
-                     t_cu_um: float = PAD_CU_THICK_UM) -> float:
+                     t_cu_um: float = PAD_CU_THICK_UM,
+                     model: str = None) -> float:
     """
     Adhesive thickness left over the pad face after lamination [µm].
 
     Volume bookkeeping per unit area, referred to the pad top: the adhesive
-    first fills the inter-pad trench, (1 - coverage) * t_cu, and what remains
-    sits above the pads. Clipped at 0 — a coverlay too thin to fill the trench
-    would not laminate, and this returns 0 rather than a negative gap.
+    first fills the inter-pad channel, (1 - coverage) * t_cu, and what remains
+    sits above the pads. Clipped at 0 — a coverlay too thin to fill the channel
+    would not laminate void-free, and this returns 0 rather than a negative gap.
+
+    `model="uniform"` returns the supplied thickness unchanged; see
+    GLUE_FLOW_MODEL for why that is a live alternative rather than a wrong one.
     """
+    if (model or GLUE_FLOW_MODEL) == "uniform":
+        return t_supplied_um
     coverage = (PAD_SIZE_UM / PAD_PITCH_UM) ** 2      # 0.76003, exact
     return max(0.0, t_supplied_um - (1.0 - coverage) * t_cu_um)
 

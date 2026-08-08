@@ -30,7 +30,8 @@ import numpy as np
 # `sharing.*.tau_1e_s`, but that estimator is window-dependent and withdrawn
 # (see response/solver/spread.py); a register people trust must not repeat it.
 # Transport numbers come from `python3 -m response.solver.spread`.
-COLUMNS = ["file", "rho_s_MOhm_sq", "d_kapton_um", "nx", "ny",
+COLUMNS = ["file", "rho_s_MOhm_sq", "d_kapton_um", "d_glue_um", "stack",
+           "nx", "ny",
            "sum_rule_err", "tiling_err", "channel_capture_prompt",
            "x_fraction_prompt", "git", "bytes"]
 
@@ -87,13 +88,19 @@ def main():
     rows.sort(key=lambda r: (r["d_kapton_um"], r["rho_s_MOhm_sq"]))
 
     out = a.out or os.path.join(a.indir, "MANIFEST.csv")
+    # Take the column order from COLUMNS but the column SET from the rows, so
+    # adding a field to row() can never again kill the writer mid-file after a
+    # multi-minute read of a 36 GB directory.
+    extra = [k for k in (rows[0] if rows else {}) if k not in COLUMNS]
+    if extra:
+        print(f"  note: row() has fields not in COLUMNS, appending: {extra}")
     with open(out, "w", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=COLUMNS)
+        w = csv.DictWriter(fh, fieldnames=COLUMNS + extra)
         w.writeheader()
         w.writerows(rows)
 
     print(f"{len(rows)} products in {a.indir}\n")
-    print(f"{'file':34s} {'rho':>5s} {'d_k':>5s} {'sumrule':>9s} "
+    print(f"{'file':40s} {'rho':>5s} {'d_k':>5s} {'d_g':>5s} {'sumrule':>9s} "
           f"{'tiling':>8s} {'capture':>8s} {'X frac':>7s}  git")
     # A product with no sum-rule block carries None here, and formatting None
     # with ':9.1e' raises TypeError — so `manifest --check`, whose entire job
@@ -103,8 +110,9 @@ def main():
         return f"{v:{fmt}}" if v is not None else f"{'absent':>{width}s}"
 
     for r in rows:
-        print(f"{r['file']:34s} {r['rho_s_MOhm_sq']:5.1f} "
-              f"{r['d_kapton_um']:5.0f} {num(r['sum_rule_err'], '9.1e', 9)} "
+        print(f"{r['file']:40s} {r['rho_s_MOhm_sq']:5.1f} "
+              f"{r['d_kapton_um']:5.0f} {r['d_glue_um']:5.0f} "
+              f"{num(r['sum_rule_err'], '9.1e', 9)} "
               f"{num(r['tiling_err'], '8.0e', 8)} "
               f"{num(r['channel_capture_prompt'], '8.4f', 8)} "
               f"{num(r['x_fraction_prompt'], '7.4f', 7)}  {r['git']}")
