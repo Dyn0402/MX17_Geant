@@ -14,3 +14,11 @@ plots/
 # Python
 __pycache__/
 *.pyc
+
+# ROOT ACLiC + neBEM scratch + field-map products (shipped, not tracked)
+*_C.so
+*_C.d
+*_C_ACLiC_dict_rdict.pcm
+response/meshcell/neBEMOut/
+response/meshcell/meshfield_*.txt
+response/meshcell/*.msh
