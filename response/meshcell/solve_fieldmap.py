@@ -82,8 +82,12 @@ V_ANODE = V_MESH
 V_CATH = -E_DRIFT * Z_CATH * 1e-4       # E_DRIFT is V/cm; z in um
 
 # Independent cross-check: neBEM infinite-lattice amp-gap field (copies_scan.C
-# converged to ~0.005%/step at 30 copies; wires at exactly +-r, no overlap).
-NEBEM_AMP_EZ = 30561.0  # V/cm
+# converged to ~0.005%/step at 30 copies; wires at exactly +-r, no overlap),
+# computed at the bench V_MESH=490V. Laplace's equation is linear in the
+# Dirichlet boundary voltage for fixed geometry, so at any other V_MESH the
+# whole amp-side field scales proportionally; --v-mesh rescales this below.
+NEBEM_AMP_EZ_AT_490V = 30561.0  # V/cm
+NEBEM_AMP_EZ = NEBEM_AMP_EZ_AT_490V * (V_MESH / 490.0)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -647,15 +651,29 @@ def main():
                          "the transparency-curve follow-up (runbook 'Cheap "
                          "follow-ups'); amp-side gates (S2/S3/S5) are "
                          "independent of this and should still pass.")
+    ap.add_argument("--v-mesh", type=float, default=None,
+                    help="Override V_MESH [V] (default: bench 490). The map "
+                         "is gas-agnostic (pure electrostatics), so one map "
+                         "per (V_mesh, E_drift) serves every gas mixture — "
+                         "for a voltage ladder, not a per-gas rerun. Gate S2's "
+                         "neBEM cross-check (computed at 490V) is rescaled "
+                         "proportionally; Laplace's equation is linear in the "
+                         "Dirichlet boundary voltage for fixed geometry.")
     ap.add_argument("--tag", default=None,
                     help="Override the output tag (meshfield_<tag>.txt/json); "
                          "default 'smoketest'/'production'. Needed so a "
-                         "multi-point E_DRIFT scan doesn't overwrite itself.")
+                         "multi-point E_DRIFT/V_MESH scan doesn't overwrite "
+                         "itself.")
     args = ap.parse_args()
     if args.e_drift is not None:
         global E_DRIFT, V_CATH
         E_DRIFT = args.e_drift
         V_CATH = -E_DRIFT * Z_CATH * 1e-4
+    if args.v_mesh is not None:
+        global V_MESH, V_ANODE, NEBEM_AMP_EZ
+        V_MESH = args.v_mesh
+        V_ANODE = V_MESH
+        NEBEM_AMP_EZ = NEBEM_AMP_EZ_AT_490V * (V_MESH / 490.0)
     if args.smoke:
         return run(args.tag or "smoketest", lc_wire=2.0, lc_far=14.0,
                    grid_step=3.0,
