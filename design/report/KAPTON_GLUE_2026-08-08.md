@@ -161,6 +161,42 @@ finite k by up to 5 %, which is the regime c1 is built from. Its qualitative
 finding (c1_X flat in ρ_s, the power is in the c1_Y/c1_X ratio) should be
 re-checked against the new kernels before it is leaned on.
 
+## The suite on a production kapton+glue kernel
+
+Run against `greens_comb_rho1M_dk50um_g19um.npz`:
+
+| test | result |
+|---|---|
+| `test_longitudinal` | PASS |
+| `test_lut_vs_solver` | PASS — the LUT reproduces the solver on the new stack |
+| `test_charge_audit` | PASS — anchor exact to **3.86e-09**, all four depths within 0.5 % |
+| `test_induce_equivalence` | PASS |
+| `test_daq_wft` | PASS locally; cannot run at CERN (see below) |
+
+The charge audit's anchor is the end-to-end check on the whole two-layer stack:
+
+```
+solved channel_capture_prompt                          0.670026
+(PAD_SIZE/PAD_PITCH)^2 x S(0)/C(0) = 0.7600 x 0.8816 = 0.670026
+|diff| 3.86e-09
+```
+
+**Two red lines on the first attempt were not test failures**, and both are now
+recorded at the call site in `scripts/run_tests.sh` so they are not
+re-diagnosed:
+
+- `test_charge_audit` was OOM-killed on an lxplus **login node** — it builds an
+  n_side=8 LUT from a 2.2 GB kernel. It passes on condor with 32 GB. The
+  harness now prints 25 lines on failure instead of 2, and names exit 137 as
+  OOM rather than letting "Killed" read as a result.
+- `test_daq_wft` needs `noise_det3.json`, characterised from **bench data** and
+  not regenerable at CERN. It is inherently a local test. "Green suite"
+  therefore means something different on lxplus than on the bench, which is
+  worth knowing before reading a red one.
+
+Staging matters too: reading a 2.3 GB kernel straight off the EOS fuse mount
+timed out; `xrdcp` to node scratch first is the working pattern.
+
 ## What generating the README stack table caught
 
 The README described the module as prose; MX17_Full_Geant's carries a layer
