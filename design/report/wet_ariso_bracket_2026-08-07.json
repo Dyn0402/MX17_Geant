@@ -1,0 +1,76 @@
+{
+ "schema": "wet_ariso_bracket/1",
+ "source_json": "lxplus:/afs/cern.ch/user/d/dneff/work/mx17_response/gas/wet_ariso_drift.json (this run, 2026-08-07)",
+ "source_schema": "wet_ariso_drift/1",
+ "gas_base": "Ar/iC4H10 95/5",
+ "pressure_torr": 745.83,
+ "temp_K": 293.15,
+ "ncoll": 5,
+ "E_Vcm": 333.0,
+ "drift_gap_mm_assumed": 30.0,
+ "det3_v_drift_candidates": {
+  "plan_section1_um_per_ns": 36.6,
+  "micro_tpc_um_per_ns": {
+   "value": 28.1,
+   "sigma": 0.7,
+   "caveat": "measured over det3's ~19mm gap (nTof_x17 mx_june_cosmic_qa/HANDOFF_det3_vdrift_and_kernels.md), not the 30mm this table assumes -- not directly comparable until the gap dispute resolves"
+  },
+  "dry_magboltz_reference_um_per_ns": 39.1
+ },
+ "h2o_survey_pct": 1.46,
+ "h2o_survey_source": "~/x17/cosmic_bench/Analysis/fleet_gas_survey.csv, run long_run_resist_490V_drift_1000V, mx17_3",
+ "mixtures": {
+  "dry": {
+   "v_um_per_ns": 39.15477215356809,
+   "dT_sqrtcm": 0.048858484946405975,
+   "dL_sqrtcm": 0.02499093094940499,
+   "eta_per_cm": 0.0,
+   "sigma_T_um_30mm": 846.253783080143,
+   "sigma_L_um_30mm": 432.8556213281496,
+   "dist_to_plan_s1": 2.554772153568088,
+   "dist_to_micro_tpc": 11.054772153568088
+  },
+  "H2O_0.5": {
+   "v_um_per_ns": 40.61977609117741,
+   "dT_sqrtcm": 0.037836090567457945,
+   "dL_sqrtcm": 0.023884579887275534,
+   "eta_per_cm": 0.0,
+   "sigma_T_um_30mm": 655.3403122261471,
+   "sigma_L_um_30mm": 413.6930588219895,
+   "dist_to_plan_s1": 4.019776091177405,
+   "dist_to_micro_tpc": 12.519776091177405
+  },
+  "H2O_1.0": {
+   "v_um_per_ns": 33.913873629568585,
+   "dT_sqrtcm": 0.029925094424213962,
+   "dL_sqrtcm": 0.026778753990981174,
+   "eta_per_cm": 0.0,
+   "sigma_T_um_30mm": 518.317839640347,
+   "sigma_L_um_30mm": 463.82162475767234,
+   "dist_to_plan_s1": 2.686126370431417,
+   "dist_to_micro_tpc": 5.813873629568583
+  },
+  "H2O_1.46": {
+   "v_um_per_ns": 25.251307558654723,
+   "dT_sqrtcm": 0.0238521003910116,
+   "dL_sqrtcm": 0.027661242908154027,
+   "eta_per_cm": 0.0,
+   "sigma_T_um_30mm": 413.1304974446557,
+   "sigma_L_um_30mm": 479.10678117427057,
+   "dist_to_plan_s1": 11.348692441345278,
+   "dist_to_micro_tpc": 2.8486924413452783
+  },
+  "H2O_2.0": {
+   "v_um_per_ns": 17.606624868947033,
+   "dT_sqrtcm": 0.019342790676723343,
+   "dL_sqrtcm": 0.024291106218992237,
+   "eta_per_cm": 0.0,
+   "sigma_T_um_30mm": 335.02696212254415,
+   "sigma_L_um_30mm": 420.7343014334688,
+   "dist_to_plan_s1": 18.993375131052968,
+   "dist_to_micro_tpc": 10.493375131052968
+  }
+ },
+ "attachment_note": "eta_per_cm is identically 0.0 in EVERY bin of ALL FIVE mixtures over the table's full 40-500 V/cm range, wet included -- same limitation as wet_cf4_bracket_2026-08-07: most likely the Magboltz ElectronAttachment call not populating at ncoll=5, not a physics statement that attachment vanishes. Treat as unresolved.",
+ "verdict": "NO SINGLE BRACKET, unlike the CF4 case -- det3 has two disagreeing 'measured' v_drift numbers in circulation (36.6 plan \u00a71, 28.1+/-0.7 micro-TPC), not one tight band. The measured water fraction for the exact target run, 1.46%, predicts v=25.25 um/ns at 333 V/cm/30mm assumed -- this sits far from 36.6 (11.3 um/ns away) and moderately close to 28.1 (2.8 um/ns away, but outside the quoted +/-0.7 sigma). 1.46% water is markedly more consistent with the micro-TPC number than with the plan \u00a71 number, though the micro-TPC number's different (~19mm) gap confounds a clean comparison. v_drift is NON-MONOTONIC in water content near this field: 0.5% H2O raises v above dry (40.6 vs 39.2 um/ns) before higher fractions drive it down -- a real Magboltz feature at this precision (per-point stat errors are sub-percent), not scan noise."
+}
