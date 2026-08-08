@@ -23,6 +23,10 @@
 //
 // Smoke maps: gates_check("meshfield_smoketest.txt", 400) — G2 tolerance is
 // looser there (coarse grid under-resolves the wires).
+//
+// Transparency-curve scan points (not the bench 333 V/cm) pass their own
+// E_DRIFT as a 3rd argument so G1's "want" tracks the map:
+//   gates_check("meshfield_edrift0100.txt", 400, 100.0);
 
 #include <cmath>
 #include <cstdio>
@@ -41,11 +45,14 @@ using namespace Garfield;
 const double kPitch = 67.0e-4;    // cm
 const double kWireR = 9.5e-4;     // cm
 const double kZOff  = 9.0e-4;     // cm, wire-axis |z| offset (overlap 1 um)
-const double kEDrift = 333.0;     // V/cm
 const double kNeBemAmpEz = 30561.0;  // V/cm, independent cross-check
 
+// eDrift: the map's OWN E_DRIFT (V/cm), for the G1 far-field check. Default
+// 333 is the det3/T14 bench value; the transparency-curve follow-up
+// (FIELD_MAP_RUNBOOK.md "Cheap follow-ups") passes the scan point instead —
+// G2/G3/G7 do not depend on it, only G1's "want" value does.
 int gates_check(const char* mapfile = "meshfield_production.txt",
-                int nev = 2000) {
+                int nev = 2000, double kEDrift = 333.0) {
   const bool production =
       std::string(mapfile).find("production") != std::string::npos;
 
@@ -171,5 +178,6 @@ int gates_check(const char* mapfile = "meshfield_production.txt",
 
 int main(int argc, char** argv) {
   return gates_check(argc > 1 ? argv[1] : "meshfield_production.txt",
-                     argc > 2 ? std::atoi(argv[2]) : 2000);
+                     argc > 2 ? std::atoi(argv[2]) : 2000,
+                     argc > 3 ? std::atof(argv[3]) : 333.0);
 }

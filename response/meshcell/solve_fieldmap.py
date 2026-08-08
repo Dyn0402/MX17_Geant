@@ -642,13 +642,27 @@ def main():
     ap.add_argument("--jobs", type=int,
                     default=max(1, (os.cpu_count() or 4) - 2),
                     help="sampling workers (default: ncpu-2)")
+    ap.add_argument("--e-drift", type=float, default=None,
+                    help="Override E_DRIFT [V/cm] (default: bench 333). For "
+                         "the transparency-curve follow-up (runbook 'Cheap "
+                         "follow-ups'); amp-side gates (S2/S3/S5) are "
+                         "independent of this and should still pass.")
+    ap.add_argument("--tag", default=None,
+                    help="Override the output tag (meshfield_<tag>.txt/json); "
+                         "default 'smoketest'/'production'. Needed so a "
+                         "multi-point E_DRIFT scan doesn't overwrite itself.")
     args = ap.parse_args()
+    if args.e_drift is not None:
+        global E_DRIFT, V_CATH
+        E_DRIFT = args.e_drift
+        V_CATH = -E_DRIFT * Z_CATH * 1e-4
     if args.smoke:
-        return run("smoketest", lc_wire=2.0, lc_far=14.0, grid_step=3.0,
+        return run(args.tag or "smoketest", lc_wire=2.0, lc_far=14.0,
+                   grid_step=3.0,
                    nev_note="smoke resolution — do not use for S3",
                    do_refine_gate=False, jobs=args.jobs)
-    return run("production", lc_wire=0.8, lc_far=8.0, grid_step=1.0,
-               nev_note="production map for S3",
+    return run(args.tag or "production", lc_wire=0.8, lc_far=8.0,
+               grid_step=1.0, nev_note="production map for S3",
                do_refine_gate=True, jobs=args.jobs)
 
 
