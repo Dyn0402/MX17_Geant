@@ -199,13 +199,39 @@ class Digitizer:
             zs, ts = np.asarray(z_mm)[rep], np.asarray(t_ns)[rep]
             w = np.ones(len(rep))
 
-        zs = np.clip(zs, 0.0, None)
-        sT = self.gas.sigma_T_um(self.E_drift, zs)
-        st = self.gas.sigma_t_ns(self.E_drift, zs)
+        # ── Deposits born INSIDE the amplification gap (audit C7) ────────────
+        # `clusters.py` keeps AmpGas as well as DriftGas, and its contract says
+        # they "skip the drift and are amplified where they sit". The code did
+        # not honour that: it clipped z < 0 to 0 and then handed them the FULL
+        # gap gain AND the mesh transparency, i.e. ~9.3x too much charge, all
+        # of it prompt and unshared on d = 0. In the production muon file that
+        # is 2204 clusters / 4234 electrons (0.90 % / 0.41 %), contributing
+        # 0.41 % of the charge where they should contribute 0.04 %.
+        #
+        # The gap runs z = 0 (ESL/anode) to z = AMP_GAP (mesh), and an electron
+        # multiplies over the distance it actually travels to the anode, so its
+        # mean gain is exp(alpha z) with alpha = ln(G)/gap. Deposits at z < 0
+        # are the ESL groove deposits NEEDED_INPUTS describes; they sit BELOW
+        # the anode plane, have no gap to cross, and fall out of the same
+        # formula as gain < 1 — i.e. no multiplication — with no special case.
+        gap_mm = C.AMP_GAP_M * 1e3
+        in_gap = zs < gap_mm
+        # Mean gain relative to a full-gap avalanche, 1.0 for drift electrons.
+        gain_frac = np.where(
+            in_gap, np.exp(np.log(self.gbar) * np.clip(zs, None, gap_mm)
+                           / gap_mm) / self.gbar, 1.0)
+
+        # Drift applies only to what actually drifted. An in-gap deposit has no
+        # drift length, so no transverse spread and no drift delay: clipping
+        # its z to 0 for the gas lookup gives exactly that, and is why the clip
+        # is kept rather than removed.
+        zs_drift = np.clip(zs, 0.0, None)
+        sT = self.gas.sigma_T_um(self.E_drift, zs_drift)
+        st = self.gas.sigma_t_ns(self.E_drift, zs_drift)
 
         x = xs * 1e-3 + self.rng.normal(0.0, sT * 1e-6)
         y = ys * 1e-3 + self.rng.normal(0.0, sT * 1e-6)
-        t = ts + zs * 1e3 / self.v_drift + self.rng.normal(0.0, st)
+        t = ts + zs_drift * 1e3 / self.v_drift + self.rng.normal(0.0, st)
 
         # Mesh transparency AND drift attachment, as ONE thinning (plan §7
         # step 2, audit A6). Combining them keeps the statistics binomial and
@@ -225,14 +251,20 @@ class Digitizer:
         # seeds failed to multiply) — design/report/DESKTOP_RUNS_2026-08-07.md —
         # so this is exact bookkeeping today, not a correction. A v2 calib has
         # no `survival` field, hence the 1.0 default.
-        p_surv = (self.transparency * self.gas.survival(self.E_drift, zs)
-                  * self.aval_survival)
+        #
+        # In-gap deposits are already PAST the mesh and never drifted, so
+        # neither the transparency nor the attachment applies to them (C7).
+        p_surv = np.where(
+            in_gap, self.aval_survival,
+            self.transparency * self.gas.survival(self.E_drift, zs_drift)
+            * self.aval_survival)
         if self.packet:
             surv = self.rng.binomial(n_e, p_surv).astype(float)
         else:
             surv = (self.rng.random(len(w)) < p_surv).astype(float)
         keep = surv > 0
         x, y, t, surv = x[keep], y[keep], t[keep], surv[keep]
+        gain_frac = gain_frac[keep]
         x += self.rng.normal(0.0, self.sigma0_um * 1e-6, len(x))
         y += self.rng.normal(0.0, self.sigma0_um * 1e-6, len(y))
 
@@ -250,7 +282,13 @@ class Digitizer:
                                   scale=self.gbar / (1.0 + self.theta))
         else:
             gain = polya_sample(self.rng, self.gbar, self.theta, len(x)) * surv
-        return x, y, t, gain
+        # C7: scale to the gap the electron actually crossed. Applied to the
+        # DRAW rather than by re-parameterising the Polya, so the fluctuation
+        # keeps its shape and the drift electrons (gain_frac == 1) are
+        # bit-identical. A shorter avalanche is really somewhat broader in
+        # relative terms — fewer generations — which this does not model; at
+        # 0.4 % of the electrons that is far below anything observable.
+        return x, y, t, gain * gain_frac
 
     def induce(self, x, y, t, q, n_samp):
         """
