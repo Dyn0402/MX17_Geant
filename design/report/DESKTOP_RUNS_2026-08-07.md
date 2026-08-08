@@ -192,6 +192,45 @@ of plan §5 does not exist, exactly as the audit said.
 
 ---
 
+## C7 — amp-gap deposits, implemented (partial gain)
+
+Chosen over dropping them, because it makes `clusters.py`'s existing contract true and keeps
+the ESL groove deposits `NEEDED_INPUTS` calls real. Verified on a synthetic z scan — mean
+gain relative to a full-gap avalanche:
+
+| z [mm] | −0.005 | 0.000 | 0.0375 | 0.075 | 0.1125 | 0.1499 |
+|---|---|---|---|---|---|---|
+| measured | 0.00002 | 0.00002 | 0.00034 | 0.00483 | 0.06937 | 0.98683 |
+| expected | 0.00002 | 0.00002 | 0.00034 | 0.00484 | 0.06954 | 0.99292 |
+
+with the surviving fraction exactly 1.0000 at every in-gap z (no mesh crossing) against
+0.871–0.875 for drift electrons (transparency 0.873). Groove deposits (z < 0) need no special
+case: the same formula gives gain < 1, i.e. no multiplication, which is right below the anode.
+
+## C8 — Fano, implemented in Stage A, and it changes nothing observable
+
+`SteppingAction.cc` now draws n from a truncated Normal(n̄, √(F·n̄)) with F = 0.2, falling
+back to the exact floor + Bernoulli below n̄ = 5 where a Gaussian is meaningless. `MX17_FANO`
+overrides it, and `MX17_FANO=0` reproduces the old behaviour exactly — which is what makes
+the A/B below possible at the **same seed**.
+
+Same seed, 3000 muons: the edep arrays are bit-identical (233 903 clusters), so only the
+conversion differs. 26.3 % of clusters take the Gaussian branch.
+
+| | conversion residual sd (Gaussian branch) | per-event electrons: mean | sd | rel |
+|---|---|---|---|---|
+| F = 0 (old) | 0.4095 | 327.67 | 266.70 | 81.394 % |
+| F = 0.2 | **1.5263** | 327.60 | **266.75** | 81.426 % |
+
+So the conversion statistics change exactly as specified — variance up ~14× — and the
+per-event observable does not move at all. That is not a null result to be embarrassed by, it
+is arithmetic: the conversion term adds √(F·n) = 8.1 electrons in quadrature to a spread of
+266.7, predicting 266.82 against 266.75 measured. **The per-event electron count is dominated
+by delta rays and energy straggling (81 % relative spread), which Geant4 already models.**
+
+The plan no longer promises something the code does not do, and the honest conclusion is
+recorded alongside: Fano was never a candidate explanation for any §9 tension.
+
 ## Still not done
 
 - **The ρ_s × d_k scan** (12 points) has not been re-run — only the nominal point. Doing it

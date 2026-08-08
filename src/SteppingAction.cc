@@ -19,6 +19,28 @@
 #include "Randomize.hh"
 
 #include <cmath>
+#include <cstdlib>
+
+// Fano factor for the edep -> ion-pair conversion (plan §7 step 1, audit C8).
+// 0.2 is the standard value for argon-based counting gases; it is a property
+// of the gas, so if the gas ever becomes a scan axis this belongs beside
+// kWValues rather than here.
+// Overridable with MX17_FANO so the with/without comparison can be run at the
+// SAME seed — the only way to see the effect, since the per-event electron
+// count is dominated by delta rays and varies >100 % event to event. Setting
+// MX17_FANO=0 reproduces the pre-2026-08-08 floor+Bernoulli behaviour exactly.
+static double FanoFactor() {
+    static const double f = [] {
+        const char* s = std::getenv("MX17_FANO");
+        return s ? std::atof(s) : 0.2;
+    }();
+    return f;
+}
+// Below this mean pair count a Gaussian is not a sensible description (it
+// would return negative counts and lose the sub-W remainder), so the exact
+// floor + Bernoulli treatment is kept. At F = 0.2 the Gaussian sigma reaches
+// 1 pair at nbar = 5, which is where the two descriptions meet.
+static const double kFanoMinNbar = 5.0;
 
 const std::map<std::string, double> SteppingAction::kWValues = {
     {"ArCF4",    34.0},
@@ -76,10 +98,41 @@ void SteppingAction::UserSteppingAction(const G4Step* step) {
         const std::string creatorName =
             creator ? std::string(creator->GetProcessName()) : std::string("primary");
 
+        // ── edep -> primary electrons, with the FANO factor (audit C8) ──────
+        //
+        // Plan §7 step 1 specifies F ~ 0.2 and neither stage implemented it.
+        // The old code was floor(edep/W) plus a Bernoulli on the remainder,
+        // which is very nearly DETERMINISTIC: its variance is frac(1-frac) <=
+        // 0.25 per cluster, where Fano statistics give F * nbar. The conversion
+        // step was therefore simulated far too narrow, and the plan promised
+        // something the code did not do.
+        //
+        // Fano statistics are sub-Poisson (F < 1) because the ionisations
+        // along a track are anti-correlated by energy conservation: having
+        // spent energy on one ion pair leaves less for the next, so the count
+        // fluctuates less than a Poisson of the same mean. A Gaussian of
+        // variance F*nbar is the standard representation and is what §7 asks
+        // for; it is only meaningful once nbar is not tiny, hence the guard
+        // below.
         double W = GetWValue(fConfig.gas) * eV;
-        int nPrimary = static_cast<int>(std::floor(edep / W));
-        double frac  = edep / W - nPrimary;
-        if (G4UniformRand() < frac) nPrimary++;
+        double nbar = edep / W;
+        int nPrimary;
+        const double fano = FanoFactor();
+        if (fano <= 0.0 || nbar < kFanoMinNbar) {
+            // Too few pairs for a Gaussian to mean anything: keep the exact
+            // floor + Bernoulli remainder, which conserves <n> = nbar and is
+            // the right small-number limit. Most clusters land here (a MIP
+            // cluster is ~1-2 electrons), so the total is dominated by the
+            // cluster-count and energy-straggling fluctuations Geant4 already
+            // models -- this term matters for the dense clusters in the tail.
+            nPrimary = static_cast<int>(std::floor(nbar));
+            double frac = nbar - nPrimary;
+            if (G4UniformRand() < frac) nPrimary++;
+        } else {
+            double n = G4RandGauss::shoot(nbar, std::sqrt(fano * nbar));
+            nPrimary = static_cast<int>(std::lround(n));
+            if (nPrimary < 0) nPrimary = 0;   // truncate, do not reflect
+        }
 
         IonizationCluster cluster;
         cluster.x            = pos.x()/mm;

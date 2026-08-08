@@ -129,25 +129,60 @@ schema were verified clean, several by hand re-derivation.
 3. **V6** — expose the 100 µm inter-pad gaps (W2) and re-solve; expected percent-level.
 4. **T13 completion** — wft *reconstruction*, not just io, through to `events.parquet`.
 5. **T13b** — τ_g closure with the unmodified `rc_line_step1/2.py`.
-6. **T14** — the blind comparison, ONCE (see principle 1).
+6. **T14** — the blind comparison, ONCE (see principle 1), **against det3 cosmic-bench data** (P1
+   decision above) — not run_71/SPS. Settle the wet-Ar/iso bracket and the effective drift gap
+   (P1 sub-items) before running it.
 
 ### Open questions and problems
 
-**P1 — which detector are we simulating? (blocks T14)** Three different setups are in play:
+**P1 — DECIDED 2026-08-07 (user): simulate Ar/Iso 95/5, compare against det3 cosmic-bench data only.**
 
-| | gas | drift field |
-|---|---|---|
-| §9 targets (run_71) | Ar/CF₄/iC₄H₁₀ 88/10/2 + **1.3–1.7 % H₂O** | 233 V/cm |
-| noise source (det3 bench) | Ar/Iso 95/5 | 900 V over 30 mm |
-| **what Stage B simulates** | Ar/iC₄H₁₀ 95/5, dry | 333 V/cm |
+| | gas | drift field | status |
+|---|---|---|---|
+| **target: det3 cosmic bench** | Ar/Iso 95/5 (= Ar/iC₄H₁₀ 95/5) | 1000 V drift / 490 V mesh over 30 mm nominal = 333 V/cm | **the T14 comparison point** |
+| what Stage B simulates | Ar/iC₄H₁₀ 95/5, dry | 333 V/cm (`digitize.py` `DEFAULT_DRIFT_V=1000`, `DEFAULT_MESH_V=490`, `DEFAULT_DRIFT_GAP_MM=30`) | **already matches the target — no code change needed** |
+| §9 targets (run_71/SPS) | Ar/CF₄/iC₄H₁₀ 88/10/2 + 1.3–1.7 % H₂O | 233 V/cm | **SHELVED — a different detector; do not compare against it until det3 closure is done (see §9)** |
 
-Must be settled before T14 means anything. Follow-on: if run_71's gas carried percent-level water,
-the det3 bench gas plausibly did too, and our dry Ar/iso Magboltz table inherits the same error.
-The wet-CF₄ table (with transverse diffusion) already exists on EOS for the run_71 point.
+**Why this resolves it without touching the sim:** the old three-way conflict was mostly an
+artifact of chasing two different data sources at once. Stage B's existing defaults are not a
+guess at "some Ar/iso point" — they already *are* the det3 bench's own operating point:
+333 V/cm = 1000 V / 30 mm nominal is exactly the `long_run_resist_490V_drift_1000V` sub-run in
+`~/x17/cosmic_bench/det3/mx17_det3_saturday_scan_6-27-26/`, the same run T12's pedestals and noise
+spec already come from. Redirecting T14's target from run_71 (SPS, CF₄-bearing, 233 V/cm) to det3
+(cosmic bench, Ar/iso, 333 V/cm) removes the gas/field mismatch with zero simulation changes. The
+old P1 table's "900 V" for the det3 bench was itself wrong/stale — §1 already said 1000 V; that
+inconsistency is now resolved by fixing the canonical point at 1000 V drift / 490 V mesh (both a
+real det3 point and the one every downstream number already uses).
+
+This does not make P1 fully closed — it rescopes the remaining sub-items from "which of three
+detectors" to "which det3 wrinkles matter":
+- **Water content — RUN, not resolved.** `design/report/WET_ARISO_BRACKET_2026-08-07.md` (raw:
+  `response/params/wet_ariso_drift.json`). Unlike run_71 there is no single measured band to
+  bracket — det3 has two disagreeing "measured" v_drift numbers (36.6 §1, 28.1±0.7 µm/ns
+  micro-TPC). At 333 V/cm / 30 mm assumed, the actual surveyed water fraction (1.46 %) gives
+  v = 25.25 µm/ns — far from 36.6 (31 % off) but only ~10 % off 28.1, i.e. the measured water
+  content favors the micro-TPC number over §1's, though the micro-TPC point was taken at a
+  different (~19 mm) gap so this isn't conclusive. Also found: v_drift is non-monotonic in H₂O
+  near this field (0.5 % *raises* it above dry before higher fractions drop it). Sharpens rather
+  than closes the gap sub-item below — the two competing v_drift numbers disagree along exactly
+  the axis (gap/field) that item is about.
+- **Effective drift gap.** nTof_x17 docs disagree on det3's actual gap: `mx_june_cosmic_qa/PAPER_STATUS.md`
+  says ~23 mm recorded vs 30 mm mechanical; `mx_june_wft/ANALYSIS_STATE_2026-07-31.md` says
+  27.9±0.1(stat)±1.0(calib) mm; `HANDOFF_det3_vdrift_and_kernels.md` uses ~19 mm for the same
+  bench. Pick one (27.9 mm is the most recent/careful figure) and record it here before T14 — do
+  not assume the 30 mm mechanical nominal is what the data actually saw.
+- **HV point.** 900 V (`drift_scan_resist_490V_drift_900V`) is a real det3 point too, but it is not
+  the one behind T12 or Stage B's defaults — treat it as a future scan point, not the T14 target.
+
+Follow-on kept from before the decision, now read as "for det3" rather than "for run_71": if the
+water fraction lands well above ~0, the dry Ar/iso Magboltz table Stage B currently uses inherits
+the same ~3–5× v_drift error the CF₄ analysis found, and T_drift/halo-width predictions should not
+be trusted until the wet bracket is run.
 
 **P2 — simulated MIPs saturate the ADC.** 16.5 % of events peg the 12-bit ADC at 490 V. That *is* a
-genuine det3 operating point (their HV scan runs 460–530 V), so it may be real behaviour at the top
-of their range — but it cannot be judged until P1 is settled.
+genuine det3 operating point (their HV scan runs 460–530 V), and per the P1 decision above 490 V
+mesh / 1000 V drift is now the exact T14 target — so this is judgeable at T14 directly against
+det3's own 490 V saturation rate, once the water/gap sub-items are settled.
 
 **P3 — the ion's lateral shape is frozen at z = 0.** Ions carry 90.8 % of the induced charge and
 currently get the surface kernel's lateral shape, the narrowest possible, because S1 solves only that
@@ -278,7 +313,7 @@ Critical geometric facts:
 - **Pitch mismatch / beat:** resistive pitch 800 µm vs readout pitch 780 µm. The ESL-to-pad registration phase advances 20 µm per pitch and repeats every **LCM = 31.2 mm** (39 resistive strips = 40 readout pitches). The response kernel is therefore **position-dependent with a 31.2 mm superperiod** in x. The solvers and the digitizer must carry the absolute x position, not just position-within-one-strip. This beat is itself a physics prediction to look for in data (position-dependent sharing/residuals with 31.2 mm period).
 - **Orientation and sharing anisotropy:** resistive strips run along y. Resistive transport moves charge along y → spreads signal across the *y-measuring* channels → the Y view has stronger, slower sharing (data: τ_Y ≈ 410 ns vs τ_X ≈ 230 ns; kY ≈ 1.8–2.9). Across x, gaps block DC transport; X-view sharing is diffusion + induction + weak inter-strip capacitance. The simulation must reproduce this asymmetry *from geometry alone* — it is a headline validation target.
 - **Strip biasing/grounding — A1 CONFIRMED as hardware, τ_g REINTERPRETED (2026-08-07):** the ESL strips contact copper bus strips at both y-ends of the active area and **nothing in between** (user, 2026-08-07 — this is now a fact, not an assumption). The implied global drain is L²/(π²D) = 4–41 ms across the ρ_s scan. The quantity previously mislabeled here as "measured global drain constant τ_g = 5.3–7.3 µs" (nTof_x17 `rc_line_step2.py`) is **not a drain measurement**: it is fitted as T_Y = T_X ⊛ [δ + d/dt(Gaussian diffusion × e^(−t/τ_g))] on a ≤1.4 µs window with the measured X template as reference, so (i) any decay common to both views — electronics, a true global drain, HV sag — cancels by construction, and (ii) an ms-scale drain is a factor 0.9998 over the window, invisible. τ_g is the *extra decay of the Y view relative to X beyond the Gaussian toy model*, i.e. a kernel-shape observable. A drain-free S1 kernel of the true comb channel, pushed through the same toy fit, reproduces an apparent τ_g ≈ 2.2–3.3 µs for on-strip deposits and ∞ for gap deposits (charge level, ρ_s 1–2 MΩ/sq; `response/validation/tau_g_reinterpretation.py`); a strip/gap mixture lands in the measured 5.3–7.3 µs band, and the mechanism is position-flat along the strip and fleet-consistent, both as observed. Consequence for the solver: **`tau_drain_s=None` is the production default** (§3). The digitizer-level closure (run the actual rc_line fit on simulated waveforms) is task T13b.
-- Gas: Ar/iso 95/5 (+~1% H2O on the bench — matters, measured v_drift 36.6 µm/ns is far below dry Magboltz). Drift gap 30 mm at 1000 V typical bench.
+- Gas: Ar/iso 95/5 (+~1% H2O on the bench — matters, measured v_drift 36.6 µm/ns is far below dry Magboltz). Drift gap 30 mm nominal at 1000 V / 490 V mesh — this is the det3 `long_run_resist_490V_drift_1000V` run, and per the **P1 decision (§0a)** it is now the sole T14 target; do not compare against run_71/SPS. Water fraction and effective gap for this exact run are still open — see §0a P1 sub-items.
 
 ---
 
@@ -467,7 +502,7 @@ Garfield++ `AvalancheMicroscopic` + `MediumMagboltz` in the S2 field map (or uni
 
 Extract per point into `aval_calib.json`: mean gain ḡ, Polya θ (fit P(g) ∝ (g/ḡ)^θ e^(−(1+θ)g/ḡ)), transverse avalanche spread σ0 at the ESL, longitudinal α(z) profile, normalized ion-induced current shape i_ion(t) in the gap (uniform-field ion mobility from Magboltz tables; **flag: ion mobility is the single softest parameter** — carry ±30% as a systematic), fraction of ions to mesh.
 
-Gases: Ar/iso 95/5 dry AND +1% H2O (tables partly exist in `~/PycharmProjects/nTof_x17/garfield_sim/results/` and on EOS — reuse; the condor workflow in that repo is the template). HV: 480–540 V mesh in 10 V steps (bench operating 490 V, SPS up to 625 V different gas — add Ar/CO2/iso 95/3/2 and Ar/CF4/iso 88/10/2 later).
+Gases: Ar/iso 95/5 dry AND +1% H2O (tables partly exist in `~/PycharmProjects/nTof_x17/garfield_sim/results/` and on EOS — reuse; the condor workflow in that repo is the template). HV: 480–540 V mesh in 10 V steps (bench operating 490 V — this is the det3/T14 target per the §0a P1 decision; SPS up to 625 V different gas — add Ar/CO2/iso 95/3/2 and Ar/CF4/iso 88/10/2 later, now further deprioritized since run_71/SPS is shelved as a T14 target).
 
 **Host: lxplus condor** (systematic campaign; reuse `garfield_sim/mm_condor_*` submission machinery). Quick single-point smoke tests: laptop.
 
@@ -551,7 +586,7 @@ Acceptance: a 10⁴-event muon run whose ClusterTree loads in `response/digitize
 ## 7. Stage B — digitizer
 
 Per event, per ionization cluster (vectorize over clusters):
-1. Electrons: n = round(edep/W) with Fano-factor binomial correction (F≈0.2 Ar); or later Heed re-ionization mode.
+1. Electrons: n = round(edep/W) with a Fano correction (F ≈ 0.2 Ar); or later Heed re-ionization mode. **IMPLEMENTED in Stage A 2026-08-08** (`SteppingAction.cc`, audit C8): n is drawn from a truncated Normal(n̄, √(F·n̄)) above n̄ = 5, falling back to the exact floor + Bernoulli remainder below that, where a Gaussian would return negative counts and lose the sub-W remainder. `MX17_FANO` overrides F; `MX17_FANO=0` reproduces the pre-2026-08-08 behaviour bit-for-bit, which is how the A/B was done at a fixed seed. **Measured effect: none.** The conversion residual widens from sd 0.41 to 1.53 on the Gaussian branch exactly as specified, but the per-event electron count is unchanged (sd 266.70 → 266.75 on 3000 muons) because it is dominated by delta rays and energy straggling at 81 % relative spread. The conversion term adds only √(F·n) = 8.1 e in quadrature — predicting 266.82 against 266.75 measured. Fano was never a candidate explanation for any §9 tension; the plan simply no longer promises what the code did not do.
 2. Drift each electron packet: arrival time t = t_cluster + z/v_d + Gauss(σ_L√z /v_d); transverse Gauss(σ_T√z); attachment survival e^(−z/λ). Parameters interpolated from Magboltz tables (wet gas!). Use the packet approximation (per-cluster, not per-electron) until profiling says otherwise.
 3. Mesh transparency ε (S2) — binomial thin.
 4. Per surviving electron: gain g ~ Polya(ḡ,θ) (S3); avalanche lands at (x+funnel offset, y) with spread σ0.
@@ -764,6 +799,11 @@ anything.
 
 #### ⚠️ The §9 targets are measured at an operating point the simulation does not simulate (2026-08-07)
 
+**Superseded by the P1 decision in §0a (2026-08-07): T14 now targets det3 cosmic-bench data, not
+run_71/SPS, which sidesteps the gas/field mismatch documented below rather than resolving it. Kept
+for the record — the physics reasoning (drift-velocity mismatch → halo-width mismatch) is exactly
+the same argument now applied to det3's own gas, see §0a's water/gap sub-items.**
+
 The timing run put numbers on the discriminator and refuted the diffusion-vs-transport framing
 above: our d=±1 peak-time shift is **+93 to +142 ns** against a measured **+54–61 ns** — our
 neighbour is not prompt at all, it is *twice as late* as the data's. Relative width stays ~1.0
@@ -846,22 +886,34 @@ Note also that the *cluster* x range in that file spans −140 to +104 mm while 
 
 ## 9. Validation & closure (blind targets — do not tune to these)
 
+**Per the P1 decision (§0a, 2026-08-07): the T14 target is det3 cosmic-bench data, Ar/Iso 95/5 at
+1000 V drift / 490 V mesh. Run_71/SPS (CF₄-bearing, 233 V/cm) is a different detector and is
+SHELVED — its rows below are kept for the record but are NOT the comparison to run at T14.** The
+table mixes two data sources; the "dataset" column below states which, inferred from each source
+doc's naming (`sps_beam_test_26/*` = run_71/SPS; `mx_june_*` = det3-era cosmic analysis) — confirm
+the gas/HV recorded inside each doc before trusting a row as a genuine det3 target, this was not
+independently re-checked doc-by-doc.
+
 Run the **unmodified** wft chain (`nTof_x17/wft/`) + the SPS-style kernel analyses on simulated det3-bench cosmics and simulated normal-incidence tracks. Compare:
 
-| Observable | Measured value | Source |
-|---|---|---|
-| Dispersed ±1 share c1 | 0.23–0.28 (gain/gas/drift-invariant) | `sps_beam_test_26/analysis/M70V_FLAT_ANALYSIS.md`, `FLAT_CF4_RUN63.md` |
-| ±1 median peak-time shift | +54–61 ns | `RAW_RUN71_REANALYSIS_2026-08-04.md` |
-| Charge budget d=0/±1/±2/±3 (area) | 1.00 / 0.71–0.77 / 0.40–0.48 / 0.15–0.18 | same (trim20, clean) |
-| Peak-amplitude ratios | 1.00 / 0.16–0.19 / 0.06–0.08 / 0.03 | same |
-| Full W_d(t) library, 3 drift fields | npz archive | `staging/run_71/reanalysis_2026-08-04/` (data disk) |
-| X vs Y sharing asymmetry | τ 230 vs 410 ns; kY 1.8–2.9 | `mx_june_wft/ANALYSIS_STATE_2026-07-31.md` |
-| Apparent τ_g from the rc_line fit (differential Y-vs-X kernel decay, NOT a drain — §1) | 5.3–7.3 µs; predicted two-component (gap charge ~no decay) | `rc_line_step2.py` results; closure = T13b |
-| X/Y charge balance | 0.49/0.51 (det3) | `bench_constants.py` |
-| Undershoot | −4 to −6% | run_71 reanalysis |
-| Angular/position resolution | σ_θ 1.08–1.11°, core σ|r| 0.46 mm | `ANALYSIS_STATE_2026-07-31.md` |
-| Prompt diffusion onto ±1 | 0.19–0.21 | M70V analysis (checks steps B.2–B.4 alone) |
-| **Predicted, look for in data:** 31.2 mm beat in sharing/residuals | — | this plan §1 |
+| Observable | Measured value | Source | dataset |
+|---|---|---|---|
+| Dispersed ±1 share c1 | 0.23–0.28 (gain/gas/drift-invariant) | `sps_beam_test_26/analysis/M70V_FLAT_ANALYSIS.md`, `FLAT_CF4_RUN63.md` | run_71/SPS — **SHELVED** |
+| ±1 median peak-time shift | +54–61 ns | `RAW_RUN71_REANALYSIS_2026-08-04.md` | run_71/SPS — **SHELVED** |
+| Charge budget d=0/±1/±2/±3 (area) | 1.00 / 0.71–0.77 / 0.40–0.48 / 0.15–0.18 | same (trim20, clean) | run_71/SPS — **SHELVED** |
+| Peak-amplitude ratios | 1.00 / 0.16–0.19 / 0.06–0.08 / 0.03 | same | run_71/SPS — **SHELVED** |
+| Full W_d(t) library, 3 drift fields | npz archive | `staging/run_71/reanalysis_2026-08-04/` (data disk) | run_71/SPS — **SHELVED** |
+| X vs Y sharing asymmetry | τ 230 vs 410 ns; kY 1.8–2.9 | `mx_june_wft/ANALYSIS_STATE_2026-07-31.md` | presumed det3 — **confirm gas/HV in-doc** |
+| Apparent τ_g from the rc_line fit (differential Y-vs-X kernel decay, NOT a drain — §1) | 5.3–7.3 µs; predicted two-component (gap charge ~no decay) | `rc_line_step2.py` results; closure = T13b | presumed det3 — **confirm gas/HV in-doc** |
+| X/Y charge balance | 0.49/0.51 (det3) | `bench_constants.py` | det3, confirmed |
+| Undershoot | −4 to −6% | run_71 reanalysis | run_71/SPS — **SHELVED** |
+| Angular/position resolution | σ_θ 1.08–1.11°, core σ|r| 0.46 mm | `ANALYSIS_STATE_2026-07-31.md` | presumed det3 — **confirm gas/HV in-doc** |
+| Prompt diffusion onto ±1 | 0.19–0.21 | M70V analysis (checks steps B.2–B.4 alone) | run_71/SPS — **SHELVED** |
+| **Predicted, look for in data:** 31.2 mm beat in sharing/residuals | — | this plan §1 | applies to either dataset |
+
+**Before T14 runs**, the SHELVED rows above need det3-equivalent replacements (c1, peak-time shift,
+charge budget, peak-amplitude ratios, undershoot) — either found in an existing det3-era cosmic
+analysis or measured fresh from det3 raw data; do not substitute the run_71 numbers for them.
 
 Procedure: predictions FIRST for the full ρ_s × d_k grid, as a band; then overlay data; identify which scan point matches; only then permit tuning, restricted to the physical parameter set {ρ_s, d_k, ion mobility, absolute gain, ENC scale} — the p2 "don't tune past these" firewall applies: if *shapes* disagree beyond these knobs, the model is missing physics; find it, don't fudge it.
 
