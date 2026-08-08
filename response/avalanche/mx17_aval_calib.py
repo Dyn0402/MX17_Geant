@@ -166,13 +166,6 @@ def main():
     #    map loaded through ComponentGrid (FIELD_MAP_RUNBOOK.md) ─────────────
     field_map_grid = None  # keep a reference alive for the sensor's lifetime
     if args.field_map:
-        # Geometry constants MUST track solve_fieldmap.py exactly (wire radius
-        # and kiss overlap are fixed by the weave, not user-adjustable here).
-        fm_wire_r, fm_overlap = 9.5, 1.0          # um
-        fm_z_off = fm_wire_r - fm_overlap / 2.0   # um, wire-axis |z| offset
-        fm_z_under = -(fm_z_off + fm_wire_r)      # um, mesh underside
-        fm_z_anode = fm_z_under - args.gap_um     # um, ESL surface
-
         field_map_grid = G.ComponentGrid()
         if not field_map_grid.LoadElectricField(args.field_map, "xyz",
                                                  True, True):
@@ -180,18 +173,32 @@ def main():
         field_map_grid.SetMedium(gas)
         # Capture the map's own z-extent BEFORE enabling periodicity — the
         # bounding box becomes laterally infinite afterwards (gates_check.C).
+        # This is the SOURCE OF TRUTH for the anode/ESL plane: solve_fieldmap
+        # exports zlo = Z_ANODE + 0.5 um (a half-step inset from the true
+        # ESL), so recomputing Z_ANODE analytically here would put the
+        # "reached anode" test 0.5 um past the last real grid point and the
+        # electron would leave the map (medium -> nullptr, absorbed at the
+        # boundary) just short of it — every avalanche would read gain = 0.
+        # (Caught exactly that way on the first field-map smoke run.)
         gxlo, gylo, gzlo = ctypes.c_double(), ctypes.c_double(), ctypes.c_double()
         gxhi, gyhi, gzhi = ctypes.c_double(), ctypes.c_double(), ctypes.c_double()
         field_map_grid.GetBoundingBox(gxlo, gylo, gzlo, gxhi, gyhi, gzhi)
         field_map_grid.EnablePeriodicityX()
         field_map_grid.EnablePeriodicityY()
 
+        anode_z_cm = gzlo.value
+        mesh_under_z_cm = anode_z_cm + gap_cm  # amp gap = pillar height
+        pitch_cm_area = 67.0e-4
+
         # Readout weighting field/potential: same parallel-plate ansatz as
         # the uniform-field pass (S1's real weighting potential is a separate,
-        # later job — plan §7 step 6), just re-anchored to the map's z datum:
-        # ψ = 1 at the ESL (z = fm_z_anode), ψ = 0 at the mesh underside.
-        anode_z_cm = fm_z_anode * 1e-4
-        pitch_cm_area = 67.0e-4
+        # later job — plan §7 step 6), ψ = 1 at the ESL ramping to ψ = 0 at
+        # the mesh underside. Area is confined to the amp gap ONLY (not the
+        # drift bulk above): the mesh screens the readout from induction
+        # above it, same physical argument as the uniform-field pass, which
+        # had no drift region to begin with. Confining the area also gives
+        # WeightingField/WeightingPotential a real GetMedium() to fall back
+        # on (see the no-area note below) without ever throwing.
         wcmp = G.ComponentConstant()
         wcmp.SetWeightingField(0., 0., 1.0 / gap_cm, "readout")
         wcmp.SetWeightingPotential(0., 0., anode_z_cm, 1.0)
@@ -200,10 +207,8 @@ def main():
         # every electrode component's GetMedium() along the trajectory; with
         # no area set that falls through to the base Component::GetMedium(),
         # which throws ("geometry is not set") rather than returning nullptr.
-        # An explicit area makes it behave like an ordinary out-of-medium
-        # point instead.
-        wcmp.SetArea(-10 * pitch_cm_area, -10 * pitch_cm_area, gzlo.value,
-                     10 * pitch_cm_area, 10 * pitch_cm_area, gzhi.value)
+        wcmp.SetArea(-10 * pitch_cm_area, -10 * pitch_cm_area, anode_z_cm,
+                     10 * pitch_cm_area, 10 * pitch_cm_area, mesh_under_z_cm)
 
         sensor = G.Sensor()
         sensor.AddComponent(field_map_grid)
