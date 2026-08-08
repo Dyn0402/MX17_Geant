@@ -209,6 +209,14 @@ def main():
         # which throws ("geometry is not set") rather than returning nullptr.
         wcmp.SetArea(-10 * pitch_cm_area, -10 * pitch_cm_area, anode_z_cm,
                      10 * pitch_cm_area, 10 * pitch_cm_area, mesh_under_z_cm)
+        # ...AND SetMedium: ComponentConstant::GetMedium returns m_medium (not
+        # just "is it in area") when in area, so WITHOUT this call
+        # WeightingField/WeightingPotential's own internal GetMedium() gate
+        # sees a null medium everywhere and silently floors every signal to
+        # zero — a second instance of the exact i_elec/i_ion == 0 trap this
+        # file's docstring already documents, caught the same way (all-zero
+        # signals with an otherwise-correct-looking run).
+        wcmp.SetMedium(gas)
 
         sensor = G.Sensor()
         sensor.AddComponent(field_map_grid)
