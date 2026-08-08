@@ -29,6 +29,7 @@ from ..common import constants as C
 from .clusters import ClusterFile
 from .digitize import Digitizer
 from ..dream.shaper import DreamShaper
+from .truth import TruthWriter
 
 CALIB = "~/x17/response_sim/avalanche/aval_calib.json"
 DMAX = 3
@@ -312,7 +313,11 @@ def main():
     # silently applied because the exact meaning of "inverted" (per connector
     # vs across the whole FEU) should be read off Mx17StripMap.RunConfig
     # instead of guessed a second time.
-    daq = adc_buf = trig = ftst_buf = None
+    daq = adc_buf = trig = ftst_buf = ev_buf = None
+    # The truth sidecar (C9) is written whenever decoded output is, since that
+    # is the only case where anything downstream needs something to join to.
+    truth = TruthWriter() if a.decoded_out else None
+    n_empty = 0
     if a.decoded_out:
         from ..dream.daq import (Daq, N_CHAN, charges_to_fc, write_decoded,
                                  TriggerPhase)
@@ -327,6 +332,10 @@ def main():
             sample_period_ns=daq.dt_ns)
         adc_buf = {"X": [], "Y": []}
         ftst_buf = {"X": [], "Y": []}
+        # The ClusterTree's own eventID, carried through to the decoded file so
+        # a truth join is possible at all (C9) and so dropping events could not
+        # silently renumber the rest (C10).
+        ev_buf = {"X": [], "Y": []}
         print(f"  decoded   writing "
               f"{os.path.basename(decoded_path(a.decoded_out, a.decoded_tag, a.feu_ids[0]))}"
               f" (X, FEU {a.feu_ids[0]}) and "
@@ -354,20 +363,54 @@ def main():
             oy = rng_pos.uniform(0.0, 2 * C.PAD_PITCH_M * 1e3)
         x, y, t, q = dig.transport(cf.x[g] + ox, cf.y[g] + oy,
                                    cf.z[g], cf.t[g], cf.n_e[g])
-        if len(x) == 0:
-            continue
-        cur = dig.induce(x, y, t, q, a.n_samp)
-        if shaper is not None:
+
+        # AN EVENT THAT PRODUCED NO CHARGE IS STILL A TRIGGER (audit C10).
+        # This used to `continue` before the DAQ buffer, so decoded files were
+        # missing entries that a real run records — which breaks occupancy
+        # comparisons and, worse, silently shifts eventId alignment against
+        # anything joined to them. Such events still get pedestal and noise,
+        # so they are written as noise-only frames.
+        empty = len(x) == 0
+        cur_raw = {} if empty else dig.induce(x, y, t, q, a.n_samp)
+        # The TRUE per-channel charge is the induced charge, taken BEFORE the
+        # shaper: with the P6 residual-pole model int(h) = (1-beta) int(h_nom),
+        # so a "true charge" read after shaping would carry beta (C9).
+        cur = cur_raw
+        if shaper is not None and not empty:
             # Shape each channel. The budget then integrates the SHAPED
             # waveform, which is what the data analysis sees.
             cur = {k: shaper.apply(v, dt_ns=dig.lut.dt * 1e9)
-                   for k, v in cur.items()}
+                   for k, v in cur_raw.items()}
+
+        if truth is not None:
+            qs = float(np.sum(q)) if not empty else 0.0
+            truth.add(
+                ev,
+                n_electron_in=int(np.sum(cf.n_e[g])),
+                n_seed=int(len(x)),
+                q_seed_total=qs,
+                # Charge-weighted mean arrival point at the ESL, in mm. This is
+                # the quantity a position reconstruction should recover, and it
+                # already includes the run.py offsets because they were applied
+                # before transport.
+                x_true_mm=(float(np.sum(x * q) / qs * 1e3) if qs > 0
+                           else float("nan")),
+                y_true_mm=(float(np.sum(y * q) / qs * 1e3) if qs > 0
+                           else float("nan")),
+                t0_ns=float(np.min(t)) if not empty else float("nan"),
+                off_x_mm=ox, off_y_mm=oy,
+                channels={k: float(np.sum(v) * dig.lut.dt)
+                          for k, v in cur_raw.items()},
+            )
         if daq is not None:
             # Lay the 1 ns shaped channels into a dense 512-wide plane per
             # view, then point-sample onto the 60 ns DAQ grid. The phase is
             # random per EVENT (the sampling clock is uncorrelated with a
             # cosmic) but SHARED by the two views: one trigger, one phase,
             # differing only by the fixed board offset, and recorded in ftst.
+            # The phase is drawn for EVERY event including empty ones, so the
+            # ftst sequence stays a property of the trigger rather than of
+            # whether the event happened to make charge (C10).
             from ..dream.daq import N_CHAN as _NC
             phases = trig.draw(daq.rng)
             for view in ("X", "Y"):
@@ -380,6 +423,14 @@ def main():
                 smp, _ph = daq.sample(plane, phase_ns=ph)
                 adc_buf[view].append(smp.T)          # (n_sample, n_chan)
                 ftst_buf[view].append(ftst)
+                ev_buf[view].append(ev)
+
+        n_done += 1
+        if empty:
+            # No budget to accumulate — but the frame, the ftst and the truth
+            # row above were all written, so the event survives in every output.
+            n_empty += 1
+            continue
 
         b = event_budget(cur, dig.lut.dt)
         if "X" in b:
@@ -390,7 +441,6 @@ def main():
             accY += np.array(b["Y"]["share"]); pkY += np.array(b["Y"]["peak"])
             nY += 1; totY.append(b["Y"]["total"])
             tsY.append(b["Y"]["t_peak_shift_ns"]); wY.append(b["Y"]["width_rel"])
-        n_done += 1
         if n_done % 50 == 0:
             el = time.time() - t0
             print(f"    {n_done} events, {el:.0f}s "
@@ -459,7 +509,7 @@ def main():
     missing += ["ZS", "noise"]
     print(f"\n  still missing: {', '.join(missing)}")
 
-    res = {"n_events": n_done, "d": ds,
+    res = {"n_events": n_done, "n_empty_events": n_empty, "d": ds,
            "share_X": accX.tolist(), "share_Y": accY.tolist(),
            "peak_X": pkX.tolist(), "peak_Y": pkY.tolist(),
            "c1_X": float(c1X), "c1_Y": float(c1Y),
@@ -476,12 +526,21 @@ def main():
             adc = daq.to_adc(charges_to_fc(block), n_ev=len(block))
             path = decoded_path(a.decoded_out, a.decoded_tag, feu)
             write_decoded(path, adc,
-                          event_ids=np.arange(len(block), dtype=np.uint64),
+                          event_ids=np.asarray(ev_buf[view], dtype=np.uint64),
                           ftst=np.asarray(ftst_buf[view], dtype=np.uint16))
             occ = float((adc.astype(np.int32)
                          - np.median(adc, axis=(0, 1))).max(axis=1).mean())
             print(f"  wrote {path}  {len(block)} events, "
                   f"mean per-event max excursion {occ:.0f} ADC")
+
+        # The truth sidecar goes next to the decoded files, keyed by the same
+        # eventIds (C9).
+        tpath = f"{a.decoded_out}_truth.npz"
+        truth.write(tpath, meta={"digitizer": info, "clusters": ci,
+                                 "shaper": shaper.describe() if shaper else None,
+                                 "n_empty_events": n_empty})
+        print(f"  wrote {tpath}  {n_done} events "
+              f"({n_empty} of them noise-only)")
 
     if a.out:
         with open(a.out, "w") as f:
