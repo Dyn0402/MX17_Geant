@@ -7,6 +7,12 @@
 set -e
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
+# HV-scan worker count: nothing else runs on this box overnight, so default
+# to all 16 cores (each worker is one single-threaded Garfield process, ~1GB
+# RSS incl. its own copy of the 171MB map -- 16-way is ~16GB, well inside the
+# ~46GB free; CPU, not memory, is the constraint).
+HVSCAN_JOBS="${1:-16}"
+
 LADDER_DIR=/media/ucla/mx17_response_sim/meshfield_ladder
 echo "[chain] $(date): waiting for $LADDER_DIR/.done ..."
 # A pgrep-on-process-name wait is fragile: the launching "nohup ... &
@@ -29,8 +35,8 @@ fi
 echo "[chain] $(date): shuttling the ladder to EOS..."
 ./shuttle_to_eos.sh ladder || echo "[chain] WARNING: ladder shuttle failed"
 
-echo "[chain] $(date): launching the Ar/iso 95/5 HV scan..."
-./run_meshfield_hvscan.sh 8
+echo "[chain] $(date): launching the Ar/iso 95/5 HV scan ($HVSCAN_JOBS-way)..."
+./run_meshfield_hvscan.sh "$HVSCAN_JOBS"
 echo "[chain] $(date): HV scan finished"
 
 echo "[chain] $(date): merging HV scan slices..."
