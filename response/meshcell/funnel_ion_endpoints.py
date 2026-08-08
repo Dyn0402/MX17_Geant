@@ -40,10 +40,21 @@ import numpy as np
 
 WIRE_R_UM = 9.5
 Z_OFF_UM = 9.0  # wire-axis |z| offset (1 um kiss overlap); matches gates_check.C
-MESH_TOP_CM = (Z_OFF_UM + WIRE_R_UM) * 1e-4        # +18.5 um, mesh topside
 PITCH_CM = 67.0e-4
 GAP_UM_DEFAULT = 150.0
 ION_Z_DECAY_UM = 14.8  # measured alpha(z) decay length, aval_calib_v2 (ions.py)
+# Margin (um, above and below gap_um) treated as "still at the mesh": an ion
+# whose drift line stops (StatusLeftDriftMedium) with its height above the
+# anode inside [gap_um - MARGIN, gap_um + MARGIN] is classed as absorbed on
+# a wire, not merely "escaped". A post-hoc GetMedium() re-query at the
+# reported endpoint is NOT reliable for this: RKF sub-steps can trip the
+# inactive-region check mid-step while the reported (bisected) endpoint
+# itself lands a hair on the valid side, so the *coordinate* reads as valid
+# gas even though the drift line genuinely terminated at the wire — caught
+# by a debug run where 15/15 ions all reported StatusLeftDriftMedium at
+# z = gap_um +0/+23 um, yet GetMedium() at that exact point returned valid
+# gas every time.
+MESH_BAND_MARGIN_UM = 25.0
 
 
 def parse_args():
@@ -151,18 +162,19 @@ def main():
         xe, ye, ze, te = (ctypes.c_double() for _ in range(4))
         status = ctypes.c_int()
         drift_ion.GetIonEndpoint(0, xs_, ys_, zs_, ts_, xe, ye, ze, te, status)
-        med = grid.GetMedium(xe.value, ye.value, ze.value)
-        if ze.value > MESH_TOP_CM:
+        ze_above_anode_um = (ze.value - anode_z_cm) * 1e4
+        if ze_above_anode_um > args.gap_um + MESH_BAND_MARGIN_UM:
             n_drift += 1
             outcome = "escaped_to_drift"
-        elif not med:
+        elif ze_above_anode_um > args.gap_um - MESH_BAND_MARGIN_UM:
             n_mesh += 1
             outcome = "absorbed_on_mesh"
         else:
             n_other += 1
             outcome = "other"
         ion_rows.append({"z0_above_anode_um": z_above_anode * 1e4,
-                         "ze_um": ze.value * 1e4, "outcome": outcome})
+                         "ze_above_anode_um": ze_above_anode_um,
+                         "status": int(status.value), "outcome": outcome})
 
     n_ok = n_mesh + n_drift + n_other
     print(f"[funnel] ion endpoints (n={n_ok}): "
