@@ -231,11 +231,66 @@ by delta rays and energy straggling (81 % relative spread), which Geant4 already
 The plan no longer promises something the code does not do, and the honest conclusion is
 recorded alongside: Fano was never a candidate explanation for any §9 tension.
 
+C7's effect on the 400-muon table at the DAQ window is sub-percent, as expected for 0.41 % of
+the electrons: c1_X −0.1 %, c1_Y −0.7 %, c2_X +2.4 %, X/Y balance +0.1 %.
+
+## C9 / C10 / C14 — outputs, and three more real bugs
+
+**C10.** Zero-electron events were `continue`d before the DAQ buffer, so decoded files omitted
+triggers a real run records. Worse than the occupancy problem: decoded eventIds were
+`arange(len(block))`, so a dropped event silently **renumbered every later one**. Events now
+carry the ClusterTree's own eventID and empty ones are written as noise-only frames. Verified
+by forcing every second event empty — 20 events out, 10 noise-only, ids 0–19 contiguous, join
+total on both FEUs, empty frames at 231 ADC max excursion (pure common mode) against 1972 for
+charged.
+
+**C9.** `truth.py` writes a per-event sidecar keyed by eventId. Two choices worth stating: the
+per-channel charge is taken **before** the shaper (with P6, ∫h = (1−β)∫h_nom, so a truth charge
+read after shaping would carry β), and the format is **npz not parquet** — the response chain
+runs on the system python3, which has no pyarrow or pandas, so a parquet sidecar could not be
+written by the process that produces it. Free cross-check: summed per-channel true charge over
+seed charge = 0.6835, where the real-pad capture (0.665) plus window and position sampling put
+it.
+
+**C14.** Two of the five were real, plus one on the Stage B side:
+
+- **A macro without `beamOn` ran zero events.** `run_default.mac` says in its own header that
+  main() launches the run after it, but main() only did that when *no* macro was given — so
+  passing the default macro produced an empty file and exited 0. Now 200 events either way.
+- **The impact point was randomised twice**, mislabelling provenance and (since C9) making the
+  recorded truth differ from what Stage A used. Stage A now records the primary vertex and the
+  spread it applied; run.py detects it and says so.
+- **Charge off the 512×512 readout** was counted by the budget but dropped by the DAQ writer,
+  so the two paths disagreed on out-of-area delta rays. `induce` now applies the fiducial and
+  reports the count.
+- Meta branch addresses hoisted off dead stack; the EventAction ×1e6 print fixed.
+
+Note the two truth impact points are **different quantities**: Stage A's vertex is where the
+particle entered, C9's is the charge-weighted arrival point at the ESL. They agree in the mean
+(0.16–0.19 mm) but differ per event by up to 8.2 mm from track inclination and delta rays.
+Comparing them and calling the difference an error is the obvious trap; `truth.py` says so.
+
+## Test suite
+
+`scripts/run_tests.sh <kernel> <calib> [ny1024]` — the whole suite in one place. On the
+production kernel: `test_longitudinal`, `test_lut_vs_solver`, `test_charge_audit`,
+`test_induce_equivalence`, `test_daq_wft` all **PASS**; `test_ny_grid` reports its
+informational FAIL (the C6 finding).
+
+`test_induce_equivalence` had never actually run anywhere — it hardcoded one machine's
+absolute paths, and because it compared nan against nan it printed
+`max abs difference = 0.000e+00`, which reads as a pass. It now takes `--kernel/--calib`, ends
+with a real verdict and exit code, and passes at 3.1e-08.
+
 ## Still not done
 
-- **The ρ_s × d_k scan** (12 points) has not been re-run — only the nominal point. Doing it
-  needs the disk decision in C6 and ~2 h.
-- **ny = 1024 production grid**, per C6.
-- **`aval_calib_v3.json`** carrying `survival` (bookkeeping only, per above).
-- C7 (amp-gap clusters), C8 (Fano), C9 (truth block), C10 (empty events), C14 (Stage A C++) —
-  all still open, all laptop-scale, none blocked.
+- **The ρ_s × d_k muon scan** (12 points through Stage B) has not been re-run — only the
+  nominal point. The ny=1024 products it should use now exist, so this is just compute.
+- **`aval_calib_v3.json`** regenerated from the raw slices with `collect.py` (the code carries
+  `survival` now; the file on EOS is still v2, and since survival = 1.0 nothing changes
+  numerically).
+- **The x/y sign convention** (`ActiveAreaFrame.hh`) is still the one open convention that
+  could silently corrupt T14, and the beat phase vs absolute channel number is its only
+  in-data check.
+
+Everything else on the C-list is done: C1–C14 inclusive.
