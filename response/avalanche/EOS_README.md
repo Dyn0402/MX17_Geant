@@ -33,6 +33,15 @@ unaffected, which is why it went unnoticed. Fixed in MX17_Geant commit
   a ratio and is the stable observable, which is exactly why it is the one
   checked.
 
+### Scope of that verification — it is a snapshot, not a standing guarantee
+
+Both checks were run against `mx17_aval_calib.py` at md5 `546b4ad2…`, the
+**uniform-field** producer (`ComponentConstant`) that actually made v2. The file
+has since moved under concurrent T7 work, which switches it to the **T6 field
+map**. That is a deliberate physics upgrade, so a future campaign is *expected*
+not to reproduce v2's numbers — the check above says the v2 templates are sound
+and re-derivable, not that the current producer will reproduce them.
+
 ## Why `raw/` is kept rather than deleted or renamed
 
 It is a real record of what was run, and renaming it would break anything

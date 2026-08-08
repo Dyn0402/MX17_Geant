@@ -293,7 +293,14 @@ v2 is a genuinely different realization, not the same slices re-reduced — its
   statistics — which is the point of checking a ratio rather than a gain.
 
 So both halves hold: the template is reproducible from what is stored, *and*
-re-derivable from scratch with the current code. What remains is only the EOS
+re-derivable from scratch.
+
+⚠️ **That is a snapshot, not a standing guarantee.** Both checks ran against
+`mx17_aval_calib.py` at md5 `546b4ad2…`, the uniform-field (`ComponentConstant`)
+producer that actually made v2. Concurrent T7 work has since switched it to the
+T6 field map — a deliberate physics upgrade, so a future campaign is *expected*
+not to reproduce v2. What is established is that v2's templates are sound and
+re-derivable, not that today's producer would reproduce them. What remains is only the EOS
 labelling, now addressed by a README deployed to
 `response_sim/avalanche/README.md` (version-controlled at
 `response/avalanche/EOS_README.md`), and the open task of uploading
