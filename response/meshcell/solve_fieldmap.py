@@ -314,23 +314,60 @@ def in_wire(pts, margin=0.0):
     return (dx < WIRE_R + margin) | (dy < WIRE_R + margin)
 
 
+def project_to_surface(pts, standoff):
+    """Project in-wire points radially onto the nearer wire surface + standoff."""
+    out = pts.copy()
+    dx = np.hypot(pts[1], pts[2] - Z_OFF)   # distance to x-wire axis
+    dy = np.hypot(pts[0], pts[2] + Z_OFF)   # distance to y-wire axis
+    use_x = dx >= dy                        # project out of the NEARER surface
+    # x-wire: radial in (y, z-Z_OFF); guard the (impossible for shell
+    # nodes) exactly-on-axis case.
+    r_t = WIRE_R + standoff
+    d = np.where(use_x, dx, dy)
+    d = np.maximum(d, 1e-6)
+    sc = r_t / d
+    ix = use_x
+    out[1, ix] = pts[1, ix] * sc[ix]
+    out[2, ix] = Z_OFF + (pts[2, ix] - Z_OFF) * sc[ix]
+    iy = ~use_x
+    out[0, iy] = pts[0, iy] * sc[iy]
+    out[2, iy] = -Z_OFF + (pts[2, iy] + Z_OFF) * sc[iy]
+    return out
+
+
 _CTX = None  # set by run() before the sampling Pool forks
 
 
 def _sample_plane(iz):
-    """Sample one z-plane of the product grid (multiprocessing worker)."""
+    """Sample one z-plane of the product grid (multiprocessing worker).
+
+    Flag semantics compensate Garfield's conservative interpolation rule
+    (a point is inactive if ANY cell corner is inactive, which fattens the
+    wires by up to one grid step): the written flag is ERODED by one step,
+    so the effective absorption boundary sits back on the true wire surface.
+    In-wire nodes inside the erosion shell stay active and carry the field
+    of their radial surface projection, so near-surface interpolation is not
+    polluted by zeros.
+    """
     zs, xs, nx = _CTX["zs"], _CTX["xs"], _CTX["nx"]
     Xg, Yg, ev, cm = _CTX["Xg"], _CTX["Yg"], _CTX["ev"], _CTX["cm"]
+    step = _CTX["step"]
     z = zs[iz]
     pts = np.vstack([Xg.ravel(), Yg.ravel(), np.full(Xg.size, z)])
     gas = ~in_wire(pts)
+    deep = in_wire(pts, margin=-step)       # > one step inside the wire
+    shell = (~gas) & (~deep)                # inside wire, within one step
     val = np.zeros(pts.shape[1])
     grad = np.zeros((3, pts.shape[1]))
     okz = np.zeros(pts.shape[1], bool)
     if gas.any():
         v_, g_, ok_ = ev(pts[:, gas])
         val[gas], grad[:, gas], okz[gas] = v_, g_, ok_
-    flag = (gas & okz).astype(np.int64)
+    if shell.any():
+        proj = project_to_surface(pts[:, shell], standoff=0.4)
+        v_, g_, ok_ = ev(proj)
+        val[shell], grad[:, shell], okz[shell] = v_, g_, ok_
+    flag = ((gas | shell) & okz).astype(np.int64)
     ex, ey, ezf = -grad[0] * 1e4, -grad[1] * 1e4, -grad[2] * 1e4
     dead = flag == 0
     ex[dead] = 0.; ey[dead] = 0.; ezf[dead] = 0.; val[dead] = 0.
@@ -488,7 +525,7 @@ def run(tag, lc_wire, lc_far, grid_step, nev_note, do_refine_gate, jobs):
     # pickle closures).
     global _CTX
     _CTX = {"zs": zs, "xs": xs, "nx": nx, "Xg": Xg, "Yg": Yg, "ev": ev,
-            "cm": cm}
+            "cm": cm, "step": grid_step}
 
     nflag0 = 0
     import multiprocessing as mp
