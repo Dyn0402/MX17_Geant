@@ -394,13 +394,18 @@ fitted value would be exactly the iteration the firewall exists to prevent.
 
 ## Still not done
 
-- **The ρ_s × d_k muon scan** (12 points through Stage B) has not been re-run — only the
-  nominal point. The ny=1024 products it should use now exist, so this is just compute.
-- **`aval_calib_v3.json`** regenerated from the raw slices with `collect.py` (the code carries
-  `survival` now; the file on EOS is still v2, and since survival = 1.0 nothing changes
-  numerically).
-- **The x/y sign convention** (`ActiveAreaFrame.hh`) is still the one open convention that
-  could silently corrupt T14, and the beat phase vs absolute channel number is its only
-  in-data check.
+Nothing from `AUDIT_FIXES_2026-08-07.md` remains: Fixes 1–8 and C1–C14 are all done, the
+ρ_s × d_k scan has run, `aval_calib_v3.json` is on EOS, and the x/y sign convention is settled.
 
-Everything else on the C-list is done: C1–C14 inclusive.
+What the audit deliberately left out of scope, and which is still out of scope: T10's slow path
+(the ion's lateral shape, P3), T6 field-map export (P4), V6, and β staying a scan parameter
+until T14.
+
+Two things this work opened that are worth someone's attention:
+
+- **The archived S3 raw cannot reproduce v2's ion template** (all-zero `i_elec`/`i_ion` in every
+  raw slice). If that template ever needs re-deriving, the pass that made it has to be found or
+  re-run.
+- **Neither scan axis explains the c1 gap**, and c1 is a weak observable by the plan's own P7.
+  If c1 is going to carry weight at T14 it needs the ratio framing above, or a better
+  observable — the width_rel and peak-time rows are the stronger candidates.
