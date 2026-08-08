@@ -132,6 +132,30 @@ moves the prompt sum rule S(0)/C(0) from 0.913043 to 0.881583, so it is not a
 rounding error. Two things would close it: the same fab stackup drawing, or a
 direct capacitance measurement of a pad against the ESL.
 
+**🟡 Sub-question, and it is the one that actually decides the number: does a
+coverlay adhesive spec quote the AS-SUPPLIED coating or the FINAL BOND LINE
+over copper?** This is a datasheet/process fact, not physics, and it is open
+(2026-08-08). It selects `GLUE_FLOW_MODEL` in `response/common/constants.py`:
+
+- *as-supplied* → `"conserved"` (the default). Lamination redistributes the
+  adhesive; the channels between pads must fill from somewhere and the only
+  source is the adhesive itself, so the over-pad layer thins by the channel
+  volume. Adhesive **flow is a specified, required property** of coverlay —
+  void-free encapsulation of copper topography is the whole point, "low-flow"
+  coverlay is sold separately *because* flow is the default, and a heated
+  vacuum press exists precisely to fill the channels rather than trap air. On a
+  400 mm panel the interior is a closed system: ~200 mm of viscous thermoset to
+  a free edge. The 50 µm film cannot dip into a 100 µm channel either
+  (span/thickness = 2, so it is rigid there and sits flat on the pad tops).
+- *final bond line* → `"uniform"`. The spec already accounts for flow, so no
+  correction applies.
+
+**It matters less than it looks.** `conserved` at 25 µm supplied gives
+d_eff = 70.5 µm; `uniform` at 18 µm gives 69.7 µm — the two disagreements
+largely cancel. Across the whole plausible space (either model, 12–35 µm
+supplied) d_eff spans 56–88 µm, *all* of it far from the 50 µm that assuming no
+glue would give. Production stays `conserved` @ 25 µm (decision 2026-08-08).
+
 ⚠️ **A related discrepancy this surfaced, still unresolved.** Read literally,
 the header stacks coverlay kapton → L3 guard ring → 264 µm FR4 → L4 pads, i.e.
 it puts a quarter of a millimetre of laminate between the ESL and the pads.

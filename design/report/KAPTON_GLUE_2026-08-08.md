@@ -52,6 +52,45 @@ Bracket on the series thickness: **56.9 µm** (12.5 supplied) to **81.5 µm**
 
 This is *not* a production scan axis. The bracket exists for sensitivity checks.
 
+### Step 3 was challenged, and survived — but the model is now a switch
+
+The objection (raised 2026-08-08) is that a thermoset film in a heated vacuum
+press gives "a highly uniform bond that doesn't pool or seep into the tiny gaps
+between your pixels", so no flow correction should apply. That is a real
+alternative and `GLUE_FLOW_MODEL = "uniform"` now implements it. But the
+specific claim about seepage is, I think, backwards:
+
+- adhesive **flow is a specified, required property** of coverlay, not a
+  defect. Void-free encapsulation of copper topography is the whole point, and
+  *low-flow* coverlay exists as a separate product precisely because flow is
+  the default;
+- the vacuum press exists to make the channels fill **completely** rather than
+  trap air. If the adhesive genuinely stayed out of the 100 µm channels, 24 %
+  of the area under the film would be voids — the exact defect it prevents;
+- on a 400 mm panel the interior is a **closed system**: the flow path to a
+  free edge is ~200 mm of viscous thermoset, so nothing escapes laterally from
+  the active area. Whatever fills the channels comes out of the over-pad layer;
+- the film cannot dip in to relieve it: 50 µm polyimide spanning a 100 µm gap
+  has span/thickness = 2, so it is rigid there and sits flat on the pad tops.
+
+What genuinely *is* open is not physics but semantics — **does the vendor
+number mean the as-supplied coating or the final bond line over copper?** That
+selects the model, and it is now flagged in `NEEDED_INPUTS.md`.
+
+**And it matters less than the argument suggests.** The two disagreements
+largely cancel:
+
+| model | supplied | over pad | d_eff | S(0)/C(0) |
+|---|---|---|---|---|
+| conserved | 25 µm | 18.8 µm | **70.5 µm** | **0.881583** |
+| uniform | 18 µm | 18.0 µm | 69.7 µm | 0.882817 |
+| uniform | 25 µm | 25.0 µm | 77.3 µm | 0.871595 |
+| conserved | 12.5 µm | 6.3 µm | 56.9 µm | 0.902298 |
+
+Across the whole plausible space d_eff is 56–88 µm, **all of it far from the
+50 µm that dropping the glue would give**. Production stays `conserved` @ 25 µm
+(decision 2026-08-08).
+
 ## Why the solver got a real two-layer stack instead of an effective thickness
 
 There is a single-layer thickness with the same series capacitance,
@@ -96,9 +135,25 @@ guards now keep them from being confused:
   products toward grid completeness**;
 - `KernelLUT.describe()` reports which stack a run's kernel came from.
 
-**Re-solve in flight**: condor cluster 13352631, 4 points (ρ_s ∈ {0.5, 1, 2, 5}
-MΩ/sq at the one confirmed thickness) → EOS `s1_ny1024/`. The thickness axis is
-retired, so this is 4 points where the old grid was 12.
+**Re-solve DONE** (condor 13352631, 4 points, ρ_s ∈ {0.5, 1, 2, 5} MΩ/sq at the
+one confirmed thickness → EOS `s1_ny1024/`). The thickness axis is retired, so
+this is 4 points where the old grid was 12. Every one certified against the new
+sum rule at err ≈ 5e-7, and `manifest --check` reports **grid COMPLETE** with
+all 12 legacy products correctly excluded rather than counted.
+
+The solved captures reproduce the closed form
+`(PAD_SIZE/PAD_PITCH)² × S(0)/C(0)` exactly, which is an independent check on
+the whole two-layer stack:
+
+| stack | S(0)/C(0) | predicted capture | solved |
+|---|---|---|---|
+| bare 50 µm (legacy) | 0.913043 | 0.69394 | 0.6939 |
+| **kapton+glue (production)** | **0.881583** | **0.67003** | **0.6700** |
+| bare 75 µm (legacy) | 0.875000 | 0.66502 | 0.6650 |
+| bare 125 µm (legacy) | 0.807692 | 0.61387 | 0.6139 |
+
+Production capture sits between bare-50 and the old 75 µm default and nearer
+the latter — exactly where d_eff = 70.5 µm puts it.
 
 ⚠️ **The ρ_s × d_k scan of 2026-08-07 is superseded for the production stack.**
 It varied d_k inside a *single-layer* model; the two-layer stack differs at
