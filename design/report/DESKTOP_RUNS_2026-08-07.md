@@ -273,6 +273,55 @@ particle entered, C9's is the charge-weighted arrival point at the ESL. They agr
 (0.16–0.19 mm) but differ per event by up to 8.2 mm from track inclination and delta rays.
 Comparing them and calling the difference an error is the obvious trap; `truth.py` says so.
 
+## `aval_calib_v3.json` — and a provenance gap in the archived raw
+
+v3 is on EOS, carrying v2's measured `i_elec`/`i_ion` **plus** the survival
+block, with `survival = 1.0000 ± 0.0000` at all seven voltages and the
+decomposition identity asserted at merge time. `collect.py` reproduces the
+gains exactly (23107.4 / 31386.7 / 44471.5 / … against the streamed values) at
+1.4 GB peak, so the streaming `reduce_file` design holds up on 19 GB.
+
+⚠️ **But v3 is NOT a from-raw regeneration, and must not be made one.** Running
+`collect.py` over the archived raw slices reproduces everything except the ion
+templates, because **the raw slices' own `i_elec`/`i_ion` are all zeros** — every
+voltage, checked directly. So v2's templates came from a different S3 pass and
+are **not reproducible from what is archived**. A naive regeneration produces a
+file that looks newer and is strictly worse; `digitize.py`'s template guard
+(added while re-running the charge audit) refuses it, which is the guard earning
+its keep on a file I had just created. `scripts/make_aval_calib_v3.py` does the
+correct merge and says why in its docstring.
+
+That archived-raw gap is worth closing separately if the ion template ever needs
+re-deriving.
+
+## The x/y sign convention — SETTLED, and the sim was wrong
+
+Settled from the detector rather than from data (user, 2026-08-08): viewed from
+the pixel side, X connectors along the bottom and Y up the right, x counting
+left→right and y bottom→top, x FEU DREAM 1 at the far left and y DREAM 1 at the
+bottom — channel 0 at the low end of each coordinate, exactly what
+`mx17_m1_map.csv` encodes.
+
+**`sy` was −1 and should be +1.** The header had flipped y purely to keep
+(x, y, z)_local right-handed after the z flip; nothing in the response chain
+takes a cross product, so handedness is free while a flipped y mislabels every
+Y channel. The frame is now deliberately left-handed. The derivation needs no
+agreement on which way is "up": the pads sit at larger world z than the ESL, so
++z_world points toward a viewer on the pixel side, (right, up, toward-viewer) is
+right-handed for any viewer, hence (x_det, y_det, z_local) is left-handed, which
+forces sx·sy = +1.
+
+Verified on a 300 mm-spread run: physical bottom → row 74, top → row 444, far
+left → col 64, far right → col 447. The connector inversion stays on the data
+side (`apply_orientation`, already unconditional) and the comparison happens
+after it. The bench is a third, swapped frame (bench x = detector y), which is
+why the June M3 alignment needed ~90° plus a flip.
+
+⚠️ Cluster files written before 2026-08-08 carry `sy = −1` in their Meta and stay
+self-consistent read through it, but their y is mirrored against new files — do
+not mix them channel-by-channel. Every observable reported here is symmetric in
+y, so no number in this document changes.
+
 ## Test suite
 
 `scripts/run_tests.sh <kernel> <calib> [ny1024]` — the whole suite in one place. On the
