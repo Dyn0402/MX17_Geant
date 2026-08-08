@@ -206,9 +206,29 @@ basename carries `_datrun_<tag>_` so that `wft/io.file_tag` can PAIR the X and Y
 subrun. Without the tag `reco.py`'s `by_tag` dict never assembles a pair and the run
 reconstructs zero events with no error anywhere.
 
-Still genuinely open: the **x/y sign convention** (`ActiveAreaFrame.hh:29-38` is a placeholder).
-A flip inverts checkerboard parity AND the 31.2 mm beat phase, and there is no guard for it —
-the beat phase against absolute channel number, at T14, is the only in-data check.
+**The x/y sign convention is SETTLED 2026-08-08, and the simulation had it wrong.**
+`ActiveAreaFrame.hh` used `sy = -1`, chosen only to keep the local frame right-handed after
+the z flip. Nothing in the response chain takes a cross product, so handedness is free while a
+flipped y mislabels every Y channel: `sy = +1` and the frame is now deliberately left-handed.
+
+The convention, from the detector (user, 2026-08-08): viewed from the pixel side, X connectors
+along the bottom and Y up the right, x counting left→right and y bottom→top, x FEU DREAM 1 at
+the far left and y DREAM 1 at the bottom — channel 0 at the LOW end of each coordinate, which
+is exactly what `mx17_m1_map.csv` encodes. So the strip map's "x0 = 0, increasing" was never an
+assumption awaiting a check; it IS the wiring. The sign follows without agreeing on which way
+is "up": the pads sit at larger world z than the ESL, so +z_world points toward a viewer on the
+pixel side, (right, up, toward-viewer) is right-handed for any viewer, therefore
+(x_det, y_det, z_local) is left-handed and sx·sy = +1.
+
+Verified: physical bottom → row 74, top → row 444, far left → col 64, far right → col 447 on a
+300 mm-spread run. The connector inversion stays on the DATA side (`apply_orientation`, already
+unconditional) and the comparison happens after it. The bench is a third, swapped frame
+(bench x = detector y), which is why the June M3 alignment needed ~90° plus a flip.
+
+⚠️ Cluster files written before 2026-08-08 carry `sy = -1` in their Meta and remain
+self-consistent read through it, but their y is mirrored against new files — never mix them
+channel-by-channel. Every observable quoted in this plan is symmetric in y (c1/c2 average
+d = ±1, the X/Y balance), so no number changes.
 
 **P6 — DREAM undershoot — RESOLVED 2026-08-07, and the original premise was wrong.** The fix was
 never the biquad: the manual (§2.1.4) sets the Sallen-Key damping to ζ = 0.75 precisely "so that the
@@ -460,7 +480,7 @@ The X/Y asymmetry cannot be read off this table at all — σ_y here measures sp
 
 Caveat, and it matters for reading any of the above against §9: these are **point-charge, charge-level** kernels. A real avalanche has transverse extent and the electrons arrive with diffusion spread, both comparable to the pad pitch, so the "all on one channel" prompt result will be substantially smeared before it reaches a waveform. The τ(1/e) values the run prints (7–42 ns) are likewise *not* comparable to the measured τ_X ≈ 230 ns / τ_Y ≈ 410 ns, which come from fits to shaped waveforms with a 180 ns peaking time. Both comparisons become legitimate only at T9/T11.
 
-**Electrode definition — RESOLVED 2026-08-07 (T2, gerber-derived).** The checkerboard is confirmed, from the 0.1 mm connector stubs (the vias do NOT answer it — the plated through hole rings every layer on all 512×512 pads). A Y channel = one row's pads at (col+row) even; an X channel = one column's pads at (col+row) odd. **A channel is therefore a comb of 256 pads on a 1.56 mm pitch, not a solid line of 512 pads on 0.78 mm.** Extraction and proof: `response/common/channel_map.py` (262030/262144 pads assigned; the 114 stragglers are a 0.04% edge effect). All channel-level kernels must be built with comb drive patterns — the solid-line `pad_pattern`/`strip_pattern_y` in `wpot.py` are per-pad/limiting cases only (task T2b). The x/y sign convention vs `Mx17StripMap.py` connector numbering is still unverified.
+**Electrode definition — RESOLVED 2026-08-07 (T2, gerber-derived).** The checkerboard is confirmed, from the 0.1 mm connector stubs (the vias do NOT answer it — the plated through hole rings every layer on all 512×512 pads). A Y channel = one row's pads at (col+row) even; an X channel = one column's pads at (col+row) odd. **A channel is therefore a comb of 256 pads on a 1.56 mm pitch, not a solid line of 512 pads on 0.78 mm.** Extraction and proof: `response/common/channel_map.py` (262030/262144 pads assigned; the 114 stragglers are a 0.04% edge effect). All channel-level kernels must be built with comb drive patterns — the solid-line `pad_pattern`/`strip_pattern_y` in `wpot.py` are per-pad/limiting cases only (task T2b). The x/y sign convention vs `Mx17StripMap.py` **is now verified — see P5: it required `sy = +1`, not the `-1` the frame shipped with.**
 
 **Method.** Expand in lateral Fourier modes. In y (uniform sheet direction) modes decouple: continuous wavenumber k_y (discretize, ~200 log+linear points to k_y·L=π·400). In x the periodic conductivity couples k_x ↔ k_x + m·2π/p_ESL (Bloch): for each (k_y, k_x∈[0, 2π/p)) truncate to |m| ≤ M (start M=12, converge-test). Each dielectric layer gives an algebraic transfer relation per mode; the sheet gives the junction condition
 
@@ -965,7 +985,7 @@ Use it via `source ~/PycharmProjects/nTof_x17/garfield_sim/setup_garfield.sh` �
 | T0 | Desktop env setup — **Garfield++ part DONE** (2026-08-06: pinned build, ctest 22/22, smoke test passes). Remaining: python stack (numpy/scipy/uproot) and, if wanted there, Geant4 | — | desktop | `python -c "import numpy"`; ~~garfield smoke test~~ ✅ |
 | T1 | `response/` package skeleton + `common/` geometry constants (parse/assert vs `MX17ModuleGeometry.hh`) + params YAML schema — **DONE 2026-08-07** | — | laptop | unit tests pass |
 | T2 | Pad↔X/Y channel mapping from gerbers — **DONE 2026-08-07** (checkerboard confirmed from connector stubs, §3; `response/common/channel_map.py`) | T1 | laptop | map figure; agrees with `Mx17StripMap.py` channel count |
-| **T2b** | **Comb channel kernels** — **DONE 2026-08-07** (`response/solver/kernels.py`). 2 distinct Y kernels + 40 distinct X kernels (§3); validated against the closed-form sum rule to 4e-7 with an exact plane partition; first charge-level predictions in §3. Remaining: the x/y sign convention vs `Mx17StripMap.py` connector numbering is still unverified | T2, T5 | laptop/desktop | comb G_n(t) exported for both channel types ✅; sum rule passes ✅ |
+| **T2b** | **Comb channel kernels** — **DONE 2026-08-07** (`response/solver/kernels.py`). 2 distinct Y kernels + 40 distinct X kernels (§3); validated against the closed-form sum rule to 4e-7 with an exact plane partition; first charge-level predictions in §3. ~~Remaining: the x/y sign convention vs `Mx17StripMap.py` connector numbering is still unverified~~ **SETTLED 2026-08-08: it needed `sy = +1` (P5)** | T2, T5 | laptop/desktop | comb G_n(t) exported for both channel types ✅; sum rule passes ✅ |
 | T3 | **S1 solver core** (uniform sheet first: V1) — **DONE 2026-08-07** (V1 at machine precision) | T1 | laptop | V1 passes to <1% |
 | T4 | S1 Bloch patterning (strips) + V2, V3 — **DONE 2026-08-07** (superperiod-commensurate box, no truncation parameter) | T3 | laptop | V2, V3 pass |
 | T5 | S1 boundary/drain + full grid export; V4, V5, V6 — solver + V4 (as redefined, charge level) **DONE 2026-08-07**. **Production grid COMPLETE 2026-08-07**: all 12 ρ_s × d_k points on EOS `response_sim/s1/` (27.7 GB), every one passing the closed-form sum rule at ~5e-7 with the plane partition exact to 4e-13; register at `s1/MANIFEST.csv` via `response.solver.manifest --check`. V5 (mesh-ripple) and V6 (W2 exposed inter-pad gaps) still not run | T4 | laptop/desktop | all V pass; grid produced ✅ |
