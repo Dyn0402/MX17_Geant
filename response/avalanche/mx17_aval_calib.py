@@ -38,8 +38,12 @@ Extracted per point (written to JSON)
                     by the collector over the merged seed slices)
   r_end[]           radial distance of each final electron from the seed axis
                     [µm] -> transverse avalanche spread σ0 at the ESL
-  t_end[]           arrival time of each final electron [ns]
+                    (subsampled per event above --endpoint-subsample; uniform
+                    subsampling keeps the marginal distribution unbiased)
+  t_end[]           arrival time of each final electron [ns] (same subsample
+                    as r_end[], paired per electron)
   z_ion[]           z at which each ionisation happened [µm] -> α(z) profile
+                    (subsampled per event above --endpoint-subsample)
   i_elec[], i_ion[] induced-current time profiles on the readout electrode
                     [fC/ns], sampled on a uniform grid; i_ion is the
                     normalisable ion tail shape the plan calls i_ion(t)
@@ -96,6 +100,14 @@ def parse_args():
     p.add_argument("--max-avalanche", type=int, default=0,
                    help="Cap avalanche size (0 = uncapped). Only for smoke tests; "
                         "a cap biases the gain distribution and is recorded.")
+    p.add_argument("--endpoint-subsample", type=int, default=5000,
+                   help="Cap on r_end/t_end and z_ion samples LOGGED per "
+                        "event; uniformly subsampled if the avalanche is "
+                        "bigger. Does not affect gains[], survival, or "
+                        "i_elec/i_ion, which always use the full avalanche "
+                        "— this only bounds the size of the raw per-electron "
+                        "arrays (a 56-slice campaign's raw JSONs ran to 19 GB "
+                        "unbounded; see design/report/DESKTOP_RUNS_2026-08-07.md).")
     p.add_argument("--field-map", default=None,
                    help="Path to a meshfield_<tag>.txt map from "
                         "solve_fieldmap.py (T6, FIELD_MAP_RUNBOOK.md). When "
@@ -303,6 +315,7 @@ def main():
         ne = aval.GetNumberOfElectronEndpoints()
         n_at_anode = 0
         ion_seeds = []
+        loc_r_end, loc_t_end, loc_z_ion = [], [], []
         for i in range(ne):
             xs, ys, zs, ts, es = (ctypes.c_double() for _ in range(5))
             xe, ye, ze, te, ee = (ctypes.c_double() for _ in range(5))
@@ -315,14 +328,33 @@ def main():
             # convention that ions.py/kernel_lut.py's alpha_z histogram
             # expects (z=0 at anode).
             if i > 0:
-                z_ion.append((zs.value - anode_z_cm) * 1e4)
+                loc_z_ion.append((zs.value - anode_z_cm) * 1e4)
                 ion_seeds.append((xs.value, ys.value, zs.value, ts.value))
             # Reached the anode?
             if abs(ze.value - anode_z_cm) < 1.e-5:   # within 0.1 µm
                 n_at_anode += 1
-                r_end.append(math.hypot(xe.value - x0, ye.value - y0) * 1e4)
-                t_end.append(te.value)
+                loc_r_end.append(math.hypot(xe.value - x0, ye.value - y0) * 1e4)
+                loc_t_end.append(te.value)
         gains.append(n_at_anode)
+
+        # Subsample the per-electron/per-ionisation logs (not the physics —
+        # gains[] and i_elec/i_ion above already used every one of them).
+        # r_end/t_end are paired per electron, so they share one index draw;
+        # z_ion is independent. Unbounded, a single high-gain event can carry
+        # O(1e5) entries and 56 slices' worth blows past available disk (see
+        # --endpoint-subsample help).
+        cap = args.endpoint_subsample
+        rng_log = np.random.default_rng(args.seed * 1000003 + iev)
+        if len(loc_r_end) > cap:
+            idx = rng_log.choice(len(loc_r_end), size=cap, replace=False)
+            loc_r_end = [loc_r_end[j] for j in idx]
+            loc_t_end = [loc_t_end[j] for j in idx]
+        if len(loc_z_ion) > cap:
+            idx = rng_log.choice(len(loc_z_ion), size=cap, replace=False)
+            loc_z_ion = [loc_z_ion[j] for j in idx]
+        r_end.extend(loc_r_end)
+        t_end.extend(loc_t_end)
+        z_ion.extend(loc_z_ion)
 
         # ── Ion tail ─────────────────────────────────────────────────────────
         # One ion is left behind at every ionisation point. Drift a random
@@ -380,6 +412,7 @@ def main():
             "max_avalanche": args.max_avalanche,
             "field_map_file": os.path.basename(args.field_map)
                               if args.field_map else None,
+            "endpoint_subsample": args.endpoint_subsample,
         },
         "results": {
             "gains": gains.tolist(),
