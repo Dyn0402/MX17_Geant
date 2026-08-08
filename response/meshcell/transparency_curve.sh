@@ -16,6 +16,11 @@ NEV="${2:-400}"    # G7 events per point — smoke-resolution convention
 POINTS=(50 100 200 500 700 1000)   # 333 comes from the production map instead
 OUT_CSV=transparency_curve.csv
 
+# solve_fieldmap.py needs gmsh/scikit-fem/pyamg (the fieldmap venv), NOT
+# Garfield; gates_check.C needs Garfield/ROOT, NOT the fieldmap venv. Sourcing
+# setup_garfield.sh puts a different python3 first on PATH, so the solve step
+# calls its venv by absolute path rather than relying on PATH order.
+FIELDMAP_PY=~/CLionProjects/MX17_Geant/.venv-fieldmap/bin/python
 source ~/PycharmProjects/nTof_x17/garfield_sim/setup_garfield.sh
 ROOT_BIN="$(command -v root || echo /home/dylan/Software/root_6_36_06/bin/root)"
 
@@ -39,8 +44,8 @@ for E in "${POINTS[@]}"; do
   tag=$(printf "edrift%04d" "$E")
   map="meshfield_${tag}.txt"
   echo "[curve] E_drift=$E V/cm: solving ($tag) ..."
-  python3 solve_fieldmap.py --smoke --e-drift "$E" --tag "$tag" --jobs "$JOBS" \
-      > "solve_${tag}.log" 2>&1
+  "$FIELDMAP_PY" solve_fieldmap.py --smoke --e-drift "$E" --tag "$tag" \
+      --jobs "$JOBS" > "solve_${tag}.log" 2>&1
 
   echo "[curve] E_drift=$E V/cm: G7 via gates_check.C ..."
   "$ROOT_BIN" -b -q -e "gSystem->Load(\"libGarfield\");
