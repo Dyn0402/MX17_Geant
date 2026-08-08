@@ -294,6 +294,18 @@ correct merge and says why in its docstring.
 That archived-raw gap is worth closing separately if the ion template ever needs
 re-deriving.
 
+> **Followed up 2026-08-08 — and the framing above is overstated.** "A different
+> S3 pass" made it sound like a mystery. It is not: the cause was already found
+> and fixed in this repo (`42390d1`) — `ComponentConstant` has no weighting
+> potential until `SetWeightingPotential()` is called, and Garfield computes the
+> induced current from ψ by default, so the first campaign's signals were
+> identically zero while gain and σ₀ came out fine. The archived raw is that
+> **pre-fix** campaign (11:38); the fix landed at 13:20 and v2 at 15:35. The gap
+> is **archival, not physical** — v2's post-fix raw was simply never uploaded —
+> and v2 is internally validated two independent ways (f_ion 0.9079 from the
+> current integrals vs 0.9077 from the α_z histogram). See
+> `KAPTON_GLUE_2026-08-08.md`.
+
 ## The x/y sign convention — SETTLED, and the sim was wrong
 
 Settled from the detector rather than from data (user, 2026-08-08): viewed from
@@ -403,9 +415,14 @@ until T14.
 
 Two things this work opened that are worth someone's attention:
 
-- **The archived S3 raw cannot reproduce v2's ion template** (all-zero `i_elec`/`i_ion` in every
-  raw slice). If that template ever needs re-deriving, the pass that made it has to be found or
-  re-run.
+- ~~**The archived S3 raw cannot reproduce v2's ion template**~~ **RESOLVED 2026-08-08**, and it
+  was archival rather than physical: the cause (a missing `SetWeightingPotential`) was already
+  found and fixed in `42390d1`, the archived raw is the pre-fix campaign, and v2's post-fix raw
+  was simply never uploaded. v2 is internally validated two ways. See `KAPTON_GLUE_2026-08-08.md`.
 - **Neither scan axis explains the c1 gap**, and c1 is a weak observable by the plan's own P7.
   If c1 is going to carry weight at T14 it needs the ratio framing above, or a better
   observable — the width_rel and peak-time rows are the stronger candidates.
+  ⚠️ **And this whole scan is superseded for the production stack** (2026-08-08): it varied d_k
+  inside a *single-layer* dielectric model, but the real insulator is kapton + lamination glue in
+  series, which differs at finite k by up to 5 % — squarely the regime c1 is built from. Re-check
+  against the kapton+glue kernels before leaning on any of it.
