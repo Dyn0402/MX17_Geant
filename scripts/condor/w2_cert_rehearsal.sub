@@ -1,0 +1,17 @@
+# Dress rehearsal of the W2 cert job against the W1 product that produced the
+# published T10 baseline. Purpose: prove the job script, LCG_105 and the AFS
+# code copy reproduce 8.26 % BEFORE the W2 products exist, so that if the W2
+# number differs it is the boundary model and not the environment.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_w2_cert.sh
+arguments               = "W1BASELINE_rho2M /eos/experiment/ntof/data/x17/response_sim/s1_ny1024 greens_comb_rho2M_dk50um_g19um.npz"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w2_cert_rehearsal.out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w2_cert_rehearsal.err
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w2.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+queue
