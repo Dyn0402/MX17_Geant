@@ -36,6 +36,21 @@ the lxplusNNN node you actually land on, and every auth method is refused.
 
 * `MY.SendCredential = true` is required or the job cannot read AFS or `xrdcp`
   to EOS, and it fails at the very END, after a full solve.
+* **LCG setup.sh reaches into the caller's shell — two measured traps
+  (2026-08-08/09, both killed a job instantly):** (1) it is not `set -u`-clean
+  (unbound `COMPILER` at line 18) — wrap the source in `set +u` … `set -u`;
+  (2) it EXPORTS `BASE` (→ a CVMFS gcc path), clobbering any `BASE` you set
+  before sourcing. Of `BASE SRC WORK OUT SLABS OUTD CALIB PROD EOSDIR EOSBASE
+  RHOTAG`, `BASE` is the ONLY name LCG_105 clobbers (measured, not assumed —
+  see `run_w2_cert.sh` header). Don't name a variable `BASE` in any script
+  that sources LCG, and don't rename the safe ones on suspicion.
+* `stream_output`/`stream_error` are no longer supported (CERN, Nov 2025) —
+  submission is rejected; job stdout reaches AFS only at job END, so
+  `condor_q -af MemoryUsage` is the only mid-run health signal.
+* Off-site, `/eos/experiment` is unreachable by xrootd: it redirects to
+  `eosexperiment.cern.ch`, which does not resolve outside CERN (the error is
+  an unhelpful `[FATAL] Invalid address`). Anything that must read those files
+  runs at CERN; only small products travel, by ssh/rsync or via an AFS copy.
 * `OMP_NUM_THREADS` is pinned to the requested core count. The solve is
   BLAS-heavy and OpenBLAS otherwise spawns threads for cores condor did not
   give it, which is slower than single-threaded.
