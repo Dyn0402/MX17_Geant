@@ -241,11 +241,27 @@ directory and a silently `nan` LUT.
 v2 is a genuinely different realization, not the same slices re-reduced — its
 470 V gain is 22854.3 against the archived raw's 23107.4 (~1 %).
 
-**Validation in flight**: condor cluster 13352632 re-runs two 490 V slices
-(seeds 49001/49002, nev 140, byte-identical producer) with the fixed code. The
-target is v2's `f_ion = 0.907907` at 490 V. f_ion is a ratio and stable at 280
-events; the gain will differ at the ~1 % level by statistics and that is
-expected, not a failure.
+**Validated, and the question is fully closed.**
+
+| source | nev | gain | f_ion @ 490 V |
+|---|---|---|---|
+| `aval_calib_v2.json` (shipped) | 1120 | 42762.5 | 0.907907 |
+| `collect.py` over `results_v2/` | 1120 | 42762.5 | **0.907907** |
+| independent re-run, current producer | 280 | 46392.1 | 0.907809 |
+
+- `collect.py` over `results_v2/` reproduces the shipped v2 **bit-for-bit**:
+  `max|diff| = 0.000e+00` on both `i_elec` and `i_ion`. v2 is reproducible from
+  archived material.
+- An independent re-run (condor 13352632, same seeds, separate jobs) reproduces
+  f_ion to **1e-4** while its gain differs by 8.5 % on a quarter of the
+  statistics — which is the point of checking a ratio rather than a gain.
+
+So both halves hold: the template is reproducible from what is stored, *and*
+re-derivable from scratch with the current code. What remains is only the EOS
+labelling, now addressed by a README deployed to
+`response_sim/avalanche/README.md` (version-controlled at
+`response/avalanche/EOS_README.md`), and the open task of uploading
+`results_v2/` so the v2 raw is not on AFS alone.
 
 ## Numbers to reuse
 
