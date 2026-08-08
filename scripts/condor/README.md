@@ -51,6 +51,16 @@ the lxplusNNN node you actually land on, and every auth method is refused.
   `eosexperiment.cern.ch`, which does not resolve outside CERN (the error is
   an unhelpful `[FATAL] Invalid address`). Anything that must read those files
   runs at CERN; only small products travel, by ssh/rsync or via an AFS copy.
+* **condor_q liveness fields cannot be trusted on short baselines** (measured
+  2026-08-09, W2 fleet): `MemoryUsage` is a slot artefact (identical for
+  running, healthy and finished jobs alike), and `RemoteUserCpu` can sit
+  frozen for ~13 min of ClassAd lag while the job computes at full speed —
+  four consecutive frozen reads over 13 min mis-diagnosed a healthy job as
+  wedged. Make no kill decision from these fields on under ~20 min of
+  sampling, and prefer a REVERSIBLE action anyway: race a duplicate job
+  (idempotent output, one idle slot at risk) instead of `condor_rm` (destroys
+  hours, unrecoverable if the read was lag). Two would-be casualties in one
+  night were avoided only because the irreversible action was never taken.
 * `OMP_NUM_THREADS` is pinned to the requested core count. The solve is
   BLAS-heavy and OpenBLAS otherwise spawns threads for cores condor did not
   give it, which is slower than single-threaded.
