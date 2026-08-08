@@ -45,4 +45,5 @@ for V in $(seq "$LO" "$STEP" "$HI"); do
   mv "meshfield_${tag}.txt" "meshfield_${tag}.json" "$OUTDIR/"
   echo "[ladder] $tag done in $(($(date +%s) - t0))s"
 done
+touch "$OUTDIR/.done"
 echo "[ladder] all done"

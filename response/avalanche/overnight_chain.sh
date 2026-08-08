@@ -7,9 +7,17 @@
 set -e
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-echo "[chain] $(date): waiting for voltage_ladder.sh to finish..."
-while pgrep -f voltage_ladder.sh >/dev/null; do sleep 60; done
-echo "[chain] $(date): ladder process exited"
+LADDER_DIR=/media/ucla/mx17_response_sim/meshfield_ladder
+echo "[chain] $(date): waiting for $LADDER_DIR/.done ..."
+# A pgrep-on-process-name wait is fragile: the launching "nohup ... &
+# disown" wrapper shell itself carries "voltage_ladder.sh" in its cmdline
+# and can outlive the real script (hit for real 2026-08-08 -- a stale
+# orphaned wrapper kept pgrep matching after the ladder had exited, caught
+# and manually killed by a parallel audit session before it could hang this
+# chain forever). A marker file the script itself touches on completion
+# has no such ambiguity.
+while [ ! -f "$LADDER_DIR/.done" ]; do sleep 60; done
+echo "[chain] $(date): ladder finished"
 
 LADDER_LOG=/media/ucla/mx17_response_sim/meshfield_ladder_run.log
 if ! grep -q "all done" "$LADDER_LOG" 2>/dev/null; then
