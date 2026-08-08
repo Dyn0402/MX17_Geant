@@ -103,7 +103,14 @@ def drives_for(s, box):
     else:
         pats = [(f"X{c}", K.x_channel_pattern(s, c))
                 for c in range(C.N_PAD_PER_SUPER)]
-    return [(n, (p >= 0.5).astype(float)) for n, p in pats]
+    # STRICTLY greater: the pad x-edges fall exactly on cell centres (the
+    # 680/780 µm lattice against wpot's 10 µm grid), so edge cells are covered
+    # at exactly 0.5. The gap mask takes ties (frac >= 0.5 -> gap, W2Solver);
+    # a >= here handed the same cells to BOTH sides and killed the first
+    # canaries on the overlap guard (cluster 13353068). With > the two snaps
+    # are exactly complementary: a channel's own coverage never exceeds the
+    # total metal coverage, so drive > 0.5 implies metal > 0.5 implies not gap.
+    return [(n, (np.round(p, 9) > 0.5).astype(float)) for n, p in pats]
 
 
 def _real_guard(s):
