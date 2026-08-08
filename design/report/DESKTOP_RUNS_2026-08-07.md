@@ -4,11 +4,14 @@ Companion to `AUDIT_FIXES_2026-08-07.md`. Everything here was run on the **deskt
 (16 cores, 62 GB) or streamed from **EOS**, per plan §10. Results only; the code changes are
 in the commits each section names.
 
-**lxplus SSH is not available from either machine** — `dneff@lxplus` is refused
-(`publickey,keyboard-interactive`; GSSAPI is offered from the desktop but rejected, and
-lxplus926 does not offer it at all). Everything EOS-side was done instead with
-`xrdcp root://eospublic.cern.ch/…`, which works with a live Kerberos ticket. `eosuser` and
-`eosntof` both give "Invalid address".
+**Connecting to lxplus: use the `lxplus` ALIAS, never the hostname.** `ssh lxplus` works;
+`ssh dneff@lxplus.cern.ch` is refused from both machines even with a live Kerberos ticket.
+The alias in `~/.ssh/config` sets `GSSAPITrustDns yes`, and that is the whole difference —
+`lxplus.cern.ch` is a round-robin, so without DNS trust the service principal does not match
+the `lxplusNNN` node you actually land on and every auth method fails. Several hours of this
+report's EOS work was done via `xrdcp root://eospublic.cern.ch/…` before that was understood;
+that route also works and needs only a ticket (`eosuser` and `eosntof` give
+"Invalid address").
 
 ---
 
