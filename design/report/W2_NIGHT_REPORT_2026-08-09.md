@@ -130,19 +130,68 @@ the natural guess. But the *no-glue* `dk75um` product gives **the same 0.0187**
 genuinely differ (ref 0.0733/0.0924 vs 0.0745/0.0941). The residual is
 product-**independent**.
 
-**Hypothesis B — `y_stride` decimation.** Commit `e36a39c` "LUT: decimate y like
-x" landed 2026-08-08 14:00, *after* the certification, because the ny=1024 LUT
-hit ~10 GB and was OOM-killed. `kernel_lut.py` sets
-`y_stride = max(1, round(tgt/dy_um))`, so an ny=512 product keeps **stride 1**
-(previous behaviour) while ny=1024 gets **stride 2** — and both products tested
-above are ny=1024. Status: PENDING (cluster 13353186 runs the identical cert on
-an ny=512 product).
+**Hypothesis B — `y_stride` decimation. ALSO FALSIFIED.** Commit `e36a39c`
+"LUT: decimate y like x" landed 2026-08-08 14:00, *after* the certification,
+giving ny=1024 products `y_stride = 2` while ny=512 keeps stride 1 — and both
+products above are ny=1024. But the identical cert on an **ny=512** product
+(`s1/greens_comb_rho2M_dk75um.npz`) also returns **0.0187 / 0.0001**. The
+residual is grid-independent as well as product-independent.
 
-**⚠ Reading note for the W2 cert, which is the easiest misattribution
-available.** The W2 products are **ny=512 → stride 1 → no decimation**. If the
-W2 cert returns near 1e-4 that is **not** evidence that W2 fixed the fast path;
-it may be nothing but stride 1 vs stride 2. W2 must be compared against
-whichever W1 story the ny=512 test selects.
+### Root cause: the test compares two different times
+
+Found in `test_lut_vs_solver.py` lines 90–93 and 152–153:
+
+```python
+t_ref = float(lut.t[-1])                       # 3000 ns, the LUT's last sample
+it    = int(np.argmin(np.abs(t_src - t_ref)))  # nearest LOG-grid sample …
+t_ref = float(t_src[it])                       # … = 3101.2 ns — t_ref is reassigned
+kt    = int(np.argmin(np.abs(lut.t - t_ref)))  # clamps back to 3000 ns
+...
+r = np.array([ref[dd][it] for dd in ds])       # solver at 3101 ns
+g = np.array([got[dd] for dd in ds])           # LUT integrated to 3000 ns
+```
+
+`lut.t` is a **uniform 1 ns** grid; `t_src` is the **61-point log** grid. Snapping
+`t_ref` onto the log grid can land *beyond* the LUT's coverage, and `kt` then
+clamps silently. The comparison is solver-at-3101 ns against LUT-to-3000 ns —
+a **101 ns (3.4 %) misalignment**.
+
+This explains every observation, including the ones that killed both hypotheses:
+
+- **Y-specific**: the Y d=0 charge is still *decaying* at ~3 µs (resistive-sheet
+  relaxation), so 101 ns of missing time is visible; X is prompt-dominated and
+  flat by then, hence 1e-4.
+- **Sign**: the LUT value (earlier time) reads *higher* than the reference —
+  0.0924 vs 0.0907 — which is what a decaying Y channel requires.
+- **Product- and grid-independent**: it is an artifact of the two time axes, not
+  of kernel content.
+
+**And it explains the published 1e-4 rather than contradicting it.** The nearest
+log samples are 961.7 ns and 3101.2 ns:
+
+| `T_MAX_NS_DEFAULT` | nearest log sample | relative to LUT end | result |
+|---|---|---|---|
+| 1000 (pre-Fix 1) | 961.7 ns — **below** | LUT has a real sample at 962 ns | match to 0.3 ns → **1e-4** |
+| 3000 (current) | 3101.2 ns — **above** | `kt` clamps to 3000 ns | 101 ns gap → **1.87 %** |
+
+So **Audit A1 / Fix 1** — which correctly raised `t_max` from 1000 to 3000 ns
+because the DAQ integrates that long — flipped the nearest log point from just
+*below* the LUT's coverage to just *above* it, exposing a latent clamp. The
+plan's `1e-4` was true when written and was invalidated as a side effect of an
+unrelated, correct fix.
+
+**The fast path is not degraded.** This is a harness defect, not a caching
+defect, and the fix is a one-liner (choose the source index at or below
+`lut.t[-1]`, or interpolate the reference to the LUT's last sample). Not applied
+tonight: it changes a certification and belongs in daylight with the W2 products
+as its target.
+
+**⚠ Reading note for the W2 cert.** Because the cause is the shared time axis,
+**W2 will show the same ~1.87 %**, and that is not a W2 defect. Equally, the
+W2 products are ny=512 → stride 1, so a *near-1e-4* result would not have been
+evidence that W2 fixed anything either. The W2 caching cert is uninformative
+about W2 until the harness is fixed; judge W2 on the slow path and the product
+acceptance instead.
 
 **Free sensitivity result: T10 is stack-insensitive.** The same diagnostic job
 also ran the slow path on `dk75um`:
