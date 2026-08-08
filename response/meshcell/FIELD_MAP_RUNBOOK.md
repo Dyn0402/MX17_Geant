@@ -193,6 +193,9 @@ rather than assumed. The `uniform_field` provenance nulls in
 - **Ion endpoints** (S2 deliverable d): needs a gas table with ion
   mobility (reuse `garfield_sim` tables); `AvalancheMC` ions from the
   avalanche region, fraction terminating on mesh vs drifting up.
+- **Regenerate `mesh_transparency.csv`**: the tracked file has been empty
+  since its first commit (the 0.873 number survives only in the plan text);
+  rerun `mesh_transparency.C` on the desktop (~minutes) and commit the CSV.
 
 ## Troubleshooting
 
