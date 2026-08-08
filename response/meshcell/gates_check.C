@@ -62,12 +62,17 @@ int gates_check(const char* mapfile = "meshfield_production.txt",
     return 1;
   }
   grid.SetMedium(&gas);
-  grid.EnablePeriodicityX();
-  grid.EnablePeriodicityY();
+  // Get the map's own z extent BEFORE enabling periodicity (the bounding box
+  // becomes laterally infinite afterwards).
   double xlo, ylo, zlo, xhi, yhi, zhi;
   grid.GetBoundingBox(xlo, ylo, zlo, xhi, yhi, zhi);
-  std::printf("G3 load: bounding box x [%g, %g] z [%g, %g] cm -> PASS\n",
+  grid.EnablePeriodicityX();
+  grid.EnablePeriodicityY();
+  std::printf("G3 load: map extent x [%g, %g] z [%g, %g] cm -> PASS\n",
               xlo, xhi, zlo, zhi);
+  // Lateral probes over one period.
+  xlo = ylo = -kPitch / 2.;
+  xhi = yhi = +kPitch / 2.;
 
   bool pass = true;
 
