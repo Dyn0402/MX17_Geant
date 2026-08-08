@@ -48,7 +48,12 @@ MESH_FILL   = math.pi * MESH_WIRE / (4 * (MESH_WIRE + MESH_OPEN))
 MESH_FACE   = 410.0
 
 AMP         = 0.150
-PASTE       = 0.100
+# As-built screen-printed ESL film. This tracked the ModuleSpec DECLARATION
+# default (100 µm) long after AsBuiltSpec() moved to 10 µm, which quietly put
+# 90 µm of paste in the figures and, through the PCB_FR4 residual below, took
+# 18 µm per layer out of the laminate (246.4 instead of 264.4). Corrected
+# 2026-08-08; scripts/stack_table.py reads the header directly and is the check.
+PASTE       = 0.010
 AMP_FACE    = 410.0
 PASTE_FACE  = 412.0    # resistive coat boundary (3498A_top-resist)
 PASTE_COV   = 550.0/800.0  # ESL strips 550 um wide / 250 um gaps (confirmed)

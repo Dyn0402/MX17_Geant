@@ -121,6 +121,28 @@ guess; ½-oz 18 µm is the common fab default) and the kapton/dielectric split.
 A fab stackup drawing would settle it — this is now the dominant uncertainty
 on the board, well above the ~0.2 % residuals in the coverage measurement.
 
+**Update 2026-08-08 — the coverlay kapton is closed, the adhesive under it is
+not.** The kapton is 50 µm (`pcbKapton_um`, matching the MX17_Full_Geant PCB
+stack), so it is no longer a response-model scan axis. What is *not* known is
+the acrylic adhesive laminating it to the pad copper. Estimated at 25 µm as
+supplied — the standard pairing for a 2 mil coverlay — less the volume that
+lamination drives into the 100 µm trenches between the 26 µm-tall pads, giving
+**18.8 µm over the pad face**. That is 29 % of the insulator the pads see and
+moves the prompt sum rule S(0)/C(0) from 0.913043 to 0.881583, so it is not a
+rounding error. Two things would close it: the same fab stackup drawing, or a
+direct capacitance measurement of a pad against the ESL.
+
+⚠️ **A related discrepancy this surfaced, still unresolved.** Read literally,
+the header stacks coverlay kapton → L3 guard ring → 264 µm FR4 → L4 pads, i.e.
+it puts a quarter of a millimetre of laminate between the ESL and the pads.
+L3 has *zero* copper inside the active window and the FR4 is the equal-division
+residual, so that separation is an artifact of the residual rather than
+measured geometry — but the response model assumes the physical adjacency for a
+resistive Micromegas (ESL on kapton, kapton laminated straight to the pads) and
+the two therefore disagree about the one distance that sets the induced signal.
+Irrelevant to material budget, decisive for the response. See the note under
+the stack table in `README.md`.
+
 ### Real copper pattern — now the DEFAULT (2026-08-06, Dylan)
 
 The three signal layers are an exactly regular 512 × 512 grid on a 0.78 mm
