@@ -56,8 +56,18 @@ class CombKernelLUT:
     # margin. An SPS-config run should ask for 4200.
     T_MAX_NS_DEFAULT = 3000.0
 
+    # y is decimated for the same reason x is (2026-08-08). A product solved at
+    # ny = 1024 (audit C6) samples y every 48.75 um, and at n_side = 8 that
+    # makes the LUT ~10 GB before transients — it was OOM-killed on lxplus. The
+    # fine grid exists so the SOLVE resolves the prompt kernel's pad-edge
+    # shoulder, which is a property of the stored product; the digitizer cannot
+    # use it, because every avalanche arrives smeared by at least ~107 um. So
+    # the LUT decimates to a target spacing and the memory becomes independent
+    # of the product's ny.
+    Y_TARGET_UM = 97.5              # = the ny = 512 spacing, the old behaviour
+
     def __init__(self, path, dt_ns=1.0, t_max_ns=T_MAX_NS_DEFAULT,
-                 y_window_mm=7.02, x_stride=4, n_side=8):
+                 y_window_mm=7.02, x_stride=4, n_side=8, y_target_um=None):
         self.path = path
         self.n_side = n_side
         self.t = np.arange(0.0, t_max_ns + dt_ns, dt_ns) * 1e-9
@@ -71,9 +81,17 @@ class CombKernelLUT:
             self.x = d["x"][::x_stride].copy()
             self.dx = self.x[1] - self.x[0]
             y_Y_all = d["y_Y"]
-            self.y_X = d["y_X"].copy()
+            self.y_X = d["y_X"].copy()          # re-strided below
 
-            keep = np.abs(y_Y_all) <= y_window_mm * 1e-3
+            # Decimate y to the target spacing, then window. Both boxes share
+            # the y grid by construction (kernels.x_ny), so the same stride
+            # applies to each and they stay commensurate.
+            tgt = (self.Y_TARGET_UM if y_target_um is None else y_target_um)
+            dy_um = float(abs(y_Y_all[1] - y_Y_all[0])) * 1e6
+            self.y_stride = max(1, int(round(tgt / dy_um)))
+            keep = np.zeros(len(y_Y_all), dtype=bool)
+            keep[::self.y_stride] = True
+            keep &= np.abs(y_Y_all) <= y_window_mm * 1e-3
             self.y_Y = y_Y_all[keep].copy()
 
             # --- Y: (parity, nt, ny_win, nx) ---------------------------------
@@ -96,7 +114,11 @@ class CombKernelLUT:
             # exactly that and not on a second, independent rounding of the
             # true x. See `col_at` and audit C2.
             self.col_of_x = col_of_x % C.N_PAD_PER_SUPER
-            gx = d["G_X"][:, :, :, ::x_stride]
+            # Same y decimation on the X box.
+            xs_keep = np.zeros(len(self.y_X), dtype=bool)
+            xs_keep[::self.y_stride] = True
+            self.y_X = self.y_X[xs_keep].copy()
+            gx = d["G_X"][:, :, xs_keep, ::x_stride]
             band = np.empty((len(ds), len(self.t), gx.shape[2], nx),
                             dtype=np.float32)
             for j, dd in enumerate(ds):
@@ -372,6 +394,9 @@ class CombKernelLUT:
             "t_max_ns": self.t[-1] * 1e9,
             "dx_um": self.dx * 1e6,
             "y_window_mm": float(np.abs(self.y_Y).max() * 1e3),
+            "y_stride": self.y_stride,
+            "dy_um": float(abs(self.y_Y[1] - self.y_Y[0]) * 1e6)
+                     if len(self.y_Y) > 1 else None,
             "n_side": self.n_side,
             "lut_GB": self.nbytes() / 1e9,
             "solver_git": self.meta.get("git", "")[:12],

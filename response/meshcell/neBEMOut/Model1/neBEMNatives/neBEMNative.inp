@@ -1,0 +1,48 @@
+#====>Input directory
+neBEMOut/Model1/neBEMNatives/Primitives/
+#====>No. of primitives:
+18
+#====>No. of volumes:
+7
+#Input filename for primitive:
+Primitive1.inp
+#Input filename for primitive:
+Primitive2.inp
+#Input filename for primitive:
+Primitive3.inp
+#Input filename for primitive:
+Primitive4.inp
+#Input filename for primitive:
+Primitive5.inp
+#Input filename for primitive:
+Primitive6.inp
+#Input filename for primitive:
+Primitive7.inp
+#Input filename for primitive:
+Primitive8.inp
+#Input filename for primitive:
+Primitive9.inp
+#Input filename for primitive:
+Primitive10.inp
+#Input filename for primitive:
+Primitive11.inp
+#Input filename for primitive:
+Primitive12.inp
+#Input filename for primitive:
+Primitive13.inp
+#Input filename for primitive:
+Primitive14.inp
+#Input filename for primitive:
+Primitive15.inp
+#Input filename for primitive:
+Primitive16.inp
+#Input filename for primitive:
+Primitive17.inp
+#Input filename for primitive:
+Primitive18.inp
+#====>No. of boundary conditions per element:
+1
+#====>Device output directory name:
+NativeResults
+#====>Map input file:
+MapFile.inp
