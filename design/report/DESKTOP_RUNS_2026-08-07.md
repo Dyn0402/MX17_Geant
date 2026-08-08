@@ -334,6 +334,64 @@ absolute paths, and because it compared nan against nan it printed
 `max abs difference = 0.000e+00`, which reads as a pass. It now takes `--kernel/--calib`, ends
 with a real verdict and exit code, and passes at 3.1e-08.
 
+## The ρ_s × d_k muon scan — 12/12, and c1_X is immovable
+
+400 muons per point through the full chain on the ny=1024 products, at the DAQ window
+(`--n-samp 1920`, n_side = 8). lxplus condor, 12/12, zero errors, 15.2 GB peak.
+Raw output in `design/report/scan_2026-08-08/`.
+
+| ρ_s | d_k | c1_X | c2_X | c1_Y | c2_Y | X/Y balance |
+|---|---|---|---|---|---|---|
+| 0.5 | 50 | 0.2049 | 0.0436 | 0.1227 | 0.0887 | 0.506/0.494 |
+| 0.5 | 75 | 0.2072 | 0.0442 | 0.1114 | 0.0827 | 0.509/0.491 |
+| 0.5 | 125 | 0.2120 | 0.0450 | 0.0995 | 0.0765 | 0.517/0.483 |
+| 1.0 | 50 | 0.2050 | 0.0436 | 0.1466 | 0.1035 | 0.505/0.495 |
+| 1.0 | 75 | 0.2072 | 0.0443 | 0.1336 | 0.0988 | 0.504/0.496 |
+| 1.0 | 125 | 0.2120 | 0.0450 | 0.1180 | 0.0925 | 0.505/0.495 |
+| 2.0 | 50 | 0.2052 | 0.0436 | 0.1723 | 0.1082 | 0.504/0.496 |
+| 2.0 | 75 | 0.2074 | 0.0442 | 0.1601 | 0.1098 | 0.504/0.496 |
+| 2.0 | 125 | 0.2121 | 0.0450 | 0.1441 | 0.1083 | 0.503/0.497 |
+| 5.0 | 50 | 0.2053 | 0.0437 | 0.1992 | 0.0923 | 0.504/0.496 |
+| 5.0 | 75 | 0.2078 | 0.0441 | 0.1916 | 0.1022 | 0.504/0.496 |
+| 5.0 | 125 | 0.2126 | 0.0448 | 0.1803 | 0.1114 | 0.503/0.497 |
+| *measured §9* | | *0.23–0.28* | | *0.23–0.28* | | *0.49/0.51* |
+
+**c1_X does not depend on ρ_s.** Over a 10× range it varies by <0.0005 at fixed d_k — flat to
+0.2 %. Its only dependence is on kapton thickness, 0.205 (50 µm) → 0.212 (125 µm), a 3.6 %
+lever over a 2.5× range. So neither scan axis is a lever on the X view: the X-view ±1 share is
+set by transverse diffusion, which neither ρ_s nor d_k touches.
+
+**c1_Y is strongly ρ_s-dependent** (doubles, 0.0995 → 0.1992) and falls with d_k. That
+asymmetry is the physics: the view owning the pad under the deposit takes its charge promptly,
+while the other view is fed only by sheet transport, whose diffusivity is D = 1/(ρ_s c′).
+
+**No grid point brings either view into the measured band.** The best c1_Y is 0.199 at
+(5.0, 50) and the best c1_X 0.213 at (5.0, 125); the band starts at 0.23. Read alongside plan
+P7 — which says c1 = 0.23–0.28 "is not a robust observable in any of the passes" — this looks
+like a weak-target mismatch, not a crisis. What it does do is close off ρ_s and d_k as
+explanations, which is what the scan was for.
+
+### Where the scan's discriminating power actually lives
+
+Absolute c1 is a weak target, but the RATIO c1_Y/c1_X is two quantities from the same run, so
+it survives every normalisation and window question that weakens the absolute number:
+
+| ρ_s | d_k=50 | d_k=75 | d_k=125 |
+|---|---|---|---|
+| 0.5 | 0.599 | 0.538 | 0.469 |
+| 1.0 | 0.715 | 0.645 | 0.556 |
+| 2.0 | 0.840 | 0.772 | 0.680 |
+| 5.0 | **0.970** | 0.922 | 0.848 |
+
+It is monotonic in both axes and spans 0.47 → 0.97, i.e. the model's X/Y c1 asymmetry is a
+strong function of ρ_s. The data has both views inside one band, i.e. a ratio near 1.
+
+⚠️ **Recorded as a prediction, not a selection.** Per the §9 firewall this is where the scan's
+constraint lies and nothing more: choosing ρ_s from it is a T14 act, done once, with the
+comparison made deliberately — not something to settle by reading this table. Noting that the
+ratio points to the high-ρ_s end is a statement about the model's structure; treating it as a
+fitted value would be exactly the iteration the firewall exists to prevent.
+
 ## Still not done
 
 - **The ρ_s × d_k muon scan** (12 points through Stage B) has not been re-run — only the

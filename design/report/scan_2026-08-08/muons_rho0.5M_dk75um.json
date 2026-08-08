@@ -1,0 +1,160 @@
+{
+ "n_events": 400,
+ "n_empty_events": 0,
+ "d": [
+  -3,
+  -2,
+  -1,
+  0,
+  1,
+  2,
+  3
+ ],
+ "share_X": [
+  0.004730429413211173,
+  0.04556689489230176,
+  0.20622796703485968,
+  0.4634765695965946,
+  0.20818289098484452,
+  0.042927539105074734,
+  0.005056307845010455
+ ],
+ "share_Y": [
+  0.06031634873965595,
+  0.08245059534782069,
+  0.11246672268832533,
+  0.19052452017363602,
+  0.11041857334415195,
+  0.08290904583336063,
+  0.06009895682416414
+ ],
+ "peak_X": [
+  0.017861790327502045,
+  0.13279424367249296,
+  0.48788919668977665,
+  1.0,
+  0.4948402692519702,
+  0.12908707339364864,
+  0.020400943237713246
+ ],
+ "peak_Y": [
+  0.23517019992977203,
+  0.4111209879112289,
+  0.6569523208071166,
+  1.0,
+  0.6292826456010976,
+  0.4033167154720366,
+  0.2306408603286987
+ ],
+ "c1_X": 0.20720542900985212,
+ "c1_Y": 0.11144264801623864,
+ "c2_X": 0.04424721699868825,
+ "c2_Y": 0.08267982059059066,
+ "x_fraction": 0.509476714046737,
+ "digitizer": {
+  "kernel": {
+   "product": "k.npz",
+   "rho_s_MOhm_sq": 0.5,
+   "d_kapton_um": 75.0,
+   "dt_ns": 1.0,
+   "t_max_ns": 3000.0,
+   "dx_um": 40.0,
+   "y_window_mm": 7.0200000000000005,
+   "y_stride": 2,
+   "dy_um": 97.50000000000037,
+   "n_side": 8,
+   "lut_GB": 5.26207344,
+   "solver_git": "unknown"
+  },
+  "gas": {
+   "gas": "Ar/iC4H10 95/5",
+   "table": "drift_velocity_Ar_iC4H10_95_5_Saclay.json",
+   "table_path": "/afs/cern.ch/work/d/dneff/mx17_s1/src/design/gas/drift_velocity_Ar_iC4H10_95_5_Saclay.json",
+   "table_sha256": "e56f01d80b530076",
+   "attachment": "absent from table",
+   "eta_per_cm": 0.0,
+   "survival_full_gap": 1.0,
+   "E_Vcm": 333.3333333333333,
+   "v_scale": 1.0,
+   "v_um_per_ns": 39.1406784324218,
+   "sigma_T_um_full_gap": 825.5048436767831,
+   "sigma_L_um_full_gap": 420.0534172216225,
+   "sigma_t_ns_full_gap": 10.731889022998521,
+   "t_cross_ns": 766.4660195350572
+  },
+  "E_drift_Vcm": 333.3333333333333,
+  "mesh_transparency": 0.873,
+  "transparency_source": "T6 measured (2026-08-07), bench ratio 98",
+  "gain_mean": 42762.53660714286,
+  "polya_theta": 1.5713740297722847,
+  "aval_survival": 1.0,
+  "aval_survival_source": "absent from calib (schema <= 2), assumed 1.0",
+  "sigma0_um": 33.70815542946173,
+  "calib_voltage_V": 490.0,
+  "field_model": "uniform_field",
+  "with_ions": true,
+  "ion_model": "measured",
+  "ion": {
+   "mu_ion_cm2_Vs": 1.5,
+   "mu_ion_systematic": 0.3,
+   "gap_um": 150.0,
+   "V_mesh": 490.0,
+   "t_ion_transit_ns": 306.1224489795918,
+   "t_ion_transit_ns_lo": 235.4788069073783,
+   "t_ion_transit_ns_hi": 437.31778425655983,
+   "z_avalanche_um": 13.84,
+   "f_electron": 0.09226666666666668,
+   "f_ion": 0.9077333333333333,
+   "lateral_model": "surface kernel frozen at creation point (UNDER-estimates ion lateral sharing; T10 replaces)"
+  },
+  "ion_measured": {
+   "source": "S3 v2 measured (i_elec + i_ion)",
+   "f_ion": 0.9079074475113746,
+   "f_electron": 0.09209255248862534,
+   "t_ion_50pct_ns": 161.24532064622255,
+   "t_ion_90pct_ns": 294.1757544194693,
+   "t_ion_99pct_ns": 337.91968219375445,
+   "z_birth_mean_um": 13.839717016842636,
+   "f_ion_from_z_hist": 0.9077352198877158,
+   "n_samples": 2000,
+   "span_ns": 400.0,
+   "lateral_model": "surface kernel frozen at creation point (UNDER-estimates ion lateral sharing; T10 replaces)"
+  },
+  "packet_mode": false,
+  "n_chan_side": 8,
+  "avalanches_outside_readout": 0,
+  "avalanches_seen": 0,
+  "y_window_mm": 7.0200000000000005
+ },
+ "clusters": {
+  "file": "clusters.root",
+  "n_clusters": 244193,
+  "n_events": 3000,
+  "n_primary_total": 1033792,
+  "n_primary_per_event": 344.5973333333333,
+  "z_mm_range": [
+   -0.009528105357105687,
+   30.17893291832837
+  ],
+  "t_ns_range": [
+   0.2918510891458975,
+   1.8857929954856685
+  ],
+  "active_width_mm": 399.36,
+  "beam_spread_mm": null
+ },
+ "shaper": {
+  "peaking_code": 2,
+  "t_peak_ns_5to100": 180.0,
+  "gain_code": 2,
+  "input_range_fC": 200.0,
+  "mV_per_fC": 10.0,
+  "filter_model": "sk",
+  "tau_csa_ns": 5000.0,
+  "pzc_residual_beta": 0.75,
+  "undershoot_pred_pct": -5.37,
+  "sk_zeta": 0.75,
+  "w0_rad_per_ns": 0.01005996675266733,
+  "provenance": "topology+tau_csa from DREAM manual and CosmicTb_MX17.cfg state1=0x081FD023; beta is a scan/nuisance parameter (PZC residual, not in the datasheet)"
+ }
+}
