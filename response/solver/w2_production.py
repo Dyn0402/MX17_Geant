@@ -77,12 +77,13 @@ def _git_hash():
         return "unknown"
 
 
-def make_solver(box):
+def make_solver(box, ny=None):
+    """ny override is for REDUCED-SIZE smoke jobs only — production is 512/16."""
     if box == "y":
-        return W2Solver(RHO_REF, nx=NX, ny=NY_Y, ly_m=K.Y_BOX_M,
+        return W2Solver(RHO_REF, nx=NX, ny=ny or NY_Y, ly_m=K.Y_BOX_M,
                         esl_phase_m=K.ESL_PHASE_CENTERED_M)
     if box == "x":
-        return W2Solver(RHO_REF, nx=NX, ny=NY_X, ly_m=K.X_BOX_M,
+        return W2Solver(RHO_REF, nx=NX, ny=ny or NY_X, ly_m=K.X_BOX_M,
                         esl_phase_m=K.ESL_PHASE_CENTERED_M)
     raise ValueError(box)
 
@@ -247,7 +248,7 @@ def solve_family(s, drives, ifam, times, rhos=RHOS_OHM_SQ, verbose=True,
 
 def cmd_family(a):
     times = K.log_times(60)
-    s = make_solver(a.box)
+    s = make_solver(a.box, ny=a.ny)
     slab, IX, IY, meta = solve_family(s, drives_for(s, a.box), a.fam, times,
                                       label=f"box={a.box}")
     os.makedirs(a.outdir, exist_ok=True)
@@ -328,6 +329,8 @@ def main():
     f.add_argument("--box", choices=("y", "x"), required=True)
     f.add_argument("--fam", type=int, required=True)
     f.add_argument("--outdir", required=True)
+    f.add_argument("--ny", type=int, default=None,
+                   help="reduced-size smoke run (NOT for production slabs)")
     g = sub.add_parser("combine", help="assemble products from all slabs")
     g.add_argument("--slabdir", required=True)
     g.add_argument("--outdir", required=True)

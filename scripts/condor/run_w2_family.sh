@@ -3,9 +3,17 @@
 # BOX in {y, x}; FAM = family index (y: 0..63, x: 0..1).
 # Slab -> EOS response_sim/s1_w2_ny512/slabs/. Combine runs later, elsewhere.
 set -euo pipefail
-BOX="$1"; FAM="$2"
+BOX="$1"; FAM="$2"; NY="${3:-}"
 SRC=/afs/cern.ch/work/d/dneff/mx17_s1/src
 EOSDIR=/eos/experiment/ntof/data/x17/response_sim/s1_w2_ny512/slabs
+# Optional 3rd arg: reduced ny -> a fast REPRESENTATIVE smoke job (same code
+# path end to end, incl. the xrdcp-with-credential upload). Separate EOS dir
+# so it can never be mistaken for a production slab.
+NYARG=""
+if [ -n "$NY" ]; then
+    NYARG="--ny $NY"
+    EOSDIR=/eos/experiment/ntof/data/x17/response_sim/s1_w2_ny512/slabs_mini
+fi
 WORK="${TMPDIR:-/tmp}/w2_$$"
 mkdir -p "$WORK"
 cd "$SRC"
@@ -20,9 +28,9 @@ export OMP_NUM_THREADS=${OMP_NUM_THREADS:-4}
 export OPENBLAS_NUM_THREADS=$OMP_NUM_THREADS
 export MKL_NUM_THREADS=$OMP_NUM_THREADS
 
-echo "host $(hostname)  box=${BOX} fam=${FAM}  threads=$OMP_NUM_THREADS"
+echo "host $(hostname)  box=${BOX} fam=${FAM} ny=${NY:-production}  threads=$OMP_NUM_THREADS"
 python3 -u -m response.solver.w2_production family \
-    --box "$BOX" --fam "$FAM" --outdir "$WORK" 2>&1
+    --box "$BOX" --fam "$FAM" --outdir "$WORK" $NYARG 2>&1
 
 f=$(ls "$WORK"/w2slab_*.npz)
 echo "produced $(basename "$f") $(stat -c%s "$f") bytes"
