@@ -309,7 +309,19 @@ PENDING — to be completed with the results.
   optimised, because the edit risks a silent indexing slip in `slab[di, ri]`
   and would need the identity battery re-run unattended. **Deferred to the
   solver author**, with battery test 8 as the gate.
-- The LUT caching-cert investigation (§4) and the plan's stale `1e-4` row.
+- **The LUT cert harness fix (§4) — owned by the solver author**, who will take
+  the nearest-at-or-below index (or interpolate the reference onto `lut.t[-1]`),
+  re-cert against the W2 products, and amend the plan's T10 row. The story there
+  is now complete: the `1e-4` was **true when measured**, was invalidated the
+  same week by an unrelated and **correct** fix (Audit A1/Fix 1 raising `t_max`
+  1000 → 3000 ns), was surfaced by the W1 dress rehearsal, and had its mechanism
+  pinned by three successive falsifications (glue stack, `y_stride`, then the
+  time-axis snap).
+  Being folded in as a **guard, not just a fix**: "snap-to-nearest across two
+  mismatched time axes" is the same bug family as the s-vs-ns accident that
+  voided the 2026-08-08 19:12 T10 run. This repo now has two *measured*
+  instances of axes that silently disagree, which is enough to justify a
+  standing check rather than a one-off correction.
 - A W2 grid at ny=1024 — doubles the family to 49 920 modes (~20 GB matrices)
   and needs the y-parity/mirror-family reduction first.
 - `test_time_grid` on W2 (§1.4), which §4 makes more interesting than it was.
