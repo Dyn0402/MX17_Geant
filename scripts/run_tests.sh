@@ -31,6 +31,16 @@ run() {
     fi
     rm -f "$log"
 }
+# WHERE EACH OF THESE CAN ACTUALLY RUN — worth knowing before reading a FAIL:
+#  - test_charge_audit builds an n_side=8 LUT from a multi-GB kernel and wants
+#    real memory. It is OOM-killed (exit 137) on an lxplus LOGIN node; give it
+#    condor request_memory ~32 GB or the desktop.
+#  - test_daq_wft needs the per-detector noise characterisation
+#    (noise_det3.json, from `python3 -m response.dream.noise --characterise`),
+#    which is measured from BENCH DATA and cannot be regenerated at CERN. It is
+#    therefore a LOCAL test; on lxplus it fails on a missing input, which is an
+#    environment gap and not a statement about the code.
+#  - the other three run anywhere, given the kernel.
 run test_longitudinal       python3 -m response.digitizer.test_longitudinal
 run test_lut_vs_solver      python3 -m response.digitizer.test_lut_vs_solver --kernel "$K"
 run test_charge_audit       python3 -m response.digitizer.test_charge_audit --kernel "$K" --calib "$C" --n-rep 16
