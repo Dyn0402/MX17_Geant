@@ -278,6 +278,20 @@ Consequence: the earlier guidance to tolerate a ~1 % x_fraction deviation was
 **withdrawn before the products landed**, and the acceptance bar tightened from
 0.48–0.52 to 0.5 ± 1e-4. A 1 % deviation is now a real inconsistency.
 
+**The symmetry is visible in the production slabs themselves, at machine
+precision.** The per-drive full-grid captures recorded in the slab metas
+decompose the two views in completely different bases — 40 X phase drives
+against 64 Y row-combs — and they agree:
+
+    X view: 40 × 0.010524708864218921 = 0.420988355
+    Y view: 64 × 0.006577943040138035 = 0.420988355
+    |X − Y| = 7.7e-14
+    total = 0.841976709            (pre-registered: 0.841977)
+
+So the view balance is not merely close to 0.5, it is 0.5 to ~1e-13 in the
+production data, from two unrelated drive decompositions. Measured before the
+combine ran.
+
 ### A predictor that was right for reasons unavailable at the time
 
 An early attempt to forecast the capture summed each slab's `prompt_capture`
