@@ -1,31 +1,31 @@
 #!/usr/bin/env python3
 """
-check_ion_template_repro.py — does the FIXED S3 producer reproduce v2's ion template?
+check_ion_template_repro.py — compare two S3 calibrations' ion templates.
 
-    python3 scripts/check_ion_template_repro.py <v2.json> <repro_slice.json> [more slices...]
+    python3 scripts/check_ion_template_repro.py <ref_calib.json> <new_calib.json> [voltage]
+
+Both arguments are calibration files as written by
+`python3 -m response.avalanche.collect` (or the shipped `aval_calib_v*.json`),
+NOT raw slice files. Voltage defaults to 490.
 
 WHY THIS EXISTS. The first S3 campaign wrote `i_elec`/`i_ion` arrays that were
 identically zero in all 56 slices: `ComponentConstant` has no weighting
 potential until `SetWeightingPotential()` is called, and Garfield computes the
 induced current from psi rather than the weighting field by default, so every
-signal came out zero while the avalanche and ion drift ran perfectly normally
-(gain and sigma0 were unaffected, which is why it went unnoticed). Commit
-42390d1 fixed it, and `aval_calib_v2.json` came from a re-run afterwards —
-whose raw slices were never archived. So v2's templates are trustworthy but
-were not, until this, reproducible from anything on EOS.
+signal came out zero while the avalanche and ion drift ran perfectly normally —
+gain and sigma0 unaffected, which is why it went unnoticed. Commit 42390d1
+fixed it. EOS `avalanche/raw/` is still that PRE-FIX campaign; the raw that
+actually backs `aval_calib_v2.json` is on AFS in `results_v2/`.
 
-WHAT IT CHECKS. f_ion = Qi/(Qe+Qi), the fraction of the induced charge carried
-by the ion tail. It is the right observable because it is a RATIO: insensitive
-to gain, to slice count, and to the ~1 % run-to-run spread that makes v2 a
-different realization from the archived raw (v2's 470 V gain is 22854.3 against
-the archived 23107.4). It is also the number with an independent internal
-cross-check inside v2 — 0.9079 from the current integrals against 0.9077 from
-the alpha_z histogram, agreeing to four digits, which is itself the proof that
-no ion charge fell off the end of the 400 ns window.
+WHAT IT CHECKS. f_ion = Qi/(Qe+Qi), the fraction of induced charge carried by
+the ion tail. It is the right observable because it is a RATIO, so it is
+insensitive to gain and to slice count — in the 2026-08-08 verification an
+independent re-run matched v2's f_ion to 1e-4 while its gain differed by 8.5 %
+on a quarter of the statistics. Comparing gains would have shown a "failure"
+that was only counting statistics.
 
-A PASS here means the fixed producer reproduces the physics of v2's template
-from scratch, which closes the provenance gap as far as it can be closed
-without re-running all 56 slices.
+It also flags an all-zero template outright, which is the failure mode that
+started all of this and which a f_ion comparison alone would report as nan.
 """
 
 from __future__ import annotations
@@ -35,63 +35,57 @@ import sys
 
 import numpy as np
 
-TOL = 0.005          # absolute on f_ion; run-to-run spread is well under this
+TOL = 0.005          # absolute on f_ion
 
 
-def f_ion(i_elec, i_ion, dt):
-    qe = float(np.asarray(i_elec, dtype=float).sum()) * dt
-    qi = float(np.asarray(i_ion, dtype=float).sum()) * dt
+def _point(calib, voltage):
+    pts = calib["points"]
+    hits = [k for k in pts if f"@{voltage}V" in k]
+    if not hits:
+        raise SystemExit(f"no {voltage} V point; have: {sorted(pts)}")
+    return hits[0], pts[hits[0]]
+
+
+def _f_ion(p):
+    ie = np.asarray(p["i_elec"], dtype=float)
+    ii = np.asarray(p["i_ion"], dtype=float)
+    dt = float(p["signal_dt_ns"])
+    qe, qi = ie.sum() * dt, ii.sum() * dt
+    nz = int(np.count_nonzero(ie)) + int(np.count_nonzero(ii))
     tot = qe + qi
-    return (qi / tot if tot else float("nan")), qe, qi
+    return (qi / tot if tot else float("nan")), qe, qi, nz
 
 
 def main(argv):
-    if len(argv) < 3:
+    if len(argv) < 2:
         print(__doc__)
         return 2
-    v2 = json.load(open(argv[0]))
-    key = [k for k in v2["points"] if "490" in k]
-    if not key:
-        print("FAIL: no 490 V point in the v2 calib")
-        return 3
-    p = v2["points"][key[0]]
-    ref, qe_r, qi_r = f_ion(p["i_elec"], p["i_ion"], p["signal_dt_ns"])
-    print(f"v2 reference  {key[0]}")
-    print(f"  nev {p['nev_total']}  dt {p['signal_dt_ns']} ns")
-    print(f"  Qe {qe_r:.5g}  Qi {qi_r:.5g}  f_ion {ref:.6f}\n")
-
-    # Slices are charge-weighted by their event count, exactly as collect.py
-    # merges them — a plain mean over slices would misweight unequal nev.
-    tot_e = tot_i = 0.0
-    nev = 0
-    for path in argv[1:]:
-        s = json.load(open(path))
-        n = s.get("nev", s.get("nev_total", 0))
-        dt = s.get("signal_dt_ns", p["signal_dt_ns"])
-        fi, qe, qi = f_ion(s["i_elec"], s["i_ion"], dt)
-        nz = int(np.count_nonzero(np.asarray(s["i_elec"], dtype=float)))
-        print(f"  {path.split('/')[-1]}: nev {n}  nonzero i_elec bins {nz}  "
-              f"f_ion {fi:.6f}")
+    voltage = argv[2] if len(argv) > 2 else "490"
+    rows, zero = [], False
+    for label, path in (("reference", argv[0]), ("new", argv[1])):
+        key, p = _point(json.load(open(path)), voltage)
+        f, qe, qi, nz = _f_ion(p)
+        gain = (p.get("polya") or {}).get("gain_mean", float("nan"))
+        rows.append((label, path.split("/")[-1], p.get("nev_total"), gain, f))
         if nz == 0:
-            print("    ^ ALL ZERO — this producer still has the psi bug")
-        tot_e += qe * n
-        tot_i += qi * n
-        nev += n
+            print(f"  !! {path}: template is ALL ZERO — this is the "
+                  f"SetWeightingPotential bug, not a small disagreement")
+            zero = True
 
-    if not nev:
-        print("\nFAIL: no events")
-        return 3
-    got = tot_i / (tot_e + tot_i)
-    d = got - ref
-    print(f"\nmerged over {nev} events:  f_ion {got:.6f}")
-    print(f"v2:                        f_ion {ref:.6f}")
-    print(f"difference                 {d:+.6f}  (tol {TOL})")
-    ok = abs(d) <= TOL
-    print("\n" + ("PASS — the fixed producer reproduces v2's ion template; the "
-                  "provenance gap is closed."
+    print(f"\n  {'':10s} {'file':28s} {'nev':>6} {'gain':>10} {'f_ion':>10}")
+    for label, name, nev, gain, f in rows:
+        print(f"  {label:10s} {name:28s} {nev if nev else 0:6d} "
+              f"{gain:10.1f} {f:10.6f}")
+
+    d = rows[1][4] - rows[0][4]
+    print(f"\n  f_ion difference {d:+.6f}   tol {TOL}")
+    print(f"  (gain differs by {100*(rows[1][3]/rows[0][3]-1):+.1f} %, which is "
+          f"why the check is on the ratio)")
+    ok = (not zero) and abs(d) <= TOL
+    print("\n" + ("PASS — the ion template reproduces."
                   if ok else
-                  "FAIL — the fixed producer does NOT reproduce v2. v2's "
-                  "templates need re-deriving, not just re-archiving."))
+                  "FAIL — the templates disagree; do not treat them as "
+                  "interchangeable."))
     return 0 if ok else 1
 
 
