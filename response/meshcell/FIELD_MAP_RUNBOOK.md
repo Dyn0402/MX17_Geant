@@ -154,6 +154,17 @@ G7 value is the T6 transparency deliverable and supersedes the 1D-model
 carry a ±0.13-scale grid bias (0.67 dilated / 0.94 eroded at 3 µm) — never
 quote them.
 
+**ACCEPTED 2026-08-08** (git 5763342, desktop): all S and G gates pass;
+production values: amp bulk 31 014 V/cm (+1.48 % vs neBEM), penetration
+1.942 V, S6 refinement p95 0.245 %, **transparency 0.955 ± 0.005 (stat)**
+with an asymmetric systematic of −0.045/+0 from the grid-surface
+representation (the eroded flag places the absorbing surface within
+[r−step, r]; bracketed by the smoke dilate/erode pair). Quote it as
+0.955 −0.045/+0.005. Higher than the 1D 0.873 because electrons dodge in
+both lateral dimensions in 3D. If S3 ever needs it tighter, run an
+erosion-sensitivity variant (erode by step/2) rather than a finer grid.
+Products + manifest: `~/x17/response_sim/meshfield/`.
+
 ## Products & shipping
 
 After both gate sets pass on the desktop:
