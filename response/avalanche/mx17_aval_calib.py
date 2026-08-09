@@ -100,6 +100,13 @@ def parse_args():
     p.add_argument("--max-avalanche", type=int, default=0,
                    help="Cap avalanche size (0 = uncapped). Only for smoke tests; "
                         "a cap biases the gain distribution and is recorded.")
+    p.add_argument("--campaign-label", default=None,
+                   help="Free-text label recorded in provenance, e.g. "
+                        "'DIAGNOSIS-GRID / unconstrained-contaminant-search' -- "
+                        "for campaigns whose gas composition is a fit to data "
+                        "rather than a measured assay, so a consumer reading "
+                        "the JSON directly sees the caveat, not just whoever "
+                        "reads the filename.")
     p.add_argument("--endpoint-subsample", type=int, default=5000,
                    help="Cap on r_end/t_end and z_ion samples LOGGED per "
                         "event; uniformly subsampled if the avalanche is "
@@ -419,6 +426,7 @@ def main():
             "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "host": os.uname().nodename,
             "runtime_s": time.time() - t_start,
+            "campaign_label": args.campaign_label,
         },
         "config": {
             "gas_file": os.path.basename(args.gas_file),

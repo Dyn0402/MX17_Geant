@@ -112,6 +112,7 @@ def reduce_file(path):
         "signal_dt_ns": r["signal_dt_ns"],
         "field_model": d["provenance"]["field_model"],
         "seed_z0_um": c.get("seed_z0_um"),
+        "campaign_label": d["provenance"].get("campaign_label"),
     }
 
 
@@ -183,6 +184,7 @@ def merge(slices):
         "alpha_z_hist": {"counts": zh.tolist(),
                          "edges": slices[0]["zedges"].tolist()},
         "field_model": slices[0]["field_model"],
+        "campaign_label": slices[0]["campaign_label"],
         # Height above the anode where seeding happened -- sigma0/t_arrival
         # above are measured FROM here, so a consumer must not separately add
         # diffusion for whatever drift leg sits between this point and the
