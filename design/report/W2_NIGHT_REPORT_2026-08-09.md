@@ -215,11 +215,27 @@ regardless of W2 — flagged here, amendment left for the morning.
 
 ## 5. Fleet operations
 
-**Timing.** The handoff estimated 3–3.5 h per family; measured `wall_s` is
-~3400 s (**~56 min**), because the estimate came from a benchmark on the
-oversubscribed lxplus *login* node. Wall times span 3376–7327 s — a **2.2×
-spread at identical N and identical `gd_rank`**, i.e. node heterogeneity
-(AVX2 vs AVX-512).
+**Timing.** All 66 slabs landed by **04:12**, 8.1 GB total. The handoff
+estimated 3–3.5 h per family; the *fast* nodes did it in **56 min**, because
+the estimate came from a benchmark on the oversubscribed lxplus *login* node.
+But the fleet is enormously heterogeneous:
+
+| `wall_s` | min | p25 | median | p75 | max |
+|---|---|---|---|---|---|
+| seconds | 3376 | 4676 | 5492 | 8296 | **20724** |
+
+That is a **6.1× spread at identical N and identical `gd_rank`** — pure node
+heterogeneity, since every job solves the same size problem and the CPU-second
+totals scale with the wall time (slower cores need proportionally more
+CPU-seconds for the same flops). 487 core-hours total; 122 h if run serially,
+compressed into a ~6 h span by the fan-out.
+
+The tail dominates the schedule: the slowest five were `x001` (5.8 h), `y008`
+(3.7 h), `y011`, `y004`, `y001` (~3.2–3.3 h each). `x001` alone held the
+completion gate for **two hours** after 65/66 were down — worth knowing when
+sizing the ny=1024 follow-up, where the same tail would be doubled. The
+practical lesson for a hard-gated fleet is that the median tells you almost
+nothing; plan against p95.
 
 **A wrong diagnosis, made cheap by a reversible action.** `y000` appeared
 wedged: `RemoteUserCpu` *and* `RemoteSysCpu` frozen at 24105.0/2567.0 across
