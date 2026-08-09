@@ -96,3 +96,51 @@ eps(E_amp/E_drift), already measured (S2, `response/meshcell/transparency_curve.
 
 **Do not start the cage solve before confirming the ring geometry against drawings/photos and
 getting the chamber-wall boundary condition from Dylan.**
+
+---
+
+## ⚠️ CORRECTION 2026-08-10 — §2 step 1 needs no Magboltz jobs, and its
+## comparison had a Penning confound
+
+Found while actually setting the bracket up (`WET_GAIN_BRACKET_PREREG_2026-08-10.md`,
+submitted as condor cluster 16705137).
+
+**1. "~2 new Magboltz jobs before any Garfield" is wrong — zero are needed.**
+§2 step 1 says the existing wet suites are drift-range only. They are not. All
+three mixtures already exist at *amplification* range, on an identical grid, at
+the bench pressure:
+
+| table (`Saclay_160m`, 745.83 Torr) | E grid |
+|---|---|
+| `Ar_iC4H10_95_5` | 5 000 – 60 002 V/cm, 20 log points |
+| `Ar_iC4H10_H2O_94p5_5_0p5` | identical |
+| `Ar_iC4H10_H2O_94_5_1` | identical |
+
+The trap is a units one and is worth carrying forward: **`.gas` files store
+E/p**, so the header's `E fields  6.704 … 80.45` is in V/(cm·Torr) and reads as
+a drift-range table until it is multiplied by 745.83 Torr. Tables that really
+are drift-range carry an explicit `_drift_` in the filename
+(`Ar_iC4H10_95_5_drift_Saclay_160m.gas`). The §1 table's claim that the 95/5
+amp-range table "exists (dry)" was right; the §2 claim that the *wet* ones do
+not was the units trap.
+
+**2. The bracket as specified would have confounded water with Penning.**
+`mm_config.py` gives dry `penning: auto` but both wet mixtures `penning: manual,
+rP = 0.4` — unavoidably, since Garfield has no ternary Ar/iC₄H₁₀/H₂O Penning
+table (exactly the failure mode §1 already warns about for the ternaries).
+Running dry-as-configured against wet-as-configured therefore measures water
+*plus* a change of Penning model, and Penning is the one knob the T7 slope hunt
+is currently varying.
+
+Penning is applied at avalanche time (`mm_sim_core.py:69-73`,
+`EnablePenningTransfer` after `LoadGasFile`) and is **not** baked into the
+`.gas` file, so the tables are Penning-agnostic and the setting is a runtime
+choice. **The wet-vs-dry comparison is only interpretable within the rP = 0.40
+arms**; a fourth dry-at-auto arm is carried solely to measure the Penning-model
+delta itself, and must never be differenced against a wet arm.
+
+**3. Labelling, unchanged.** Every water fraction here remains
+**fitted-to-data** — there is no hygrometer reading behind any of it. The
+bracket measures a *derivative* (would water, if present, move gain?), which
+does not require the operating point to be established, and it cannot be quoted
+as evidence that the bench gas contained water.
