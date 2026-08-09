@@ -819,6 +819,35 @@ Port the p2_geant ClusterTree schema (`p2_geant/docs/OUTPUT_FORMAT.md`) into thi
 Physics settings: keep EM opt4; evaluate PAI model in a gas G4Region (p2 `TOOLCHAIN_NOTES.md` argues default condensed-history straggling is inadequate in thin gas — for our 30 mm drift gap it matters less than for p2's 3 mm, but PAI in the gas region is cheap: turn it on, compare cluster statistics, keep it).
 Acceptance: a 10⁴-event muon run whose ClusterTree loads in `response/digitizer` and produces sensible (x,y,z,t,nPrimary) distributions.
 
+### ⚠️ STANDING RULE — every Stage B/C input carries its run, FEU and conditions
+
+Adopted 2026-08-09 after **three instances in one day** of a per-RUN or
+per-DETECTOR property being used as though it were universal:
+
+| input | what went wrong | how it failed |
+|---|---|---|
+| FEU ids | defaulted to 3/4; the T14 target run reads out on 7/8 (det3 moved between runs) | **silent** — wft globs `*_07.root`, finds nothing, reconstructs zero events |
+| calibration bundle | valid only for its own detector + run conditions | silent — a bundle from elsewhere fits, badly |
+| noise spec | `noise_det3.json` came from a different run (2026-05-06) **and from FEU 01, the M3 trigger FEU**, not an MX17 plane | silent — σ 10.38 vs 7.41, common mode 82.9 vs 271.4, wrong autocorrelation |
+
+None of these announced itself. Two were caught only because something *else*
+failed loudly nearby, and the noise one was caught by the T14 comparison — i.e.
+after it had already influenced a result.
+
+**The rule:** every Stage B/C input — noise spec, avalanche calib, run config,
+kernels — records the run, FEU and conditions it was derived from, and the
+driver **refuses to run when they contradict the target run** unless explicitly
+forced. The reference implementation is the FEU binding in
+`response/digitizer/run.py` (`--run-config` reads the mapping from the target
+run; a contradicting `--feu-ids` is refused; `--force-feu-ids` is the deliberate
+escape; the bare fallback announces itself as UNVERIFIED).
+
+The point is that **this class of error has to die at the reader, not in
+review.** Each of the three was individually obvious in hindsight and none was
+noticed by inspection; what catches them is a loader that knows what run it is
+supposed to be modelling. `digitize.load_calib` already refuses a pooled calib
+at the wrong mesh voltage on the same principle.
+
 ## 7. Stage B — digitizer
 
 Per event, per ionization cluster (vectorize over clusters):

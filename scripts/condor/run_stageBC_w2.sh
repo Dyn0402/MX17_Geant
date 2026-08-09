@@ -21,14 +21,21 @@
 # comparison.
 set -euo pipefail
 RHOTAG="$1"
+# Optional DIAGNOSIS variant: $2 = label, $3 = noise spec override. A labelled
+# run writes into its OWN subdirectory with the label in the filename, so it
+# can never glob-collide with the frozen default that T14's verdict rests on
+# (wft globs `*_{feu:02d}.root` within a directory — two sets in one directory
+# would be silently mixed).
+VARIANT="${2:-}"
+NOISE_OVERRIDE="${3:-}"
 SRC=/afs/cern.ch/work/d/dneff/mx17_s1/src
 W2BASE=/afs/cern.ch/work/d/dneff/mx17_s1     # NOT `BASE`: LCG's setup.sh exports that
 EOSPROD=/eos/experiment/ntof/data/x17/response_sim/s1_w2_ny512/products
 EOSCLUS=/eos/experiment/ntof/data/x17/response_sim/clusters
-EOSOUT=/eos/experiment/ntof/data/x17/response_sim/stageB_w2
+EOSOUT=/eos/experiment/ntof/data/x17/response_sim/stageB_w2${VARIANT:+/$VARIANT}
 CLUSTERS=mx17_muons_3k_spread_t0.root
 PROD=greens_comb_w2_${RHOTAG}_dk50um_g19um.npz
-OUTD=$W2BASE/stageBC
+OUTD=$W2BASE/stageBC${VARIANT:+/$VARIANT}
 WORK="${TMPDIR:-/tmp}/stagebc_$$"
 mkdir -p "$WORK" "$OUTD"
 cd "$SRC"
@@ -54,9 +61,9 @@ python3 -u -m response.digitizer.run "$WORK/$CLUSTERS" \
     --run-config "$W2BASE/calib/run_config_sat_det3.json" --detector mx17_3 \
     --kernel "$WORK/$PROD" \
     --calib "$SRC/response/avalanche/aval_calib_meshfield_pooled.json" \
-    --noise "$W2BASE/calib/noise_det3.json" \
-    --decoded-out "$WORK/sim_decoded_w2_${RHOTAG}" \
-    --decoded-tag "w2${RHOTAG}_000" \
+    --noise "${NOISE_OVERRIDE:-$W2BASE/calib/noise_det3.json}" \
+    --decoded-out "$WORK/sim_decoded_w2_${RHOTAG}${VARIANT:+_$VARIANT}" \
+    --decoded-tag "w2${RHOTAG}${VARIANT:+$VARIANT}_000" \
     --out "$OUTD/stageBC_${RHOTAG}.json" 2>&1 | tee "$OUTD/stageBC_${RHOTAG}.log"
 
 echo "=== outputs"
