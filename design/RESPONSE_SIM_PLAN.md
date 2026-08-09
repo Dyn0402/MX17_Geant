@@ -43,9 +43,16 @@ pre-declared**: ρ_s and the gas/v axis are the two variables to vary afterwards
 and post-default runs are **diagnosis, not verdict**. Pre-built so later looks
 need no new production: Stage B/C decoded at all four ρ_s, and a v-axis reco
 variant that needs no new simulation (v enters at reconstruction). Wet gas is
-the only axis needing production and is prepared-not-run — and note it does NOT
-close the 6.9 %: at the June record's ~1 % H₂O the table gives 34.81 µm/ns,
-**4.9 % too slow**, trading the sign of the error rather than removing it.
+the only axis needing production and is prepared-not-run. ⚠️ **There is NO
+measured humidity** (Dylan, 2026-08-09): the ~1 % H₂O and the det3 drying
+history were themselves inferred from v_drift by Magboltz matching, i.e. from
+the same observable family T14 compares — so a contaminant hypothesis is an
+**unconstrained search axis, labelled fitted-to-data**, never a physics input,
+until an independent assay exists (a hygrometer on the gas line is the way
+out). It does not even fit well: at the assumed ~1 % H₂O the table gives
+34.81 µm/ns, **4.9 % too slow**, trading the sign of the error. The one real
+constraint is on contaminant FAMILY not concentration — air/O₂ vs H₂O is
+separable by attachment SHAPE (`eta_per_cm`), independently of v_drift.
 Full record, including where the laundering line sits, in
 `design/report/T14_FREEZE_QUEUE_2026-08-09.md`.
 

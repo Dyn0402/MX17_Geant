@@ -89,7 +89,43 @@ used; it is in what the number was derived from and when it was written down.
 
 ---
 
-## 3. Wet gas — prepared, NOT run, and it does not do what you'd assume
+## 3. Wet gas — an UNCONSTRAINED search axis, not a physics input
+
+> ### ⚠️ Correction, Dylan 2026-08-09 — read this before the rest of §3
+>
+> **"We have NO measured humidity at any point. We only assume there is humidity
+> or some other contamination in the gas because our drift velocity is slow. So
+> if dry gas does not agree with data, we will have to search for contaminants
+> which match our data unconstrained — not ideal but all we can do."**
+>
+> This **invalidates the framing used earlier in this note and in §2 above.**
+> Both were written as though a "June bench humidity record" existed
+> independently of the comparison. It does not. The ~1 % H₂O figure and the
+> det3 "dried 3 % → 1 % over a week" history were themselves **inferred from
+> v_drift by Magboltz matching** — i.e. derived from the same observable family
+> the T14 comparison uses. There is no hygrometer reading behind them.
+>
+> So the (a)/(b) structure below is wrong where it says a wet table "is physics
+> input if the water fraction comes from the June record". Corrected:
+>
+> * **Default stays dry** — frozen, unchanged, and now on firmer ground: it is
+>   the only option not fitted to the observable.
+> * **Any contaminant hypothesis is an unconstrained search**, run only after
+>   the default comparison, and **labelled fitted-to-data wherever it appears**.
+>   It is diagnosis. It cannot become a physics input by being plausible.
+> * **The way out is an actual measurement** — a hygrometer on the gas line, or
+>   any independent species assay. One line of hardware converts this whole axis
+>   from fitted to constrained, and it is worth doing for that reason alone.
+> * **One real constraint survives, on FAMILY not concentration.** The July
+>   90/10 study discriminated air/O₂ from H₂O by **attachment shape**, not by
+>   v_drift alone. That is still inference from waveform data rather than a
+>   measurement, but it constrains *which contaminant*, independently of how
+>   much. `eta_per_cm` in the wet grid is the handle; record it as a shape
+>   constraint, never as a measurement.
+>
+> The numbers below stand — what changes is what may be concluded from them.
+
+### The mechanics (unchanged)
 
 **No Magboltz run is needed.** The June waveform-first water study already left
 the grid, in Stage B's *exact* table schema:
@@ -116,19 +152,25 @@ The June record's **~1 % H₂O gives 34.81 µm/ns — 4.9 % too SLOW**, i.e. it
 overshoots the correction rather than removing it. The value that would match
 is ≈0.8 % H₂O (or 0.8 % with ~1 % air, 36.24).
 
-**This is exactly where the laundering line sits, so it is drawn explicitly:**
-using ~1 % because the June humidity record says ~1 % is physics input, and it
-does *not* make the sim agree — it trades a +6.9 % error for a −4.9 % one.
-Choosing ≈0.8 % *because* it lands on 36.60 is tuning, and the fact that such a
-value exists and is only ~0.2 % away from the recorded one is precisely why the
-distinction has to be written down in advance rather than argued afterwards.
+**Where the line sits, restated after the correction above.** There is no
+water fraction that counts as physics input today, because none was measured —
+so *every* point on this axis is fitted, including ~1 %. What the table above
+shows is that the fit is not even flattering: the previously-assumed ~1 %
+overshoots to −4.9 %, and only ≈0.8 % lands on the bench value. That the
+"assumed" and "matching" values differ by 0.2 % is not reassurance that the
+assumption was nearly right; it is a reminder that a number inferred from
+v_drift will always sit near whatever v_drift needs, which is exactly why it
+cannot be used to justify v_drift.
 
-Worth noting the air row independently: 0.8 % H₂O + ~1 % air reproduces the
-bench value closely, and air ingress is a physically distinct hypothesis from
-water fraction with its own signature — `attachment_Ar_iso_H2O.json` and the
-`eta_per_cm` column are what would test it, since air's oxygen attaches and
-water does not. (The July 90/10 study excluded air by attachment for *that*
-run; nothing has tested it for this one.)
+The air row is the one that carries real information: 0.8 % H₂O + ~1 % air
+reproduces the bench value closely, and air is a physically **distinct
+hypothesis** from water with its own attachment signature — oxygen attaches,
+water does not. That distinction is testable against `eta_per_cm` /
+`attachment_Ar_iso_H2O.json` **without** reference to v_drift, which is what
+makes it the only part of this axis capable of constraining anything. The July
+90/10 study used exactly that shape argument to exclude air for *that* run;
+nothing has tested it for this one, and doing so would narrow the search from
+"any contaminant" to a family — still short of a measurement.
 
 **Not run now, by instruction.** What it would take when wanted: extract one
 mixture from `water2d.json` into the Stage B table schema, re-run Stage B/C
