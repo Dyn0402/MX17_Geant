@@ -111,6 +111,7 @@ def reduce_file(path):
         "i_ion": np.asarray(r["i_ion"], dtype=float),
         "signal_dt_ns": r["signal_dt_ns"],
         "field_model": d["provenance"]["field_model"],
+        "seed_z0_um": c.get("seed_z0_um"),
     }
 
 
@@ -182,6 +183,12 @@ def merge(slices):
         "alpha_z_hist": {"counts": zh.tolist(),
                          "edges": slices[0]["zedges"].tolist()},
         "field_model": slices[0]["field_model"],
+        # Height above the anode where seeding happened -- sigma0/t_arrival
+        # above are measured FROM here, so a consumer must not separately add
+        # diffusion for whatever drift leg sits between this point and the
+        # mesh (hit for real: Stage B mirrored this as a hardcoded 180 um
+        # constant and double-counted it; response/digitizer commit b343c82).
+        "seed_z0_um": slices[0]["seed_z0_um"],
     }
 
 

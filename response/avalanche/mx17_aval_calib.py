@@ -436,6 +436,14 @@ def main():
             "field_map_file": os.path.basename(args.field_map)
                               if args.field_map else None,
             "endpoint_subsample": args.endpoint_subsample,
+            # Height above the anode where the seed electron/avalanche
+            # starts. sigma0/t_arrival are measured FROM this point, so they
+            # include whatever drift leg sits between it and the mesh --
+            # consumers must not add that leg's diffusion a second time.
+            # Machine-readable per point since a future calib might seed
+            # elsewhere; downstream no longer needs to mirror this as its
+            # own hardcoded constant keyed on field_model.
+            "seed_z0_um": seed_z0_cm * 1e4,
         },
         "results": {
             "gains": gains.tolist(),
