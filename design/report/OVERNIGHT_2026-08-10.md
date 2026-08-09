@@ -958,3 +958,91 @@ by two independent derivations rather than one.
 
 Products: `design/report/sheet_screening_rederive.json`,
 `scratchpad/overnight_2026-08-10/sheet_screening_rederive.py`.
+
+---
+
+## 14. §0a morning checklist — the 08-08→09 HV-scan chain verified, certs re-run
+
+Doable despite the desktop blocker because the merged product had already been
+shuttled: EOS `response_sim/avalanche/aval_calib_meshfield_hvscan.json`
+(913 kB, 2026-08-09 10:58). Pulled to
+`~/x17/response_sim/avalanche/` and certified on the laptop.
+
+**The chain completed cleanly.** 15 points, schema `aval_calib/3`:
+Ar/iC₄H₁₀ 95/5 at 460–530 V (8 points) and 90/10 at 530–590 V (7).
+
+| certification | 95/5 | 90/10 |
+|---|---|---|
+| gain monotonic in V | PASS | PASS |
+| survival in [0.90, 1.00] | PASS (0.9390–0.9594) | PASS (0.9938–0.9989) |
+| one distinct field map per voltage | PASS (8/8) | PASS (7/7) |
+| Polya θ in [0.3, 3] | PASS (1.087–1.463) | PASS (0.825–1.094) |
+| i_ion template non-zero | PASS | PASS |
+| f_ion in [0.85, 0.95] | PASS (0.8908–0.9113) | PASS (0.8873–0.9064) |
+
+**All pass.** The "one distinct map per voltage" row is the one that matters
+most, because it is the direct guard against the T7 voltage-label incident
+recurring — each voltage genuinely used its own `meshfield_vmesh####.txt`.
+
+Three independent cross-checks at the 490 V production point:
+
+* **f_ion = 0.9006** from the template's own current integrals, exactly the
+  parallel-plate value — confirming the documented fact that
+  `mx17_aval_calib.py` still uses `ComponentConstant` ψ for the *weighting*
+  field even in the meshfield branch. The through-mesh 0.9056 (S3 closeout) is
+  not in this product, as expected.
+* **gain 24 172** against the pooled point's 24 094 — agree to 0.3 %.
+* **survival 0.9518** against T6's independent 3D transparency 0.955.
+
+⚠️ **A cert of my own failed first and the bug was mine, again worth recording:**
+the i_ion row initially read FAIL because I assumed positive currents. The
+calib stores induced currents with a **negative** sign convention (both
+`i_elec` and `i_ion`), which is correct — f_ion works because it is a ratio of
+two negatives. The cert now tests |Σ|. Nothing was wrong with the data.
+
+### Bonus from the same file — the sim's HV slope, independently
+
+Fitting d ln(gain)/dV over the 95/5 scan gives **0.3106 ± 0.0033 per 10 V**
+against the data's 0.4487 ± 0.0093 (`hv_slope/slopes.json`, x/p50_head) — a
+ratio of 0.692, i.e. the sim's gain-vs-HV slope is **×1.44 too shallow**. That
+is an independent re-measurement of the ×1.52 / ≈12 σ discrepancy the amplitude
+ledger rests on (the small difference is fit range and estimator, not physics),
+computed here from the raw calib rather than quoted.
+
+---
+
+## 15. Slope-hunt collection harness — built, self-tested, decision rule
+## pre-registered
+
+`response/validation/slopehunt_verdict.py`. One command turns
+`aval_calib_slopehunt.json` into the verdict table when the desktop chain
+finishes:
+
+```bash
+python3 -m response.validation.slopehunt_verdict \
+    --calib  ~/x17/response_sim/avalanche/aval_calib_slopehunt.json \
+    --slopes ~/x17/response_sim/hv_slope/slopes.json
+```
+
+**The decision rule is written into the script header, before the data exists**,
+with four named outcomes:
+
+* **A** — rP\* fixes the slope *and* moves gain ≥ ×1.4 → **the ledger closes on
+  a single defect**; adopt rP\*, re-run Stage B/C.
+* **B** — slope fixed at gain < ×1.2 → **no ledger candidate survives** and the
+  chain decomposition is suspect. The interesting outcome. Explicitly forbids
+  papering over it with a fitted gain factor.
+* **C** — no rP reaches the data slope → Penning is not the knob; the α(E)
+  error is in the cross sections or the field map.
+* **D** — slope fixed but gain overshoots > ×2.2 → the two threads are not one
+  defect; report that rather than splitting the difference.
+
+Plus the standing reporting rule, carried over from β and undershoot: **rP\* is
+fitted to the slope, so slope agreement is not evidence — the gain is the
+out-of-sample prediction and the only part that can confirm anything.**
+
+**Self-tested against the 08-08 HV scan** (`--self-test`), which has no rP axis:
+the code path runs end to end, reproduces gain@490 = 24 172 and the sim slope
+0.3106, and correctly **abstains** rather than inventing a verdict. The header
+notes that an abstain on the *real* slope-hunt output would mean the merge
+failed to carry the Penning setting — i.e. the abstain is also a bug detector.
