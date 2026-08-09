@@ -591,10 +591,21 @@ def main():
     else:
         src = "FIXED and sub-pitch-degenerate — a pencil beam on a pad boundary"
     print(f"\n  impact point: {src}")
+    # This line describes the CHARGE-BUDGET SUMMARY printed above, which is
+    # computed from clean currents — not the decoded files, which are written
+    # below and DO carry noise whenever --decoded-out is given. It used to say
+    # a flat "still missing: ZS, noise" regardless, which read as a statement
+    # about the output files and cost a downstream reader real time doubting
+    # whether the noise spec had been applied at all (2026-08-09).
     missing = [n for n, on in (("ion tail", info["with_ions"]),
                                ("DREAM shaping", shaper is not None)) if not on]
     missing += ["ZS", "noise"]
-    print(f"\n  still missing: {', '.join(missing)}")
+    print(f"\n  summary above is BEFORE: {', '.join(missing)}")
+    if daq is not None:
+        print(f"  decoded files below DO include noise "
+              f"({os.path.basename(os.path.expanduser(a.noise))}); ZS is off")
+    else:
+        print("  no --decoded-out: nothing is written, so ZS/noise never apply")
 
     res = {"n_events": n_done, "n_empty_events": n_empty, "d": ds,
            "share_X": accX.tolist(), "share_Y": accY.tolist(),
