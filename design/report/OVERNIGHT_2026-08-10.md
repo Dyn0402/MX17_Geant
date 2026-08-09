@@ -11,6 +11,72 @@ is treated as measured. The drift-cage solve is not started.
 
 ---
 
+## SUMMARY — read this first
+
+**Queue status: items 1, 2, 4, 5, 6 and 7 done or submitted. Only item 3
+(T7 slope hunt) is outstanding, blocked on the desktop.**
+
+### One thing needs Dylan
+
+**The desktop needs a Tailscale SSH re-authentication** —
+<https://login.tailscale.com/a/l11c9025b3510a7>. The host is up (ping 16 ms,
+port 22 open); only the auth check-in is missing. The slope-hunt chain is
+running on it unattended and self-merges, so it collects in the morning either
+way — but nothing else could be driven there tonight.
+
+### The results, in order of how much they change
+
+1. **The ion term IS the rise discrepancy, now measured across the whole
+   distribution** (§4). At 10° and 20° the ion term acts as a near-rigid
+   ~95 ns delay and the data needs ~75 of those removed; removing it entirely
+   slightly overshoots. So the data's rise is reproduced at **f_eff between 0
+   and ~0.25, on six quantiles at two independent inclinations** — where before
+   this rested on p5 of a single vertical sample. The f_eff ≈ 0.2 vs defended
+   0.9056 contradiction is confirmed and much harder to dislodge. Nothing was
+   fitted.
+
+2. **Track inclination is eliminated as the rise explanation** (§2), and the
+   committed claim that "the sim barely responds" to inclination is
+   **withdrawn** — it was an artifact of a 200 ns threshold sitting below the
+   sim's own floor. Corrected in `nTof_x17 ANGLED_LADDER_2026-08-09.md`.
+
+3. **The amplitude ledger closes to a single candidate** (§7, §12). The deficit
+   is a **charge** deficit of ×0.63 that is *f_ion-independent*, so it cannot be
+   double-counted against the ion thread. It demands a real gain of ~4 × 10⁴
+   against the sim's 24 094. Every other row is now dead, controlled or
+   separated — including primary ionisation, checked tonight and correct
+   (91.2 e⁻/cm, W = 25.97 eV). **The avalanche gain is the only survivor**, and
+   the independent 12 σ HV-slope error points at the same defect.
+
+4. **The X/Y asymmetry is an 18 ± 3 % modelling error**, not the factor-0.74 bug
+   an earlier section of this very report claimed (§8, corrected in §10). It is
+   real, sim-side, and not selection — but modest, and made of two ~10 % pieces.
+
+5. **det3 prefers O₂-like attachment** over attachment-free H₂O-like transport
+   (§11) — with the honest caveat that the λ(E) *shape* test does not close, so
+   the preference rests only on a decay existing at all.
+
+### Standing open question
+
+**What suppresses the ion-induction term at the readout by ×4–5, when the
+charge split, the template, the mesh weighting field, the electronics register,
+the gap geometry and the sheet screening all check out individually?** Every
+proposed mechanism is eliminated (§9). The one soft spot in that elimination
+chain is named there and not papered over.
+
+### Corrections made to the committed record tonight
+
+Three, all dated and loud, per project habit:
+
+* `ANGLED_LADDER_2026-08-09.md` §4 — "the sim barely responds" **withdrawn**
+  (threshold artifact); the ladder's missing verdict supplied.
+* `GAS_AND_DRIFT_CAGE_ROADMAP_2026-08-08.md` §2 — "~2 new Magboltz jobs"
+  **wrong**, zero needed (E/p units trap); and the bracket as specified carried
+  a Penning confound.
+* This report §8 → §10 — my own factor-0.74 claim **withdrawn**.
+
+---
+
 ## 0. Fleet state at 23:10
 
 | host | state |
