@@ -35,6 +35,35 @@ CALIB = "~/x17/response_sim/avalanche/aval_calib.json"
 DMAX = 3
 
 
+def feu_ids_from_run_config(path, det_name):
+    """(x_feu, y_feu) for `det_name`, from the TARGET RUN's own run_config.json.
+
+    The FEU id is pure labelling in this simulation — it reaches only the output
+    filename and the X/Y binding below, never `write_decoded`, the channel
+    ordering or any header field. But it is per RUN, not per detector (mx17_3
+    sits on 3/4 in the 6-25/6-26 bench runs and on 7/8 in the 6-27 saturday
+    scan), and getting it wrong costs no error: wft globs `*_{feu:02d}.root`,
+    finds nothing and reconstructs zero events.
+
+    So the mapping is read from the run being modelled rather than defaulted or
+    remembered. One source of truth, and a new target run needs no code change.
+    """
+    with open(os.path.expanduser(path)) as f:
+        cfg = json.load(f)
+    for det in cfg.get("detectors", []):
+        if det.get("name") != det_name:
+            continue
+        fmap = det.get("dream_feus", {})
+        xs = {v[0] for k, v in fmap.items() if k.startswith("x_")}
+        ys = {v[0] for k, v in fmap.items() if k.startswith("y_")}
+        if len(xs) != 1 or len(ys) != 1:
+            raise ValueError(
+                f"{det_name} in {path} spans FEUs x={sorted(xs)} y={sorted(ys)};"
+                " this chain writes one file per view and cannot represent that")
+        return xs.pop(), ys.pop()
+    raise ValueError(f"no detector {det_name!r} in {path}")
+
+
 def decoded_path(prefix, tag, feu):
     """
     Decoded filename in the shape wft's own file handling requires.
@@ -188,7 +217,19 @@ def main():
                          "<prefix>_<XID>.root (X view) and <prefix>_<YID>.root "
                          "(Y), mirroring the two FEUs the real detector reads "
                          "out; the ids come from --feu-ids.")
-    ap.add_argument("--feu-ids", type=int, nargs=2, default=(3, 4),
+    ap.add_argument("--run-config", default=None,
+                    help="run_config.json of the TARGET RUN. Preferred way to "
+                         "set the FEU ids: they are read from the run being "
+                         "modelled, so a new target needs no code change and "
+                         "no remembered default. Pair with --detector.")
+    ap.add_argument("--detector", default="mx17_3",
+                    help="detector name inside --run-config")
+    ap.add_argument("--force-feu-ids", action="store_true",
+                    help="allow --feu-ids to contradict --run-config")
+    # Sentinel default, NOT (3, 4): an explicit `--feu-ids 3 4` has to be
+    # distinguishable from "not given", and 3/4 is precisely the historical
+    # value someone would pass by hand while the target run wants 7/8.
+    ap.add_argument("--feu-ids", type=int, nargs=2, default=None,
                     metavar=("X_ID", "Y_ID"),
                     help="FEU ids for the X and Y views. These ARE the decoded "
                          "file suffixes, and wft keys its strip map off them "
@@ -219,6 +260,32 @@ def main():
     ap.add_argument("--noise", default="~/x17/response_sim/dream/noise_det3.json",
                     help="noise spec from response.dream.noise --characterise")
     a = ap.parse_args()
+
+    # FEU ids: the target run's config wins. An explicit --feu-ids that
+    # contradicts it is refused rather than silently honoured, because the
+    # failure it guards against is invisible — wrong ids reconstruct zero
+    # events with no error anywhere. --force-feu-ids is the deliberate escape.
+    given = tuple(a.feu_ids) if a.feu_ids else None
+    if a.run_config:
+        cfg_ids = feu_ids_from_run_config(a.run_config, a.detector)
+        if given is not None and given != cfg_ids and not a.force_feu_ids:
+            raise SystemExit(
+                f"--feu-ids {given[0]} {given[1]} contradicts {a.detector} in "
+                f"{a.run_config}, which says x->FEU {cfg_ids[0]}, "
+                f"y->FEU {cfg_ids[1]}. The FEU mapping is per RUN. Drop "
+                f"--feu-ids to use the run's own, or pass --force-feu-ids.")
+        a.feu_ids = list(given if (given is not None and a.force_feu_ids)
+                         else cfg_ids)
+        print(f"  feu ids   x->{a.feu_ids[0]}, y->{a.feu_ids[1]}  "
+              f"[{'FORCED over' if given not in (None, cfg_ids) else 'from'} "
+              f"{a.detector} in {os.path.basename(a.run_config)}]")
+    elif given is None:
+        a.feu_ids = [3, 4]
+        print("  feu ids   x->3, y->4  [UNVERIFIED fallback — the mapping is "
+              "per RUN, not per detector; pass --run-config to bind it to the "
+              "target run. det3 is 3/4 on the 6-25/6-26 runs but 7/8 on the "
+              "6-27 saturday scan, and wrong ids reconstruct ZERO events with "
+              "no error]")
 
     cf = ClusterFile(a.clusters)
     dig = Digitizer(a.kernel, os.path.expanduser(a.calib), seed=a.seed,
