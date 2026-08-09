@@ -417,3 +417,182 @@ fourth arm carried only to tie back to production.
 Collect with `mm_condor_collect.py` against
 `…/garfield_sim/jobs_wetbracket/`. **All water fractions are labelled
 fitted-to-data**; this measures a derivative, not an operating point.
+
+---
+
+## 7. Queue item 5 — amplitude-deficit ledger
+
+### 7.1 The deficit measured in CHARGE is f_ion-independent — no double-counting
+
+The peak-amplitude deficit and the ion thread do couple, so the ledger has to be
+quoted at more than one operating point. Doing that shows they separate cleanly:
+
+| leg | X peak | X q_sum | Y peak | Y q_sum |
+|---|---|---|---|---|
+| default (f_ion 0.9006) | 0.5646 | 0.6416 | 0.5278 | 0.6098 |
+| fion070 | 0.5573 | 0.6265 | 0.5200 | 0.5795 |
+| fion050 | 0.5600 | 0.6265 | 0.5183 | 0.5802 |
+| fion030 | 0.5809 | 0.6261 | 0.5457 | 0.5826 |
+| noions (f_ion 0) | 0.6319 | 0.6330 | 0.5928 | 0.5981 |
+
+**Peak moves ×1.12 across the full f_ion range; q_sum does not move at all**
+(X: 0.6261–0.6416, a 2.5 % spread). That is exactly right — f_ion redistributes
+charge in time and conserves it, so an integral is blind to it and only the
+peak, which is set by shape against the shaper, responds.
+
+**Consequence: quote the deficit as a CHARGE deficit of ×0.63, and it cannot be
+double-counted against the ion contradiction.** However f_eff resolves, the
+charge deficit survives unchanged. The extra ×1.12 on peak is the ion thread's
+and belongs to it.
+
+### 7.2 A signed correction for the data legs' saturation depletion
+
+The reco-quality cut drops railed waveforms, so each data leg is the bottom
+(1 − f) of the true amplitude distribution. f follows from saturation fractions
+already in the record: detector 0.326 (X) / 0.327 (Y) unselected against the
+legs' 0.260 / 0.110. Then the leg's own quantile 0.5/(1 − f) is the true median
+— computable read-only from the frozen parquets.
+
+| view | f missing | true median at leg | peak | q_event |
+|---|---|---|---|---|
+| X | 0.089 | p54.9 | 2532.2 → 2706.1 (**×1.069**) | 5316.0 → 5696.9 (×1.072) |
+| Y | 0.244 | p66.1 | 2139.5 → 2569.2 (**×1.201**) | 6079.2 → 7187.1 (×1.182) |
+
+**This correction validates itself.** It is derived only from saturation
+fractions, with no reference to the X/Y question — yet it takes the corrected
+data peaks to Y/X = 2569.2/2706.1 = **0.949**, recovering the independently
+measured unselected value of 1.0002 from a leg that read 0.845. A correction
+built for one purpose reproducing a number it was not fitted to is the kind of
+check worth stating.
+
+### 7.3 The gain the deficit demands
+
+| view | q_sum ratio | G demanded | saturation-corrected |
+|---|---|---|---|
+| X | 0.6416 | 37 552 | **40 243** |
+| Y | 0.6098 | 39 512 | 46 713 |
+
+against the T7 pooled meshfield sim gain of **24 094** at 490 V.
+
+The X number is the one to quote (Y's saturation correction is the large,
+uncertain one). **The deficit demands a real gain near 3.8–4.0 × 10⁴, against
+the literature's maximum stable Ar/iso bulk-MM gain of 3–4 × 10⁴** — det3 sits
+right at the top of that band, which is consistent with it sparking above 500 V.
+So a pure gain explanation is *physically available*, but only just: it puts the
+detector at the edge of stable operation and leaves no headroom for any other
+factor pulling the same way.
+
+### 7.4 The elimination table
+
+| candidate | leverage | verdict |
+|---|---|---|
+| **Avalanche gain / α(E)** | needs ×1.56; ×1.52 already measured on the SLOPE | **LIVE, and the only candidate with both the size and the signature.** Data d lnA/dV = 0.449/10 V vs sim 0.296 (≈12 σ). A gain-slope error at the operating point is exactly a gain-scale error. Gated on the T7 slope hunt. |
+| ADC scale | 1.2 % | **Control row.** Certified against the datasheet-derived 20.48 ADC/fC (101.1 vs 102.4). Cannot contribute. |
+| Electronics gain range | the only discrete ×2 on the data side | **Dead.** 44/44 archived cfgs read `Dream 6/7 = 0xAAAA` = 200 fC = 10 mV/fC. Inference, not read-back (target run archived no cfg), but a one-step range error is excluded. |
+| ρ_s / sheet resistivity | ×1.15 (X) over a FACTOR 10 in ρ_s | **Dead by size and signature.** Within the T2b band 2→2.56 MΩ/sq buys ~5 %. A static sheet property also cannot produce a gain-SLOPE error. |
+| W2 prompt capture | +25.66 % vs W1, already applied | **Applied, not available twice.** V6/W2 fixed a known-sign boundary error; W1 would be choosing a known-wrong BC. |
+| β / PZC residual | 0.6–2.3 % on peak | **Dead.** Freeze-queue measurement across β 0.25→1. |
+| f_ion / ion term | ×1.12 on peak, **0 on charge** | **Separated, not eliminated.** Owns the peak-shape part; contributes nothing to the charge deficit (§7.1). |
+| Data saturation depletion | ×1.069 (X) | **Sized, signed, and it makes the deficit LARGER.** §7.2. Already folded into the corrected column above. |
+| Primary ionisation yield | not sized | **OPEN — the one row with no number.** Geant4's W-value and clusters/mm for Ar/iso 95/5 against literature has not been checked. Needs doing; it multiplies the whole chain. |
+| Mesh transparency | 0.955, cross-checked | **Unlikely.** T6's 3D transparency agrees with the avalanche survival 0.9559 independently; no room for ×1.5. |
+| Diffusion / time-binning peak dilution | not sized | **OPEN, but bounded** — it cannot touch q_sum, and the deficit is quoted in q_sum. |
+
+**Verdict: the amplitude deficit is a charge deficit of ×0.63, f_ion-
+independent, demanding a real gain of ~4 × 10⁴ against the sim's 24 094.**
+Every candidate except the avalanche gain is dead, controlled, or cannot touch
+an integral. The two rows still owing numbers — primary-ionisation yield and
+diffusion dilution — are worth closing, but neither is likely to carry a factor
+1.6 on its own, and the gain candidate already has an independent 12 σ signature
+pointing at it. **This is the T7 slope hunt's question, and it gates everything
+on amplitude.**
+
+Product: `t14_ang_trend/amplitude_ledger.json`.
+
+---
+
+## 8. Queue item 6 continued — the X/Y asymmetry is sim-side, and it is not
+## selection either
+
+Before hunting Stage B/C code, selection had to be excluded: the two views' legs
+are selected independently and the data's Y leg is cut ~4× harder than its X
+leg. Three progressively tighter comparisons, read-only on the frozen parquets —
+*paired* keeps only events present in both views' legs, so the two views see an
+identical event set:
+
+| selection | n (sim / data) | sim Y/X | data Y/X |
+|---|---|---|---|
+| as published | 2500 / 2500 | 0.790 | 0.845 |
+| paired | 2401 / 304 | **0.782** | 0.937 |
+| paired + unsaturated | 2254 / 257 | **0.783** | **0.954** |
+
+**The sim's asymmetry is completely immune to matching** (0.790 → 0.782 →
+0.783). **The data's converges on unity** as the bias is removed — 0.845 →
+0.954, against the independently measured unselected 1.0002. Two different
+routes to the same place, since §7.2's saturation correction gets there too
+(0.949) from saturation fractions alone.
+
+So the chain of elimination for the X/Y amplitude asymmetry now reads:
+
+1. **Not the data.** The detector is X/Y symmetric; the leg's 0.845 was
+   selection, and it converges to 1.0 under two independent corrections.
+2. **Not selection on the sim side.** Immune to pairing and de-saturation.
+3. **Not the S1 electrostatics.** The strips-vs-uniform A/B (§5) moves Y/X by
+   0.02–0.03 and the wrong way; kernel-level Y/X is ~1.05 (this harness) or 0.91
+   (archived), never 0.78.
+4. **Therefore it is Stage B/C**, which turns a kernel-level Y/X of ~1.05 into a
+   decoded 0.78 — a factor ~0.74 applied to Y relative to X somewhere between
+   the kernel and the decoded ADC.
+
+Next places to instrument, in order: per-view charge budgets inside Stage B
+(`charge_budget_y` vs `_x` bookkeeping at the LUT level), the per-FEU
+configuration carried into Stage C, and drift-diffusion anisotropy. `kY = 1.375`
+is worth naming but is *not* obviously the culprit — it lives in the calibration
+bundle and `t13_reco` applies it identically to both legs, so it cannot by
+itself create a sim-only asymmetry; it would have to be interacting with
+something that differs.
+
+Product: `t14_ang_trend/xy_paired_selection.json`.
+
+---
+
+## 9. OPEN QUESTION for the morning — the ion contradiction has no surviving
+## mechanism
+
+Recorded as an open physics question rather than pursued further tonight.
+
+**The measurement.** The data's rise is reproduced at f_eff ≈ 0–0.25, now
+established distribution-wide at two inclinations (§4). The defended value is
+**f_ion = 0.9056**, re-derived through the real woven mesh and gated to 5e-8 on
+its own linearity check. That is a factor of four to five.
+
+**Everything proposed has been eliminated, individually and by measurement:**
+
+| candidate | verdict |
+|---|---|
+| f_ion (charge split) | 0.9056 through the true ψ; shift +0.005 and the wrong way |
+| i_ion template shape | validated to 3.8 % at every quantile by an independent reconstruction |
+| ion species / mobility | Blanc's law: 4 % slower, wrong direction |
+| T10 lateral factorisation | 3.7 ns |
+| β / PZC residual | 4 ns across its whole range; rise immune |
+| any missing high-pass | falsified as a CLASS by the exchange rate (226 undershoot points needed, budget −6.4) |
+| peaking-time register | code 2, 44/44 archived cfgs |
+| amplification-gap geometry | 150 µm bulk Micromegas, from the pillar gerber |
+| resistive-sheet screening | 8 % where ×4.5 needed |
+| **track inclination** | **closed tonight, negative (§2, §4)** |
+
+**The question to put to Dylan:** *what suppresses the ion-induction term at the
+readout by a factor 4–5, when the charge split, the template, the mesh weighting
+field, the electronics register, the gap geometry and the sheet screening all
+check out individually?*
+
+⚠️ **One honest pointer, recorded without pursuing it.** The sheet-screening
+sizing that retired the sharpest structural candidate (8 % where ×4.5 was
+needed) rests on the assumption that `apply_longitudinal` already carries most
+of the sheet dynamics, so the induced-vs-injected distinction is only a ≤10 %
+correction. That assumption is the one place in the elimination chain where a
+daylight re-derivation could still move a factor — and this project's own record
+(Fix1, Fix7, the ρ_s intuitions, the toy that over-predicted amplitude ×6, and
+tonight's threshold artifact) is that predictions flip on contact with numbers
+more often than is comfortable. It is not a reason to reopen the item tonight;
+it is a reason not to call the elimination chain airtight.
