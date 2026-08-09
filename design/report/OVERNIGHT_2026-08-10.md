@@ -727,3 +727,62 @@ any water-only mixture, and that the air row is "the one that carries real
 information". This is an independent observable pointing the same way — the
 v_drift argument and the attachment argument now agree on the presence of air,
 which is more than either could claim alone. Both remain fitted-to-data.
+
+---
+
+## 12. Ledger row closed — primary ionisation is right, leaving gain alone
+
+The last open multiplicative row in §7.4. Read-only on the frozen Stage A
+cluster file (`mx17_muons_500_t0.root`, 500 events, all 500 full-gap crossers,
+median path 29.40 mm), normalised per event by its own drift-gap track extent
+rather than by an assumed 30 mm.
+
+| quantity | Geant4 median | Geant4 mean | literature (Ar/iso 95/5, MIP, NTP) |
+|---|---|---|---|
+| total ionisation | **91.2 e⁻/cm** | 107.3 | 90–100 |
+| primary clusters | 23.6 /cm | 25.3 | 25–30 |
+| energy deposit | 2.37 keV/cm | 2.79 | ~2.4–2.6 |
+| implied W | **25.97 eV/pair** | 25.98 | ~26 |
+| electrons per cluster | 3.83 | 4.14 | ~3.5 |
+
+Every row lands. The implied W-value of 25.97 eV against a literature ~26 is
+the tightest of them and is a genuine internal consistency check, since it is a
+ratio of two branches Geant4 fills independently. Clusters/cm sits ~6 % below
+the literature band while electrons/cluster sits ~9 % above, so the product —
+which is what the chain actually uses — comes out right. Mean above median
+throughout is the Landau tail, as expected.
+
+**Verdict: primary ionisation cannot carry the ×1.6. This row is closed.**
+
+### Consequence for the ledger
+
+With diffusion dilution closed by the q_sum argument (an integral cannot be
+diluted by spreading) and primary ionisation closed here, **every row of the
+amplitude ledger is now either dead, controlled, or separated — except the
+avalanche gain.** The ×0.63 charge deficit has exactly one surviving candidate.
+
+That is worth stating plainly because it converges with an independent thread:
+the demanded gain is ~4 × 10⁴ against the sim's 24 094 (×1.6), and the data's
+gain-vs-HV slope exceeds the sim's by ×1.52 at ≈12 σ. **A single α(E) /
+Penning-transfer error at the operating point would produce both**, and neither
+number was derived from the other.
+
+### The morning decision this sets up
+
+Two campaigns already in flight are, between them, exactly the test — and
+neither was launched for the amplitude thread:
+
+* **T7 slope hunt** (desktop, running unattended, self-merges and shuttles;
+  collect in the morning): can any Penning rP reach the data's 0.449/10 V slope?
+* **Wet gain bracket** (condor 16705137, submitted tonight): does water move
+  gain at all?
+
+**Frame the morning decision as:** if the slope hunt's best rP moves gain toward
+×1.6 *while* fixing the slope, the amplitude ledger closes on a single defect
+and the gain campaign has its answer. If it fixes the slope at unchanged gain,
+then the ledger has no surviving candidate at all and something outside the
+current chain decomposition is wrong — which would be the more interesting
+outcome, and the one worth being ready for.
+
+Products: `design/report/primary_ionisation_2026-08-10.json`,
+`scratchpad/overnight_2026-08-10/primary_ionisation_check.py`.
