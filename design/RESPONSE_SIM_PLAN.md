@@ -8,7 +8,94 @@
 
 ---
 
-## 0a. STATE OF PLAY — read this first (updated 2026-08-09; earlier snapshots below are 2026-08-08 and 2026-08-07)
+## 0a. STATE OF PLAY — read this first (updated 2026-08-10; earlier snapshots below are 2026-08-09, 2026-08-08 and 2026-08-07)
+
+### 2026-08-10 update — the ion term IS the rise discrepancy, the amplitude ledger closes to ONE candidate, and the ion contradiction is now structurally cornered
+
+Overnight worker, 2026-08-09 → 08-10. Full record `design/report/OVERNIGHT_2026-08-10.md`;
+five-minute version `design/report/MORNING_BRIEF_2026-08-10.md`.
+
+**The rise discrepancy is the ion term, measured across the whole distribution.**
+Previously this rested on p5 of a single vertical sample. At 10° and 20° the ion
+term is a **near-rigid ~95 ns delay at every quantile**, the data needs ~75 of
+those removed, and removing it entirely slightly overshoots (−10 ns at 10°,
+−24 at 20°). **The data's rise is reproduced at f_eff ≈ 0–0.25 on six quantiles
+at two independent inclinations**, against the defended f_ion = 0.9056. Nothing
+was fitted — the DIAGNOSIS legs already existed and were read at matched
+quantiles. **Track inclination is eliminated** as the explanation, and
+`ANGLED_LADDER_2026-08-09.md` §4's "the sim barely responds to inclination" is
+**WITHDRAWN** — a 200 ns threshold artifact sitting below the sim's own floor
+(at 240 ns the sim goes 0.045 → 0.749 over 0–20°). Its open thread #4 is also
+tested and answered **NO**: cutting the vertical leg on |θ_other| < 3° moves the
+offset span by +1 ns (X) / −4 ns (Y), so the vertical broadening is real, not a
+one-view-window artifact — measure the rise offset at INCLINED points.
+
+**The amplitude ledger has exactly one surviving candidate.** Quote the deficit
+in CHARGE: `q_sum` is **f_ion-invariant** (0.626–0.642 across the whole f_ion
+range), so the ×0.63 charge deficit cannot be double-counted against the ion
+thread. It demands a gain of **~4 × 10⁴ against the sim's 24 094 (×1.6)**, and
+an independent re-measurement off the raw HV-scan calib gives a slope error of
+**sim 0.3106 ± 0.0033 vs data 0.4487 ± 0.0093 per 10 V (×1.44)**. Both rows that
+owed numbers are now closed: **primary ionisation is measured and correct**
+(91.2 e⁻/cm, W = 25.97 eV, 3.83 e⁻/cluster — cannot carry ×1.6) and diffusion
+dilution cannot touch an integral. **A single α(E)/Penning error at the
+operating point would produce both numbers, and neither was derived from the
+other.** The T7 slope hunt is the test; its decision rule is pre-registered in
+`response/validation/slopehunt_verdict.py` (outcomes A–D, self-tested).
+
+**The ion contradiction is now cornered structurally, not just empirically.**
+Resistive-sheet screening — the last candidate and the acknowledged soft spot —
+was re-derived by an independent method and the retirement **hardens**: the
+weighting potential factorises as Ψ_sheet(k,τ)·cont(k,z) with the continuation
+factor **time-independent** (the gas is source-free and bounded by the grounded
+mesh), so an in-gas source sees exactly the same temporal sheet response as an
+on-sheet source. **The sheet cannot distinguish induced from deposited charge**;
+the ρ_s-dependent part is 0.34 % across a factor 10 where ×4.5 was needed. ⚠️ The
+two derivations agree on the verdict but **dispute the ρ-dependence** (ours flat,
+the original swinging 26 %) — flagged, not resolved. Consequence: every
+mechanism *inside the modelled system* is excluded, so the ×4–5 suppression must
+live outside the current chain decomposition or in an assumption all the
+defended pieces inherit — the **weighting-field family**, the **DAQ frame/t0
+definition**, or the **mapping of the 10–90 % rise metric onto the model**.
+
+**X/Y asymmetry: real, sim-side, and 18 %.** 0.8190 ± 0.0171 on peak Y/X
+(sim ÷ data, 10.6 σ), decomposing into a charge-partition term 0.8823 ± 0.0156
+(7.6 σ) and an extra-spreading term 1.0777 ± 0.0254 (3.1 σ). Charge is not lost —
+both legs show Y carrying more charge at a lower peak. Excluded: the data
+(symmetric once de-biased), selection (the sim is immune), and the S1
+electrostatics (a strips-vs-uniform A/B moves Y/X by 0.02–0.03, the wrong way —
+though the strips ARE the whole sharing anisotropy, X rms 0.46 vs Y 1.25 strips,
+isotropic when uniform). It lives in Stage B/C; `kY` is probably not the culprit
+since it is applied identically to both legs.
+
+**§0a morning checklist DONE** without the desktop — the merged HV-scan product
+was already on EOS. All six certifications pass on both gases, including "one
+distinct field map per voltage" 8/8 and 7/7, the direct guard against the T7
+voltage-label incident. At 490 V: gain 24 172 vs pooled 24 094, survival 0.9518
+vs T6's independent 0.955, and f_ion **0.9006 exactly** — confirming the shipped
+calib still uses the parallel-plate ψ rather than the through-mesh 0.9056 (a
+known ≤0.005 understatement, not a new defect).
+
+**det3 contaminant family prefers O₂-like attachment.** 29 of the 30 water-grid
+mixtures give η = 0 *exactly*, so any finite decay excludes attachment-free
+transport, and det3 decays at λ = 5.6–11.1 mm at every drift field. Agrees
+independently with the freeze queue's 0.8 % H₂O + ~1 % air v_drift row. ⚠️ The
+λ(E) **shape** test does not close (Magboltz rises with field, det3 falls), so
+this rests on the decay existing, not on its shape — family-constraint
+inference, no concentration readable.
+
+⚠️ **`GAS_AND_DRIFT_CAGE_ROADMAP_2026-08-08.md` §2 corrected**: the wet
+amp-range tables already exist (the `.gas` files store **E/p** — ×745.83 Torr
+gives 5–60 kV/cm), so **zero Magboltz jobs** are needed, and the bracket as
+specified would have confounded water with a Penning-model change. Wet gain
+bracket submitted as condor **16705137** at rP = 0.40 across all arms, with
+dry-at-auto carried separately; pre-registration in
+`design/report/WET_GAIN_BRACKET_PREREG_2026-08-10.md`.
+
+⚠️ **Blocked, needs Dylan:** the desktop refuses new ssh sessions pending a
+**Tailscale re-authentication** (`ssh desktop true` prints the link). The T7
+slope-hunt chain runs there unattended and self-merges, so it is a morning
+collect either way.
 
 ### 2026-08-09 update — the W2 grid is DONE and S1's absolute amplitude is fixed; T10 still fails
 
