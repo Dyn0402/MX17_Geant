@@ -65,6 +65,18 @@ per point (added 2026-08-09) rather than only in the string key or a fixed
 mirrored constant downstream — see `response/avalanche/collect.py` and
 `mx17_aval_calib.py`'s `config` block.
 
+## Contaminant diagnosis grid (2026-08-09)
+
+⚠️ **`raw_diagnosis_grid_20260809/` and `aval_calib_diagnosis_grid.json` are
+DIAGNOSIS-GRID / unconstrained-contaminant-search, not a gas assay** — see
+`response/avalanche/DIAGNOSIS_GRID_README.md` for the full framing. No
+humidity was ever measured on the det3 bench; every water figure here is a
+Magboltz fit to a slow measured drift velocity. 48 slices, 6 points: 0.5/1.5%
+H2O and the June best-fit +1%N2 co-contamination at 490V, plus a 3-point
+480/490/500V mini-scan for the leading 1% H2O candidate. Every point carries
+`provenance.campaign_label` set to that exact string, so a consumer reading
+the JSON directly sees the caveat regardless of filename.
+
 ## Open
 
 Upload `results_v2/` (19 GB) here so the v2 raw lives on EOS and not only on
