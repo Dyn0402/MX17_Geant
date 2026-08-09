@@ -85,18 +85,23 @@ MESHFIELD_SEED_Z0_UM = 180.0
 def calib_seed_z0_mm(calib_pt):
     """Drift length [mm] already baked into this calibration's sigma0.
 
-    uniform_field seeds sit INSIDE the amplification gap, so there is no drift
-    leg to remove; meshfield seeds sit MESHFIELD_SEED_Z0_UM above the mesh.
-    Read from the point's own `field_model` rather than from the container
-    schema, because that is the thing that actually determines the geometry.
+    Prefers the calibration's own `seed_z0_um`, which the S3 emitter records
+    per point (2026-08-09). Falls back to the field_model heuristic for files
+    written before that: uniform_field seeds sit INSIDE the amplification gap
+    so there is no drift leg, meshfield seeds sit MESHFIELD_SEED_Z0_UM above
+    the mesh. field_model, not the container schema, is the fallback key
+    because it is what actually determines the geometry.
     """
+    z0 = calib_pt.get("seed_z0_um")
+    if z0 is not None:
+        return float(z0) * 1e-3
     fm = str(calib_pt.get("field_model", ""))
     if fm.startswith("meshfield"):
         return MESHFIELD_SEED_Z0_UM * 1e-3
     if fm and fm != "uniform_field":
         raise ValueError(
-            f"unrecognised calib field_model {fm!r}: refusing to guess "
-            "whether its sigma0 already includes a drift leg")
+            f"unrecognised calib field_model {fm!r} and no seed_z0_um: "
+            "refusing to guess whether its sigma0 includes a drift leg")
     return 0.0
 
 
@@ -115,16 +120,23 @@ def load_calib(path, mesh_v):
             raise ValueError(
                 f"{path} has a single 'point' but an unrecognised schema "
                 f"{schema!r}; refusing to guess its mesh voltage")
-        if abs(mesh_v - POOLED_MESH_V) > 1e-6:
+        pt = doc["point"]
+        # Prefer the calibration's own voltage (emitter records `voltage_V`
+        # per point since 2026-08-09); fall back to the pinned constant for
+        # files written before that. Keyed on the POINT's field, not the
+        # container schema: `aval_calib/3` is shared between meshfield and
+        # uniform_field files and only meshfield-produced points carry it.
+        pooled_v = float(pt.get("voltage_V", POOLED_MESH_V))
+        if abs(mesh_v - pooled_v) > 1e-6:
             raise ValueError(
-                f"{path} is the pooled {POOLED_MESH_V:.0f} V bench point and "
-                f"carries no per-voltage data, but {mesh_v:.0f} V was asked "
-                f"for. Use a voltage-scan calib for that point, or run at "
-                f"{POOLED_MESH_V:.0f} V.")
-        print(f"  [calib] pooled meshfield point, {POOLED_MESH_V:.0f} V "
-              f"({doc['point'].get('n_slices')} slices, "
-              f"{doc['point'].get('nev_total')} events)")
-        return doc["point"], POOLED_MESH_V
+                f"{path} is a pooled {pooled_v:.0f} V bench point with no "
+                f"per-voltage data, but {mesh_v:.0f} V was asked for. Use a "
+                f"voltage-scan calib for that point, or run at "
+                f"{pooled_v:.0f} V.")
+        print(f"  [calib] pooled meshfield point, {pooled_v:.0f} V "
+              f"({pt.get('n_slices')} slices, {pt.get('nev_total')} events"
+              + (f", {pt['gas_file']}" if pt.get("gas_file") else "") + ")")
+        return pt, pooled_v
 
     cal = doc["points"]
     best, bestd = None, None
