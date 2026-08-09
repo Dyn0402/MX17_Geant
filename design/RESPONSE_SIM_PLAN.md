@@ -36,7 +36,21 @@ and itself a side effect of Audit A1/Fix 1 correctly raising `t_max` to 3000. Ha
 Lesson worth keeping: a correct fix in one place silently invalidated a certification in
 another, and nothing re-ran it for two days.
 
-⚠️ **TWO DECISIONS OWED BY DYLAN BEFORE T14 — both written up side by side in
+✅ **T14 DEFAULT FROZEN by Dylan, 2026-08-09, before any comparison:
+ρ_s = 2 MΩ/sq · DRY 95/5 table · det3 data bundle as-analysed.** The first
+comparison runs against this default and that verdict stands. **Iteration is
+pre-declared**: ρ_s and the gas/v axis are the two variables to vary afterwards,
+and post-default runs are **diagnosis, not verdict**. Pre-built so later looks
+need no new production: Stage B/C decoded at all four ρ_s, and a v-axis reco
+variant that needs no new simulation (v enters at reconstruction). Wet gas is
+the only axis needing production and is prepared-not-run — and note it does NOT
+close the 6.9 %: at the June record's ~1 % H₂O the table gives 34.81 µm/ns,
+**4.9 % too slow**, trading the sign of the error rather than removing it.
+Full record, including where the laundering line sits, in
+`design/report/T14_FREEZE_QUEUE_2026-08-09.md`.
+
+⚠️ *(pre-freeze analysis, kept as the evidence the decision rests on)* **TWO
+DECISIONS OWED BY DYLAN BEFORE T14 — both written up side by side in
 `design/report/T14_FREEZE_QUEUE_2026-08-09.md`.** The second is the **P1 water sub-item, now
 quantified**: Stage B's dry table drifts at 39.14 µm/ns against the det3 bundle's measured
 36.60 — **6.9 % fast**, scaling reconstructed depth by ~6.5 %. Either keep the dry table and

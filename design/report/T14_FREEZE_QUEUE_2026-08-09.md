@@ -1,4 +1,28 @@
-# T14 freeze queue — two inputs to fix BEFORE the blind comparison
+# T14 freeze queue — RESOLVED 2026-08-09
+
+> ## ✅ DEFAULT FROZEN by Dylan, 2026-08-09, before any comparison
+>
+> **ρ_s = 2 MΩ/sq · DRY 95/5 table · det3 data bundle as-analysed.**
+>
+> The first comparison runs against this default and **that verdict stands**.
+> Iteration afterwards is **pre-declared, not improvised**: ρ_s and the gas/v
+> axis are the two variables to vary for agreement and understanding, and
+> everything after the default run is **diagnosis, not verdict**. Declaring the
+> axes now is what keeps the first look blind and the later looks honest.
+>
+> Pre-built so later comparisons need no new production:
+> * Stage B/C decoded at **all four ρ_s** (the W2 kernels already serve them).
+> * A **v-axis reco variant** needing no new simulation at all — v enters at
+>   reconstruction, so the same decoded files re-run with a table-v bundle.
+> * **Wet gas** is the only axis needing real production, and is
+>   **prepared-not-run** (§3 below).
+
+*(The analysis that led to the freeze is kept below, unchanged, because it is
+the evidence the decision was made on and the record of when.)*
+
+---
+
+# The two inputs, as they stood before the freeze
 
 **For Dylan. Two decisions, same kind, same discipline.** Both are simulation
 *inputs* that the chain does not determine, and for both there is a value that
@@ -64,6 +88,52 @@ The difference between (b)-as-physics and (b)-as-tuning is not in the table
 used; it is in what the number was derived from and when it was written down.
 
 ---
+
+## 3. Wet gas — prepared, NOT run, and it does not do what you'd assume
+
+**No Magboltz run is needed.** The June waveform-first water study already left
+the grid, in Stage B's *exact* table schema:
+`~/PycharmProjects/nTof_x17/garfield_sim/results/water2d.json` — 30 Ar/iso/H₂O
+mixtures, each a list of `{E_Vcm, v_um_per_ns, eta_per_cm, dL_sqrtcm,
+dT_sqrtcm}`. Stage B's own table
+(`design/gas/drift_velocity_Ar_iC4H10_95_5_Saclay.json`) is the same record type
+minus `eta_per_cm`, which the wet grid *adds* — Stage B's `survival()` already
+supports an attachment column and currently gets exactly 1 from the dry table.
+So building a wet table is an extraction, not a campaign.
+
+**But the wet table does not close the 6.9 %; at the recorded water fraction it
+overshoots.** v_drift at 333 V/cm:
+
+| mixture | v [µm/ns] | vs bench 36.60 |
+|---|---|---|
+| dry 95/5 — Stage B today | 39.14 | **+6.9 %** |
+| iso5 + 0.4–0.55 % H₂O | 40.2–41.0 | +10 to +12 % |
+| iso5 + **0.95 %** H₂O | **34.81** | **−4.9 %** |
+| iso5 + 1.05 % H₂O | 32.99 | −9.9 % |
+| iso5 + 0.8 % H₂O + ~1 % air | 36.24 | −1.0 % |
+
+The June record's **~1 % H₂O gives 34.81 µm/ns — 4.9 % too SLOW**, i.e. it
+overshoots the correction rather than removing it. The value that would match
+is ≈0.8 % H₂O (or 0.8 % with ~1 % air, 36.24).
+
+**This is exactly where the laundering line sits, so it is drawn explicitly:**
+using ~1 % because the June humidity record says ~1 % is physics input, and it
+does *not* make the sim agree — it trades a +6.9 % error for a −4.9 % one.
+Choosing ≈0.8 % *because* it lands on 36.60 is tuning, and the fact that such a
+value exists and is only ~0.2 % away from the recorded one is precisely why the
+distinction has to be written down in advance rather than argued afterwards.
+
+Worth noting the air row independently: 0.8 % H₂O + ~1 % air reproduces the
+bench value closely, and air ingress is a physically distinct hypothesis from
+water fraction with its own signature — `attachment_Ar_iso_H2O.json` and the
+`eta_per_cm` column are what would test it, since air's oxygen attaches and
+water does not. (The July 90/10 study excluded air by attachment for *that*
+run; nothing has tested it for this one.)
+
+**Not run now, by instruction.** What it would take when wanted: extract one
+mixture from `water2d.json` into the Stage B table schema, re-run Stage B/C
+(~19 min per point), and optionally a wet avalanche point against the
+gas-agnostic map ladder.
 
 ## What has already been decided, for contrast
 
