@@ -46,7 +46,13 @@ the lxplusNNN node you actually land on, and every auth method is refused.
   that sources LCG, and don't rename the safe ones on suspicion.
 * `stream_output`/`stream_error` are no longer supported (CERN, Nov 2025) —
   submission is rejected; job stdout reaches AFS only at job END, so
-  `condor_q -af MemoryUsage` is the only mid-run health signal.
+  `condor_q -af MemoryUsage` is the only mid-run health signal. Sharper form
+  of the same trap: a `condor_rm`'d or still-running job never (re)writes its
+  `.out`, so the file can still hold a PREVIOUS cluster's traceback — an old
+  failure masquerading as a current one (bit twice, 2026-08-09). If the job
+  matters, `tee` its log to AFS from inside the script and read that; treat
+  any `.out` older than the current cluster's submit time as stale, and
+  absent/stale signal as NO signal, not a negative one.
 * Off-site, `/eos/experiment` is unreachable by xrootd: it redirects to
   `eosexperiment.cern.ch`, which does not resolve outside CERN (the error is
   an unhelpful `[FATAL] Invalid address`). Anything that must read those files
