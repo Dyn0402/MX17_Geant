@@ -1,0 +1,24 @@
+# DIAGNOSIS_noions — one-question discriminator, NOT a physics variant.
+# Identical to the DIAGNOSIS_noisefix point (rho2M, corrected noise, same 3k
+# vertical cluster set) except the ion induction term is switched off, to test
+# whether the ~250 ns 10-90 rise floor is set by ion-induction duration rather
+# than by charge-arrival dispersion. Every Stage B log records that ions carry
+# 90.1 % of the induced charge and reach 50 % only at 172 ns, so the floor is
+# expected to collapse if that is the cause.
+# --no-ions is UNPHYSICAL as a model: data faces the same ion physics. A
+# collapse would mean the MODEL's ion term is slower/heavier than reality's
+# effective one (template time profile, f_ion = 0.90, or the real shaper
+# differentiating more of the slow component away), NOT that ions are absent.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+arguments               = "rho2M DIAGNOSIS_noions /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07.json '' --no-ions"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_noions.out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_noions.err
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w2.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+queue

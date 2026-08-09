@@ -28,6 +28,16 @@ RHOTAG="$1"
 # would be silently mixed).
 VARIANT="${2:-}"
 NOISE_OVERRIDE="${3:-}"
+# $4 = ClusterTree override (absolute path, e.g. the angled-gun files on AFS).
+# Angled sets are produced with a Stage A beam spread, and Stage B detects that
+# from the populated `beamSpread` branch and does NOT re-randomise the impact
+# point (audit C14) — no flag needed, but the log line is worth checking.
+CLUSTERS_OVERRIDE="${4:-}"
+# $5 = extra flags passed verbatim to run.py, for DIAGNOSIS probes that change
+# a modelling switch rather than an input (e.g. --no-ions). Deliberately not a
+# named option per switch: these are one-question discriminators, not
+# configurations anyone should be able to set by accident.
+EXTRA_ARGS="${5:-}"
 SRC=/afs/cern.ch/work/d/dneff/mx17_s1/src
 W2BASE=/afs/cern.ch/work/d/dneff/mx17_s1     # NOT `BASE`: LCG's setup.sh exports that
 EOSPROD=/eos/experiment/ntof/data/x17/response_sim/s1_w2_ny512/products
@@ -48,7 +58,12 @@ export OPENBLAS_NUM_THREADS=$OMP_NUM_THREADS
 
 echo "host $(hostname)  rho=$RHOTAG"
 xrdcp -s -f "root://eosuser.cern.ch/${EOSPROD}/${PROD}" "$WORK/$PROD"
-xrdcp -s -f "root://eosuser.cern.ch/${EOSCLUS}/${CLUSTERS}" "$WORK/$CLUSTERS"
+if [ -n "$CLUSTERS_OVERRIDE" ]; then
+    cp "$CLUSTERS_OVERRIDE" "$WORK/$(basename "$CLUSTERS_OVERRIDE")"
+    CLUSTERS=$(basename "$CLUSTERS_OVERRIDE")
+else
+    xrdcp -s -f "root://eosuser.cern.ch/${EOSCLUS}/${CLUSTERS}" "$WORK/$CLUSTERS"
+fi
 echo "pulled kernel $(stat -c%s "$WORK/$PROD") B, clusters $(stat -c%s "$WORK/$CLUSTERS") B"
 
 # FEU ids come from the TARGET RUN's own run_config.json — no --feu-ids here,
@@ -64,6 +79,7 @@ python3 -u -m response.digitizer.run "$WORK/$CLUSTERS" \
     --noise "${NOISE_OVERRIDE:-$W2BASE/calib/noise_det3.json}" \
     --decoded-out "$WORK/sim_decoded_w2_${RHOTAG}${VARIANT:+_$VARIANT}" \
     --decoded-tag "w2${RHOTAG}${VARIANT:+$VARIANT}_000" \
+    $EXTRA_ARGS \
     --out "$OUTD/stageBC_${RHOTAG}.json" 2>&1 | tee "$OUTD/stageBC_${RHOTAG}.log"
 
 echo "=== outputs"
