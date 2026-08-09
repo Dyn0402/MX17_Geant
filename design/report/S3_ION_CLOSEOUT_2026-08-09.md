@@ -98,6 +98,8 @@ CF₄-bearing gas, and it is a per-gas property carried as a universal constant.
 | β / PZC residual | 4 ns over its whole range | Already scanned; too weak |
 | Peaking-time register | 50–65 ns per code — enough | **Code 2**, 44/44 archived configs |
 | Any missing high-pass / AC-coupling | adverse | **Falsified as a class** (below) |
+| Sheet screening of induced signals | 8 % where ×4.5 needed | Sized and withdrawn (T14) |
+| Amplification-gap geometry (150 vs 50 µm) | would be ×9 on transit | **150 µm, from the pillar gerber** |
 
 ### The high-pass falsification
 
@@ -240,14 +242,25 @@ EOS under `stageB_w2/DIAGNOSIS_<label>/`. Submit files
 `scripts/condor/stageBC_w2_ionmodel.sub` and `stageBC_w2_fionscan.sub` each
 carry a **pre-registered prediction and falsifier written before the job ran**.
 
-## The live hypothesis: resistive-sheet screening of induced signals
+## Resistive-sheet screening of induced signals — RAISED AND KILLED
 
-Raised by the T14 session (its domain — it wrote the W2 solver), and it is the
-first candidate that survives the exchange-rate falsifier, because it suppresses
+Raised by the T14 session (its domain — it wrote the W2 solver); it was the
+first candidate to survive the exchange-rate falsifier, because it suppresses
 the slow component *at the readout* rather than filtering it at the channel, so
 it costs no undershoot.
 
-The structural claim is right and is the sharpest statement of the defect so far:
+**Sized and withdrawn** (T14, `scratchpad t14/sheet_screening_sizing.py`): a
+per-k forced-response calculation — sheet counter-charge chasing the ion's
+moving image e^(−kz(t)), exact exponential integrator, projected onto the
+channel form factor, against the model's injected-then-spreads treatment as the
+null — gives true/model central-share ratios of **0.81 / 0.86 / 0.92 / 1.02**
+across ρ_s 0.5M/1M/2M/5M. At the production point that is an **8 % suppression
+where ×4.5 is needed**. `apply_longitudinal` already carries most of the sheet
+dynamics; the induced-vs-injected distinction is a ≤10 % correction. The ρ
+ladder it predicts (0.81 → 1.02) is also too weak to be worth the readout.
+
+The structural claim was still right, and remains the sharpest statement of the
+defect — it is simply too small:
 **the ion never lands on the sheet.** Its readout signal is pure induction from a
 charge in the gas gap, but `apply_longitudinal` couples it through the *same*
 surface kernel as charge physically deposited on the sheet. A resistive sheet is
@@ -255,7 +268,8 @@ a frequency-dependent screen — transients faster than its relaxation pass, slo
 ones are cancelled by rearrangement — so the deposited-charge Green's function is
 the wrong operator for an induced source.
 
-Two corrections to the framing before anyone spends time on it:
+Two corrections were needed before it could be sized correctly, and both were
+applied in the calculation above:
 
 1. **The stated falsifier is inverted.** "If the sheet relaxation is much faster
    than 300 ns it dies immediately" — no: *fast* relaxation is what produces
@@ -283,16 +297,67 @@ Two corrections to the framing before anyone spends time on it:
    which is where a partial suppression to f_eff ≈ 0.2 is plausible rather than
    absurd.
 
-**This makes the ρ ladder a genuinely good discriminator**, better than first
-appears: τ at the channel scale spans 152 → 1516 ns across rho0.5M…rho5M, i.e.
-from well-screened to essentially unscreened, while the model predicts f_eff is
-ρ_s-independent (the split is applied upstream of the kernel). The four decoded
-ladder points already exist.
+The scale analysis said this should be a *partial* effect at the production
+point rather than total or absent — and the full calculation agreed, landing at
+8 %. Correct regime, wrong magnitude by a factor of ~50.
+
+## The amplification gap is 150 µm — checked against fabrication data
+
+Raised as possible "exhibit six": the ion transit goes as g²/(µV), so a 50 µm
+gap instead of 150 would collapse it and land the effective slow fraction right
+where the demand curve points. The project memory does carry a 2026-08-01 note
+saying "the detectors are 50 µm uRWELL, not 150 µm Micromegas". Everything
+validated in this report was validated against the same 150 µm geometry, so
+internal consistency could not have caught it.
+
+**It is 150 µm, and the detector is a bulk Micromegas.** Measured directly out
+of the fabrication file `design/gerbers/readout_pcb/3498A_bulk.gbr` (Ucamco
+UcamX, 2025-05-23):
+
+```
+aperture  D12 = C,0.600000        -> 0.6 mm circular flashes
+grid      84 x 85 distinct positions, 4.680 mm pitch, spanning +-196.56 mm
+```
+
+Ø0.6 mm dots on a 4.68 mm pitch are **bulk-Micromegas mesh-support pillars**.
+They exist only to hold a woven mesh above an amplification gap. A uRWELL has no
+mesh and no pillars — it amplifies inside ~50–70 µm conical holes on a ~140 µm
+pitch etched in polyimide, which would appear in the gerbers as ~10⁶ tiny holes,
+not 7000 half-millimetre dots at millimetre pitch.
+
+Corroborating, in decreasing order of weight:
+
+1. `shared/MX17ModuleGeometry.hh` is "the MX17 **Micromegas** module layer
+   stack", carrying a woven micromesh (19 µm wire, 48 µm opening → the 67 µm
+   pitch T6 solves) and the pillar grid above.
+2. `constants.py` cross-checks `AMP_GAP_UM` against that header **at import**
+   and passes: `amp_um = 150.0`. It is not a free-floating constant.
+3. `NEEDED_INPUTS.md` §4: "✅ Amplification gap: 150 µm — **Confirmed by Dylan,
+   2026-08-06**." Note what the live alternative was: **128 µm, the
+   bulk-Micromegas standard.** The question ever on the table was 150 vs 128,
+   both Micromegas. Nobody was weighing a uRWELL.
+4. Dates: the uRWELL note is 2026-08-01; Dylan's confirmation is 2026-08-06,
+   five days later, and it closed the gap question explicitly.
+5. Scope: that memory describes `garfield_sim/` in the **nTof_x17** repo, a
+   gas-comparison study, and a separate record
+   (`july-beam-urwell-strip-maps`) states the uRWELLs are a "SEPARATE P2/banco
+   project, **not nTof_x17 detectors**". Two detector families, one program.
+
+Not exhibit six. The gap stands, and with it the transit, the template
+kinematics, f_ion, and the mobility — all of which do depend on it.
+
+*Arithmetic footnote:* the "×9 collapse to ~35 ns" uses the zero-field mobility.
+At 50 µm and 490 V the field would be ~98 kV/cm ≈ 390 Td, where Ar⁺'s K₀ is
+~0.85 rather than 1.53, giving ~56 ns — the same zero-field-mobility slip that
+makes `ions.py`'s analytic rectangle 21 % too fast. Moot here, but worth not
+repeating.
 
 ## Open
 
-- The sheet-screening calculation itself (T14/W2 solver domain): sheet ODE with
-  a gap-charge source, then the ladder readout.
+- **Nothing on the causal list.** Every candidate raised through 2026-08-09 has
+  been eliminated: the three handoff dials, T10, the high-pass class, the
+  peaking register, sheet screening, and the gap geometry. The contradiction
+  survives them all and is the result to report.
 - **`ions.py`'s analytic branch uses the zero-field mobility.** It should take
   K₀ at the operating E/N (1.212 at 490 V) or say in its docstring that it is a
   deliberately zero-field contrast model. Not fixed here — it is the avalanche
