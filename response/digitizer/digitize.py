@@ -71,6 +71,35 @@ POOLED_SCHEMA_PREFIX = "aval_calib_meshfield_pooled"
 POOLED_MESH_V = 490.0
 
 
+# Height above the mesh at which a MESHFIELD S3 calibration launches its seed
+# electrons, so that transparency and funnelling are measured rather than
+# assumed: `seed_z0_cm = 180.0e-4` in response/avalanche/mx17_aval_calib.py.
+# Its sigma0 therefore already contains the transverse diffusion of that leg,
+# and `transport()` must not drift through it again.
+# NOT machine-readable in the calib JSON today — same schema gap as the pooled
+# file's mesh voltage. If the emitter ever exports `seed_z0_um`, prefer it and
+# delete this constant.
+MESHFIELD_SEED_Z0_UM = 180.0
+
+
+def calib_seed_z0_mm(calib_pt):
+    """Drift length [mm] already baked into this calibration's sigma0.
+
+    uniform_field seeds sit INSIDE the amplification gap, so there is no drift
+    leg to remove; meshfield seeds sit MESHFIELD_SEED_Z0_UM above the mesh.
+    Read from the point's own `field_model` rather than from the container
+    schema, because that is the thing that actually determines the geometry.
+    """
+    fm = str(calib_pt.get("field_model", ""))
+    if fm.startswith("meshfield"):
+        return MESHFIELD_SEED_Z0_UM * 1e-3
+    if fm and fm != "uniform_field":
+        raise ValueError(
+            f"unrecognised calib field_model {fm!r}: refusing to guess "
+            "whether its sigma0 already includes a drift leg")
+    return 0.0
+
+
 def load_calib(path, mesh_v):
     """Pick the S3 point nearest the requested mesh voltage.
 
@@ -179,6 +208,7 @@ class Digitizer:
         # P(g>0) from the S3 calib; absent in schema <= 2, where it is 1.0.
         self.aval_survival = float(p.get("survival", 1.0))
         self.sigma0_um = self.calib["sigma0_um"]
+        self.calib_seed_z0_mm = calib_seed_z0_mm(self.calib)
         self.v_drift = float(np.ravel(
             self.gas.v_drift_um_ns(self.E_drift))[0])
 
@@ -263,7 +293,20 @@ class Digitizer:
         # its z to 0 for the gas lookup gives exactly that, and is why the clip
         # is kept rather than removed.
         zs_drift = np.clip(zs, 0.0, None)
-        sT = self.gas.sigma_T_um(self.E_drift, zs_drift)
+        # TRANSVERSE diffusion stops where the calibration's own seeds start,
+        # or the overlapping leg is counted twice. A meshfield calib launches
+        # its seeds `seed_z0` ABOVE the mesh (mx17_aval_calib.py: 180 µm) so
+        # that transparency and funnelling are measured rather than assumed —
+        # which means its sigma0 already contains the diffusion of that last
+        # leg. A uniform_field calib seeds INSIDE the amplification gap and
+        # contains no drift leg at all, hence seed_z0 = 0 there.
+        # Only sigma_T is affected: the drift TIME and the attachment survival
+        # below are over the full path, and the calib contributes neither
+        # (`t_arrival_mean_ns` is not consumed by this class).
+        # Since sigma_T^2 is linear in z, dropping the leg from the path length
+        # is exactly equivalent to subtracting its variance.
+        zs_diff = np.clip(zs_drift - self.calib_seed_z0_mm, 0.0, None)
+        sT = self.gas.sigma_T_um(self.E_drift, zs_diff)
         st = self.gas.sigma_t_ns(self.E_drift, zs_drift)
 
         x = xs * 1e-3 + self.rng.normal(0.0, sT * 1e-6)
