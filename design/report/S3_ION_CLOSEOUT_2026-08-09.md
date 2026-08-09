@@ -151,12 +151,60 @@ X view    f_ion    p5[ns]  p50[ns]  fast<240ns[%]  undershoot[%]  peak ratio
                                                           (* measured template)
 ```
 
-The data's p5 is met at **f_ion ≈ 0.16**, its fast fraction at **≈ 0.03**.
-(Y view: p5 → 0.47, fast fraction → 0.11 — internally inconsistent by more than
-X, which is the same X/Y asymmetry the handoff already flagged as real in the
-data and not explicable by any view-common parameter.)
+The data's p5 is met at **f_ion ≈ 0.16**, its fast fraction at **≈ 0.03**
+(Y view: p5 → 0.47, fast fraction → 0.11 — see the selection caveat below,
+which explains that spread).
 
 Against a split defended at **0.9056**, that is a factor of four to thirty.
+
+### Selection bias in the data legs — direction checked, contradiction survives
+
+Flagged 2026-08-09 by the problem1 session: the per-view reco-quality cut
+(`{view}_ok & {view}_quality_ok`) drops railed waveforms, because the forward
+fit fails on them. It cuts the data saturation fraction from the detector's
+0.326 → 0.260 (X) and 0.327 → **0.110** (Y), while sim acceptance is 0.954 /
+0.989 — so the bias is one-sided: the data legs are low-amplitude-biased
+subsamples and the sim legs are not.
+
+**Which way does that push the demand?** Measured on the frozen
+`wf_data_{x,y}.parquet` (read-only; nothing regenerated):
+
+```
+                     corr(peak_amp, rise_ns)      p5 [ns]   fast<240ns
+X   whole leg              -0.144                  154.6      0.378
+X   top-20% amplitude                              117.8      0.501
+Y   whole leg              -0.139                  157.0      0.425
+Y   top-20% amplitude                              139.0      0.509
+```
+
+Higher amplitude means **faster** rise, so the cut removes precisely the
+fastest population. **The true detector is therefore faster than the leg shows,
+and the demanded f_eff is lower than 0.16, not higher — the contradiction gets
+larger, not smaller.** That is the safe direction, and it is why nothing in this
+report needed retracting when the bias came to light.
+
+Two further points from the same check:
+
+* **The fast population is not a clipping artifact.** These legs retain
+  essentially no railed waveforms (X max peak_amp 4050, 0.04 % within 1 % of it),
+  so the sub-240 ns pulses are real fast risers, not clipped peaks read as steep.
+  That was the way this bias could have destroyed the result, and it did not.
+* **The X/Y spread in the demand is a selection artifact, and is retracted as
+  physics.** Y is cut ~4× harder than X (0.327 → 0.110 vs 0.326 → 0.260), and p5
+  is the statistic most sensitive to depleting a fast tail — which is exactly why
+  Y's p5 demand (0.47) sits so far above its own fast-fraction demand (0.11)
+  while X's two agree much better. An earlier draft of this document read that
+  spread as of a piece with the real X/Y asymmetry; that reading is **withdrawn**.
+  The problem1 session's unselected-detector measurement finds X and Y amplitudes
+  identical (2606.5 vs 2607.0 ADC), relocating the X/Y asymmetry family to the
+  **sim** side (its Y over-sharing / kY handling), not the detector.
+
+⚠️ **Provisional numbers.** The per-view undershoot targets (data X −3.4 %,
+Y −12.0 %) were measured on these biased legs and are being re-derived on
+saturation-matched samples. Do not fit or interpret against the Y −12.0 %
+figure. The high-pass falsification below uses the X figure, but its margin is
+~20× (226 points needed against a −6.4 point budget), so no plausible
+re-derivation touches its conclusion.
 
 ### The two dials are orthogonal in the real chain
 

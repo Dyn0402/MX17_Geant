@@ -286,6 +286,22 @@ inferred.</strong> The data demands an effective slow fraction of
 <strong>0.9056</strong> by two independent routes. Per the recommendation
 below, this gets reported &mdash; not absorbed into a fit.</p></div>
 
+<p class="note"><strong>&#9888; Selection caveat (2026-08-09).</strong> The
+per-view reco-quality cut drops railed waveforms, cutting the data saturation
+fraction from the detector's 0.326 &rarr; 0.260 (X) and 0.327 &rarr; 0.110 (Y)
+against sim acceptance 0.954 / 0.989 &mdash; so the data legs are
+low-amplitude-biased and the sim legs are not. Direction checked on the frozen
+parquets: corr(peak_amp, rise) = &minus;0.14, i.e. higher amplitude means
+<em>faster</em> rise, so the cut removes the fastest population and the true
+detector is faster than these legs show. <strong>The demanded f_eff is therefore
+a lower bound &mdash; the contradiction grows, not shrinks.</strong> The legs
+retain essentially no railed waveforms (X max peak_amp 4050), so the fast
+population is not a clipping artifact. The Y-vs-X spread in the demand below is
+a selection artifact (Y is cut ~4&times; harder) and is <em>not</em> read here as
+physics. The per-view undershoot targets are being re-derived on
+saturation-matched samples; the high-pass falsification uses the X figure with a
+~20&times; margin, so it is unaffected.</p>
+
 <p><strong>And the two dials are orthogonal in the real chain.</strong> f_ion
 moves the rise by ~110 ns while leaving the undershoot flat to ~1 point; &beta;
 moves the undershoot by 8.7 points while leaving the rise flat to 4 ns. So a
