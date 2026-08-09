@@ -1178,3 +1178,88 @@ Products: `design/report/wet_gain_bracket_2026-08-10.json`,
 `scratchpad/overnight_2026-08-10/wet_bracket_collect.py`; fragments at
 `~/x17/response_sim/avalanche/wetbracket/` and lxplus
 `…/garfield_sim/jobs_wetbracket/`.
+
+---
+
+## 18. Triangulating v_drift, the gain deficit and the contaminant axis —
+## and why "mutually exclusive" is too strong
+
+§17's consequence can be pushed toward a consistency test between three
+previously independent puzzles. It was worth doing, and the result is more
+useful than the framing that prompted it, because one step of it is wrong.
+
+**DIAGNOSIS throughout.** This leans on the T14 gain demand, which is itself an
+inference conditional on the rest of the chain being right.
+
+### Step 1 — the demanded DETECTOR gain is gas-INVARIANT
+
+The tempting move is to say the wet hypothesis pushes the detector further past
+the edge of the literature's stable band. **It does not, and the arithmetic is
+unambiguous.** The signal is linear in gain, so changing the sim's assumed gas
+rescales `G_sim` and the sim/data ratio together and the inferred detector gain
+does not move:
+
+| sim's assumed gas | G_sim at 490 V | sim/data would read | **inferred G_detector** |
+|---|---|---|---|
+| dry | 24 094 | 0.5987 | **40 243** |
+| 1 % H₂O | 18 538 | 0.4606 | **40 243** |
+
+So "the detector sits at the top of the 3–4 × 10⁴ stable band" is a **standing
+concern independent of the contaminant axis**, and the wet hypothesis does not
+aggravate it. Any framing that has water pushing the *detector* harder is
+conflating the required *model error* with the *operating point*.
+
+### Step 2 — what water does move is the required α(E) model error
+
+That does grow, exactly as §17 says: **×1.67 dry → ×2.17 at 1 % H₂O.**
+
+### Step 3 — but the measured slope error generates either one comfortably
+
+This is where "close to mutually exclusive" breaks down. The sim's gain-vs-HV
+slope is measured too shallow by **0.1381 ± 0.0099 per 10 V** (§14). A slope
+error accumulates into a scale error, so the question is only *where* the sim
+and data gain curves would have to agree:
+
+| gas | required model error | curves agree at |
+|---|---|---|
+| dry | ×1.67 | **V₀ = 453 ± 3 V** |
+| 1 % H₂O | ×2.17 | **V₀ = 434 ± 4 V** |
+
+**Both sit inside the 425–530 V scanned range.** So neither required error is
+implausible — the measured slope discrepancy produces errors of exactly this
+size over entirely ordinary voltage offsets. A single α(E)/Penning defect
+remains available in *both* the wet and dry worlds, and the two hypotheses are
+**not** close to mutually exclusive.
+
+### What the triangulation does buy
+
+Something weaker but real, and worth stating as such rather than inflated:
+
+* The wet world requires the simulation to be **right about gain only at
+  434 V** — 26 V below det3's bench operating range (~460–500 V) and near the
+  very bottom of the HV scan. The dry world requires it at 453 V, just under
+  that range. **The wet hypothesis is in a worse position, not an excluded
+  one.**
+* Three previously independent puzzles — the slow v_drift, the gain deficit,
+  and the contaminant axis — are now coupled by a measured number rather than
+  by argument. Before tonight, the contaminant axis was free to be invoked for
+  v_drift with no cost elsewhere. It now carries a cost, quantified: **every
+  0.5 % of water invoked to slow the drift adds ~13 % to the gain the
+  simulation must be wrong by.**
+* ⚠️ Honest limit: V₀ is *derived from* the demanded gain at 490 V, so it is a
+  restatement of the same measurement rather than an independent test of it. It
+  cannot be checked by looking at 434 V in the existing scan, because the data
+  leg carries no absolute gain — only amplitude up to a constant. Making it a
+  real test needs an absolute gain calibration on the data side, which the
+  HV-slope work already concluded `imon` cannot supply (46 pA of signal against
+  1.126 µA of standing current).
+
+### Where this leaves the morning decision
+
+It does **not** pre-empt the slope hunt, and I want to be explicit that it
+cannot: it is consistent with outcome A in both the wet and dry worlds. What it
+adds is a reading rule for outcome A when it arrives — **if the best rP closes
+the gain at ×1.67, that implicitly assumes a dry gas**, and the same rP would
+leave a residual ×1.3 if the gas is in fact wet at the level the v_drift
+anomaly wants. So outcome A should be reported with the gas assumption stated,
+not as an unconditional closure.
