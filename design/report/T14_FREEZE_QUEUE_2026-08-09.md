@@ -202,6 +202,39 @@ right — only that this particular knob does not move these particular numbers.
 And these are fit-quality diagnostics, not the §9 observables; the comparison
 itself remains frozen and unrun.
 
+## β (shaper PZC residual) — a THIRD fitted input, pre-declared 2026-08-07
+
+Recorded here alongside ρ_s and the gas axis because it is the same kind of
+thing and the distinction is easy to lose once someone starts scanning it.
+
+`response/dream/shaper.py` states, before any comparison existed, that β is
+"a hardware property of the PZC trim that the manual does not quote — treat it
+as a SCAN/NUISANCE parameter like ρ_s, not a constant", and that at T14
+**"the undershoot target selects β and the remaining shape observables become
+the cross-checks."**
+
+So, for the T14 follow-up:
+
+* **Undershoot is the FITTING observable for β, not a test.** T14 measured sim
+  −9.9 % / −25.2 % (X/Y) against data −3.4 % / −12.0 %. That is not a failure;
+  it says the default β = 0.75 is too high for this run, which the note
+  anticipated. **After β is selected, undershoot agreement is a fitted point and
+  cannot be quoted as evidence.**
+* **The genuine cross-checks** are the shape observables β was not fitted to:
+  the ~190 ns fast-rise population present in data and absent in sim (min
+  ~250 ns), rise time and FWHM, and the sharing profile.
+* **The Y>X undershoot asymmetry is the real anomaly.** β is common to both
+  views, so a residual 2–3× exaggeration of a real asymmetry is not β's to
+  explain and survives its fitting.
+* **β is nearly irrelevant to the peak amplitude deficit.** The residual
+  high-pass shaves only 0.6–2.3 % off the peak across β 0.25→1, so it cannot
+  move 0.56/0.53 by a factor 1.7–1.9. It *can* move windowed q_sum, since the
+  1.92 µs DAQ window sits against τ_f = 5 µs. **Quote the two amplitude
+  deficits separately.**
+* **Provenance:** β's indicative 0.6–0.9 band comes from **run_71** (SPS), the
+  run the plan shelved as a T14 target — different run, different conditions.
+  It is not a constraint on det3. Same class as the FEU/bundle/noise cases.
+
 ## What has already been decided, for contrast
 
 These were frozen before looking and are recorded with their evidence, which is
