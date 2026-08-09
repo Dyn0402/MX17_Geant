@@ -15,7 +15,27 @@ in W1 — every kernel ~27 % low — is fixed: prompt capture moves 0.670026 →
 **0.841977**, i.e. **+25.66 %**, against V6's static +27.2 % reduced by the
 known ny=512 grid term (predicted +25.5 %).
 
-T10's W2 verdict and the W2 caching cert are still running (cluster 13353199).
+**T10 still FAILS on W2, so plan §7 step 5 remains sequenced.** Like-for-like
+at ρ_s = 2 MΩ/sq, the worst DREAM-shaped residual moves **8.26 % → 7.55 %**
+against a 2 % bar. W2 improves it by 0.71 pp (−8.6 % relative) and does not
+come close to certifying the fast path. The plan's note that V6's re-solve
+might overturn the T10 verdict is now answered: **it does not.**
+
+Attribution, stated with its caveat rather than as a clean result: 0.71 pp is
+above the ~0.45 % ny=512 grid bound (audit C6) and well above the ~0.1 % stack
+term measured last night, so some of it is genuinely the boundary model. But
+**ρ_s alone moves the same number by 0.65 pp** within W2 (rho1M gives 8.20 %,
+rho2M 7.55 %) — comparable to the W1→W2 move itself. So the improvement is not
+a sharp discriminator, and the honest statement is that W2 changes the number
+by about as much as ρ_s does, while the FAIL verdict is robust to both.
+
+c1 moved the wrong way — W1 +28.5 % → W2 +29.2 % (rho2M), +34.6 % (rho1M) —
+confirming last night's finding that c1 is the softer comparator and the shaped
+residual is the one to quote.
+
+The W2 caching cert returned **0.0187 / 0.0188**, exactly the harness artifact
+predicted in §4 before the products existed. It says nothing about W2 and must
+not be read as either a pass or a regression until the harness is fixed.
 
 ## Headline numbers
 
@@ -26,8 +46,8 @@ T10's W2 verdict and the W2 caching cert are still running (cluster 13353199).
 | `x_fraction_prompt` | **0.5 to 1e-4** | **0.50000002** | ✅ to 2e-8 |
 | `x_fraction_late` | record only | **0.5** to 1e-8 | see below |
 | ratio vs W1 | 1.20–1.30 | **1.2566** | ✅ |
-| T10 slow path, W2 rho2M | vs 8.26 % (W1) | PENDING | |
-| LUT caching cert, W2 | expected ~1.87 % (harness artifact) | PENDING | |
+| T10 slow path, W2 rho2M | vs 8.26 % (W1) | **7.55 %** | ❌ FAIL (bar 2 %) |
+| LUT caching cert, W2 | expected ~1.87 % (harness artifact) | **0.0187 / 0.0188** | as predicted |
 
 **The capture number is a real cross-check, not a tautology.** 0.841977 was
 pre-registered from an independent **full-grid CG** solve; the measured value

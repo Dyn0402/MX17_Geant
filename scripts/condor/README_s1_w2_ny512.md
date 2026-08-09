@@ -43,9 +43,38 @@ A W2 grid at ny = 1024 is a recorded follow-up, not an oversight: it doubles the
 Bloch family to 49 920 modes (~20 GB matrices) and needs the y-parity /
 mirror-family reduction first.
 
-## Acceptance measured on the products
+## Acceptance measured on the products (2026-08-09)
 
-(filled in by the combine run — see `design/report/W2_NIGHT_REPORT_2026-08-09.md`)
+Identical across all four ρ_s, as expected — ρ_s rescales the relaxation rate
+but not the prompt electrostatics:
+
+| quantity | value | bar |
+|---|---|---|
+| `channel_capture_prompt` | **0.841977** | pre-registered 0.841977 (independent full-grid CG) |
+| `channel_capture_late` | 0.845369–0.845381 | +0.40 % vs prompt — a rise, not a decay |
+| `x_fraction_prompt` | **0.50000002** | 0.5 to 1e-4 |
+| `x_fraction_late` | 0.5 to 1e-8 | recorded |
+| vs W1 `s1_ny1024` | **+25.66 %** | V6 static +27.2 % × 0.987 ny-grid = +25.5 % predicted |
+| `gd_rank` (every family) | 6200 | = N × 155/624 exactly |
+| X `view_total_prompt` | 0.880258 (W1: 0.877482) | ~+0.2 % expected from V6 `pad_split` |
+
+The prompt-capture agreement is a cross-check of the **family assembly** against
+a **full-grid CG** solve — different code paths end to end — not a tautology.
+Full detail, including two expectations that turned out wrong, in
+`design/report/W2_NIGHT_REPORT_2026-08-09.md`.
+
+## What these products do NOT fix
+
+**T10 still fails on W2.** The slow-path (ion lateral shape) residual moves
+8.26 % → 7.55 % at ρ_s = 2 MΩ/sq against a 2 % bar. Using a W2 kernel does not
+certify the digitizer's fast path; plan §7 step 5 (build the LUT from slow-path
+templates) remains required.
+
+**The LUT caching cert reads ~1.87 % on these products, and that is a test
+harness artifact, not a property of W2** — `test_lut_vs_solver` compares the
+solver at 3101 ns against the LUT at 3000 ns. It reads the same on every W1
+product too. Do not use that number to judge these products until the harness
+is fixed.
 
 ## Reading these files
 
