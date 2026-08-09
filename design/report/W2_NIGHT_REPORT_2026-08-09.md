@@ -1,8 +1,10 @@
 # W2 night shift, 2026-08-08 → 09
 
-**Status: IN PROGRESS — written as the night ran. Sections marked PENDING were
-still running when this line was last saved.** Handoff being executed:
-`design/report/HANDOFF_W2_OVERNIGHT_2026-08-08.md`.
+**Status: COMPLETE.** Handoff executed:
+`design/report/HANDOFF_W2_OVERNIGHT_2026-08-08.md`. Handoff §§1–5 done; §6
+(Stage B/C + T13, a stretch goal) **not reached** — see §8. Commits: `e7759e0`,
+`f187a93`, `9cc1db6`, `99b6e4d`, `1d9257c`, `8611934`, `937c184`, `12d4d1f`,
+`a56c87a`, `96c5962`, `5838690`.
 
 ---
 
@@ -395,9 +397,41 @@ afterwards, from a measurement.
 
 ## 7. What this does not establish
 
-PENDING — to be completed with the results.
+- **It does not certify the digitizer's fast path.** T10 still fails at 7.55 %
+  against a 2 % bar. A W2 kernel is a better kernel; it is not a substitute for
+  §7 step 5.
+- **It does not make the W2 caching cert meaningful.** The 1.87 % reading is a
+  harness artifact (§4) and is not evidence either way about these products.
+  No caching claim should be quoted until the harness is fixed and re-run.
+- **It does not validate absolute amplitude against data.** Everything here is
+  internal consistency — sum rules, symmetries, rank identities, and agreement
+  between two code paths. The claim that W2 is *right* rests on V6's physics
+  argument, not on a measurement. T14 remains the only test that can fail this
+  against reality, and it has deliberately not been run.
+- **It does not make `s1_w2_ny512` strictly better than `s1_ny1024`.** W2 fixes
+  a 27 % absolute error and re-introduces the ~0.45 % ny=512 pad-edge shoulder
+  term. For shape-sensitive shallow-deposit work the finer W1 grid is still the
+  better instrument, and the W2-at-ny=1024 upgrade is not done.
+- **The T10 improvement is not a sharp result.** 8.26 % → 7.55 % is larger than
+  the grid and stack terms, but ρ_s alone moves the same number by 0.65 pp. The
+  robust statement is the FAIL, not the size of the gain.
+- **The 0.40 % late-capture rise is recorded, not explained.** It is uniform
+  across ρ_s and absent in W1, and nothing here says why.
+- **Nothing downstream has been rebuilt on W2.** The digitizer LUT, Stage B/C
+  and T13 still run on W1 products; §6 of the handoff was not reached (see §8).
 
 ## 8. Deferred to daylight
+
+- **Handoff §6 (Stage B/C regeneration + T13) was NOT reached.** The fleet's
+  straggler tail consumed the headroom that the fast families had bought:
+  `x001` alone held the completion gate for two hours after 65 of 66 slabs were
+  down, moving combine from ~02:00 to 04:13 and the certs to ~05:50. Since
+  nothing downstream has been rebuilt on W2, the digitizer LUT, Stage B/C and
+  T13 all still run on W1 products — i.e. on kernels ~27 % low in absolute
+  amplitude. That is the first thing to fix, and it is now unblocked.
+  Note also that the W2 caching cert cannot certify the rebuilt LUT until the
+  §4 harness defect is fixed, so the two follow-ups are coupled: fix the
+  harness, then rebuild and re-cert.
 
 - `_gather()` re-reads each slab per (drive, ρ): the X stage alone does ~640 GB
   of repeated decompression against ~50 GB for Y. Accepted tonight rather than
