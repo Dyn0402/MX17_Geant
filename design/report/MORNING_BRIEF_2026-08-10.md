@@ -83,6 +83,14 @@ transparency, W2 prompt capture (already applied).
 > at the operating point would produce both the ×1.6 and the ×1.44.** Neither
 > number was derived from the other.
 
+**⚠️ And the wet gain bracket, which landed overnight, makes this *worse*
+rather than better.** The amplitude thread wants *more* gain; water gives
+*less*. If the bench gas really held the ~1 % H₂O that the slow drift velocity
+is usually explained by, the sim's gain would drop 24 094 → 18 538 and **the
+demanded factor would go from ×1.66 to ×2.16.** The two fitted-to-data axes pull
+against each other: whatever slows the drift also suppresses the gain, and the
+gain was already too low. That constraint did not exist before last night.
+
 ### Thread 3 — X/Y asymmetry. Real, sim-side, and modest
 
 The detector is X/Y symmetric; the simulation is not. Both terms are now
@@ -202,12 +210,25 @@ the only part that can confirm anything.
   decay existing, not on its shape. Family-constraint inference, not a
   measurement; no concentration may be read off it.
 
-* **Wet gain bracket submitted** (condor 16705137, 32 jobs, running). Two
-  findings while setting it up: the roadmap's "~2 new Magboltz jobs" was wrong —
+* **Wet gain bracket LANDED** (condor 16705137, 32/32 jobs, 42.4 h CPU).
+  **All four pre-registered predictions confirmed.** Gain at 490 V: dry 45 652,
+  +0.5 % H₂O 39 934 (×0.875, −6.1 σ), +1 % H₂O 35 125 (**×0.769, −12.0 σ**).
+  Survival is exactly 1.0000 with zero attachment in every arm, so the 23 % loss
+  is *pure electron cooling*, no attachment component. Two cross-checks pass:
+  the uniform-vs-meshfield ratio comes out 1.895 against §0a's independently
+  recorded 1.85, and the Penning-model delta (arm D) is only ×1.0162.
+
+  **Roadmap §2 step 2 decides: the contaminant axis STAYS in the gain
+  campaign** — 23 % is not "a few percent" — and the slope hunt's
+  fixed-composition assumption now needs its own error bar. My pre-registered
+  magnitude prediction deliberately contradicted the roadmap's hoped-for
+  outcome, and it is the one that held.
+
+  Two setup findings kept: the roadmap's "~2 new Magboltz jobs" was wrong —
   **zero are needed**, the tables already exist at amp range (the `.gas` files
   store *E/p*, which reads as a drift table until multiplied by 745.83 Torr) —
   and the bracket as specified would have confounded water with a Penning-model
-  change, so all arms now run at rP = 0.40 with dry-at-auto carried separately.
+  change, so all arms ran at rP = 0.40 with dry-at-auto carried separately.
 
 ---
 

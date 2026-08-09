@@ -92,6 +92,22 @@ bracket submitted as condor **16705137** at rP = 0.40 across all arms, with
 dry-at-auto carried separately; pre-registration in
 `design/report/WET_GAIN_BRACKET_PREREG_2026-08-10.md`.
 
+**Wet gain bracket COMPLETE (condor 16705137, 32/32, 42.4 h CPU) — 4/4
+pre-registered predictions confirmed, and it makes the amplitude problem
+WORSE.** Gain at 490 V: dry 45 652, +0.5 % H₂O 39 934 (×0.875, −6.1 σ), +1 %
+H₂O 35 125 (**×0.769, −12.0 σ**). Survival exactly 1.0000 with zero attachment
+in every arm, so the loss is **pure electron cooling** — consistent with H₂O's
+12.62 eV IP sitting above both Ar metastables, quenching without opening a
+Penning channel. Cross-checks: uniform-vs-meshfield ratio **1.895** against the
+independently recorded 1.85, and the Penning-model delta (dry auto vs dry
+rP 0.40) only ×1.0162. **Roadmap §2 step 2 decides the contaminant axis STAYS
+in the gain campaign**, and the slope hunt's fixed-composition assumption needs
+an error bar. ⚠️ **Consequence for the amplitude ledger:** the thread wants MORE
+gain and water gives LESS — at 1 % H₂O the sim's gain would be 18 538 and the
+demanded factor would rise from **×1.66 to ×2.16**. The two fitted-to-data axes
+pull against each other. All water fractions remain fitted-to-data; one voltage
+only, so it says nothing about the gain slope.
+
 ⚠️ **Blocked, needs Dylan:** the desktop refuses new ssh sessions pending a
 **Tailscale re-authentication** (`ssh desktop true` prints the link). The T7
 slope-hunt chain runs there unattended and self-merges, so it is a morning
