@@ -85,12 +85,30 @@ def certify(path, dmax=3, n_probe=6, seed=3):
     gx = {c: GX[c] for c in range(C.N_PAD_PER_SUPER)}
 
     lut = CombKernelLUT(path)
-    # Compare at the LAST time the LUT covers, where every approximation it
-    # makes has had maximum opportunity to accumulate.
-    t_ref = float(lut.t[-1])
-    it = int(np.argmin(np.abs(t_src - t_ref)))
+    # Compare at the last SOURCE time the LUT covers, where every
+    # approximation it makes has had maximum opportunity to accumulate.
+    #
+    # AT OR BELOW the LUT's end, never nearest: snapping to the nearest log
+    # point can land PAST lut.t[-1] — it did, the moment Fix 1 raised the LUT
+    # window from 1000 to 3000 ns (nearest log point 3101.2 ns) — and the
+    # lut.t lookup below then clamped silently, comparing the solver at
+    # 3101 ns against the LUT integrated to 3000 ns. That 101 ns misalignment
+    # read as a 1.87 % "caching residual" on every decaying (Y) channel of
+    # EVERY product, and made the published 1e-4 (true at the 1000 ns window,
+    # log point 961.7 ns) unreproducible. Found by the 2026-08-09 overnight
+    # rehearsals; see design/report/W2_NIGHT_REPORT_2026-08-09.md.
+    covered = np.where(t_src <= float(lut.t[-1]) * (1 + 1e-9))[0]
+    it = int(covered[-1])
     t_ref = float(t_src[it])
     kt = int(np.argmin(np.abs(lut.t - t_ref)))
+    # Guard the whole bug family (mismatched time axes compared silently —
+    # same class as the t10 seconds-vs-ns accident): the chosen source time
+    # must have a genuine LUT sample next to it, not a clamped endpoint.
+    if abs(float(lut.t[kt]) - t_ref) > float(lut.dt) * 0.5 + 1e-12:
+        raise RuntimeError(
+            f"time-axis mismatch: source sample {t_ref*1e9:.1f} ns has no LUT "
+            f"sample within dt/2 (nearest {float(lut.t[kt])*1e9:.1f} ns) — "
+            "refusing to compare misaligned times")
 
     print(f"  product   {path.split('/')[-1]}")
     print(f"  compare at t = {t_ref*1e9:.0f} ns "
