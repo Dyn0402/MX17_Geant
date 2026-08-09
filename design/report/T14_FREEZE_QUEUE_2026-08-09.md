@@ -177,6 +177,31 @@ mixture from `water2d.json` into the Stage B table schema, re-run Stage B/C
 (~19 min per point), and optionally a wet avalanche point against the
 gas-agnostic map ladder.
 
+## First diagnostic result on the v axis — it is NOT the v mismatch
+
+Built as pre-declared (no new simulation: v enters at reconstruction, so the
+same decoded files were re-run with the bundle's `v_drift` swapped 36.60 →
+39.1424, the dry-table value Stage B actually generated with). Frozen default
+vs v-axis variant, 2 980 events each:
+
+| | x fitted | x slope_reliable | y slope_reliable | median χ²/dof (x, y) |
+|---|---|---|---|---|
+| **default** (bundle v = 36.60) | 98.4 % | 4.6 % | 13.4 % | 19.3, 20.4 |
+| variant (v = 39.14, mismatch removed) | 98.4 % | 4.1 % | 10.5 % | 19.3, 20.4 |
+
+**Removing the 6.9 % v mismatch changes fit quality not at all** — χ²/dof is
+identical to three figures on both views — and makes slope reliability slightly
+*worse*. So whatever drives χ²/dof ≈ 20 and the low `slope_reliable`, **it is
+not the drift-velocity mismatch.** That is a useful negative: it removes the
+most obvious suspect from the list before the comparison is even run, and it
+means the dry-vs-wet gas axis is unlikely to rescue fit quality either, since
+its whole effect on reconstruction enters through v.
+
+Two cautions on reading this. It says nothing about whether the *default* is
+right — only that this particular knob does not move these particular numbers.
+And these are fit-quality diagnostics, not the §9 observables; the comparison
+itself remains frozen and unrun.
+
 ## What has already been decided, for contrast
 
 These were frozen before looking and are recorded with their evidence, which is
