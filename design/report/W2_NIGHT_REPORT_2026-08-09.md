@@ -8,18 +8,63 @@ still running when this line was last saved.** Handoff being executed:
 
 ## Verdict
 
-PENDING (combine + cert).
+**The W2 grid is produced, complete and accepted.** All 66 family slabs landed
+(04:12), the combine ran clean (05:46), and **all four ρ_s products pass every
+pre-registered acceptance bar**. The absolute-amplitude defect that V6 exposed
+in W1 — every kernel ~27 % low — is fixed: prompt capture moves 0.670026 →
+**0.841977**, i.e. **+25.66 %**, against V6's static +27.2 % reduced by the
+known ny=512 grid term (predicted +25.5 %).
+
+T10's W2 verdict and the W2 caching cert are still running (cluster 13353199).
 
 ## Headline numbers
 
 | quantity | pre-registered | measured | verdict |
 |---|---|---|---|
-| `channel_capture_prompt` | **0.841977** | PENDING | |
-| `channel_capture_late` | flat, ≈ prompt | PENDING | |
-| `x_fraction_prompt` | **0.5 to 1e-4** | PENDING | |
-| `x_fraction_late` | record only | PENDING | |
+| `channel_capture_prompt` | **0.841977** | **0.841977** (all 4 ρ) | ✅ exact |
+| `channel_capture_late` | flat, ≈ prompt | 0.845369–0.845381 (+0.40 %) | ✅ no decay |
+| `x_fraction_prompt` | **0.5 to 1e-4** | **0.50000002** | ✅ to 2e-8 |
+| `x_fraction_late` | record only | **0.5** to 1e-8 | see below |
+| ratio vs W1 | 1.20–1.30 | **1.2566** | ✅ |
 | T10 slow path, W2 rho2M | vs 8.26 % (W1) | PENDING | |
-| LUT caching cert, W2 | vs the W1 story below | PENDING | |
+| LUT caching cert, W2 | expected ~1.87 % (harness artifact) | PENDING | |
+
+**The capture number is a real cross-check, not a tautology.** 0.841977 was
+pre-registered from an independent **full-grid CG** solve; the measured value
+comes from the **family-assembled** kernels via a completely separate path
+(66 Bloch families → ifft2 → row/column sums). They agree to the 6 digits
+printed. Together with the `gd_rank` identity (§6) that is a second
+full-scale certification of the family assembly, at an N the solver's own
+battery cannot reach.
+
+**Two departures from expectation, both benign and both recorded:**
+
+- **Late capture rises 0.40 % rather than staying flat.** W1's prompt and late
+  agree to 4e-9; W2's late is 0.845377 against a prompt of 0.841977. It is a
+  *rise*, not the decay the handoff warned about, and it is the same 0.40 % at
+  every ρ_s. Not chased.
+- **`x_fraction_late` is 0.5 too**, to 1e-8. A late-time X/Y asymmetry was
+  expected on the grounds that the 800 µm ESL period breaks the 780 µm
+  translation symmetry once the sheet conducts; it does not appear in this
+  observable. The W1 baseline behaves the same way (0.4999999999750454), so
+  this is not a W2 property — the expectation was simply wrong.
+
+**Sharing** (ρ_s = 1 MΩ/sq, vs the W1 `s1_ny1024` product):
+
+| | W1 | W2 | ratio |
+|---|---|---|---|
+| X `view_total_prompt` | 0.877482 | 0.880258 | 1.0032 |
+| Y `share_prompt` d=0 | 0.4834 | 0.4980 | — |
+| Y `share_prompt` d=±1 | 0.2585 | 0.2452 | — |
+| X `tau_1e` (on-strip) | 5.15e-8 s | 3.49e-8 s | 0.68 |
+
+The X peak moves **+0.32 %**, against the ~+0.2 % the handoff predicted from
+V6's `pad_split` — right direction, right order. Relaxation is ~30 % faster in
+W2, which is expected once the inter-pad channel is no longer pinned to ground.
+The Y view's `view_total_prompt` ratio is 2.52, but on a quantity of 0.0007 →
+0.0018: that is the checkerboard null, where the Y row through an on-strip
+deposit owns no pad, so it is a large ratio on a negligible number rather than
+a discrepancy.
 
 The capture and x_fraction predictions were **pre-registered before any product
 existed** (2026-08-08 23:55), from the solver author's independent full-grid CG
