@@ -250,8 +250,31 @@ unrelated, correct fix.
 **The fast path is not degraded.** This is a harness defect, not a caching
 defect, and the fix is a one-liner (choose the source index at or below
 `lut.t[-1]`, or interpolate the reference to the LUT's last sample). Not applied
-tonight: it changes a certification and belongs in daylight with the W2 products
-as its target.
+overnight: it changes a certification and deserved a deliberate re-run.
+
+### RESOLVED 2026-08-09 morning — fixed and re-certified
+
+The solver author applied the fix (`f1daf7a`: compare at the last **covered**
+source time, plus a guard against misaligned axes) and re-ran the cert:
+
+| product | compare at | worst residual | |
+|---|---|---|---|
+| W2 `rho2M_dk50um_g19um` | 2551 ns (LUT sample 2551) | **0.0001** | PASS |
+| W1 `rho2M_dk50um_g19um` ny=1024 | 2551 ns (LUT sample 2551) | **0.0001** | PASS |
+
+Both now compare at the last log point the LUT actually covers, aligned exactly
+to a LUT sample. **The caching layer was never broken on any product**, and W2
+is certified at the same 1e-4 as W1. The full arc:
+
+> 1e-4 true (961.7 ns era) → silently invalidated by Fix 1's correct window
+> change → 1.87 % on everything → three falsifications → harness fixed →
+> 1e-4 again, W1 and W2 alike.
+
+The generalisable lesson is not about this test: **a correct fix in one place
+invalidated a certification in another, and nothing re-ran it for two days.**
+The only reason it surfaced at all is that the night's plan included a control
+nobody had asked for — reproducing a published number on a known-good product
+before trusting the same machinery on a new one.
 
 **⚠ Reading note for the W2 cert.** Because the cause is the shared time axis,
 **W2 will show the same ~1.87 %**, and that is not a W2 defect. Equally, the
