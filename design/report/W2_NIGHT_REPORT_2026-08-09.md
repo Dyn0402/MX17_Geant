@@ -422,6 +422,23 @@ afterwards, from a measurement.
 
 ## 8. Deferred to daylight
 
+**Agreed order and ownership** (with the `wpot_w2`/`w2_production` author,
+2026-08-09 morning). The first three are strictly sequential — the LUT cannot
+be re-certified until the cert compares equal times, and Stage B/C should not be
+regenerated on a LUT that has not been re-certified:
+
+1. Cert-harness time-snap fix + a mismatched-axes guard — **author**.
+2. LUT rebuild on W2 + re-cert via the `run_w2_cert.sh` pattern — **author**.
+3. Stage B/C + T13 on W2 kernels with the pooled T7 490 V calib — **author,
+   coordinated with Dylan and the T7 session.**
+4. `_gather()` restructure, battery test 8 as the gate — **author**, behind the
+   above.
+
+One curiosity parked rather than chased: why the 800 µm ESL period does not
+break the late-time X/Y balance. The author's guess — that the source-position
+average restores a translation symmetry which a single deposit's response does
+break — is labelled a guess by them and is not evidence.
+
 - **Handoff §6 (Stage B/C regeneration + T13) was NOT reached.** The fleet's
   straggler tail consumed the headroom that the fast families had bought:
   `x001` alone held the completion gate for two hours after 65 of 66 slabs were
