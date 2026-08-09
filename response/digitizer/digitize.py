@@ -60,10 +60,44 @@ DEFAULT_MESH_V = 490.0
 DEFAULT_TRANSPARENCY = 0.873
 
 
+# The pooled meshfield calib is a DIFFERENT container schema, on purpose: all
+# 56 of its slices used the same pre-solved 490 V field map regardless of their
+# --voltage label, so it is one bench-point measurement rather than a voltage
+# scan, and it stores a single `point` instead of a `points` map. Its voltage
+# is stated only in its free-text `note`, not in a machine-readable field —
+# hence this constant and the hard guard below. Applying a 490 V avalanche
+# calibration at some other mesh voltage would be silently wrong, so it raises.
+POOLED_SCHEMA_PREFIX = "aval_calib_meshfield_pooled"
+POOLED_MESH_V = 490.0
+
+
 def load_calib(path, mesh_v):
-    """Pick the S3 point nearest the requested mesh voltage."""
+    """Pick the S3 point nearest the requested mesh voltage.
+
+    Handles both container schemas: the `points` map keyed `<gas>@<V>V`, and
+    the pooled single-`point` meshfield file (see POOLED_SCHEMA_PREFIX).
+    """
     with open(path) as f:
-        cal = json.load(f)["points"]
+        doc = json.load(f)
+
+    if "points" not in doc and "point" in doc:
+        schema = str(doc.get("schema", ""))
+        if not schema.startswith(POOLED_SCHEMA_PREFIX):
+            raise ValueError(
+                f"{path} has a single 'point' but an unrecognised schema "
+                f"{schema!r}; refusing to guess its mesh voltage")
+        if abs(mesh_v - POOLED_MESH_V) > 1e-6:
+            raise ValueError(
+                f"{path} is the pooled {POOLED_MESH_V:.0f} V bench point and "
+                f"carries no per-voltage data, but {mesh_v:.0f} V was asked "
+                f"for. Use a voltage-scan calib for that point, or run at "
+                f"{POOLED_MESH_V:.0f} V.")
+        print(f"  [calib] pooled meshfield point, {POOLED_MESH_V:.0f} V "
+              f"({doc['point'].get('n_slices')} slices, "
+              f"{doc['point'].get('nev_total')} events)")
+        return doc["point"], POOLED_MESH_V
+
+    cal = doc["points"]
     best, bestd = None, None
     for key, rec in cal.items():
         try:
