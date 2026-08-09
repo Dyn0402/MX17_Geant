@@ -852,3 +852,109 @@ outcome, and the one worth being ready for.
 
 Products: `design/report/primary_ionisation_2026-08-10.json`,
 `scratchpad/overnight_2026-08-10/primary_ionisation_check.py`.
+
+---
+
+## 13. ⭐ Adversarial re-derivation of the sheet-screening sizing — the
+## retirement CONFIRMED, by a stronger argument, with the ladder disputed
+
+§9 named the sheet-screening retirement as the one soft spot in the elimination
+chain behind the f_eff contradiction. It is the last eliminated candidate and it
+is load-bearing, so it got a second, deliberately different derivation.
+Prediction and falsifiers were written into the script header before it ran.
+
+### Method — different on purpose
+
+The original (`nTof_x17 sheet_screening_sizing.py`) tracks a sheet counter-charge
+c(k,t) relaxing toward the ion's image exp(−k z(t)) and takes the net as
+`img − c`, giving a ρ ladder of **0.81 / 0.86 / 0.92 / 1.02** across ρ_s =
+0.5 / 1 / 2 / 5 MΩ/sq — 8 % suppression at the production point where ×4.5 was
+needed.
+
+Mine works entirely inside the object the chain already uses — the
+time-dependent weighting potential, which *is* the S1 kernel:
+
+* `Ψ_sheet(k, τ) = (S(k)/C(k)) exp(−k²τ/(ρ_s C(k)))`, the repo's own V1
+  closed form: the response to unit charge sitting **on** the sheet since τ ago.
+* Upward continuation into the gas is exact, because the gas is source-free
+  between the sheet and the grounded mesh:
+  `Ψ(k, z, τ) = Ψ_sheet(k, τ) · sinh(k(GAP−z)) / sinh(k·GAP)`.
+  At k → 0 this is the parallel-plate ramp (GAP−z)/GAP; at large k it tends to
+  exp(−kz), *their* image factor — so their expression is the large-k limit of
+  mine, which is a real cross-check between the two methods.
+* A moving charge is a sequence of dipoles switched on in turn, so the ion's own
+  contribution is `Σᵢ [Ψ(zᵢ, T−tᵢ₊₁) − Ψ(zᵢ₊₁, T−tᵢ₊₁)]`. No signal theorem is
+  invoked; it is superposition.
+* The model's null is the same operator at z = 0.
+
+### The falsifier caught MY error first
+
+The pre-registered falsifier 1 (±0.10 of their 0.92) fired on the first run at
+a ratio of 0.068, and negative at 0.5 MΩ/sq. **The bug was mine, not theirs:** I
+had included the ion's "appearance" term q·Ψ(z₀,T). The ion is not created from
+nothing — it appears with its electron, and that prompt term is the *electron's*,
+already accounted as f_e. Including it made my true branch the total
+electron+ion signal while the model branch was the ion's arriving charge alone,
+so the two were not the same observable. Recorded because the protocol working
+on its author is the reason to run it. Falsifier 2 (static-limit f_ion) passed
+throughout at 0.8959 vs 0.9000, which is what localised the error to the
+accumulation rather than the machinery.
+
+### The result
+
+| ρ_s | true/Q | model/Q | ratio | ÷ bookkeeping | screening-only |
+|---|---|---|---|---|---|
+| 0.5 M | 0.3044 | 0.5192 | 0.5864 | 0.9968 | 1.0000 |
+| 1.0 M | 0.3896 | 0.6643 | 0.5864 | 0.9969 | 1.0001 |
+| 2.0 M | 0.4807 | 0.8189 | 0.5869 | 0.9978 | 1.0010 |
+| 5.0 M | 0.5917 | 1.0057 | 0.5883 | 1.0002 | 1.0034 |
+
+The ratio is **flat across the whole ladder**, and equals
+`f_ion × T_EVAL/T_ION = 0.9000 × 0.6536 = 0.5882` to within 0.3 %.
+
+**That constant is pure bookkeeping — it is the f_ion geometric factor the model
+already applies, plus the fraction of the transit inside the window.** Strip it
+out and the genuinely ρ_s-dependent part, which is the only part that could be a
+resistive-sheet screening effect, is **0.34 % across a factor 10 in ρ_s.**
+
+### Why — and it is structural
+
+The weighting potential in the gas **factorises** as
+`Ψ_sheet(k,τ) × cont(k,z)`, and the continuation factor `cont` is
+**time-independent** — the gas is source-free and bounded by the grounded mesh,
+so the only τ-dependence anywhere is in the sheet's own boundary value. An
+in-gas source therefore sees *exactly* the same temporal sheet response as an
+on-sheet source, scaled by a purely geometric factor. **The sheet's relaxation
+cannot distinguish an induced source from a deposited one.**
+
+So the induced-vs-injected distinction is not a screening effect at all. What it
+*is* — a k-dependent low-pass, since `cont(k,z)` suppresses high k, making the
+ion's lateral image broader than a point by roughly its own height — is the T10
+effect, already measured at "central share 1.0000 → 0.977 at worst". My
+derivation reproduces that independently.
+
+### Verdict, and the honest disagreement
+
+**The retirement stands, and this is a stronger argument than the original.**
+Not "the effect is only 8 %" but "there is no ρ_s-dependent effect of this kind;
+the whole distinction reduces to a geometric factor the model already carries".
+×4.5 needs a ratio of ~0.22; the ρ-dependent part offers 0.3 %.
+
+⚠️ **But the two derivations disagree about the ladder, and that is not
+resolved.** Theirs swings 26 % across ρ_s (0.81 → 1.02); mine is flat to 0.3 %.
+Both agree the effect is far too small to deliver ×4.5 — which is why the
+retirement is robust under either — but they cannot both be right about the
+ρ-dependence. My reading is that `img − c` double-counts the sheet: the sheet's
+response is already inside `Ψ_sheet`, so subtracting a separately-tracked
+counter-charge removes it twice. I have not proven that, and I am not claiming
+their number is wrong on the strength of my own derivation having already
+needed one bug fix tonight. **It is a discrepancy to settle in daylight, not a
+correction to make now.**
+
+**Consequence for §9:** the soft spot named there is now much harder. The open
+question — what suppresses the ion-induction term by ×4–5 — has no surviving
+mechanism, and the candidate that came closest to a structural explanation fails
+by two independent derivations rather than one.
+
+Products: `design/report/sheet_screening_rederive.json`,
+`scratchpad/overnight_2026-08-10/sheet_screening_rederive.py`.
