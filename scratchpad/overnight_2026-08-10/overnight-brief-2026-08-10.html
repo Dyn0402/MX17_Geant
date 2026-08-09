@@ -116,6 +116,35 @@ would drop 24 094 → 18 538 and <b>the demanded factor would go from ×1.66 to
 the drift also suppresses the gain, and the gain was already too low. That
 constraint did not exist before last night.</p>
 
+<p><b>And it couples three puzzles that were independent until last night</b> —
+the slow v_drift, the gain deficit, and the contaminant axis. The contaminant
+axis used to be free: invoke water to explain the drift velocity, pay nothing
+elsewhere. It now carries a quantified price — <b>every 0.5 % of water invoked
+to slow the drift adds ~13 % to the gain the simulation must be wrong by.</b>
+Two guards on how far that can be pushed, because it is tempting to
+overread:</p>
+
+<ul>
+<li><b>The demanded <em>detector</em> gain is gas-invariant.</b> It stays 40 243
+whether the sim assumes wet or dry, because the signal is linear in gain and
+changing the assumed gas rescales <code>G_sim</code> and the sim/data ratio
+together. So "the detector sits at the top of the 3–4 × 10<sup>4</sup> stable
+band" is a standing concern the wet hypothesis does <b>not</b> aggravate. What
+grows is the required <em>model</em> error, not the operating point.</li>
+<li><b>The two hypotheses are not close to mutually exclusive.</b> The measured
+slope deficit (0.1381 ± 0.0099 per 10 V) generates either required error over an
+ordinary voltage offset: the curves would have to agree at 453 ± 3 V (dry) or
+434 ± 4 V (wet), both inside the 425–530 V scanned range. The wet world is in a
+<em>worse</em> position — it needs the sim right about gain only at 434 V, 26 V
+below det3's operating range — but it is not excluded.</li>
+</ul>
+
+<p class="warn"><b>Reading rule this implies for the slope hunt:</b> an outcome
+A that closes the gain at ×1.67 implicitly assumes a dry gas, and the same rP
+would leave a residual ×1.3 if the gas is wet at the level the v_drift anomaly
+wants. <b>Report outcome A with the gas assumption stated, not as unconditional
+closure.</b></p>
+
 <h2>Thread 3 — X/Y asymmetry: real, sim-side, and 18 %</h2>
 
 <p>The detector is X/Y symmetric; the simulation is not. Both terms are now

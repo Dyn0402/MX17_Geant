@@ -91,6 +91,34 @@ demanded factor would go from ×1.66 to ×2.16.** The two fitted-to-data axes pu
 against each other: whatever slows the drift also suppresses the gain, and the
 gain was already too low. That constraint did not exist before last night.
 
+**And it couples three puzzles that were independent until last night** — the
+slow v_drift, the gain deficit, and the contaminant axis. The contaminant axis
+used to be free: invoke water to explain the drift velocity, pay nothing
+elsewhere. It now carries a price, and the price is quantified — **every 0.5 %
+of water invoked to slow the drift adds ~13 % to the gain the simulation must
+be wrong by.**
+
+Two guards on how far that can be pushed, because it is tempting to overread:
+
+* **The demanded *detector* gain is gas-invariant.** It stays 40 243 whether
+  the sim assumes wet or dry, because the signal is linear in gain and changing
+  the assumed gas rescales `G_sim` and the sim/data ratio together. So "the
+  detector sits at the top of the 3–4 × 10⁴ stable band" is a standing concern
+  that the wet hypothesis does **not** aggravate. What grows is the required
+  *model* error, not the operating point.
+* **The two hypotheses are not close to mutually exclusive.** The measured
+  slope deficit (0.1381 ± 0.0099 per 10 V) generates either required error over
+  an ordinary voltage offset: the sim and data gain curves would have to agree
+  at 453 ± 3 V (dry) or 434 ± 4 V (wet), both inside the 425–530 V scanned
+  range. The wet world is in a *worse* position — it needs the sim right about
+  gain only at 434 V, 26 V below det3's operating range — but it is not
+  excluded.
+
+**Reading rule this implies for the slope hunt:** an outcome A that closes the
+gain at ×1.67 implicitly assumes a dry gas, and the same rP would leave a
+residual ×1.3 if the gas is wet at the level the v_drift anomaly wants. Report
+outcome A with the gas assumption stated, not as unconditional closure.
+
 ### Thread 3 — X/Y asymmetry. Real, sim-side, and modest
 
 The detector is X/Y symmetric; the simulation is not. Both terms are now
