@@ -9,7 +9,7 @@
 # Requires a live Kerberos ticket (klist) for the lxplus GSSAPI hop.
 #
 # Usage: ./shuttle_to_eos.sh [what]
-#   what: ladder | archive490 | hvscan | all   (default: all)
+#   what: ladder | archive490 | hvscan | diagnosis_grid | all   (default: all)
 set -e
 
 EOS=/eos/experiment/ntof/data/x17/response_sim
@@ -49,10 +49,16 @@ case "$WHAT" in
     push "$UCLA/avalanche/results_meshfield_hvscan" \
          "$EOS/avalanche/raw_meshfield_hvscan_20260808" ;;
 esac
+case "$WHAT" in
+  diagnosis_grid|all)
+    push "$UCLA/avalanche/results_diagnosis_grid" \
+         "$EOS/avalanche/raw_diagnosis_grid_20260809" ;;
+esac
 
 # Small merged/pooled JSONs travel with git normally, but ship a copy to EOS
 # too since that is where every other calib JSON in this tree already lives.
-for f in aval_calib_meshfield_pooled.json aval_calib_meshfield_hvscan.json; do
+for f in aval_calib_meshfield_pooled.json aval_calib_meshfield_hvscan.json \
+         aval_calib_diagnosis_grid.json; do
   if [ -f "$f" ]; then
     echo "[shuttle] $f -> lxplus:$EOS/avalanche/$f"
     rsync -av "$f" "lxplus:$EOS/avalanche/$f"
