@@ -44,6 +44,8 @@ void PrintUsage() {
     std::cerr << "  --beam-spread <mm> Uniform transverse spread of the impact point (default 0 =\n";
     std::cerr << "                   pencil beam). Use >= 31.2 (the ESL/pad superperiod) for any\n";
     std::cerr << "                   response-chain run: a pencil beam lands on a pad boundary.\n";
+    std::cerr << "  --theta-x <deg>  Track angle in the x-z plane, tan(theta)=dx/dz (default 0)\n";
+    std::cerr << "  --theta-y <deg>  Track angle in the y-z plane (default 0)\n";
     std::cerr << "  --src-dist <mm>  Source-to-detector air gap [mm] (default: 100)\n";
     std::cerr << "  --bulge-front <mm>  Front-window overpressure dome sag (default: 8, 0=flat)\n";
     std::cerr << "  --legacy-geometry   Use the pre-2026-08 uniform-slab MM module\n";
@@ -99,6 +101,8 @@ int main(int argc, char** argv) {
         }
         else if (arg == "--spectrum" && i+1<argc) config.spectrum_file  = argv[++i];
         else if (arg == "--beam-spread" && i+1<argc) config.beam_spread_mm = std::stod(argv[++i]);
+        else if (arg == "--theta-x" && i+1<argc) config.theta_x_deg = std::stod(argv[++i]);
+        else if (arg == "--theta-y" && i+1<argc) config.theta_y_deg = std::stod(argv[++i]);
         else if (arg == "--src-dist" && i+1<argc) config.source_to_det_mm = std::stod(argv[++i]);
         else if (arg == "--bulge-front" && i+1<argc) config.mx17_bulge_front_mm = std::stod(argv[++i]);
         else if (arg == "--legacy-geometry") config.legacy_mm_geometry = true;

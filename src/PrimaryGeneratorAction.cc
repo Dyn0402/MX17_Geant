@@ -15,6 +15,7 @@
 #include "Randomize.hh"
 
 #include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <numeric>
 #include <sstream>
@@ -51,7 +52,10 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(const SimConfig& cfg,
 
     fGun->SetParticleDefinition(particle);
     fGun->SetParticleEnergy(cfg.energy);
-    fGun->SetParticleMomentumDirection(G4ThreeVector(0, 0, 1));
+    // tan(theta) = dx/dz per view (wft convention); (0,0) is the vertical gun.
+    fGun->SetParticleMomentumDirection(
+        G4ThreeVector(std::tan(cfg.theta_x_deg * deg),
+                      std::tan(cfg.theta_y_deg * deg), 1).unit());
 
     // Gun position
     G4double gunZ = -10.0 * cm;

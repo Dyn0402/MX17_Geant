@@ -49,6 +49,15 @@ struct SimConfig {
     // the 31.2 mm ESL/pad superperiod so every strip phase is sampled.
     double beam_spread_mm = 0.0;
 
+    // ── Beam inclination (T14 angled ladder) ─────────────────────────────
+    // Track angle in the x-z / y-z planes, degrees; tan(theta) = dx/dz, the
+    // same convention the wft reconstruction reports. 0/0 = the historical
+    // vertical gun. The ClusterTree schema does NOT change: the per-event
+    // vertex + cluster (x,y,z) already encode the true angle, and Stage B's
+    // transport handles per-cluster z as always.
+    double theta_x_deg = 0.0;
+    double theta_y_deg = 0.0;
+
     // ── LS cell wall parameters (from Full_Geant geometry) ───────────────
     double cfrpThickness_mm  = 2.0;    // Structural CFRP wall [mm]
     double ls_inner_cfrp_um  = 600.0;  // Inner CFRP liner [µm]
