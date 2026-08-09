@@ -202,8 +202,16 @@ def main():
     calib, rows = {}, []
     for (gas, volt), sl in sorted(points.items()):
         m = merge(sl)
+        # Machine-readable voltage/gas, not just baked into the string key --
+        # a consumer needing "what voltage was this point run at" had to
+        # parse "Ar_iC4H10_95_5_Saclay_160m.gas@530V" to get it (hit for
+        # real: response/digitizer/digitize.py had to hardcode 490V rather
+        # than read it, for aval_calib_meshfield_pooled.json, which predates
+        # this fix and still only carries the voltage in free text).
+        m["voltage_V"] = float(volt)
+        m["gas_file"] = gas
         key = f"{gas}@{volt:.0f}V"
-        rows.append((volt, m))
+        rows.append((gas, volt, m))
         p = m["polya"]
         print(f"  {key:<44s} nev={m['nev_total']:5d}  "
               f"gain={p['gain_mean']:9.1f}  theta={p['theta']:5.2f}  "
@@ -225,28 +233,41 @@ def main():
     except ImportError:
         return 0
     os.makedirs(a.figdir, exist_ok=True)
-    rows.sort()
-    V = [r[0] for r in rows]
-    G = [r[1]["polya"]["gain_mean"] for r in rows]
-    TH = [r[1]["polya"]["theta"] for r in rows]
-    S0 = [r[1]["sigma0_um"] for r in rows]
+    # Sort by (gas, volt) explicitly -- (volt, m) used to fall back to
+    # comparing the dict m when two different gases share a voltage (hit for
+    # real: a 95/5 + 90/10 campaign both including 530V raised
+    # "'<' not supported between instances of 'dict' and 'dict'";  the JSON
+    # above was already written by that point, so no data was lost, but the
+    # figure never got made).
+    rows.sort(key=lambda r: (r[0], r[1]))
+    gases = sorted(set(r[0] for r in rows))
+    colors = plt.cm.tab10.colors
 
     fig, ax = plt.subplots(1, 3, figsize=(13, 3.9))
-    ax[0].semilogy(V, G, "o-", color="#2a78d6", ms=6)
+    for i, gas in enumerate(gases):
+        grows = [r for r in rows if r[0] == gas]
+        V = [r[1] for r in grows]
+        G = [r[2]["polya"]["gain_mean"] for r in grows]
+        TH = [r[2]["polya"]["theta"] for r in grows]
+        S0 = [r[2]["sigma0_um"] for r in grows]
+        c = colors[i % len(colors)]
+        label = os.path.splitext(gas)[0]
+        ax[0].semilogy(V, G, "o-", color=c, ms=6, label=label)
+        ax[1].plot(V, TH, "s-", color=c, ms=6, label=label)
+        ax[2].plot(V, S0, "^-", color=c, ms=6, label=label)
     ax[0].set_xlabel("mesh voltage [V]"); ax[0].set_ylabel("mean gain")
     ax[0].set_title("Gain vs voltage (150 µm gap)")
-    ax[1].plot(V, TH, "s-", color="#eb6834", ms=6)
     ax[1].set_xlabel("mesh voltage [V]"); ax[1].set_ylabel("Polya θ")
     ax[1].set_title("Polya shape parameter")
-    ax[2].plot(V, S0, "^-", color="#1baf7a", ms=6)
     ax[2].set_xlabel("mesh voltage [V]")
     ax[2].set_ylabel("transverse avalanche σ₀ at the ESL [µm]")
     ax[2].set_title("Avalanche footprint")
     for x in ax:
         x.grid(True, color="#e6e6e2")
         x.spines["top"].set_visible(False); x.spines["right"].set_visible(False)
-    fig.suptitle("S3 — avalanche calibration, Ar/iC₄H₁₀ 95/5, uniform-field "
-                 "first pass", y=1.03)
+        if len(gases) > 1:
+            x.legend(fontsize=7)
+    fig.suptitle("S3 — avalanche calibration", y=1.03)
     p = os.path.join(a.figdir, "s3_avalanche_calib.png")
     fig.savefig(p, dpi=150, bbox_inches="tight")
     print(f"wrote {p}")
