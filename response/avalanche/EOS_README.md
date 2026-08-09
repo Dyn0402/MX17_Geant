@@ -50,6 +50,21 @@ refuses an all-zero `i_elec`/`i_ion`, so a calibration accidentally built from
 `raw/` fails loudly instead of turning the LUT silently to `nan`. That guard has
 now caught this twice.
 
+## T7 field-map campaigns (2026-08-08/09) — separate from the uniform-field history above
+
+| what | where | status |
+|---|---|---|
+| `raw_meshfield_490V_20260808/` — 56 slices | here | first field-map run; its `--voltage` label is **fake** for every slice except 490V (see `MESHFIELD_QUARANTINE_README.md`, `response/avalanche/aval_calib_meshfield_QUARANTINED.json` in git) — `ComponentGrid` loads a fixed pre-solved map, so all 56 slices measured the identical 490V physics regardless of label |
+| `aval_calib_meshfield_pooled.json` | here + git | the correct reduction of the run above: all 56 slices pooled as one 6400-event 490V point |
+| `raw_meshfield_hvscan_20260808/` — 120 slices | here | real per-voltage campaign, Ar/iso 95/5 (460-530V) + Ar/iso 90/10 (530-590V), each against its own field map from `s2/meshfield_ladder/` |
+| `aval_calib_meshfield_hvscan.json` | here + git | merged 15-point calib from the run above |
+| `s2/meshfield_ladder/` — 41 maps | here | the gas-agnostic field-map voltage ladder (300-700V/10V, `solve_fieldmap.py --v-mesh`); pure electrostatics, so one map per voltage serves every gas — this is what the hvscan campaign's per-voltage lookup reads from |
+
+All meshfield-campaign calib JSONs carry `voltage_V`/`gas_file`/`seed_z0_um`
+per point (added 2026-08-09) rather than only in the string key or a fixed
+mirrored constant downstream — see `response/avalanche/collect.py` and
+`mx17_aval_calib.py`'s `config` block.
+
 ## Open
 
 Upload `results_v2/` (19 GB) here so the v2 raw lives on EOS and not only on
