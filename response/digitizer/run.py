@@ -208,6 +208,19 @@ def main():
                     default="measured",
                     help="measured = the S3 v2 i_elec+i_ion template (needs a "
                          "v2 calib); analytic = the delta + rectangle model")
+    ap.add_argument("--z-aval-um", type=float, default=13.84,
+                    help="mean ion BIRTH HEIGHT above the ESL [um]. Consumed "
+                         "ONLY by --ion-model analytic, where it sets the "
+                         "charge split f_ion = 1 - z/gap and nothing else — "
+                         "the rectangle's length is g^2/(mu V), independent of "
+                         "it. That makes this the one clean f_ion dial the "
+                         "chain has, which is why it is exposed: the S3 ion "
+                         "handoff needs dRise/df_ion measured, and f_ion is "
+                         "otherwise welded to the calib. The DEFAULT 13.84 is "
+                         "the measured S3 v2 value (audit C12) and reproduces "
+                         "f_ion = 0.9077; any other value is a DIAGNOSIS probe "
+                         "of a charge split the detector does not have, not a "
+                         "configuration. Physical range is [0, 150].")
     ap.add_argument("--seed", type=int, default=5)
     ap.add_argument("--fixed-position", action="store_true",
                     help="do NOT randomise the impact point (see below)")
@@ -261,6 +274,18 @@ def main():
                     help="noise spec from response.dream.noise --characterise")
     a = ap.parse_args()
 
+    # Checked HERE, before any file is opened: a rejected flag should cost a
+    # second, not the minutes it takes to pull a 5 GB kernel off EOS first.
+    if not 0.0 <= a.z_aval_um <= C.AMP_GAP_UM:
+        raise SystemExit(f"--z-aval-um {a.z_aval_um} is outside the "
+                         f"{C.AMP_GAP_UM:.0f} um gap; f_ion = 1 - z/gap would "
+                         "leave [0, 1]")
+    if a.z_aval_um != 13.84 and (a.ion_model != "analytic" or a.no_ions):
+        raise SystemExit("--z-aval-um only does anything with --ion-model "
+                         "analytic and ions ON; the measured template carries "
+                         "its own split. Refusing to run a flag that would be "
+                         "silently ignored.")
+
     # FEU ids: the target run's config wins. An explicit --feu-ids that
     # contradicts it is refused rather than silently honoured, because the
     # failure it guards against is invisible — wrong ids reconstruct zero
@@ -290,6 +315,7 @@ def main():
     cf = ClusterFile(a.clusters)
     dig = Digitizer(a.kernel, os.path.expanduser(a.calib), seed=a.seed,
                     with_ions=not a.no_ions, ion_model=a.ion_model,
+                    z_aval_um=a.z_aval_um,
                     kernel_t_max_ns=a.kernel_t_max,
                     n_chan_side=a.n_side, y_window_mm=a.y_window)
     shaper = None if a.no_shaper else DreamShaper(
