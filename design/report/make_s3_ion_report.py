@@ -315,11 +315,34 @@ def main():
         REPO, "response", "meshcell", "ion_template_check.json"))
     ap.add_argument("--scan", default=os.path.expanduser(
         "~/x17/response_sim/stageB_w2/t14_fion_scan_readout.json"))
+    ap.add_argument("--beta", default=os.path.expanduser(
+        "~/x17/response_sim/stageB_w2/t14_beta_scan_readout.json"),
+        help="T14's beta scan — the MEASURED rise/undershoot exchange rate "
+             "that falsifies the missing-high-pass class")
     ap.add_argument("--out", default=os.path.join(
         HERE, "s3_ion_2026-08-09.html"))
     a = ap.parse_args()
 
     psi, tmpl, scan = load(a.psi), load(a.template), load(a.scan)
+    # The MEASURED rise/undershoot exchange rate, straight out of T14's beta
+    # scan. This is what falsifies the missing-high-pass class, so it is read
+    # from their record rather than retyped.
+    bd = load(a.beta)
+    beta_rows, beta_rate, beta_cost = [["beta scan not found", "", ""]], "?", "?"
+    if bd and "0.0_x" in bd and "0.75_x" in bd:
+        lo, hi = bd["0.0_x"], bd["0.75_x"]
+        dr = hi["rise"][0] - lo["rise"][0]
+        du = (hi["under"] - lo["under"]) * 100.0
+        beta_rows = [
+            [f"beta = 0.00", f"{lo['rise'][0]:.1f}", f"{lo['under']*100:.2f}"],
+            [f"beta = 0.75 (production)", f"{hi['rise'][0]:.1f}",
+             f"{hi['under']*100:.2f}"],
+            ["<strong>bought / paid</strong>",
+             f"<strong>{dr:+.1f}</strong>", f"<strong>{du:+.2f}</strong>"]]
+        rate = abs(dr / du) if du else float("nan")
+        beta_rate = (f"{rate:.2f} ns of rise per point of undershoot")
+        beta_cost = f"{104.0/rate:.0f} points"
+
     try:
         peak_rows, lat_rows = leverage_tables()
     except Exception as exc:                                  # noqa: BLE001
@@ -381,13 +404,20 @@ reconstruction. 172-ns-to-half is right.</li>
 isobutane/cluster ion is ~4&nbsp;% <em>slower</em> than the Ar+ the emitter
 assumes.</li>
 </ul>
-<p>So the ion model is not the defect. The single-channel shaper model says the
-data's 150 ns rise demands an <em>effective</em> f_ion near 0.2&ndash;0.3 &mdash;
-three to four times smaller than a split now defended by two independent routes.
-That is a structural contradiction, not a parameter error, and the next axis is
-the longitudinal &times; lateral
-factorisation, in which the ion is handed the surface kernel's lateral shape
-frozen at its creation point.</p>
+<p>So the ion model is not the defect &mdash; and neither is anything else that
+has been proposed. The data's rise demands an <em>effective</em> slow fraction
+near 0.2, three to four times smaller than a split now defended by two
+independent routes. Cross-check at the median, where the arithmetic is
+independent of the p5 estimate: the ion term is worth 63 ns (333.6 with ions,
+270.3 without) and the gap to data is 50 ns, so ~80&nbsp;% of the ion
+contribution has to disappear.</p>
+<p><strong>Everything with enough leverage to do that has now been eliminated.</strong>
+&beta; (4 ns across its range), the peaking-time register (code 2, 44/44
+archived configs), the ion charge split, the ion template, the ion species, the
+lateral factorisation (3.7 ns), and &mdash; by an exchange-rate argument on
+&beta;'s own measured lever &mdash; the entire class of missing high-pass
+elements. This is a structural contradiction, not a parameter error, and it
+should be reported as one rather than absorbed into a fit.</p>
 </div>
 
 <h2>Item 2 &mdash; f_ion on the readout electrode, through the mesh</h2>
@@ -414,32 +444,70 @@ height, 149 &micro;m at the end of transit, against an 800 &micro;m channel
 pitch: the central channel's share falls only from 1.0000 to 0.977 even at the
 worst moment. <strong>T10 will not close this gap.</strong></p>
 
-<h3>The peaking-time register is still live, and it has the leverage</h3>
-<p>The &beta; scan moved the rise by 4 ns and was read as exonerating the
-electronics. But &beta; is one of the shaper's two parameters, and it is the
-weak one. The peaking time was never scanned &mdash; it is an
-<em>assumption</em>, <code>state1 = 0x081FD023</code> from
-<code>CosmicTb_MX17.cfg</code>, not archived with the run:</p>
+<h3>The peaking-time register is not it either &mdash; it is code 2</h3>
+<p>&beta; is only one of the shaper's two parameters and it is the weak one:
+one peaking-code step is worth <strong>50&ndash;65 ns</strong> of rise against
+&beta;'s 4 ns across its entire range, which is the order of the discrepancy.
+So the register looked like the live suspect. It is not:</p>
 {table(["peaking code", "t<sub>peak</sub> [ns]", "shaper alone [ns]",
         "channel rise, f_ion 0.9006 [ns]", "f_ion 0 [ns]"], peak_rows)}
-<p>One code step is worth <strong>50&ndash;65 ns</strong> of rise, against
-&beta;'s 4 ns across its whole range. That is the same order as the 104 ns
-discrepancy being chased. The toy runs ~55 ns below the full chain, so no code
-here should be read as "the answer" &mdash; but the <em>leverage</em> is real,
-and it means <strong>the electronics axis is not exonerated</strong>. It was
-tested on the parameter that could not have caused the problem.</p>
-<p class="note">Caveat that has to be checked before anyone gets excited: the
-upper rise quantiles currently AGREE between sim and data (p95 608 vs 602 ns),
-and those are set by track geometry rather than the shaper, so a faster shaper
-should move the fast side much more than the slow side &mdash; which is the
-shape of the observed defect. That prediction is testable with one Stage B
-point and has not been tested.</p>
+<p>All <strong>44</strong> archived <code>CosmicTb_MX17.cfg</code> copies under
+the bench disk carry <code>1 0x081F 0xD023 0x0000 0x0000</code> &rarr;
+<strong>code 2</strong>, across det1/det3/det4 from January to 2026-06-16.
+Uniform, no exceptions.</p>
+<p class="note"><strong>Inference, not measurement, and the record should say
+so.</strong> The T14 target run
+(<code>mx17_det3_p2_det1_overnight_6-27-26</code>) archived <em>no</em>
+<code>.cfg</code> at all &mdash; only <code>run_config.json</code> and the
+subrun directory &mdash; and its config points at a DAQ-side template
+<em>path</em>, not an archived file. So the evidence is 44 identical copies of
+that template from <em>other</em> runs, the most recent 11 days before the
+target. Strong, and adopted; just not a read-back of the target run's own
+register.</p>
+
+<h3>And a missing high-pass cannot do it, whatever its topology</h3>
+<p>The natural next thought is that the shaper <em>model</em> is missing a real
+AC-coupling / high-pass element between DREAM output and ADC, which would
+differentiate slow content and take the fast side back. The &beta; scan already
+measured the exchange rate for exactly that, because &beta; <em>is</em> a
+high-pass strength knob:</p>
+{table(["", "X p5 rise [ns]", "undershoot [%]"], beta_rows)}
+<p>That is <strong>{beta_rate}</strong>. Buying the 104 ns needed would cost
+~{beta_cost} of undershoot &mdash; while the data requires the undershoot to
+move <em>the other way</em>, from &minus;9.8&nbsp;% to &minus;3.4&nbsp;%, i.e.
+6.4 points shallower. A shorter time constant is a better deal but not nearly
+enough: over an extra series high-pass with &tau; from 100 ns to 5 &micro;s the
+best exchange rate anywhere is ~1.0 ns of rise per point of undershoot, still
+~104 points against a budget of &minus;6.4.</p>
+<p>Any element that differentiates slow content buys rise by deepening
+undershoot, and the data demands faster rise <em>and</em> shallower undershoot
+at once. <strong>That falsifies the class, not just one realisation of it</strong>
+&mdash; the argument is a generic property of high-pass filters.</p>
+
+<h2>Item 1 &mdash; analytic vs measured ion model</h2>
+<p>Answered, and the pre-registered prediction held. X median rise: measured
+template 333.6 ns, analytic 320.8 ns, no ions 270.3 ns, data 283.9 ns. The
+analytic model is <strong>3.8&nbsp;% faster</strong>, inside the pre-registered
+2&ndash;10&nbsp;% band, and the falsifier (analytic below 200 ns, meaning the
+template's time profile is load-bearing) did not trigger. The direction was
+predicted too: analytic runs on the zero-field K<sub>0</sub> = 1.53 while the
+gap sits at 123.8 Td where it is 1.212, so the 306 ns rectangle is ~21&nbsp;%
+too fast. <strong>The template's fine shape is not load-bearing; the measured
+one is the correct of the two.</strong></p>
 
 <h2>What this does not rule out</h2>
 <ul>
 <li><strong>&beta;, jointly.</strong> The &beta; scan moved the rise by 4 ns
 over 0&ndash;0.75, but it was run <em>with</em> f_ion = 0.90. A joint
-(&beta;, f_ion) fit is not the same experiment.</li>
+(&beta;, f_ion) fit is not the same experiment &mdash; though with every
+parameter here defended, a fit that closes it would be absorbing a modelling
+error rather than measuring anything.</li>
+<li><strong>The amplitude deficit is genuinely separate.</strong> Tested, not
+assumed: a single-channel toy predicted that removing the slow charge would
+raise the peak &times;1.87, which would have unified amplitude, rise and
+undershoot into one cause. The measured ratios say &times;1.14 (peak_amp_med
+0.5527 with ions &rarr; 0.6319 without), so the toy over-predicts amplitude
+sensitivity ~6&times; and the unification does <em>not</em> hold.</li>
 <li><strong>The amplitude deficit.</strong> Untouched and deliberately so: the
 no-ions sim still peaks at &times;0.63 of data, so amplitude is upstream of all
 of this.</li>
