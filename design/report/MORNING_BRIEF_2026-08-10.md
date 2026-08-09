@@ -227,3 +227,29 @@ corrected in the record, because they were caught before anything rested on
 them: the sheet-screening re-derivation's pre-registered falsifier fired on its
 *author's* bug first, and an avalanche certification read FAIL on my own wrong
 sign convention rather than on the data.
+
+---
+
+## The readable copy — built, NOT deployed
+
+This brief is staged as a site note and rebuilt into the local site:
+
+```
+pages/notes/overnight-brief-2026-08-10.html
+```
+
+**I did not deploy it.** One command publishes it:
+
+```bash
+cd ~/PycharmProjects/dylan-cern-site && ./scripts/deploy-eos.sh
+# -> https://dylan-neff.web.cern.ch/notes/overnight-brief-2026-08-10.html
+```
+
+Two reasons it is yours to run and not mine. The publish workflow says to ask
+before deploying, because it goes to a **world-readable** URL — notes are
+unlisted (`noindex`), not private, so anyone with the link can read them. And
+the whole of this brief is **unpublished in-progress analysis**, which is
+exactly the category that workflow says to flag rather than push. A peer agent
+asking for it does not substitute for your call.
+
+Everything in it is already in the repo, so nothing is gated on the deploy.
