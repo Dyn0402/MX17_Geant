@@ -1,0 +1,17 @@
+# Re-cert the LUT caching under the FIXED harness: W2 rho2M + W1 ny1024 rho2M.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_lutfix_cert.sh
+arguments               = $(tag) $(eosdir) $(prod)
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/lutfix_$(tag).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/lutfix_$(tag).err
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w2.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 8000000
++JobFlavour             = "longlunch"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+queue tag, eosdir, prod from (
+W2_rho2M, /eos/experiment/ntof/data/x17/response_sim/s1_w2_ny512/products, greens_comb_w2_rho2M_dk50um_g19um.npz
+W1BASE_rho2M, /eos/experiment/ntof/data/x17/response_sim/s1_ny1024, greens_comb_rho2M_dk50um_g19um.npz
+)
