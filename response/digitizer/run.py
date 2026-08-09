@@ -193,11 +193,18 @@ def main():
                     help="FEU ids for the X and Y views. These ARE the decoded "
                          "file suffixes, and wft keys its strip map off them "
                          "(wft/io.py), so they must be the target run's own "
-                         "ids: det3 (the bench detector this chain mimics) is "
-                         "x->FEU 3, y->FEU 4 per its run_config.json. The old "
-                         "hardcoded 07/08 is a DIFFERENT physical detector "
-                         "(mx17_2), so a det3-configured wft found no files. "
-                         "An SPS-run comparison must set these from that run.")
+                         "ids. ⚠️ THEY ARE PER RUN, NOT PER DETECTOR: det3 sits "
+                         "on FEU 3/4 in the 6-25 day and 6-26 quick runs, but "
+                         "on FEU 7/8 in the 6-27 saturday scan and the 6-27 "
+                         "p2/det1 overnight (checked in each run_config.json). "
+                         "The T14 target is the SATURDAY SCAN "
+                         "(long_run_resist_490V_drift_1000V), so that "
+                         "comparison needs --feu-ids 7 8; this 3/4 default "
+                         "matches the 6-25/6-26 runs only. An earlier note "
+                         "here said 07/08 was 'a different physical detector "
+                         "(mx17_2)' — true of the 6-22 run it was written "
+                         "from, false as a general statement. Getting this "
+                         "wrong costs no error: wft simply finds no files.")
     ap.add_argument("--decoded-tag", default="sim_000",
                     help="the '<date>_<time>_<idx>' field of the decoded file "
                          "name. wft pairs the X and Y files of a subrun by it "

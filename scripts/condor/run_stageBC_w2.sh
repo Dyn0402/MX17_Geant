@@ -44,9 +44,15 @@ xrdcp -s -f "root://eosuser.cern.ch/${EOSPROD}/${PROD}" "$WORK/$PROD"
 xrdcp -s -f "root://eosuser.cern.ch/${EOSCLUS}/${CLUSTERS}" "$WORK/$CLUSTERS"
 echo "pulled kernel $(stat -c%s "$WORK/$PROD") B, clusters $(stat -c%s "$WORK/$CLUSTERS") B"
 
-# --feu-ids left at the 3/4 default on purpose: det3 is the detector this chain
-# mimics and wft keys its strip map off those ids.
+# --feu-ids 7 8, NOT the 3/4 default. FEU assignment is per RUN, not per
+# detector: mx17_3 sits on 3/4 in the 6-25/6-26 runs but on 7/8 in the 6-27
+# saturday scan, which is the T14 target (long_run_resist_490V_drift_1000V)
+# per the §0a P1 decision. Verified in that run's own run_config.json
+# (detectors[0].dream_feus: x_* -> 7, y_* -> 8) and in qa_config's sat_det3
+# (MX17_FEU_X 7, MX17_FEU_Y 8). Wrong ids cost no error — wft finds no files
+# and reconstructs zero events.
 python3 -u -m response.digitizer.run "$WORK/$CLUSTERS" \
+    --feu-ids 7 8 \
     --kernel "$WORK/$PROD" \
     --calib "$SRC/response/avalanche/aval_calib_meshfield_pooled.json" \
     --noise "$W2BASE/calib/noise_det3.json" \
