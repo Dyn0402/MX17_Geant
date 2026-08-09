@@ -1046,3 +1046,41 @@ the code path runs end to end, reproduces gain@490 = 24 172 and the sim slope
 0.3106, and correctly **abstains** rather than inventing a verdict. The header
 notes that an abstain on the *real* slope-hunt output would mean the merge
 failed to carry the Penning setting — i.e. the abstain is also a bug detector.
+
+---
+
+## 16. The X/Y spreading term firmed up — both terms are now established
+
+§10 left the extra-spreading term at 2.3 σ, limited by only 257 paired
+unsaturated data events. The paired requirement was the binding constraint, and
+it can be relaxed without regenerating anything: the vertical-gun DIAGNOSIS
+directories each carry their own data leg drawn from the same run, so pooling
+them and de-duplicating by `event_id` yields **738 unique paired events (606
+unsaturated)**, against 304 (257) from `t14_compare` alone.
+
+Bootstrap 4000×, sim from `t14_compare` (shown in §8 to be selection-immune at
+0.790 / 0.782 / 0.783, so it needs no pooling):
+
+| quantity | value | significance |
+|---|---|---|
+| data peak Y/X | 0.9577 ± 0.0183 | — |
+| data q_event Y/X | 1.2048 ± 0.0206 | — |
+| sim peak Y/X | 0.7841 ± 0.0063 | — |
+| sim q_event Y/X | 1.0627 ± 0.0049 | — |
+| **peak Y/X, sim/data** | **0.8190 ± 0.0171** | 10.6 σ from 1 |
+| **charge-partition term** | **0.8823 ± 0.0156** | 7.6 σ from 1 |
+| **extra-spreading term** | **1.0777 ± 0.0254** | **3.1 σ from 1** |
+
+**Both terms are now established.** The spreading term moves from 2.3 σ to
+3.1 σ and its central value is stable (1.087 → 1.078), as is the
+charge-partition term (0.897 → 0.882). The decomposition and the ~18 % total
+are unchanged; what changes is that neither half can now be dismissed as noise.
+
+⚠️ Caveat on the pooling: the legs come from directories whose θ windows are
+derived from each one's own sim distribution, so they are near-identical rather
+than identical selections. All are **vertical-gun** points — the tilted ones are
+deliberately excluded, since they window on the inclined view and would mix
+angular composition into a Y/X ratio. The residual heterogeneity is a
+second-order effect on a ratio, and the data's peak Y/X from the pool (0.9577)
+sits within 1 σ of the single-directory value (0.951), which is the check that
+it did not distort anything.
