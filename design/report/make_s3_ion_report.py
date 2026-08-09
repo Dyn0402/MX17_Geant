@@ -239,6 +239,74 @@ the data's 150 ns down by that offset lands near f_ion &asymp; 0.2&ndash;0.3.</p
     return "<p class='note'>scan section: see the JSON.</p>"
 
 
+def leverage_tables():
+    """Two sizing calculations, computed here so they cannot go stale.
+
+    A single-channel toy: charge lands on the resistive sheet with the
+    avalanche's transverse spread, spreads with D = 1/(rho_s c'), and what
+    falls inside one channel pitch is differentiated and shaped by the REAL
+    DreamShaper. It is a toy — it has no track geometry, no noise and no LUT —
+    and it reproduces the full chain about 55 ns low (192 vs 254 ns with ions,
+    91 vs 142 without). So only its DIFFERENCES are used below, never its
+    absolute values.
+    """
+    import sys
+
+    import numpy as np
+    from scipy.special import erf
+    sys.path.insert(0, REPO)
+    os.environ.setdefault("MX17_SKIP_HEADER_CHECK", "1")
+    from response.dream.shaper import DreamShaper, BENCH_REG1
+
+    D, sig0, W, T, V_ION = 1.0e3, 94.55, 400.0, 369.0, 0.403
+    nt = 2500
+    t = np.arange(nt, dtype=float)
+
+    def channel_current(f, image=False):
+        q = (1 - f) * erf(W / (np.sqrt(2) * np.sqrt(sig0 ** 2 + 2 * D * t)))
+        n = int(T)
+        for tA in np.arange(0.5, T, 1.0):
+            i0 = int(tA)
+            s0 = np.sqrt(sig0 ** 2 + ((V_ION * tA) ** 2 if image else 0.0))
+            s = np.sqrt(s0 ** 2 + 2 * D * (t[i0:] - tA))
+            q[i0:] += (f / n) * erf(W / (np.sqrt(2) * s))
+        i = np.empty(nt)
+        i[0], i[1:] = q[0], np.diff(q)      # the prompt term is a true delta
+        return i
+
+    def rise(y):
+        y = np.asarray(y, float)
+        k = int(np.argmax(y))
+        if y[k] <= 0 or k < 2:
+            return float("nan")
+        seg = y[:k + 1]
+        return float(np.interp(0.9 * y[k], seg, np.arange(k + 1))
+                     - np.interp(0.1 * y[k], seg, np.arange(k + 1)))
+
+    c9, c0 = channel_current(0.9006), channel_current(0.0)
+    peak_rows = []
+    for code in range(5):
+        reg1 = (BENCH_REG1 & ~0xF0) | (code << 4)
+        sh = DreamShaper(reg1=reg1, pzc_residual=0.75, dt_ns=1.0)
+        hh = np.asarray(sh.h, float)
+        mark = " &larr; assumed" if code == ((BENCH_REG1 >> 4) & 0xF) else ""
+        peak_rows.append([f"{code}{mark}", f"{sh.t_peak_ns:.0f}",
+                          f"{rise(hh):.1f}",
+                          f"{rise(np.convolve(c9, hh)[:nt]):.1f}",
+                          f"{rise(np.convolve(c0, hh)[:nt]):.1f}"])
+
+    sh = DreamShaper(pzc_residual=0.75, dt_ns=1.0)
+    hh = np.asarray(sh.h, float)
+    r_frozen = rise(np.convolve(channel_current(0.9006), hh)[:nt])
+    r_broad = rise(np.convolve(channel_current(0.9006, image=True), hh)[:nt])
+    lat = [["frozen surface kernel (what the model does)", f"{r_frozen:.1f}"],
+           ["ion image broadened with height (what T10 would give)",
+            f"{r_broad:.1f}"],
+           ["<strong>effect of the known-wrong approximation</strong>",
+            f"<strong>{r_broad - r_frozen:+.1f}</strong>"]]
+    return peak_rows, lat
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--psi", default=os.path.join(
@@ -252,6 +320,10 @@ def main():
     a = ap.parse_args()
 
     psi, tmpl, scan = load(a.psi), load(a.template), load(a.scan)
+    try:
+        peak_rows, lat_rows = leverage_tables()
+    except Exception as exc:                                  # noqa: BLE001
+        peak_rows = lat_rows = [["leverage tables unavailable", esc(exc)]]
 
     # The single-channel shaper prediction, recomputed here rather than pasted.
     shaper_rows = []
@@ -313,7 +385,7 @@ assumes.</li>
 data's 150 ns rise demands an <em>effective</em> f_ion near 0.2&ndash;0.3 &mdash;
 three to four times smaller than a split now defended by two independent routes.
 That is a structural contradiction, not a parameter error, and the next axis is
-the one the model itself flags as known-wrong: the longitudinal &times; lateral
+the longitudinal &times; lateral
 factorisation, in which the ion is handed the surface kernel's lateral shape
 frozen at its creation point.</p>
 </div>
@@ -327,21 +399,47 @@ frozen at its creation point.</p>
 <h2>The f_ion demand curve</h2>
 {sec_scan(scan, shaper_rows)}
 
+<h2>Two leads sized, so nobody chases the wrong one</h2>
+
+<h3>The lateral factorisation is not it (&minus;4 ns)</h3>
+<p><code>apply_longitudinal</code> convolves the <em>surface</em> kernel with
+the longitudinal profile, so the ion is handed the surface kernel's lateral
+shape frozen at its creation point, while the true &Psi;<sub>n</sub> broadens
+as the ion climbs. <code>ions.py</code>'s own docstring flags this, and T10
+exists to replace it. It moves the rise the right way &mdash; but not nearly
+far enough:</p>
+{table(["single-channel toy, 10&ndash;90 % rise", "ns"], lat_rows)}
+<p>The reason is a scale mismatch. The ion's image width is at most its own
+height, 149 &micro;m at the end of transit, against an 800 &micro;m channel
+pitch: the central channel's share falls only from 1.0000 to 0.977 even at the
+worst moment. <strong>T10 will not close this gap.</strong></p>
+
+<h3>The peaking-time register is still live, and it has the leverage</h3>
+<p>The &beta; scan moved the rise by 4 ns and was read as exonerating the
+electronics. But &beta; is one of the shaper's two parameters, and it is the
+weak one. The peaking time was never scanned &mdash; it is an
+<em>assumption</em>, <code>state1 = 0x081FD023</code> from
+<code>CosmicTb_MX17.cfg</code>, not archived with the run:</p>
+{table(["peaking code", "t<sub>peak</sub> [ns]", "shaper alone [ns]",
+        "channel rise, f_ion 0.9006 [ns]", "f_ion 0 [ns]"], peak_rows)}
+<p>One code step is worth <strong>50&ndash;65 ns</strong> of rise, against
+&beta;'s 4 ns across its whole range. That is the same order as the 104 ns
+discrepancy being chased. The toy runs ~55 ns below the full chain, so no code
+here should be read as "the answer" &mdash; but the <em>leverage</em> is real,
+and it means <strong>the electronics axis is not exonerated</strong>. It was
+tested on the parameter that could not have caused the problem.</p>
+<p class="note">Caveat that has to be checked before anyone gets excited: the
+upper rise quantiles currently AGREE between sim and data (p95 608 vs 602 ns),
+and those are set by track geometry rather than the shaper, so a faster shaper
+should move the fast side much more than the slow side &mdash; which is the
+shape of the observed defect. That prediction is testable with one Stage B
+point and has not been tested.</p>
+
 <h2>What this does not rule out</h2>
 <ul>
-<li><strong>The lateral factorisation.</strong> <code>apply_longitudinal</code>
-convolves the surface kernel with the longitudinal profile, so the ion is given
-the <em>surface</em> kernel's lateral shape. The true &Psi;<sub>n</sub> broadens
-as the ion climbs, so the model over-weights the ion on the central channel &mdash;
-which is where the rise time is measured. This is stated in
-<code>ions.py</code>'s own docstring and is what T10 exists to replace. It is
-the only remaining candidate that moves the rise in the right direction.</li>
 <li><strong>&beta;, jointly.</strong> The &beta; scan moved the rise by 4 ns
 over 0&ndash;0.75, but it was run <em>with</em> f_ion = 0.90. A joint
 (&beta;, f_ion) fit is not the same experiment.</li>
-<li><strong>The peaking-time register.</strong> Still an assumption from
-<code>CosmicTb_MX17.cfg</code>, not archived with the run. Everything here
-scales with it.</li>
 <li><strong>The amplitude deficit.</strong> Untouched and deliberately so: the
 no-ions sim still peaks at &times;0.63 of data, so amplitude is upstream of all
 of this.</li>
