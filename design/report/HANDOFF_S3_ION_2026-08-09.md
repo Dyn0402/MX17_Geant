@@ -1,5 +1,29 @@
 # HANDOFF — S3 ion-signal investigation (rise-time floor follow-up)
 
+> ## ✅ CLOSED 2026-08-09 — and the answer is "none of the above"
+>
+> Read `S3_ION_CLOSEOUT_2026-08-09.md` before acting on anything below.
+> All three dials this document ranks as suspects were checked and **all three
+> are correct**:
+>
+> * **f_ion** through the real woven mesh is **0.9056** vs the parallel-plate
+>   0.9006 — +0.5 %, and in the *wrong* direction.
+> * **The i_ion template** reproduces to **3.8 %** at every quantile under an
+>   independent reconstruction. 172-ns-to-half is right.
+> * **β** was already too weak (4 ns), and the **peaking register is code 2**
+>   (44/44 archived configs), so the electronics axis closes as well.
+>
+> Also eliminated since: **T10 / the lateral factorisation** (worth 3.7 ns, not
+> 100 — the ion image is ≤ 149 µm against an 800 µm pitch) and **the entire
+> class of missing high-pass elements** (β's own measured exchange rate is
+> 0.46 ns of rise per point of undershoot; the data needs faster rise *and*
+> shallower undershoot, which pull opposite ways).
+>
+> ⚠️ §"The claim under investigation" below, and its ranking of the three
+> dials, is **superseded**. The remaining gap is a structural contradiction —
+> ~80 % of the ion contribution has to disappear — and the closeout recommends
+> reporting it rather than absorbing it into a β fit.
+
 2026-08-09 (late). Owner: unassigned — `response/avalanche/` is the
 mx17-geant-6b session's domain; this handoff is written so any session can
 take it. Coordinator: the T14 session (nTof_x17 side).
