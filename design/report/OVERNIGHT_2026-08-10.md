@@ -596,3 +596,134 @@ daylight re-derivation could still move a factor — and this project's own reco
 tonight's threshold artifact) is that predictions flip on contact with numbers
 more often than is comfortable. It is not a reason to reopen the item tonight;
 it is a reason not to call the elimination chain airtight.
+
+---
+
+## 10. ⚠️ CORRECTION to §8 — the X/Y asymmetry is an 18 % effect, not a
+## factor 0.74
+
+§8 concluded that "Stage B/C turns a kernel-level Y/X of ~1.05 into a decoded
+0.78 — a factor ~0.74 applied to Y". **That comparison was invalid and the
+factor is wrong.** It set a point-charge kernel's central-channel amplitude
+(`amp0`, no charge cloud, no summation over channels) against a full-chain
+per-event peak. Those are not the same quantity and their ratio is not a bug
+size.
+
+The right comparison is sim against data in the *same* observable. Paired,
+de-saturated, bootstrap 2000×:
+
+| quantity | sim | data | sim/data |
+|---|---|---|---|
+| peak Y/X | 0.784 ± 0.006 | 0.951 ± 0.028 | **0.825 ± 0.025** |
+| q_event Y/X | 1.063 ± 0.005 | 1.186 ± 0.032 | **0.897 ± 0.024** |
+| implied width factor | 1.360 | 1.237 | **1.087 ± 0.038** |
+| n_over Y/X | 1.400 | 1.333–1.600 | ≈ 1 |
+
+**Charge is not lost, and the effect is not large.** Both legs show the same
+qualitative structure — the Y view carries *more* charge than X (q_event Y/X >
+1 on both) while showing a *lower* peak, because Y spreads over more channels
+(n_over Y/X = 1.4 sim, 1.3–1.6 data). The detector does this too; the sim merely
+overdoes it.
+
+The residual decomposes exactly (0.897 × 1.087 = 0.825, closing to three
+figures) into two comparable and modest terms:
+
+* **charge partition — 0.897 ± 0.024** (4.3 σ): the sim puts ~10 % less charge
+  into Y relative to X than the detector does.
+* **extra spreading — 1.087 ± 0.038** (2.3 σ, marginal): the sim spreads Y ~9 %
+  more than the detector.
+
+So item 6's target is **an 18 ± 3 % modelling error made of two ~10 % pieces**,
+not a cornered factor-0.74 bug. That is a materially different — and much less
+dramatic — object than §8 described, and it is worth much less urgency. What
+survives from §8 unchanged: the asymmetry is real, it is sim-side, it is not
+selection (the sim's Y/X is immune to pairing and de-saturation at 0.790 → 0.782
+→ 0.783), and the S1 electrostatics are exonerated.
+
+Caveat on the data leg: n = 257 paired unsaturated events, hence the ±0.028.
+The charge-partition term is solid; the spreading term is 2.3 σ and should not
+be quoted as established.
+
+Product: `t14_ang_trend/xy_paired_selection.json`.
+
+---
+
+## 11. Queue item 4 — attachment-shape family test on det3
+
+### The test already exists and had already been run for det3
+
+`mx_june_cosmic_qa/17_gap_attachment_test.py` measures the per-strip amplitude
+decay length λ against drift depth for each drift-scan point, and
+`18_attachment_vs_magboltz.py` compares it to Magboltz 1/η. Both had already
+been run on the det3 saturday scan —
+`…/mx17_det3_saturday_scan_6-27-26/drift_velocity/mx17_3/gap_attachment_test.csv`
+— so this item is the comparison and the verdict, not the measurement.
+
+### The discriminator is sharp
+
+Across the whole 30-mixture `water2d.json` grid, **29 mixtures give η = 0
+exactly at 333 V/cm** — every H₂O/N₂ combination, at every isobutane fraction
+from 3 % to 8 % and every water fraction from 0.4 % to 1.1 %. Water does not
+attach. The single grid mixture containing oxygen
+(`iso5.0_h2o0.8_n20.78_o20.21` — the 0.8 % H₂O + ~1 % air row the freeze queue
+singled out) gives η = 0.809 /cm, λ = 12.4 mm.
+
+So the family question has a yes/no observable: **any finite amplitude decay
+with depth excludes attachment-free H₂O-like transport**, whatever the
+concentration.
+
+### det3's numbers
+
+| drift HV | E [V/cm] | measured λ [mm] | air 1 % | air 2 % | O₂ 0.5 % | Ar/CO₂ 90/10 |
+|---|---|---|---|---|---|---|
+| 500 | 166.7 | 11.12 | 12.80 | 5.84 | 5.64 | ∞ |
+| 700 | 233.3 | 8.37 | 16.32 | 7.67 | 7.20 | ∞ |
+| 900 | 300.0 | 5.74 | 19.47 | 9.22 | 8.54 | ∞ |
+| **1000** | **333.3** | **5.60** | 21.02 | 9.88 | 9.25 | ∞ |
+| 1100 | 366.7 | 9.10 | 22.63 | 10.55 | 9.99 | ∞ |
+
+### Verdict — and a caveat that limits it
+
+**det3's waveform data prefers O₂-like attachment over H₂O-like
+attachment-free transport.** The decay is finite at every drift field (λ =
+5.6–11.1 mm), and no water fraction can produce a finite decay at all. On the
+family question as posed, that is the answer.
+
+⚠️ **But the SHAPE half of the method does not close on this dataset, and that
+is the part that was supposed to carry the weight.** Every Magboltz λ(E) *rises*
+monotonically with field (air 1 %: 12.8 → 22.6 mm over 167 → 367 V/cm). det3's
+measured λ *falls* over most of the range (11.1 → 5.6 mm from 167 to 333 V/cm)
+and then jumps back to 9.1. That is the opposite trend, and it is not a subtle
+mismatch.
+
+Two things drive the caution:
+
+1. The depth scale is `z = v_ridge · t`, and `v_ridge` in this CSV wanders over
+   **11.0 – 29.0 µm/ns** across the scan against the bundle's 36.60 µm/ns at
+   333 V/cm. A λ in millimetres inherits that scatter directly.
+2. λ is not a pure attachment length. Any other depth-dependent amplitude loss
+   — threshold effects (the script flags its tail estimator as
+   "threshold-steepened"), or transverse diffusion spreading deeper charge over
+   more strips — enters the same measurement. Those make the measured λ
+   **shorter** than the true attachment length, so the true attachment is
+   *weaker* than 5.6 mm implies. That direction is the safe one for the verdict
+   above (it stays finite) but it means the concentration cannot be read off.
+
+**So the deliverable, correctly scoped: det3's data is inconsistent with
+attachment-free transport and therefore favours an O₂/air-bearing contaminant
+family over a pure-water one — but the λ(E) shape does not match the O₂ family
+either, so this is weaker than the July 90/10 result was for its run, and it
+constrains the FAMILY only by the existence of a decay, not by its shape.**
+
+**Labelling, per the standing discipline:** this is family-constraint inference
+from waveform data, not a measurement. It does not establish that oxygen is
+present, only that the depth-dependence of the signal is not what an
+attachment-free gas produces. No concentration may be quoted from it. The way
+out remains an independent species assay on the gas line.
+
+Worth noting how this sits with the rest: the freeze queue observed that
+0.8 % H₂O + ~1 % air reproduces the bench v_drift (36.24 vs 36.60) better than
+any water-only mixture, and that the air row is "the one that carries real
+information". This is an independent observable pointing the same way — the
+v_drift argument and the attachment argument now agree on the presence of air,
+which is more than either could claim alone. Both remain fitted-to-data.
