@@ -236,7 +236,75 @@ shaper at &beta; = 0.75 driven by f<sub>e</sub>&delta;(t) + f<sub>ion</sub>
 f_ion = 0 floor (142 vs 115.5 ns), which is the kernel and the noise. Sliding
 the data's 150 ns down by that offset lands near f_ion &asymp; 0.2&ndash;0.3.</p>
 """
-    return "<p class='note'>scan section: see the JSON.</p>"
+    # Measured. Keyed <f_ion>_<view>; rise is [p5, p25, p50, p75, p95].
+    DATA = {"x": {"p5": 150.0, "fast": 0.40, "under": -3.4},
+            "y": {"p5": 155.0, "fast": 0.49, "under": -12.0}}
+    out = []
+    for view in ("x", "y"):
+        pts = sorted(((float(k.split("_")[0]), v)
+                      for k, v in d.items() if k.endswith(f"_{view}")),
+                     key=lambda kv: kv[0])
+        rows = []
+        for f, v in pts:
+            rows.append([f"{f:.4f}" + (" <em>(measured template)</em>"
+                                       if v.get("model") == "measured" else ""),
+                         f"{v['rise'][0]:.1f}", f"{v['rise'][2]:.1f}",
+                         f"{v['fast']*100:.1f}", f"{v['under']*100:.2f}",
+                         f"{v.get('peak_ratio', float('nan')):.4f}"])
+        dv = DATA[view]
+        rows.append([f"<strong>DATA</strong>", f"<strong>{dv['p5']:.1f}</strong>",
+                     "&mdash;", f"<strong>{dv['fast']*100:.0f}</strong>",
+                     f"<strong>{dv['under']:.1f}</strong>", "<strong>1.0</strong>"])
+
+        # Where the data lands, by linear interpolation on the analytic arm.
+        def demand(getter, target):
+            xs = [(f, getter(v)) for f, v in pts if v.get("model") != "measured"]
+            for (f0, y0), (f1, y1) in zip(xs, xs[1:]):
+                if (y0 - target) * (y1 - target) <= 0 and y1 != y0:
+                    return f0 + (f1 - f0) * (target - y0) / (y1 - y0)
+            return None
+        d_p5 = demand(lambda v: v["rise"][0], dv["p5"])
+        d_ff = demand(lambda v: v["fast"], dv["fast"])
+        u = [v["under"] * 100 for _, v in pts]
+        out.append(f"""
+<h3>{view.upper()} view</h3>
+{table(["f_ion", "p5 rise [ns]", "p50 rise [ns]", "fast frac <240 ns [%]",
+        "undershoot [%]", "peak ratio"], rows)}
+<p>The data's p5 is met at <strong>f_ion &asymp;
+{('%.2f' % d_p5) if d_p5 is not None else 'below 0'}</strong>; its fast fraction
+at <strong>f_ion &asymp; {('%.2f' % d_ff) if d_ff is not None else 'below 0'}
+</strong>.</p>
+<p class="note">Undershoot across the whole f_ion range:
+{min(u):.1f} % to {max(u):.1f} % &mdash; a
+{abs(max(u)-min(u)):.1f}-point swing while the rise moves
+{abs(pts[-1][1]['rise'][0]-pts[0][1]['rise'][0]):.0f} ns.</p>""")
+
+    return f"""
+<div class="verdict"><p><strong>The contradiction is now measured, not
+inferred.</strong> The data demands an effective slow fraction of
+<strong>~0.0&ndash;0.2</strong> against a charge split defended at
+<strong>0.9056</strong> by two independent routes. Per the recommendation
+below, this gets reported &mdash; not absorbed into a fit.</p></div>
+
+<p><strong>And the two dials are orthogonal in the real chain.</strong> f_ion
+moves the rise by ~110 ns while leaving the undershoot flat to ~1 point; &beta;
+moves the undershoot by 8.7 points while leaving the rise flat to 4 ns. So a
+descriptive (f_eff &asymp; 0.2, &beta; &asymp; 0.2) reproduces rise <em>and</em>
+X undershoot with no tension at all &mdash; which is precisely why it must not
+be presented as a fit. It is a two-parameter description whose first parameter
+contradicts defended physics by a factor of four.</p>
+{''.join(out)}
+
+<h3>How the pre-registration came out</h3>
+<p>Predicted before the jobs ran: p5 rises monotonically and convexly, with
+f_ion 0.30 landing at 150&ndash;175 ns, 0.50 at 175&ndash;205 and 0.70 at
+205&ndash;235. Measured: <strong>156.8, 186.8, 222.9</strong> &mdash; all three
+inside their bands, and the shape convex as predicted. The attached conclusion
+that "the data's 150 ns is met at f_ion ~ 0.25&ndash;0.35" was
+<strong>wrong by about a factor of two</strong>: the true answer is ~0.16 on p5
+and lower still on the fast fraction, because the curve is steeper near f_ion = 0
+than the estimate assumed. The direction of the finding is unaffected &mdash; it
+makes the contradiction larger, not smaller.</p>"""
 
 
 def leverage_tables():

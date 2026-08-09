@@ -133,16 +133,55 @@ archived file. So this is 44 identical copies of that template from *other* runs
 the most recent 11 days before the target. Strong evidence; not a read-back of
 the target run's own register.
 
-## Where the contradiction now sits
+## Where the contradiction now sits — MEASURED
 
-Independent of the p5 estimate, at the X median: the ion term is worth **63 ns**
-(333.6 with ions, 270.3 without) and the gap to data is **50 ns**. So ~**80 %**
-of the ion contribution has to disappear — an *effective* slow fraction near
-0.2 against a split defended at 0.9056 by two independent routes.
+The f_ion demand scan came back (T14 readout, `t14_fion_scan_readout.json`):
+
+```
+X view    f_ion    p5[ns]  p50[ns]  fast<240ns[%]  undershoot[%]  peak ratio
+          0.0000    141.9    270.3       41.0          -8.88        0.6319
+          0.3000    156.8    301.9       30.2          -9.37        0.5809
+          0.5000    186.8    317.0       18.6          -9.70        0.5600
+          0.7000    222.9    326.0        8.6          -9.78        0.5573
+          0.9006*   250.4    333.6        3.6          -9.89        0.5527
+          0.9077    237.8    320.8        5.5          -9.71        0.5643
+          DATA      150.0      —         40            -3.4         1.0
+                                                          (* measured template)
+```
+
+The data's p5 is met at **f_ion ≈ 0.16**, its fast fraction at **≈ 0.03**.
+(Y view: p5 → 0.47, fast fraction → 0.11 — internally inconsistent by more than
+X, which is the same X/Y asymmetry the handoff already flagged as real in the
+data and not explicable by any view-common parameter.)
+
+Against a split defended at **0.9056**, that is a factor of four to thirty.
+
+### The two dials are orthogonal in the real chain
+
+| dial | moves rise | moves undershoot |
+|---|---|---|
+| f_ion, 0 → 0.91 | **96 ns** | 1.0 point (−8.9 → −9.9 %) |
+| β, 0 → 0.75 | 4 ns | **8.7 points** |
+
+So a descriptive (f_eff ≈ 0.2, β ≈ 0.2) reproduces rise *and* X undershoot with
+no tension whatever, and β = 0.2 is even permissible since the 0.6–0.9 prior is
+non-constraining for det3. **That is exactly why it must not be presented as a
+fit.** It is a two-parameter description whose first parameter contradicts
+defended physics by a factor of four.
 
 **Recommendation: report this, do not fit it.** With every parameter defended, a
 joint (β, f_ion) fit that closes the gap would be absorbing a modelling error,
 which is exactly what the handoff's own degeneracy warning said to avoid.
+
+### How the pre-registration came out
+
+Predicted before the jobs ran: convex, with f_ion 0.30 → 150–175 ns, 0.50 →
+175–205, 0.70 → 205–235. Measured **156.8 / 186.8 / 222.9** — all three inside
+their bands, shape convex as predicted. The attached conclusion that the data
+would be met at f_ion ≈ 0.25–0.35 was **wrong by ~2×**; the answer is ≈0.16 on
+p5 and lower on the fast fraction, because the curve is steeper near f_ion = 0
+than the estimate assumed. The error makes the contradiction larger, not
+smaller.
 
 ## A wrong turn, recorded on purpose
 
@@ -201,13 +240,59 @@ EOS under `stageB_w2/DIAGNOSIS_<label>/`. Submit files
 `scripts/condor/stageBC_w2_ionmodel.sub` and `stageBC_w2_fionscan.sub` each
 carry a **pre-registered prediction and falsifier written before the job ran**.
 
+## The live hypothesis: resistive-sheet screening of induced signals
+
+Raised by the T14 session (its domain — it wrote the W2 solver), and it is the
+first candidate that survives the exchange-rate falsifier, because it suppresses
+the slow component *at the readout* rather than filtering it at the channel, so
+it costs no undershoot.
+
+The structural claim is right and is the sharpest statement of the defect so far:
+**the ion never lands on the sheet.** Its readout signal is pure induction from a
+charge in the gas gap, but `apply_longitudinal` couples it through the *same*
+surface kernel as charge physically deposited on the sheet. A resistive sheet is
+a frequency-dependent screen — transients faster than its relaxation pass, slower
+ones are cancelled by rearrangement — so the deposited-charge Green's function is
+the wrong operator for an induced source.
+
+Two corrections to the framing before anyone spends time on it:
+
+1. **The stated falsifier is inverted.** "If the sheet relaxation is much faster
+   than 300 ns it dies immediately" — no: *fast* relaxation is what produces
+   screening. A sheet that cannot respond within the ion transit cannot cancel
+   anything. The hypothesis dies if relaxation is much *slower* than 300 ns.
+
+2. **The length scale decides everything, and it is the channel scale, not the
+   gap scale.** τ_k = L²/D with D = 1/(ρ_s c') from the repo's own constants
+   (c' = 4.985e-7 F/m²):
+
+   | ρ_s [MΩ/sq] | D [m²/s] | τ(150 µm) | τ(390 µm) | τ(780 µm) |
+   |---|---|---|---|---|
+   | 0.5 | 4.012 | 5.6 ns | 37.9 ns | 152 ns |
+   | 1.0 | 2.006 | 11.2 ns | 75.8 ns | 303 ns |
+   | 2.0 | 1.003 | 22.4 ns | 152 ns | **607 ns** |
+   | 5.0 | 0.401 | 56.1 ns | 379 ns | 1516 ns |
+
+   At the *gap* scale the sheet is far faster than the ion (22 ns vs ~350 ns) and
+   screening would be near-total. But a pad integrates over its own width, so
+   what it actually sees is long-wavelength content, and short-wavelength
+   structure the sheet kills fastest is invisible to it anyway. In the k → 0
+   limit τ_k → ∞ and the sheet *cannot* screen at all — charge conservation
+   forbids it without long-range transport. At the production point the relevant
+   τ is therefore **~150–600 ns against a ~350 ns ion: the transition regime**,
+   which is where a partial suppression to f_eff ≈ 0.2 is plausible rather than
+   absurd.
+
+**This makes the ρ ladder a genuinely good discriminator**, better than first
+appears: τ at the channel scale spans 152 → 1516 ns across rho0.5M…rho5M, i.e.
+from well-screened to essentially unscreened, while the model predicts f_eff is
+ρ_s-independent (the split is applied upstream of the kernel). The four decoded
+ladder points already exist.
+
 ## Open
 
-- **T14 owes** the f_ion scan readout → `t14_fion_scan_readout.json` beside
-  `t14_beta_scan_readout.json`; `make_s3_ion_report.py` already reads that path
-  and will fill the demand-curve section. Expect the demand to land near
-  f_ion ≈ 0.2; if it does not, one of the two estimates has an error worth
-  finding.
+- The sheet-screening calculation itself (T14/W2 solver domain): sheet ODE with
+  a gap-charge source, then the ladder readout.
 - **`ions.py`'s analytic branch uses the zero-field mobility.** It should take
   K₀ at the operating E/N (1.212 at 490 V) or say in its docstring that it is a
   deliberately zero-field contrast model. Not fixed here — it is the avalanche

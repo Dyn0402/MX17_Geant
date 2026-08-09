@@ -34,7 +34,7 @@ footer{margin-top:3rem;padding-top:1rem;border-top:1px solid var(--line);
 </style>
 <main>
 <h1>S3 ion investigation &mdash; f_ion and the i_ion template are both defended</h1>
-<p class="sub">Follow-up to HANDOFF_S3_ION_2026-08-09. Generated 2026-08-09 20:05 by
+<p class="sub">Follow-up to HANDOFF_S3_ION_2026-08-09. Generated 2026-08-09 20:32 by
 <code>design/report/make_s3_ion_report.py</code>.</p>
 
 <div class="verdict">
@@ -169,19 +169,51 @@ would be much further off.)</p>
 
 <h2>The f_ion demand curve</h2>
 
-<p class="note">The f_ion demand scan has been submitted (Stage B points
-DIAGNOSIS_fion030 / 050 / 070 at rho2M, plus DIAGNOSIS_ionanalytic) but the
-decoded sets have not been read out yet, so the measured curve is not in this
-build of the report.</p>
+<div class="verdict"><p><strong>The contradiction is now measured, not
+inferred.</strong> The data demands an effective slow fraction of
+<strong>~0.0&ndash;0.2</strong> against a charge split defended at
+<strong>0.9056</strong> by two independent routes. Per the recommendation
+below, this gets reported &mdash; not absorbed into a fit.</p></div>
 
-<p>What the single-channel model predicts, for reference &mdash; the DREAM
-shaper at &beta; = 0.75 driven by f<sub>e</sub>&delta;(t) + f<sub>ion</sub>
-&times; rectangle, with no resistive-sheet kernel:</p>
-<div class="scroll"><table class=""><thead><tr><th>f_ion</th><th>10&amp;ndash;90 % rise, 306 ns rect [ns]</th><th>10&amp;ndash;90 % rise, 369 ns rect [ns]</th></tr></thead><tbody><tr><td>0.000</td><td>115.5</td><td>115.5</td></tr><tr><td>0.100</td><td>118.8</td><td>118.2</td></tr><tr><td>0.200</td><td>123.0</td><td>121.7</td></tr><tr><td>0.300</td><td>128.8</td><td>126.4</td></tr><tr><td>0.500</td><td>149.5</td><td>142.9</td></tr><tr><td>0.700</td><td>199.6</td><td>188.4</td></tr><tr><td>0.901</td><td>230.1</td><td>256.0</td></tr></tbody></table></div>
-<p class="note">The sim's own no-ions point sits ~27 ns above this model's
-f_ion = 0 floor (142 vs 115.5 ns), which is the kernel and the noise. Sliding
-the data's 150 ns down by that offset lands near f_ion &asymp; 0.2&ndash;0.3.</p>
+<p><strong>And the two dials are orthogonal in the real chain.</strong> f_ion
+moves the rise by ~110 ns while leaving the undershoot flat to ~1 point; &beta;
+moves the undershoot by 8.7 points while leaving the rise flat to 4 ns. So a
+descriptive (f_eff &asymp; 0.2, &beta; &asymp; 0.2) reproduces rise <em>and</em>
+X undershoot with no tension at all &mdash; which is precisely why it must not
+be presented as a fit. It is a two-parameter description whose first parameter
+contradicts defended physics by a factor of four.</p>
 
+<h3>X view</h3>
+<div class="scroll"><table class=""><thead><tr><th>f_ion</th><th>p5 rise [ns]</th><th>p50 rise [ns]</th><th>fast frac &lt;240 ns [%]</th><th>undershoot [%]</th><th>peak ratio</th></tr></thead><tbody><tr><td>0.0000</td><td>141.9</td><td>270.3</td><td>41.0</td><td>-8.88</td><td>0.6319</td></tr><tr><td>0.3000</td><td>156.8</td><td>301.9</td><td>30.2</td><td>-9.37</td><td>0.5809</td></tr><tr><td>0.5000</td><td>186.8</td><td>317.0</td><td>18.6</td><td>-9.70</td><td>0.5600</td></tr><tr><td>0.7000</td><td>222.9</td><td>326.0</td><td>8.6</td><td>-9.78</td><td>0.5573</td></tr><tr><td>0.9006 <em>(measured template)</em></td><td>250.4</td><td>333.6</td><td>3.6</td><td>-9.89</td><td>0.5527</td></tr><tr><td>0.9077</td><td>237.8</td><td>320.8</td><td>5.5</td><td>-9.71</td><td>0.5643</td></tr><tr><td><strong>DATA</strong></td><td><strong>150.0</strong></td><td>&mdash;</td><td><strong>40</strong></td><td><strong>-3.4</strong></td><td><strong>1.0</strong></td></tr></tbody></table></div>
+<p>The data's p5 is met at <strong>f_ion &asymp;
+0.16</strong>; its fast fraction
+at <strong>f_ion &asymp; 0.03
+</strong>.</p>
+<p class="note">Undershoot across the whole f_ion range:
+-9.9 % to -8.9 % &mdash; a
+1.0-point swing while the rise moves
+96 ns.</p>
+<h3>Y view</h3>
+<div class="scroll"><table class=""><thead><tr><th>f_ion</th><th>p5 rise [ns]</th><th>p50 rise [ns]</th><th>fast frac &lt;240 ns [%]</th><th>undershoot [%]</th><th>peak ratio</th></tr></thead><tbody><tr><td>0.0000</td><td>129.5</td><td>231.9</td><td>52.0</td><td>-21.90</td><td>0.5928</td></tr><tr><td>0.3000</td><td>139.3</td><td>260.0</td><td>43.8</td><td>-23.26</td><td>0.5457</td></tr><tr><td>0.5000</td><td>157.8</td><td>277.7</td><td>35.9</td><td>-24.41</td><td>0.5183</td></tr><tr><td>0.7000</td><td>197.8</td><td>291.2</td><td>21.1</td><td>-25.12</td><td>0.5200</td></tr><tr><td>0.9006 <em>(measured template)</em></td><td>227.2</td><td>302.3</td><td>8.6</td><td>-25.72</td><td>0.5179</td></tr><tr><td>0.9077</td><td>220.3</td><td>289.5</td><td>13.8</td><td>-25.04</td><td>0.5245</td></tr><tr><td><strong>DATA</strong></td><td><strong>155.0</strong></td><td>&mdash;</td><td><strong>49</strong></td><td><strong>-12.0</strong></td><td><strong>1.0</strong></td></tr></tbody></table></div>
+<p>The data's p5 is met at <strong>f_ion &asymp;
+0.47</strong>; its fast fraction
+at <strong>f_ion &asymp; 0.11
+</strong>.</p>
+<p class="note">Undershoot across the whole f_ion range:
+-25.7 % to -21.9 % &mdash; a
+3.8-point swing while the rise moves
+91 ns.</p>
+
+<h3>How the pre-registration came out</h3>
+<p>Predicted before the jobs ran: p5 rises monotonically and convexly, with
+f_ion 0.30 landing at 150&ndash;175 ns, 0.50 at 175&ndash;205 and 0.70 at
+205&ndash;235. Measured: <strong>156.8, 186.8, 222.9</strong> &mdash; all three
+inside their bands, and the shape convex as predicted. The attached conclusion
+that "the data's 150 ns is met at f_ion ~ 0.25&ndash;0.35" was
+<strong>wrong by about a factor of two</strong>: the true answer is ~0.16 on p5
+and lower still on the fast fraction, because the curve is steeper near f_ion = 0
+than the estimate assumed. The direction of the finding is unaffected &mdash; it
+makes the contradiction larger, not smaller.</p>
 
 <h2>Two leads sized, so nobody chases the wrong one</h2>
 
