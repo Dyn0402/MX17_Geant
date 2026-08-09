@@ -1084,3 +1084,97 @@ angular composition into a Y/X ratio. The residual heterogeneity is a
 second-order effect on a ratio, and the data's peak Y/X from the pool (0.9577)
 sits within 1 σ of the single-directory value (0.951), which is the check that
 it did not distort anything.
+
+---
+
+## 17. Queue item 7 COMPLETE — the wet gain bracket landed, 4/4 predictions
+## confirmed, and it makes the amplitude problem WORSE
+
+Condor 16705137, 32/32 jobs, 42.4 h CPU, 490 V over a 0.015 cm gap =
+32 667 V/cm, 1600 avalanches per arm.
+
+| arm | gain mean | ± | median | vs dry | survival | attached | rel_var |
+|---|---|---|---|---|---|---|---|
+| A dry 95/5, rP 0.40 | 45 652 | 690 | 40 676 | ×1.0000 | 1.0000 | 0 | 0.373 |
+| B +0.5 % H₂O, rP 0.40 | 39 934 | 628 | 34 998 | **×0.8748** (−6.1 σ) | 1.0000 | 2 | 0.396 |
+| C +1.0 % H₂O, rP 0.40 | 35 125 | 543 | 31 071 | **×0.7694** (−12.0 σ) | 1.0000 | 0 | 0.382 |
+| D dry, Penning auto | 46 392 | 715 | 42 024 | ×1.0162 | 1.0000 | 0 | 0.371 |
+
+### The pre-registration, scored
+
+All four predictions from `WET_GAIN_BRACKET_PREREG_2026-08-10.md` (committed
+`287612b` before submission) **confirmed**:
+
+| # | prediction | result |
+|---|---|---|
+| 1 | gain falls monotonically A > B > C | **CONFIRMED** — 45 652 / 39 934 / 35 125 |
+| 2 | 1 % H₂O moves gain 10–40 % | **CONFIRMED** — measured **23.1 %** |
+| 3 | survival ≥ 0.90 at 1 % H₂O | **CONFIRMED** — 1.0000, and `n_attached` = 0 |
+| 4 | B between A and C, ~half way | **CONFIRMED** — B/A 0.875, C/A 0.769 |
+
+Prediction 3 is worth reading carefully: **survival is exactly 1.0000 in every
+arm and the attachment counter is zero.** So the 23 % gain loss is *pure
+electron cooling* — water's low-energy vibrational cross sections keeping
+electrons below the ionisation threshold — and contains no attachment component
+at all. That is consistent with H₂O's 12.62 eV ionisation potential sitting
+above both Ar metastables, so water opens no Penning channel while adding a
+quencher. It is also the clean complement to §11: water does not attach at
+amplification field any more than it does at drift field.
+
+### Two cross-checks, both pass
+
+* **Uniform vs meshfield.** Dry rP 0.40 gives 45 652 in a uniform 32 667 V/cm
+  field against the T7 meshfield pooled point's 24 094 — a ratio of **1.895**,
+  reproducing §0a's documented **1.85** (uniform-field table vs real map, 32.7
+  vs 31.0 kV/cm effective). An independent arm of tonight's work landing on a
+  number recorded two days ago from a different campaign.
+* **The Penning-model delta is small.** Dry-auto vs dry-rP 0.40 is ×1.0162 —
+  1.6 %, far below the 23 % water effect. Designing the confound out was still
+  correct (its size was not knowable in advance), and arm D was never
+  differenced against a wet arm.
+
+### The roadmap decision — the axis STAYS
+
+Roadmap §2 step 2 said: if water moves gain by less than a few percent, drop the
+contaminant axis from the gain campaign entirely. **It moves gain by 23 %.**
+
+> **The contaminant axis stays in the gain campaign**, and the T7 slope hunt's
+> working assumption — that composition is fixed while Penning varies — now
+> needs its own error bar. A 23 % gain shift is comparable to the effects the
+> slope hunt is trying to resolve.
+
+My pre-registered magnitude prediction deliberately contradicted the roadmap's
+hoped-for outcome, and it is the prediction that held.
+
+### ⚠️ The consequence for the amplitude ledger — it gets WORSE, not better
+
+This is the part that matters most and it is counter-intuitive, so it is worth
+being explicit. The amplitude thread wants **more** gain (§7: demanded ~4 × 10⁴
+against the sim's 24 094). Water **reduces** gain.
+
+| | gain at 490 V | factor the deficit demands |
+|---|---|---|
+| sim as it stands (dry, meshfield) | 24 094 | **×1.66** |
+| if the bench gas really held 1 % H₂O | 18 538 | **×2.16** |
+
+So a contaminant hypothesis invoked to explain the slow drift velocity would, if
+true, **deepen the amplitude deficit from ×1.66 to ×2.16.** The two
+fitted-to-data axes pull against each other: whatever slows the drift also
+suppresses the gain, and the gain was already too low.
+
+That is a genuine constraint rather than a curiosity, and it did not exist
+before tonight. It also sharpens the slope hunt's outcome B: if Penning fixes
+the slope at unchanged gain, and the gas is wet, the surviving discrepancy is
+larger than the ledger currently states.
+
+**Labelling, unchanged:** every water fraction here is **fitted-to-data**. This
+measures a derivative — *would* water, if present, move gain — not an operating
+point, and it is not evidence that the bench gas contained water. **Scope:** one
+voltage, so it says nothing about the gain *slope*, which is the live problem.
+If this is pursued, the follow-up is a two-voltage version, not a gain
+correction.
+
+Products: `design/report/wet_gain_bracket_2026-08-10.json`,
+`scratchpad/overnight_2026-08-10/wet_bracket_collect.py`; fragments at
+`~/x17/response_sim/avalanche/wetbracket/` and lxplus
+`…/garfield_sim/jobs_wetbracket/`.
