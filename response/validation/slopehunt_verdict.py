@@ -91,9 +91,14 @@ def _fit_slope10(volts, gains):
 
 
 def _rp_of(key, point):
-    """Penning rP for a calib point, from the point or its key. None if absent."""
+    """Penning rP for a calib point, from the point or its key. None if absent.
+
+    `penning_rp` is present-but-None on an `auto` arm (collect.py writes the
+    field unconditionally), so presence of the key is not enough — an early
+    version tested `if f in point` and died on the 90/10 auto arm.
+    """
     for f in ("penning_rP", "penning_rp", "rP", "rp"):
-        if f in point:
+        if point.get(f) is not None:
             return float(point[f])
     pen = point.get("penning")
     if isinstance(pen, dict) and "rP" in pen:

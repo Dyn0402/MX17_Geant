@@ -1380,3 +1380,109 @@ tightest disk in the fleet and still worth checking before writing, but the
 
 *(The hardlink staging used here consumes no data blocks at all, which is the
 right pattern for this disk regardless of how full it is.)*
+
+---
+
+## 21. ⭐ Queue item 3 — PARTIAL slope-hunt verdict: Penning cannot close both
+## threads, and the ledger's single-defect hypothesis FAILS
+
+**Two qualifiers before the result, both load-bearing:**
+
+1. **PARTIAL.** Three arms complete (90/10 `auto`, rP 0.30, rP 0.50 at all
+   three voltages), rP 0.65 at 2 of 3 voltages (its slope is a two-point
+   estimate, indicative only), **rP 0.80 absent entirely.** The chain has
+   ~5–6 h to run.
+2. **Gain figures are conditional on the gas assumption** — though §21.4 shows
+   the conclusion survives it.
+
+Product: `design/report/aval_calib_slopehunt_PARTIAL.json` (11 points; it would
+have been 6 without the §20 `collect.py` fix).
+
+### 21.1 What the arms measure
+
+| arm | 460 V | 490 V | 520 V | HV slope /10 V | gain@490 ÷ 24 094 |
+|---|---|---|---|---|---|
+| 90/10, auto | 744 | 1 898 | 4 467 | 0.2988 ± 0.0078 | 0.079 |
+| 95/5, rP 0.30 | 2 746 | 6 473 | 14 490 | 0.2772 ± 0.0050 | 0.269 |
+| 95/5, rP 0.50 | 30 772 | 81 748 | 237 682 | 0.3407 ± 0.0087 | **3.393** |
+| 95/5, rP 0.65 | 161 259 | 493 660 | — | *0.3729* (2-pt) | **20.5** |
+
+**Penning does move the slope, in the right direction, as the literature said
+it would** (Bhattacharya et al. Fig. 4: rP fans the slope, not just the scale).
+0.2772 → 0.3407 → 0.3729 across rP 0.30 → 0.50 → 0.65.
+
+### 21.2 But the two sensitivities are wildly mismatched, and that decides it
+
+* **Gain is EXPONENTIAL in rP:** d ln G/d rP = **12.40 per unit**, i.e. **×3.46
+  for every 0.1 in rP.**
+* **Slope is linear and weak in rP:** **+0.276 per unit**, i.e. +0.0276 per 0.1.
+
+So the gain constraint pins rP almost rigidly, and at the pinned value the slope
+has barely moved:
+
+| constraint | rP that satisfies it | what the other observable then does |
+|---|---|---|
+| **gain = 40 000** (the ledger's demand) | **rP ≈ 0.447** | slope **0.320** vs data 0.4487 — **13.8 σ short** |
+| **slope = 0.4487** (the data) | rP ≈ 0.91 *(extrapolated past the 0.80 max)* | gain **1.3 × 10⁷** — **×322 the demand** |
+
+### 21.3 The pre-registered rule returns OUTCOME C — and the refinement is
+### stronger than C
+
+The harness reports **C: "no rP in the scanned range reaches the data slope;
+Penning is not the knob."** The quantitative refinement makes it more than that:
+**no rP anywhere can, because long before the slope arrives the gain has left
+the physical world.** At rP 0.65 the gain is already ×20 the demand and ×12 the
+literature's maximum stable Ar/iso bulk-MM value.
+
+⚠️ **This contradicts last night's framing and that framing must be withdrawn.**
+§12 and the brief said "a single α(E)/Penning error at the operating point would
+produce both the ×1.6 and the ×1.44, and neither number was derived from the
+other." The convergence of the two numbers was real; **the proposed common cause
+is not.** Penning can deliver the gain *or* the slope, never both. The
+amplitude ledger's last surviving candidate does not survive in the form it was
+stated.
+
+By the pre-registered reading this lands in **outcome B's territory in
+substance** even though the letter is C: the gain is closable, the slope is not,
+so **no ledger candidate survives and the chain decomposition itself is
+suspect.** The rule's own instruction applies — *do not paper over it with a
+fitted gain factor.*
+
+### 21.4 Robustness — it is not the gas assumption
+
+Re-running the same interpolation with the sim's gain suppressed by the wet
+bracket's ×0.7694:
+
+| gas | rP for correct gain | slope there | shortfall |
+|---|---|---|---|
+| dry | 0.447 | 0.3177 | 14.1 σ |
+| 1 % H₂O | 0.468 | 0.3236 | 13.5 σ |
+
+The gas assumption moves rP by ~0.02 and the slope by ~0.006, against a gap of
+0.13. **The conclusion is unchanged in either world.**
+
+### 21.5 A useful by-product — what Garfield's `auto` Penning actually is
+
+Inverting the ln G vs rP line at 490 V:
+
+| reference | gain | implied rP |
+|---|---|---|
+| meshfield HV-scan, `auto` | 24 172 | **0.406** |
+| T7 pooled meshfield, `auto` | 24 094 | **0.406** |
+| uniform-field wet bracket, measured auto ÷ rP 0.40 | ×1.016 | **≈ 0.40** |
+
+Two independent routes agree: **Garfield's `auto` Penning transfer for
+Ar/iC₄H₁₀ 95/5 is equivalent to rP ≈ 0.40–0.41.** That retires a standing
+ambiguity — the HV-slope note observed that "our calib's rP = 0.40 upper bracket
+is really the literature's lower end", and this confirms the production calib
+has effectively been running at rP 0.40 all along.
+
+### 21.6 What is still open
+
+* **rP 0.80 could still surprise on the slope** — but it cannot rescue the
+  single-defect hypothesis, because at rP 0.80 the gain is ~4 × 10⁶.
+* The 90/10 `auto` arm (slope 0.2988) is the isobutane confirmation point and
+  is consistent with the earlier finding that the isobutane axis is closed.
+* **The real question is now the one outcome B names:** if neither Penning nor
+  any other ledger row can produce the amplitude deficit, the decomposition of
+  the chain into these multiplicative stages is itself where to look.
