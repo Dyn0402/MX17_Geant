@@ -65,8 +65,39 @@ shuttles are warn-and-continue, so a failure may leave only a log warning.
 <b>Either way the merged JSON should be on the desktop's local disk</b>, because
 the merge runs before the shuttle:</p>
 <pre>ssh desktop 'tail -40 /media/ucla/mx17_response_sim/slopehunt_chain2.log;
-             ls -la /media/ucla/mx17_response_sim/aval_calib_slopehunt.json'</pre>
-<p>If it is there, rsync it to the laptop — that is all the harness needs.</p>
+             ls -la ~/CLionProjects/MX17_Geant/response/avalanche/aval_calib_slopehunt.json'</pre>
+
+<p class="warn">⚠️ <b>Corrected 2026-08-10 after the re-auth — an earlier version
+of this note gave the wrong path.</b> The merge writes into the desktop's
+<b>repo checkout</b>, not <code>/media/ucla</code>; only the raw slices live
+there. Looking in <code>/media/ucla</code> finds nothing and reads as a failed
+run, which is the exact misreading this section exists to prevent.</p>
+
+<h3>What the re-auth actually found</h3>
+<ul>
+<li><b>The chain is still running</b> — 88 of 144 slices after ~11.4 h, four
+processes at 100 % CPU, currently on <code>rP 0.65 / 520 V</code>; roughly 7 h
+to go. Complete arms: <code>isofrac10</code> (90/10 auto), <code>rP 0.30</code>,
+<code>rP 0.50</code> at all three voltages, plus <code>rP 0.65</code> at 460 and
+490 V.</li>
+<li><b>The desktop has no Kerberos ticket</b>, so the EOS shuttle will
+warn-and-skip and the merged file will be correct but local only.
+<code>kinit</code> on the desktop before it finishes, or rsync the merged JSON
+by hand afterwards.</li>
+<li><b>⚠️ A merge bug was caught ~56 slices before it would have fired.</b>
+<code>response/avalanche/collect.py</code> grouped result files by
+<code>(gas, voltage)</code> only, so every Penning arm of the slope hunt —
+which varies rP at three <em>shared</em> voltages on <em>one</em> gas — would
+have collapsed into a single point per voltage, silently averaged over the axis
+the campaign exists to resolve. The output would have looked perfectly
+well-formed. This is the T7 voltage-label incident in a different place: a
+grouping key that ignores what the campaign actually varied. Fixed in
+<code>169dc16</code> (Penning carried through the reduction, added to the
+grouping key, machine-readable on every point, one figure curve per arm),
+backwards compatible — the key stays <code>gas@voltage</code> wherever
+unambiguous. The fixed file was copied to the desktop's checkout so the chain's
+own merge is correct.</li>
+</ul>
 
 <h2>Thread 1 — rise time: the ion term is the whole discrepancy</h2>
 
