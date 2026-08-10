@@ -1292,18 +1292,37 @@ assuming the run failed:**
    **warn-and-continue**, i.e. a failed shuttle does **not** fail the chain and
    may leave nothing in the log but a warning.
 
-**In either case the merged JSON should exist on the desktop's local disk** at
-`/media/ucla/mx17_response_sim/` — the merge step runs before the shuttle. So
-the first thing to do after the re-auth is:
+**In either case the merged JSON should exist on the desktop's local disk** —
+the merge step runs before the shuttle.
+
+⚠️ **Correction (2026-08-10, after the re-auth): the merge does NOT write to
+`/media/ucla`.** `run_slopehunt_chain2.sh` writes it into the desktop's *repo
+checkout* at `~/CLionProjects/MX17_Geant/response/avalanche/aval_calib_slopehunt.json`;
+only the raw slices live under `/media/ucla`. Looking in `/media/ucla` for the
+merged file — as an earlier draft of this section said to — finds nothing and
+looks like a failure. Check both:
 
 ```bash
 ssh desktop 'tail -40 /media/ucla/mx17_response_sim/slopehunt_chain2.log;
-             ls -la /media/ucla/mx17_response_sim/aval_calib_slopehunt.json'
+             ls -la ~/CLionProjects/MX17_Geant/response/avalanche/aval_calib_slopehunt.json;
+             ls /media/ucla/mx17_response_sim/avalanche/results_slopehunt | wc -l'
 ```
 
-and if it is there but not on EOS, `kinit` on the desktop and re-run the
-shuttle — or just rsync it straight to the laptop, which is all the collection
-harness needs.
+### What was actually found (2026-08-10, post re-auth)
+
+**The chain is still running** — possibility 1, not a failed shuttle. 88 of 144
+slices done after ~11.4 h, four `mx17_aval_calib.py` processes at 100 % CPU,
+currently on `penningRP0p65_520V`. Completed arms: `isofrac10` (90/10, auto),
+`rP 0.30`, `rP 0.50` — all three voltages each — plus `rP 0.65` at 460 and
+490 V. Remaining: `rP 0.65 @ 520 V`, the `rP 0.80` arm, and one further arm,
+56 slices in total, so roughly 7 h at the observed rate.
+
+**And the shuttle will fail when it gets there: `klist -s` on the desktop
+reports NO Kerberos ticket.** The chain guards the rsync with `klist -s && …
+|| echo WARNING`, so it will warn and continue, exactly as §19 anticipated. The
+merged file will therefore be correct and local, and simply absent from EOS —
+`kinit` on the desktop before the chain finishes, or rsync the merged JSON by
+hand afterwards.
 
 **Nothing else is outstanding.** Both watchers have resolved (wet bracket
 collected, §17; desktop timed out, here), no jobs are running anywhere, and

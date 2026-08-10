@@ -38,10 +38,17 @@ desktop's local disk**, because the merge runs before the shuttle:
 
 ```bash
 ssh desktop 'tail -40 /media/ucla/mx17_response_sim/slopehunt_chain2.log;
-             ls -la /media/ucla/mx17_response_sim/aval_calib_slopehunt.json'
+             ls -la ~/CLionProjects/MX17_Geant/response/avalanche/aval_calib_slopehunt.json'
 ```
 
-If it is there, rsync it to the laptop — that is all the harness needs.
+⚠️ Note the path: the merge writes into the desktop's **repo checkout**, not
+`/media/ucla` (an earlier draft of this brief said otherwise). Only the raw
+slices live under `/media/ucla`.
+
+**Checked after the re-auth: the chain is still running** — 88 of 144 slices
+after ~11.4 h, ~7 h to go — and **the desktop has no Kerberos ticket**, so the
+shuttle will warn-and-skip and the merged file will be correct but local only.
+`kinit` on the desktop before it finishes, or rsync the merged JSON by hand.
 
 ---
 
