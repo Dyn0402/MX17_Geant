@@ -10,7 +10,8 @@ Five-minute read. Full working record with every table:
 **1. The desktop needs a Tailscale SSH re-auth.** Every new session is refused
 pending an interactive check-in; the host itself is fine (ping 16 ms, port 22
 open). The link is regenerated per attempt, so just run `ssh desktop true` and
-visit whatever URL it prints.
+visit whatever URL it prints. **It stayed walled all night — 72 probes over 6 h
+to 04:49 UTC, every one refused.**
 
 Nothing was lost to it: the T7 slope-hunt chain is running there unattended and
 self-merges, and the one job I needed off that machine (the 08-08→09 HV-scan
@@ -26,6 +27,21 @@ python3 -m response.validation.slopehunt_verdict \
 
 The decision rule is pre-registered in that script's header, written before the
 data existed. See "the decision that is yours" below.
+
+⚠️ **But check the shuttle first — the slope-hunt product is not on EOS.** At
+04:49 UTC the avalanche directory has the HV-scan and diagnosis-grid products
+but no `aval_calib_slopehunt.json`. Either the chain is still running (144
+slices, ~2.5× the HV scan) *or* it finished and its EOS shuttle failed for want
+of a Kerberos ticket — the shuttles are warn-and-continue, so a failure may
+leave only a log warning. **Either way the merged JSON should be on the
+desktop's local disk**, because the merge runs before the shuttle:
+
+```bash
+ssh desktop 'tail -40 /media/ucla/mx17_response_sim/slopehunt_chain2.log;
+             ls -la /media/ucla/mx17_response_sim/aval_calib_slopehunt.json'
+```
+
+If it is there, rsync it to the laptop — that is all the harness needs.
 
 ---
 

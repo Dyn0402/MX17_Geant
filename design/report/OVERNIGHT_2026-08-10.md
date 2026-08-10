@@ -1263,3 +1263,48 @@ the gain at ×1.67, that implicitly assumes a dry gas**, and the same rP would
 leave a residual ×1.3 if the gas is in fact wet at the level the v_drift
 anomaly wants. So outcome A should be reported with the gas assumption stated,
 not as an unconditional closure.
+
+---
+
+## 19. Close-out — the desktop wall never dropped, and a caveat for the collect
+
+**Desktop: 72 probes over 6 h (≈ 23:15 → 04:49 UTC), every one refused.** The
+Tailscale re-authentication was never completed, so item 3 (T7 slope hunt) is
+untouched and remains the single outstanding queue item.
+
+**The slope-hunt product is NOT on EOS.** Checked at 04:49 UTC:
+`/eos/experiment/ntof/data/x17/response_sim/avalanche/` holds
+`aval_calib_meshfield_hvscan.json`, `…_pooled.json`, `…_diagnosis_grid.json`
+and `aval_calib_v2/v3.json`, but **no `aval_calib_slopehunt.json`**. The HV-scan
+product was collectible from EOS precisely because its shuttle had run; this
+one's has not.
+
+⚠️ **Two possibilities, and they need different actions — check which before
+assuming the run failed:**
+
+1. **The chain is still running.** 144 slices is roughly 2.5× the HV scan's 56,
+   so this is entirely plausible; it was launched before 22:05.
+2. **The chain finished but its EOS shuttle failed.** `shuttle_to_eos.sh`
+   pushes over `rsync … lxplus:/eos/…` and **needs a live Kerberos ticket on
+   the desktop**. The previous chain's ticket was recorded as valid only
+   *through 2026-08-09 11:21*, so by the time this one finished the desktop may
+   well have had no valid ticket. The plan already notes the shuttles are
+   **warn-and-continue**, i.e. a failed shuttle does **not** fail the chain and
+   may leave nothing in the log but a warning.
+
+**In either case the merged JSON should exist on the desktop's local disk** at
+`/media/ucla/mx17_response_sim/` — the merge step runs before the shuttle. So
+the first thing to do after the re-auth is:
+
+```bash
+ssh desktop 'tail -40 /media/ucla/mx17_response_sim/slopehunt_chain2.log;
+             ls -la /media/ucla/mx17_response_sim/aval_calib_slopehunt.json'
+```
+
+and if it is there but not on EOS, `kinit` on the desktop and re-run the
+shuttle — or just rsync it straight to the laptop, which is all the collection
+harness needs.
+
+**Nothing else is outstanding.** Both watchers have resolved (wet bracket
+collected, §17; desktop timed out, here), no jobs are running anywhere, and
+both repositories are clean.
