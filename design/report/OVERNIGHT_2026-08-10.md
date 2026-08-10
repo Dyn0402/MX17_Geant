@@ -1327,3 +1327,56 @@ hand afterwards.
 **Nothing else is outstanding.** Both watchers have resolved (wet bracket
 collected, §17; desktop timed out, here), no jobs are running anywhere, and
 both repositories are clean.
+
+---
+
+## 20. Two operational lessons from the partial-merge run — worth keeping
+
+Both cost time this morning and both will recur, because this project drives a
+lot of work over ssh to the desktop.
+
+### `timeout N ssh …` does NOT kill the remote process
+
+The first partial merge was launched as `timeout 600 ssh desktop '… collect …'`.
+The timeout fired, the local ssh died, and **the remote `collect` kept running**
+— for another 11 minutes, unnoticed. Without a TTY the remote process is not
+signalled when the ssh client goes away, so the timeout kills only the local
+end of the pipe.
+
+Consequences, both of which actually happened:
+
+* it burned a core the running 144-slice campaign needed, and
+* when the merge was relaunched, **two `collect` processes were writing to the
+  same `--out` path**, which is a silent corruption race on the product.
+
+It also hid its own progress: the command ended `| tail -22`, so nothing was
+printable until the pipeline finished — the run looked hung when it was simply
+buffered.
+
+**Rule: for anything on the desktop longer than a few seconds, launch it with
+`nohup … &` writing to a log on the desktop, and poll the log.** Never rely on
+a local `timeout` to bound a remote job, and never pipe a long remote job
+through `tail` if you want to watch it.
+
+### `.fuse_hidden*` files are a symptom, not a mystery
+
+Cleaning up the abandoned staging directory failed with `Directory not empty`
+while `ls` showed it empty; `ls -a` revealed a 224-byte
+`.fuse_hidden0008eb8700000001`. `/media/ucla` is **ntfs-3g (`fuseblk`)**, and
+FUSE renames a file that is deleted while still open rather than unlinking it.
+The holder was the orphaned `collect` above. **Killing that process made the
+directory removable immediately** — which is the confirmation, not a guess.
+
+So a `.fuse_hidden*` that will not delete means *some process still has the file
+open*; find and stop it rather than forcing the directory.
+
+### Also, a stale number corrected
+
+Several documents (and §10 of the plan) describe the desktop disk as "~91 %
+full", which has been quoted as a constraint on what can be staged there. It is
+now **82 %** — `df -T` reads 818 GB used of 1000 GB, 182 GB free. Still the
+tightest disk in the fleet and still worth checking before writing, but the
+91 % figure is out of date and should not be used to rule work out.
+
+*(The hardlink staging used here consumes no data blocks at all, which is the
+right pattern for this disk regardless of how full it is.)*
