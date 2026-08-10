@@ -104,6 +104,12 @@ def reduce_file(path):
                              bins=Z_BINS, range=Z_RANGE)
     return {
         "gas": c["gas_file"], "volt": c["voltage_V"], "nev": c["nev"],
+        # Penning is a CAMPAIGN AXIS, not a constant, and it must survive the
+        # reduction or the grouping below cannot separate arms that differ
+        # only by it. Carried 2026-08-10 after the slope-hunt near-miss; see
+        # `penning_tag`.
+        "penning_mode": c.get("penning_mode"),
+        "penning_rp": c.get("penning_rp"),
         "gains": list(r["gains"]),
         "r": (n_r, s_r, s_r2), "t": (n_t, s_t, s_t2),
         "zhist": hz, "zedges": edges,
@@ -116,8 +122,35 @@ def reduce_file(path):
     }
 
 
+def penning_tag(mode, rp):
+    """Identity of the Penning setting, for grouping and for the point key.
+
+    `auto` and a manual rP are physically different configurations of the SAME
+    gas at the SAME voltage, so they are different points.
+    """
+    if mode == "manual":
+        return f"rP{rp:.2f}" if rp is not None else "rPmanual"
+    return mode or "penningUNKNOWN"
+
+
 def load(indir):
-    """Group every result file by (gas, voltage), reduced on the way in."""
+    """
+    Group every result file by (gas, voltage, Penning), reduced on the way in.
+
+    ⚠️ Penning belongs in this key and its absence was a live bug, caught
+    2026-08-10 with the 144-slice slope hunt still running. That campaign
+    exists precisely to compare rP arms — {0.30, 0.50, 0.65, 0.80} plus an
+    `auto` arm — at three shared voltages on one gas. Grouped by (gas, voltage)
+    alone, every arm collapses into ONE point per voltage, silently averaged
+    over the axis the campaign was built to resolve, and the merged file looks
+    perfectly well-formed.
+
+    This is the same failure as the T7 voltage-label incident (§0a): a grouping
+    key that ignores what the campaign actually varied. There the 56 slices all
+    shared one field map regardless of their voltage label; here the arms would
+    all share one key regardless of their Penning label. The lesson generalises
+    — whenever a new campaign axis is added, it has to be added HERE too.
+    """
     points = defaultdict(list)
     files = sorted(glob.glob(os.path.join(indir, "aval_*.json")))
     for i, f in enumerate(files, 1):
@@ -126,7 +159,8 @@ def load(indir):
         except Exception as e:                       # partial transfer
             print(f"  skipping unreadable {os.path.basename(f)}: {e}")
             continue
-        points[(s["gas"], s["volt"])].append(s)
+        ptag = penning_tag(s.get("penning_mode"), s.get("penning_rp"))
+        points[(s["gas"], s["volt"], ptag)].append(s)
         print(f"  [{i}/{len(files)}] {os.path.basename(f)}", flush=True)
     return points
 
@@ -205,11 +239,20 @@ def main():
     if not points:
         print(f"no aval_*.json under {a.indir} — has the campaign landed yet?")
         return 1
-    print(f"{len(points)} (gas, voltage) points from "
+    print(f"{len(points)} (gas, voltage, Penning) points from "
           f"{sum(len(v) for v in points.values())} slice files")
 
+    # The key stays `gas@voltage` while that is unambiguous, so every product
+    # written before 2026-08-10 keeps its exact key format and no consumer
+    # breaks. The Penning suffix appears ONLY where it has to — i.e. where two
+    # arms would otherwise collide, which is exactly the case the grouping fix
+    # above exists for.
+    n_tags = defaultdict(set)
+    for gas, volt, ptag in points:
+        n_tags[(gas, volt)].add(ptag)
+
     calib, rows = {}, []
-    for (gas, volt), sl in sorted(points.items()):
+    for (gas, volt, ptag), sl in sorted(points.items()):
         m = merge(sl)
         # Machine-readable voltage/gas, not just baked into the string key --
         # a consumer needing "what voltage was this point run at" had to
@@ -219,8 +262,14 @@ def main():
         # this fix and still only carries the voltage in free text).
         m["voltage_V"] = float(volt)
         m["gas_file"] = gas
-        key = f"{gas}@{volt:.0f}V"
-        rows.append((gas, volt, m))
+        # Machine-readable Penning too, for the same reason the voltage is:
+        # a consumer asking "which rP was this" must not have to parse a key.
+        m["penning_mode"] = sl[0].get("penning_mode")
+        m["penning_rp"] = sl[0].get("penning_rp")
+        m["penning_tag"] = ptag
+        key = (f"{gas}@{volt:.0f}V" if len(n_tags[(gas, volt)]) == 1
+               else f"{gas}@{volt:.0f}V@{ptag}")
+        rows.append((gas, ptag, volt, m))
         p = m["polya"]
         print(f"  {key:<44s} nev={m['nev_total']:5d}  "
               f"gain={p['gain_mean']:9.1f}  theta={p['theta']:5.2f}  "
@@ -248,19 +297,25 @@ def main():
     # "'<' not supported between instances of 'dict' and 'dict'";  the JSON
     # above was already written by that point, so no data was lost, but the
     # figure never got made).
-    rows.sort(key=lambda r: (r[0], r[1]))
+    # Sort and series-split by (gas, Penning) -- one curve per campaign ARM.
+    # Grouping by gas alone would zigzag a single line through every rP arm at
+    # each shared voltage, which is unreadable and, worse, looks like scatter.
+    rows.sort(key=lambda r: (r[0], r[1], r[2]))
+    series = sorted(set((r[0], r[1]) for r in rows))
     gases = sorted(set(r[0] for r in rows))
     colors = plt.cm.tab10.colors
 
     fig, ax = plt.subplots(1, 3, figsize=(13, 3.9))
-    for i, gas in enumerate(gases):
-        grows = [r for r in rows if r[0] == gas]
-        V = [r[1] for r in grows]
-        G = [r[2]["polya"]["gain_mean"] for r in grows]
-        TH = [r[2]["polya"]["theta"] for r in grows]
-        S0 = [r[2]["sigma0_um"] for r in grows]
+    for i, (gas, ptag) in enumerate(series):
+        grows = [r for r in rows if r[0] == gas and r[1] == ptag]
+        V = [r[2] for r in grows]
+        G = [r[3]["polya"]["gain_mean"] for r in grows]
+        TH = [r[3]["polya"]["theta"] for r in grows]
+        S0 = [r[3]["sigma0_um"] for r in grows]
         c = colors[i % len(colors)]
         label = os.path.splitext(gas)[0]
+        if len({t for g, t in series if g == gas}) > 1:
+            label = f"{label} {ptag}"
         ax[0].semilogy(V, G, "o-", color=c, ms=6, label=label)
         ax[1].plot(V, TH, "s-", color=c, ms=6, label=label)
         ax[2].plot(V, S0, "^-", color=c, ms=6, label=label)
@@ -274,7 +329,7 @@ def main():
     for x in ax:
         x.grid(True, color="#e6e6e2")
         x.spines["top"].set_visible(False); x.spines["right"].set_visible(False)
-        if len(gases) > 1:
+        if len(series) > 1:
             x.legend(fontsize=7)
     fig.suptitle("S3 — avalanche calibration", y=1.03)
     p = os.path.join(a.figdir, "s3_avalanche_calib.png")
