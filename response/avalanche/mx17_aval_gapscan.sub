@@ -1,0 +1,45 @@
+# mx17_aval_gapscan.sub — effective amplification gap, 135 vs 150 µm.
+#
+# ⚠️ PRE-REGISTERED. Predictions, decision rule and falsifier were written
+# before this file was submitted: design/report/GAP_SCAN_PREREG_2026-08-11.md.
+# In one line: gain at 490 V is predicted ×1.57 at 135 µm, and the HV slope is
+# predicted NOT to move (0.309 vs 0.3107 per 10 V), because d lnG/dV = α'(E)
+# with the gap cancelling and α linear in E over this range. A slope that RISES
+# toward the data's 0.4487 falsifies the parallel-plate Townsend framing that
+# the Penning outcome-C verdict rests on, and is the result to check hardest.
+#
+# ⚠️ UNIFORM FIELD, NOT the T6 mesh map. solve_fieldmap.py has no gap
+# parameter (AMP_GAP is a module constant) and its acceptance gate G2 has no
+# independent reference at 135 µm, so a meshfield gap arm is blocked, not
+# skipped — prereg §"What is actually being run". The field-map shape was
+# exonerated for the SLOPE by the slope hunt's own A/B arm (mesh 0.3106 vs
+# uniform 0.3107 per 10 V); it costs a flat ×0.56 on gain, measured at 150 µm
+# only, which is why gain RATIOS between gaps are quotable here and absolute
+# gains are not.
+#
+#     condor_submit mx17_aval_gapscan.sub
+#
+# Columns in mx17_aval_points_gapscan.txt: GASFILE VOLT NEV SEED TAG GAP
+
+universe                = vanilla
+executable              = mx17_aval_wrap.sh
+arguments               = "$(GASFILE) $(VOLT) $(NEV) $(SEED) $(TAG) $(GAP) 'DIAGNOSIS-GRID / unconstrained-gap-scan / T14-amplitude-and-slope'"
+transfer_input_files    = mx17_aval_calib.py, setup_garfield.sh, /afs/cern.ch/user/d/dneff/work/git/nTof_x17/garfield_sim/gas_tables/$(GASFILE), /afs/cern.ch/user/d/dneff/work/garfield_install/garfield-927e5c21.tar.gz
+should_transfer_files   = YES
+when_to_transfer_output = ON_EXIT
+transfer_output_files   = aval_$(TAG).json
+transfer_output_remaps  = "aval_$(TAG).json = results_gapscan/aval_$(TAG).json"
+output                  = logs/gapscan_$(TAG).out
+error                   = logs/gapscan_$(TAG).err
+log                     = logs/gapscan.clog
+request_cpus            = 1
+# 8 GB, not the grid's 6: the 135 µm arm runs ~×1.6 the gain of the 150 µm one
+# at every voltage, and the slope hunt lost 4 slices to the OOM killer at high
+# gain (EOS_README, rP=0.80). 135 µm/520 V is the largest point here at a
+# predicted G ~ 1.7e5 — an order of magnitude below the 5-12e6 that did the
+# killing, so this is headroom, not a fix for a known problem.
+request_memory          = 8 GB
+request_disk            = 2 GB
++MaxRuntime             = 86400
+max_retries             = 2
+queue GASFILE,VOLT,NEV,SEED,TAG,GAP from mx17_aval_points_gapscan.txt

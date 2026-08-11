@@ -301,6 +301,19 @@ Product: `t14_ang_trend/theta_other_cut.json`.
 ## 4. ⭐ The night's main result — the ion term IS the rise discrepancy,
 ## measured across the whole distribution at two inclinations
 
+> ### ⚠️ CORRECTED 2026-08-11 — every rise number below is saturation-biased
+> The 10–90 % rise was measured against each waveform's own maximum with no
+> saturation handling, so a **railed pulse reads fast**. The data legs rail on
+> 24–26 % of events against the sim's 3–5 %, so the bias is six times stronger
+> on the data leg, in the direction that makes the sim look slow.
+> **Re-derived with railed events censored on both legs:** the offsets fall
+> 75.2 → **67.9** ns (10°) and 73.7 → **63.3** ns (20°), the ions-removed
+> overshoot grows to −16.1 / −33.5 ns, and the implied f_eff rises from
+> 0.10–0.22 to **0.17–0.31**. **The contradiction survives** against a defended
+> f_ion = 0.9056 — this is a numbers correction, not a resolution. Full tables
+> and the fix: `design/report/RISE_SATURATION_CENSOR_2026-08-11.md`.
+> The §2 rise numbers carry the same bias.
+
 This closes a chain that had been resting on a single statistic.
 
 ### Step 1 — f_ion is NOT a rigid delay at vertical
@@ -549,6 +562,20 @@ detector at the edge of stable operation and leaves no headroom for any other
 factor pulling the same way.
 
 ### 7.4 The elimination table
+
+> ### ⚠️ CORRECTED 2026-08-11 — the "Mesh transparency" row was inverted
+> That row read T6's 3-D transparency 0.955 and the avalanche `survival` 0.9559
+> as two independent measurements agreeing. **They are one quantity measured
+> twice, and Stage B was multiplying them together** — thinning at 0.8345 where
+> the physics is a single 0.955. Simulated charge was low by ×0.874 from
+> 2026-08-08. The row's verdict survives on size (a duplicated 0.955 buys
+> ×1.15, not ×1.5) but its reasoning was backwards and it had a real number in
+> it. **RE-RUN LANDED 2026-08-11: X q_sum 0.6416 → 0.7344, demanded gain
+> 37 552 → 32 805 (saturation-corrected 40 255 → 35 167), deficit ×1.67 →
+> ×1.46, HV slope unchanged** — every number as pre-registered. §7.3's reading
+> survives in substance: ~3.5 × 10⁴ is still at the top of the stable Ar/iso
+> band, so a pure gain explanation is still available and still only just.
+> `design/report/TRANSPARENCY_DOUBLE_COUNT_2026-08-11.md`.
 
 | candidate | leverage | verdict |
 |---|---|---|

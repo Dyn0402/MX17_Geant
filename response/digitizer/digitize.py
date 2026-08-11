@@ -51,13 +51,20 @@ from . import ions as ION
 DEFAULT_DRIFT_V = 1000.0
 DEFAULT_DRIFT_GAP_MM = 30.0
 DEFAULT_MESH_V = 490.0
-# Mesh electron transparency — MEASURED, T6 (response/meshcell/mesh_transparency.C,
-# 2026-08-07). At the bench point (E_drift 333 V/cm over the 30 mm gap against
-# 32.7 kV/cm in the 150 um amplification gap, ratio 98) the woven-mesh cell gives
-# 0.873. The curve is remarkably flat: 0.854-0.876 across field ratios 33-653,
-# because even the lowest ratio here is far above the ~10-20 where transparency
-# starts to collapse. Superseded the 0.95 that was assumed before T6 ran.
-DEFAULT_TRANSPARENCY = 0.873
+# Mesh electron transparency for a calibration that does NOT contain one.
+#
+# MEASURED, T6 3-D (response/meshcell/FIELD_MAP_RUNBOOK.md, gate G7, production
+# map accepted 2026-08-08, git 5763342): 0.955 -0.045/+0.005 at the bench point
+# (E_drift 333 V/cm over the 30 mm gap against ~31.0 kV/cm in the amplification
+# gap). Higher than the 1-D model because electrons dodge the wires in both
+# lateral dimensions in 3-D.
+#
+# CORRECTION 2026-08-11: this constant was 0.873 — the 1-D value from
+# `mesh_transparency.C` (2026-08-07) — which the runbook's acceptance note said
+# outright the 3-D deliverable "supersedes ... on Stage B's next touch". Stage B
+# was never touched, so the 1-D number stayed live for three days. See
+# design/report/TRANSPARENCY_DOUBLE_COUNT_2026-08-11.md.
+DEFAULT_TRANSPARENCY = 0.955
 
 
 # The pooled meshfield calib is a DIFFERENT container schema, on purpose: all
@@ -103,6 +110,47 @@ def calib_seed_z0_mm(calib_pt):
             f"unrecognised calib field_model {fm!r} and no seed_z0_um: "
             "refusing to guess whether its sigma0 includes a drift leg")
     return 0.0
+
+
+def split_calib_survival(calib_pt):
+    """Split the calib's `survival` into (mesh transparency, P(g > 0)).
+
+    THE CONSTRAINT THIS FUNCTION EXISTS TO ENFORCE (fix 2026-08-11): the S3
+    calibration writes `survival = (gains > 0).mean()` over its seeds
+    (`mx17_aval_calib.py:460`), and what that fraction MEANS depends on where
+    the seeds were launched:
+
+      * meshfield  — seeds start MESHFIELD_SEED_Z0_UM above the mesh, so a seed
+        absorbed on a wire records gain 0. `survival` is therefore
+        eps_mesh * P(g>0), and it IS the transparency: the production file
+        `aval_calib_meshfield_pooled.json` reads 0.9559 +- 0.0026 against T6's
+        independent 3-D G7 value of 0.955, and P(g>0) is 1.0 to the precision
+        of the uniform-field campaign (0 of 6400 seeds failed to multiply, all
+        56 slices — design/report/DESKTOP_RUNS_2026-08-07.md). So the external
+        DEFAULT_TRANSPARENCY must NOT be applied on top: doing so thins twice.
+      * uniform_field — seeds start INSIDE the amplification gap, past a mesh
+        that is not in the model at all. `survival` is P(g>0) alone (= 1.0
+        measured, and absent entirely from schema <= 2), and the transparency
+        has to come from outside, because nothing in the calibration knows
+        about a mesh.
+
+    CORRECTION 2026-08-11: before this split the chain applied
+    DEFAULT_TRANSPARENCY * survival unconditionally = 0.873 * 0.9559 = 0.8345
+    on the production meshfield path, where the physics is a single 0.955.
+    Simulated charge was low by x0.874. The `RESPONSE_SIM_PLAN.md` T7 line
+    "survival 0.9559 ~= T6 transparency 0.955" was read as an independent
+    cross-check of two numbers; it is one number measured twice, and their
+    agreement is the duplication. Ledger consequences:
+    design/report/TRANSPARENCY_DOUBLE_COUNT_2026-08-11.md.
+
+    Returns (eps_mesh_or_None, p_multiply). A None transparency means "this
+    calibration does not contain one, use the external default".
+    """
+    surv = float(calib_pt.get("polya", {}).get("survival", 1.0))
+    fm = str(calib_pt.get("field_model", ""))
+    if fm.startswith("meshfield"):
+        return surv, 1.0
+    return None, surv
 
 
 def load_calib(path, mesh_v):
@@ -168,7 +216,12 @@ def polya_sample(rng, gbar, theta, n):
 class Digitizer:
     def __init__(self, kernel_path, calib_path, *, mesh_v=DEFAULT_MESH_V,
                  drift_v=DEFAULT_DRIFT_V, drift_gap_mm=DEFAULT_DRIFT_GAP_MM,
-                 transparency=DEFAULT_TRANSPARENCY, v_scale=1.0,
+                 # None = take it from the calibration if the calibration
+                 # measured one (meshfield), else DEFAULT_TRANSPARENCY. Pass a
+                 # number only to override a calibration deliberately — see
+                 # split_calib_survival, and note that on a meshfield calib an
+                 # explicit value multiplies the one already inside `survival`.
+                 transparency=None, v_scale=1.0,
                  # 8, not 4 (2026-08-07). With the LUT window corrected to
                  # 3000 ns (audit A1) a +-4 channel window LEAKS 8-10 % of the
                  # induced charge at every depth; +-8 holds it to <=0.6 %. The
@@ -207,7 +260,6 @@ class Digitizer:
         self.calib, self.calib_v = load_calib(calib_path, mesh_v)
         self.E_drift = drift_v / (drift_gap_mm * 0.1)      # V/cm
         self.drift_gap_mm = drift_gap_mm
-        self.transparency = transparency
         self.n_side = n_chan_side
         self.packet = packet
         self.rng = np.random.default_rng(seed)
@@ -217,8 +269,27 @@ class Digitizer:
 
         p = self.calib["polya"]
         self.gbar, self.theta = p["gain_mean"], p["theta"]
-        # P(g>0) from the S3 calib; absent in schema <= 2, where it is 1.0.
-        self.aval_survival = float(p.get("survival", 1.0))
+        # The calib's single `survival` number splits into a mesh term and an
+        # avalanche term, and WHICH of the two it is depends on the field model
+        # — see split_calib_survival for the constraint and for the 2026-08-11
+        # double-count it exists to prevent. Whatever the split, exactly one
+        # mesh transparency reaches p_surv below.
+        calib_eps, self.aval_survival = split_calib_survival(self.calib)
+        self.calib_transparency = calib_eps
+        if transparency is not None:
+            self.transparency = float(transparency)
+            self.transparency_source = "caller override"
+        elif calib_eps is not None:
+            self.transparency = calib_eps
+            self.transparency_source = (
+                f"S3 meshfield calib `survival` "
+                f"({self.calib.get('field_model')}); T6 3-D G7 measures the "
+                f"same quantity at 0.955")
+        else:
+            self.transparency = DEFAULT_TRANSPARENCY
+            self.transparency_source = (
+                "T6 3-D G7 measured (production map accepted 2026-08-08); "
+                "calib is uniform_field and contains no mesh")
         self.sigma0_um = self.calib["sigma0_um"]
         self.calib_seed_z0_mm = calib_seed_z0_mm(self.calib)
         self.v_drift = float(np.ravel(
@@ -338,11 +409,20 @@ class Digitizer:
         # avalanche at all must be removed here or the per-electron charge is
         # high by 1/P(g>0). Folding it into the SAME thinning rather than adding
         # a second Bernoulli keeps the statistics binomial and consumes no extra
-        # randoms, so a calib with survival = 1 is bit-identical. Measured over
-        # all 56 S3 raw slices, survival IS 1.0 at every voltage (0 of 6400
-        # seeds failed to multiply) — design/report/DESKTOP_RUNS_2026-08-07.md —
-        # so this is exact bookkeeping today, not a correction. A v2 calib has
-        # no `survival` field, hence the 1.0 default.
+        # randoms, so a calib with survival = 1 is bit-identical.
+        #
+        # CORRECTED 2026-08-11. This comment used to say the third factor is
+        # 1.0 and therefore exact bookkeeping — true of the UNIFORM-FIELD S3
+        # calibs it was written against (0 of 6400 seeds failed to multiply
+        # across all 56 slices, design/report/DESKTOP_RUNS_2026-08-07.md), and
+        # false of the meshfield calib that has been production since 08-08,
+        # whose `survival` = 0.9559 is the MESH TRANSPARENCY, not P(g>0). Read
+        # literally, the old comment licensed multiplying the two — which is
+        # what the code did, thinning at 0.873 * 0.9559 = 0.8345 for a physics
+        # of 0.955. `split_calib_survival` now routes each calibration's number
+        # to the factor it actually measures, so `self.transparency` is the ONE
+        # mesh term here and `self.aval_survival` is the P(g>0) term, 1.0 on
+        # the meshfield path.
         #
         # In-gap deposits are already PAST the mesh and never drifted, so
         # neither the transparency nor the attachment applies to them (C7).
@@ -501,11 +581,14 @@ class Digitizer:
             "gas": self.gas.describe(self.E_drift, self.drift_gap_mm),
             "E_drift_Vcm": self.E_drift,
             "mesh_transparency": self.transparency,
-            "transparency_source": "T6 measured (2026-08-07), bench ratio 98",
+            "transparency_source": self.transparency_source,
             "gain_mean": self.gbar, "polya_theta": self.theta,
             "aval_survival": self.aval_survival,
             "aval_survival_source": (
-                "S3 calib" if "survival" in self.calib.get("polya", {})
+                "1.0: meshfield calib `survival` is the mesh term, reported "
+                "as mesh_transparency (P(g>0) = 1.0 measured, 0/6400 seeds)"
+                if self.calib_transparency is not None
+                else "S3 calib" if "survival" in self.calib.get("polya", {})
                 else "absent from calib (schema <= 2), assumed 1.0"),
             "sigma0_um": self.sigma0_um,
             "calib_voltage_V": self.calib_v,
