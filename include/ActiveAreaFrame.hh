@@ -91,6 +91,15 @@ struct ActiveAreaFrame {
     // frame is deliberately left-handed.
     double sx = 1.0, sy = 1.0, sz = -1.0;
     // Active-area full width [mm] (512 × 0.78).
+    //
+    // This is the METALLISED width, and it is square here by construction. The
+    // *efficient* area is not: the strip plane is passivated over ~19 mm at
+    // each end of Y, so charge landing there is collected by neither plane
+    // (measured 2026-08-11; design/GEOMETRY_FROM_CAD.md "What the CAD does not
+    // settle", nTof_x17/ntof_active_area/report.html). Efficient extent:
+    //   X  399.4 mm       Y  359.9 +- 1.8 mm, centred
+    // Not modelled here on purpose -- this sim is run at chosen impact points,
+    // not over a flood. Any Y sweep or acceptance number must apply the band.
     double activeWidth_mm = 399.36;
     // True once the geometry has actually reported itself.
     bool valid = false;

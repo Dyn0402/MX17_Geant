@@ -55,7 +55,7 @@ What must stay configurable per consumer (these legitimately differ):
 
 | Property | MX17_Geant | MX17_Full_Geant |
 |---|---|---|
-| Transverse face | 400 × 400 mm | 380 × 340 mm (`mm_size_u_cm`, `mm_size_v_cm`) |
+| Transverse face | 400 × 400 mm | ~~380 × 340~~ → **399 × 360 mm** (`mm_size_u_cm`, `mm_size_v_cm`; measured 2026-08-11, see below) |
 | Instances | 1, on axis | 4 arms, pinwheel-shifted |
 | Local axes | z along beam | (u, v, w) per arm |
 | Modes | 6 `SimMode` variants | full-experiment only |

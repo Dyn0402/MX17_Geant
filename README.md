@@ -52,6 +52,14 @@ remaining assumptions in [`design/NEEDED_INPUTS.md`](design/NEEDED_INPUTS.md)):
 - **M1 front-end cards**: 2× per connector edge, flat on the drift side of
   the board edge and straddling it (6.6 mm envelope: 6 gerber Cu layers + FR4)
 
+> **The 399.36 mm active window is metallised, not efficient (2026-08-11).**
+> The strip plane is passivated over ~19 mm at each end of **Y**, so the
+> efficient area is 399.4 × 359.9 mm, not square. Measured twice (June cosmic
+> bench vs the M3 telescope; n_TOF beam run_79 paired clusters —
+> `nTof_x17/ntof_active_area/report.html`). Not modelled here on purpose: this
+> sim runs at chosen impact points. **Any Y sweep or acceptance number must
+> apply the band.** See `design/GEOMETRY_FROM_CAD.md`.
+
 ### Real readout pattern (default; `--homogenized-readout` to disable)
 
 The three signal copper layers are built as the **real 512 × 512 pattern** read
