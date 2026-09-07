@@ -77,6 +77,36 @@ H2O and the June best-fit +1%N2 co-contamination at 490V, plus a 3-point
 `provenance.campaign_label` set to that exact string, so a consumer reading
 the JSON directly sees the caveat regardless of filename.
 
+## T14 HV-slope hunt (2026-08-09/12)
+
+⚠️ **`raw_slopehunt_20260809/` and `aval_calib_slopehunt.json` are
+DIAGNOSIS-GRID / unconstrained-slope-hunt, not a gas/field assay** — three
+independent discriminators for why the sim's dry-95/5 gain-vs-voltage slope
+(0.296/10V) is ~1.5x too shallow vs det3 data (0.449/10V): iso-fraction
+(90/10 confirmation point, 24 slices), Penning rP A/B (0.30/0.50/0.65/0.80 x
+3 voltage x 8 seed, 96 slices), field-map shape A/B (mesh vs uniform, 24
+slices). **144/144 slices now landed** (see
+`response/avalanche/SLOPEHUNT_OPS_LOG_2026-08-09.md` for the full run — the
+rP=0.80 leg needed two reruns: a >10x nev cut after the first attempt stalled
+for >11h with zero completions, then a lower-parallelism rerun of 4 slices
+the kernel OOM-killed on the first rerun, all near-breakdown gain effects at
+rP=0.80, not bugs).
+
+⚠️ **Verdict: Penning does not close the T14 slope discrepancy.** An
+early read of this campaign (mid-run, from the rP=0.80 slope alone) called it
+"promising" — that was wrong, because it never checked the gain constraint.
+See `design/report/DEEP_DIVE_2026-08-11.md` §21 for the full analysis: gain
+grows exponentially in rP while the slope only grows linearly and weakly, so
+no single rP satisfies both the data's gain and its slope. Field-map shape
+and a gap-width scan are also ruled out as slope levers (same doc). The
+leading suspect is the Magboltz α(E) cross-sections; further closure work on
+this line is deliberately deferred until after MPGD26 (2026-09-03).
+
+The final 4 rP=0.80 slices (rerun after the OOM kill) and the corrected
+144/144 merge have not yet been shuttled to EOS — lxplus started enforcing a
+second auth factor that a non-interactive `rsync` cannot satisfy. Results are
+safe on the desktop in the meantime; see the ops log for the retry path.
+
 ## Open
 
 Upload `results_v2/` (19 GB) here so the v2 raw lives on EOS and not only on

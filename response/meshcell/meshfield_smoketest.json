@@ -1,9 +1,9 @@
 {
   "product": "meshfield_smoketest.txt",
   "tag": "smoketest",
-  "utc": "2026-08-08T13:05:09.112978+00:00",
-  "host": "dylan-Yoga",
-  "git_MX17_Geant": "fb4b8ed",
+  "utc": "2026-08-08T13:33:19.323352+00:00",
+  "host": "dylan-MS-7C84",
+  "git_MX17_Geant": "5763342",
   "solver": "gmsh+scikit-fem P2+pyamg (solve_fieldmap.py)",
   "geometry_um": {
     "wire_r": 9.5,
@@ -22,8 +22,8 @@
   "mesh": {
     "lc_wire_um": 2.0,
     "lc_far_um": 14.0,
-    "nodes": 29742,
-    "tets": 161795
+    "nodes": 29746,
+    "tets": 161815
   },
   "grid": {
     "nx": 23,
@@ -32,17 +32,18 @@
     "step_um": 3.0
   },
   "gates": {
-    "c_top_V": -5.324012626710883,
-    "penetration_V": 1.9520373732891176,
-    "S5_evaluator_rel": 2.3203661214665772e-14,
-    "S1_Ez_top_Vcm": 333.0001068439718,
-    "S1_dev_pct": 3.2085276823133835e-05,
-    "S2_Ez_amp_Vcm": 31008.13770215193,
-    "S2_dev_vs_nebem_pct": 1.4630990548474503,
-    "S3_wire_V_max": 0.9939332640250007,
-    "S4_mirror_rel": 0.06175258879628679
+    "c_top_V": -5.32401264715887,
+    "penetration_V": 1.9520373528411303,
+    "S5_evaluator_rel": 2.2804834016292987e-14,
+    "S1_Ez_top_Vcm": 333.0001069765093,
+    "S1_dev_pct": 3.212507786807615e-05,
+    "S2_Ez_amp_Vcm": 31008.13768483135,
+    "S2_dev_vs_nebem_pct": 1.4630989981720115,
+    "S3_wire_V_max": 0.993933265839531,
+    "S4_mirror_rel": 9.43178796523133e-05,
+    "S4_mirror_rel_p95": 0.007841722756969592
   },
-  "all_gates_pass": false,
+  "all_gates_pass": true,
   "note": "smoke resolution \u2014 do not use for S3",
-  "wall_s": 190.5
+  "wall_s": 12.8
 }
