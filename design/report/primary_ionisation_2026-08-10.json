@@ -1,0 +1,11 @@
+{
+ "source": "/media/dylan/data/x17/response_sim/clusters/mx17_muons_500_t0.root",
+ "n_events": 500,
+ "n_full_gap": 500,
+ "median_path_mm": 29.39999999890967,
+ "total_ionisation_per_cm": 91.1708408355218,
+ "clusters_per_cm": 23.61367363965433,
+ "edep_keV_per_cm": 2365.1235889442023,
+ "implied_W_eV": 25.970601899407598,
+ "electrons_per_cluster": 3.8284272497897387
+}

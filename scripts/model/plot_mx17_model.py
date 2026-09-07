@@ -13,10 +13,19 @@ quick numeric reference but the figures no longer depend on it.
 
     python scripts/model/plot_mx17_model.py             # all figures
     python scripts/model/plot_mx17_model.py --only 3d   # board | xsec | 3d | status
+    python scripts/model/plot_mx17_model.py --only peel_zoom  # slide close-up
 
 Outputs to design/figures/ by default:
     mx17_board_copper.png  readout copper rendered from the production gerbers
     mx17_board_peel.png    close-up with layers peeled back band by band
+    mx17_board_peel_zoom.png  same peel over a 25x25 mm patch, sized for a
+                            projected slide: pitch calipers + scale bar burned
+                            in, roughly square to fit a half-width slide
+                            column (--only peel_zoom only; NOT part of the
+                            default "all figures" run)
+    mx17_board_peel_zoom_slide.png  the same close-up with NO title band and
+                            no bottom arrow, for a slide that carries its own
+                            title (--only peel_slide; MPGD26 deck)
     mx17_plan_views.png    plan views from upstream / downstream for alignment
     mx17_stack_xsec.png    cross-section at y=0 (true scale + zooms + stack)
     mx17_3d_overview.png   assembled 3D views (z exaggerated where noted)
@@ -404,6 +413,17 @@ def fig_board(outdir):
 # Peel-back close-up: the board layers revealed band by band
 # ─────────────────────────────────────────────────────────────────────────────
 
+_PEEL_GERBER_CACHE: dict[str, object] = {}
+
+
+def _peel_gerber(fn):
+    """parse() memoised by filename — the peel figure asks for the L4 pad
+    gerber twice (bands 1 and 2) and each parse walks ~262 k flashes."""
+    if fn not in _PEEL_GERBER_CACHE:
+        _PEEL_GERBER_CACHE[fn] = parse(os.path.join(GERBER_DIR, fn))
+    return _PEEL_GERBER_CACHE[fn]
+
+
 def _jag(x, y0, y1, amp=1.1, step=2.6, seed=0):
     """Jagged 'torn paper' vertical boundary from (x,y0) to (x,y1)."""
     rng = np.random.default_rng(seed)
@@ -413,16 +433,38 @@ def _jag(x, y0, y1, amp=1.1, step=2.6, seed=0):
     return list(zip(xs, ys))
 
 
-def draw_gerber_clipped(ax, gf, clip_patch, lw_scale, color=CU_COLOR, alpha=0.95):
-    """draw_gerber, but every artist clipped to clip_patch."""
+def draw_gerber_clipped(ax, gf, clip_patch, lw_scale, color=CU_COLOR, alpha=0.95,
+                        window=None):
+    """draw_gerber, but every artist clipped to clip_patch.
+
+    window=(x0, x1, y0, y1) additionally DROPS features outside that box before
+    building the collections. This is purely a speed optimisation for the zoom
+    modes: clip_path still decides what is visible, so the render is identical,
+    but the zoom no longer pays to rasterise all ~262 k board flashes in order
+    to show ~100 of them. window=None (the default) keeps the original
+    behaviour untouched.
+    """
+    if window is not None:
+        wx0, wx1, wy0, wy1 = window
+
+        def _keep(x, y):
+            return wx0 <= x <= wx1 and wy0 <= y <= wy1
+    else:
+        _keep = None
+
     arts = []
     small = [r for r in gf.regions if 2 < len(r) <= 10000]
+    if _keep is not None:
+        small = [r for r in small
+                 if any(_keep(px, py) for px, py in r)]
     if small:
         polys = [plt.Polygon(np.array(r), closed=True) for r in small]
         arts.append(ax.add_collection(PatchCollection(
             polys, facecolor=color, edgecolor="none", alpha=alpha, zorder=3)))
     by_w = {}
     for s in gf.segments:
+        if _keep is not None and not (_keep(s.x0, s.y0) or _keep(s.x1, s.y1)):
+            continue
         w = gf.apertures.get(s.aperture)
         w = w.size if w else 0.15
         by_w.setdefault(round(w, 3), []).append(s)
@@ -433,6 +475,8 @@ def draw_gerber_clipped(ax, gf, clip_patch, lw_scale, color=CU_COLOR, alpha=0.95
             alpha=alpha, zorder=3, capstyle="round")))
     pats = []
     for f in gf.flashes:
+        if _keep is not None and not _keep(f.x, f.y):
+            continue
         a = gf.apertures.get(f.aperture)
         if a is None or not a.params:
             continue
@@ -448,50 +492,176 @@ def draw_gerber_clipped(ax, gf, clip_patch, lw_scale, color=CU_COLOR, alpha=0.95
         a.set_clip_path(clip_patch)
 
 
-def fig_peel(outdir):
-    """One region of the board, layers peeled away left to right."""
-    X0, X1, Y0, Y1 = -44.0, 44.0, -22.0, 22.0
+def fig_peel(outdir, zoom=False, bare=False):
+    """One region of the board, layers peeled away left to right.
+
+    bare=True (zoom only): the same picture with the title band and the
+    "deeper into the board" arrow removed, written as
+    mx17_board_peel_zoom_slide.png. That is the MPGD26 deck copy (asked for
+    2026-08-17): a slide carries its own title in HTML type, at the deck's own
+    size and weight, so a burned-in matplotlib title is both a duplicate and
+    the wrong font -- and the two bands together were ~14 % of the figure's
+    height, which is height the pads and strips want. The per-band callouts,
+    the calipers and the scale bar stay: those are the numbers that have to
+    survive being re-scaled onto a slide. The peel still runs left to right,
+    and the deck's fig-label says so in words.
+
+    zoom=False (default): the original 88x44 mm close-up — legible on a
+    monitor, but at that scale the 0.78 mm pad/strip pitch and the 0.8 mm
+    ESL stripe pitch render as a near-solid texture, illegible from the
+    back of a conference room.
+
+    zoom=True: the same four peeled bands over a 25x25 mm patch of board,
+    magnified ~3.6x so individual pads and strip dots are countable by eye,
+    with two pitch calipers (0.78 mm readout, 0.80 mm resist) and a scale bar
+    burned into the render so the numbers survive being re-scaled onto a slide.
+
+    Two deliberate shape choices, both about the slide rather than the board:
+
+    * SQUARE, not a wide strip. The full-board figure is ~2.3:1, but on the
+      "Chamber design" slide it sits in one half of a two-column 16:9 layout —
+      a PORTRAIT slot. A wide image there is width-limited and ends up using
+      less than half the available height, which is part of why the original
+      is illegible. A ~1:1 render fills that slot.
+    * NO separate depth-key column. It cost ~27 % of the width, and a
+      four-line paragraph is not readable from 10 m anyway; the per-band
+      captions carry the same information inside the picture.
+    """
+    if zoom:
+        # 25 x 25 mm => 6.25 mm per band => exactly 8 columns on the 0.78 mm
+        # pitch, and 32 rows. Taken on-axis: the board centre is a plainly
+        # periodic region, with no connector fan-out or edge features to
+        # confuse the pattern.
+        X0, X1, Y0, Y1 = -12.5, 12.5, -12.5, 12.5
+        jag_amp, jag_step = 0.26, 1.1
+        pillar_lw = 1.2      # unused at zoom: the zoom draws no pillars (below)
+        edge_lw = 2.4
+        shadow_w = 0.5
+        # Font sizes set by projection, not by how it looks on a monitor: at a
+        # half-width slide column on a 1920-wide projection the figure renders
+        # ~860 px across, so 1 pt ~ 1 px and anything under ~15 pt stops being
+        # readable from 10+ m.
+        title_fs, depth_fs, axis_fs = 19, 13, 15
+        figsize = (12.0, 12.2 if bare else 13.6)
+        dpi = 200
+        out_name = ("mx17_board_peel_zoom_slide.png" if bare
+                    else "mx17_board_peel_zoom.png")
+        # Draw the gerber traces at their TRUE width: linewidth[pt] =
+        # w[mm] * (points per mm on the page). Anything less understates the
+        # copper, and at this magnification true scale is already legible.
+        cu_lw_scale = (figsize[0] - 1.6) * 72.0 / (X1 - X0 + 2)
+    else:
+        X0, X1, Y0, Y1 = -44.0, 44.0, -22.0, 22.0
+        jag_amp, jag_step = 1.1, 2.6
+        cu_lw_scale = 2.2
+        pillar_lw = 0.4
+        edge_lw = 1.0
+        shadow_w = 1.6
+        title_fs, depth_fs, axis_fs = 13, 9, 10
+        figsize = (19, 8.2)
+        dpi = 170
+        out_name = "mx17_board_peel.png"
+
     nb = 4
     bw = (X1 - X0) / nb
     bands = [(X0 + i*bw, X0 + (i+1)*bw) for i in range(nb)]
 
     # (title, substrate colour, copper colour, gerber file or None=resist)
+    # The zoom has no depth-key column, so its per-band captions carry the
+    # numbers. Direction note, verified against the gerbers rather than the
+    # file names: L3-TrackY holds the Y-measuring strips, whose artwork runs
+    # along *x* (0.39 mm horizontal stubs), and L4-TrackX the X-measuring
+    # strips, running along *y*. Naming a "Y strip" as running along y is the
+    # easy mistake and it is backwards.
+    if zoom:
+        # Kept short AND staggered in height below: a caption box is wider than
+        # its 6.25 mm band, so at one common height neighbours overwrite
+        # each other.
+        titles = ["① ESL resist\n550/250 µm",
+                  "② L4 pads\n0.68 mm sq.",
+                  "③ L5 Y strips\nalong x — schematic",
+                  "④ L6 X strips\nalong y — schematic"]
+    else:
+        titles = ["① top surface\nESL resist strips + bulk pillars",
+                  "② coat removed\nL4 readout pads",
+                  "③ pads removed\nL5 Y strips",
+                  "④ deepest\nL6 X strips"]
     spec = [
-        ("① top surface\nESL resist strips + bulk pillars", "#d9c48f", None, None),
-        ("② coat removed\nL4 readout pads", "#d9c48f", "#e09a55",
-         "DFS3498A_L2-pads.gbr"),
-        ("③ pads removed\nL5 Y strips", "#c4ac74", "#b87333",
-         "DFS3498A_L3-TrackY.gbr"),
-        ("④ deepest\nL6 X strips", "#a8905c", "#8a5a28",
-         "DFS3498A_L4-TrackX.gbr"),
+        (titles[0], "#d9c48f", None, None),
+        (titles[1], "#d9c48f", "#e09a55", "DFS3498A_L2-pads.gbr"),
+        (titles[2], "#c4ac74", "#b87333", "DFS3498A_L3-TrackY.gbr"),
+        (titles[3], "#a8905c", "#8a5a28", "DFS3498A_L4-TrackX.gbr"),
     ]
 
-    fig = plt.figure(figsize=(19, 8.2))
-    gs = fig.add_gridspec(1, 2, width_ratios=[3.4, 1.0])
-    ax = fig.add_subplot(gs[0])
-    axd = fig.add_subplot(gs[1])
+    fig = plt.figure(figsize=figsize)
+    if zoom:
+        ax = fig.add_subplot(1, 1, 1)
+        axd = None
+    else:
+        gs = fig.add_gridspec(1, 2, width_ratios=[3.4, 1.0])
+        ax = fig.add_subplot(gs[0])
+        axd = fig.add_subplot(gs[1])
 
     for i, ((bx0, bx1), (title, subc, cuc, fn)) in enumerate(zip(bands, spec)):
-        left = _jag(bx0, Y0, Y1, seed=i) if i > 0 else \
+        left = _jag(bx0, Y0, Y1, amp=jag_amp, step=jag_step, seed=i) if i > 0 else \
             [(bx0, Y0), (bx0, Y1)]
-        right = _jag(bx1, Y0, Y1, seed=i+1) if i < nb-1 else \
+        right = _jag(bx1, Y0, Y1, amp=jag_amp, step=jag_step, seed=i+1) if i < nb-1 else \
             [(bx1, Y0), (bx1, Y1)]
         poly = left + right[::-1]
         patch = plt.Polygon(np.array(poly), closed=True, facecolor=subc,
                             edgecolor="none", zorder=1)
         ax.add_patch(patch)
 
-        if fn is not None:
-            gf = parse(os.path.join(GERBER_DIR, fn))
-            draw_gerber_clipped(ax, gf, patch, lw_scale=2.2, color=cuc)
+        # At zoom, drop copper outside the band before building the artists —
+        # otherwise every band rasterises the whole 512x512 board to show 8
+        # columns of it (minutes per render instead of seconds). The clip path
+        # still decides what is visible, so the picture is unchanged.
+        win = (bx0 - 2, bx1 + 2, Y0 - 2, Y1 + 2) if zoom else None
+
+        if fn is not None and zoom and i >= 2:
+            # SCHEMATIC strips — zoom only, added 2026-08-10 on review.
+            #
+            # The literal L5/L6 gerber artwork is Ø0.5 mm dots on the 0.78 mm
+            # grid joined by 0.1 mm, 0.39 mm-long stubs that are present on
+            # only ~2/3 of the cells, and HOW THE INTERCONNECT ACTUALLY
+            # COMPLETES IS STILL AN OPEN QUESTION (see
+            # mpgd26/slides/HANDOFF_board_peel.md §1). Drawn literally it reads
+            # as a field of dots and the strip direction — the one thing these
+            # two bands exist to show — is not visible at all. So at zoom the
+            # vias are suppressed and each band is drawn as what the layer IS:
+            # continuous strips on the gerber's own grid (dot centres at
+            # 0.39 + n × 0.78 mm, measured), 0.5 mm wide = the dot diameter.
+            # That is a SCHEMATIC, not copper, and the figure title and the
+            # band captions say so. The full-board figure is unchanged and
+            # still draws the literal artwork.
+            horiz = (i == 2)      # L5 = Y-measuring strips → run along x
+            lo, hi = (Y0, Y1) if horiz else (bx0 - 1, bx1 + 1)
+            n0 = int(np.ceil(lo / 0.78 - 0.5))
+            n1 = int(np.floor(hi / 0.78 - 0.5))
+            strips = []
+            for n in range(n0, n1 + 1):
+                c = (n + 0.5) * 0.78
+                if horiz:
+                    strips.append(Rectangle((bx0 - 2, c - 0.25),
+                                            (bx1 - bx0) + 4, 0.5))
+                else:
+                    strips.append(Rectangle((c - 0.25, Y0 - 2), 0.5,
+                                            (Y1 - Y0) + 4))
+            sc = ax.add_collection(PatchCollection(
+                strips, facecolor=cuc, edgecolor="none", alpha=0.95, zorder=3))
+            sc.set_clip_path(patch)
+        elif fn is not None:
+            gf = _peel_gerber(fn)
+            draw_gerber_clipped(ax, gf, patch, lw_scale=cu_lw_scale, color=cuc,
+                                window=win)
         else:
             # ESL resistive strips: 550 um wide / 250 um gaps (confirmed
             # 2026-08-06; deliberately NOT the 0.78 mm pad pitch). The L4 pads
             # show through the gaps. Strip artwork is not in the gerber set,
             # so the strips are drawn from the confirmed spec.
-            gp = parse(os.path.join(GERBER_DIR, "DFS3498A_L2-pads.gbr"))
-            draw_gerber_clipped(ax, gp, patch, lw_scale=2.2,
-                                color="#c8874a", alpha=0.8)
+            gp = _peel_gerber("DFS3498A_L2-pads.gbr")
+            draw_gerber_clipped(ax, gp, patch, lw_scale=cu_lw_scale,
+                                color="#c8874a", alpha=0.8, window=win)
             strips = []
             xs = np.arange(np.floor(X0/0.8)*0.8, bx1 + 1, 0.8)
             for xstrip in xs:
@@ -500,64 +670,169 @@ def fig_peel(outdir):
                 strips, facecolor="#1c1c1c", edgecolor="none", alpha=0.92,
                 zorder=4))
             sc.set_clip_path(patch)
-            # bulk pillars (real: 3498A_bulk.gbr, Ø0.6 on ~4.7 mm pitch)
-            gb = parse(os.path.join(REPO, "design", "gerbers", "readout_pcb",
-                                    "3498A_bulk.gbr"))
-            pil = [Circle((f.x, f.y), 0.3) for f in gb.flashes
-                   if X0 - 2 < f.x < bx1 + 2 and Y0 - 2 < f.y < Y1 + 2]
-            pc = ax.add_collection(PatchCollection(
-                pil, facecolor="#e8e2d2", edgecolor="#9a9384",
-                linewidths=0.4, zorder=5))
-            pc.set_clip_path(patch)
+            # bulk pillars (real: 3498A_bulk.gbr, Ø0.6 on ~4.7 mm pitch).
+            # Full-board figure only. Dropped from the zoom 2026-08-10: at this
+            # magnification only ~5 of them fall in the band, they carry none
+            # of the figure's message (which is the two pitches and the strip
+            # directions) and they read as noise on the resist stripes.
+            if not zoom:
+                gb = parse(os.path.join(REPO, "design", "gerbers",
+                                        "readout_pcb", "3498A_bulk.gbr"))
+                pil = [Circle((f.x, f.y), 0.3) for f in gb.flashes
+                       if X0 - 2 < f.x < bx1 + 2 and Y0 - 2 < f.y < Y1 + 2]
+                pc = ax.add_collection(PatchCollection(
+                    pil, facecolor="#e8e2d2", edgecolor="#9a9384",
+                    linewidths=pillar_lw, zorder=5))
+                pc.set_clip_path(patch)
 
         # torn-edge shadow on the left boundary of each deeper band
         if i > 0:
-            sh = plt.Polygon(np.array(left + [(x + 1.6, y) for x, y in left[::-1]]),
+            sh = plt.Polygon(np.array(left + [(x + shadow_w, y) for x, y in left[::-1]]),
                              closed=True, facecolor="k", alpha=0.28,
                              edgecolor="none", zorder=5)
             ax.add_patch(sh)
             sh.set_clip_path(patch)
         ax.plot([q[0] for q in left], [q[1] for q in left], color="k",
-                lw=1.0, zorder=6)
-        ax.text((bx0 + bx1)/2, Y1 + 1.2, title, ha="center", va="bottom",
-                fontsize=10.5)
+                lw=edge_lw, zorder=6)
+        if zoom:
+            # On a white plate above the band, staggered between two heights so
+            # that boxes wider than their 6.25 mm band cannot overwrite their
+            # neighbours. A leader line ties each box back to its own band.
+            y_lab = Y1 + (0.5 if i % 2 == 0 else 2.85)
+            ax.plot([(bx0 + bx1)/2, (bx0 + bx1)/2], [Y1, y_lab],
+                    color="0.45", lw=1.2, zorder=8)
+            ax.text((bx0 + bx1)/2, y_lab, title, ha="center", va="bottom",
+                    fontsize=title_fs - 2.5, linespacing=1.3, zorder=9,
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor="white",
+                              edgecolor="0.4", alpha=0.97, linewidth=1.1))
+        else:
+            ax.text((bx0 + bx1)/2, Y1 + 1.2, title, ha="center",
+                    va="bottom", fontsize=title_fs - 2.5)
+
+    if zoom:
+        # Quantitative calipers burned into the render so the numbers survive
+        # projection. Both pitches are shown because they are DIFFERENT and
+        # that is a real feature of the board: the ESL resist stripes are on
+        # 0.80 mm (550 um wide / 250 um gaps) while the readout is on 0.78 mm,
+        # so the two beat a slow moire. A single-period caliper is too small to
+        # read from 10 m, so each spans 5 periods and is labelled as such.
+        def caliper(xc, y, period, n, label, above=False):
+            span = n * period
+            x0c = xc - span/2
+            ax.annotate("", xy=(x0c, y), xytext=(x0c + span, y),
+                        arrowprops=dict(arrowstyle="<|-|>", lw=2.0,
+                                        color="k", shrinkA=0, shrinkB=0),
+                        zorder=9)
+            for xe in (x0c, x0c + span):
+                ax.plot([xe, xe], [y - 0.22, y + 0.22], color="k", lw=2.0,
+                        zorder=9)
+            ax.text(xc, y + (0.34 if above else -0.34), label, ha="center",
+                    va="bottom" if above else "top", fontsize=axis_fs,
+                    zorder=9, linespacing=1.25,
+                    bbox=dict(boxstyle="round,pad=0.28", facecolor="white",
+                              edgecolor="0.35", alpha=0.92, linewidth=1.0))
+
+        y_cal = Y0 + 2.0
+        caliper(sum(bands[0])/2, y_cal, 0.80, 5,
+                "5 × 0.80 mm\nESL resist pitch")
+        caliper(sum(bands[1])/2, y_cal, 0.78, 5,
+                "5 × 0.78 mm\nreadout pitch")
+
+        # plain length scale bar, bottom right, clear of the calipers
+        sbx0, sby = X1 - 3.0, Y0 + 1.2
+        ax.plot([sbx0, sbx0 + 2.0], [sby, sby], color="k", lw=3.0, zorder=9)
+        for xe in (sbx0, sbx0 + 2.0):
+            ax.plot([xe, xe], [sby - 0.28, sby + 0.28], color="k", lw=3.0,
+                    zorder=9)
+        ax.text(sbx0 + 1.0, sby + 0.38, "2 mm", ha="center", va="bottom",
+                fontsize=axis_fs, zorder=9,
+                bbox=dict(boxstyle="round,pad=0.22", facecolor="white",
+                          edgecolor="none", alpha=0.9))
+
+        # depth direction: the peel runs left -> right = deeper into the board.
+        # Replaces the depth-key column's vertical arrow.  Dropped on the slide
+        # copy (bare): the deck's fig-label says it in words, in type the room
+        # can read.
+        if not bare:
+            ya = Y0 - 1.5
+            ax.annotate("", xy=(X1, ya), xytext=(X0, ya),
+                        arrowprops=dict(arrowstyle="-|>", lw=2.4,
+                                        color="0.25"),
+                        zorder=9, annotation_clip=False)
+            ax.text((X0 + X1)/2, ya - 0.45, "deeper into the board  "
+                    "(mesh side → laminate)", ha="center", va="top",
+                    fontsize=axis_fs, color="0.25")
 
     ax.set_xlim(X0 - 1, X1 + 1)
-    ax.set_ylim(Y0 - 2, Y1 + 7.5)
+    ax.set_ylim(Y0 - (0.8 if bare else 3.3 if zoom else 2),
+                Y1 + (5.4 if zoom else 7.5))
     ax.set_aspect("equal")
-    ax.set_xlabel("x [mm]"); ax.set_ylabel("y [mm]")
-    ax.set_title("MX17 readout board close-up — layers peeled back "
-                 "(gerber geometry; ESL strips drawn from the confirmed spec)",
-                 fontsize=13, pad=14)
+    ax.set_xlabel("x [mm]", fontsize=axis_fs)
+    ax.set_ylabel("y [mm]", fontsize=axis_fs)
+    ax.tick_params(labelsize=axis_fs - 1)
+    if bare:
+        pass                    # the slide carries the title, in HTML type
+    elif zoom:
+        # Two lines: the single-line version overruns the narrower zoom figure
+        # and gets clipped at the edge.
+        #
+        # The old second line read "(real gerber copper)". That claim was
+        # correct while every band was literal artwork; it is NOT correct now
+        # that ③④ are drawn as schematic strips (2026-08-10), so the title now
+        # states per band what is artwork and what is a schematic. Do not put
+        # a blanket "gerber" claim back on this figure.
+        ax.set_title(f"MX17 readout board, four layers peeled back\n"
+                     f"{X1-X0:.0f} × {Y1-Y0:.0f} mm of the 470 mm board — "
+                     f"pads drawn from the gerber artwork;\n"
+                     f"resist ① and X/Y strips ③④ schematic, vias suppressed",
+                     fontsize=title_fs, pad=10, linespacing=1.35)
+    else:
+        ax.set_title("MX17 readout board close-up — layers peeled back "
+                     "(gerber geometry; ESL strips drawn from the confirmed "
+                     "spec)", fontsize=title_fs, pad=14)
 
-    # depth key: mini stack elevation linking bands to depth
-    labels = [("ESL resistive strips — 550 µm wide,\n"
-               "250 µm gaps (confirmed; pads show\n"
-               "through). Geant4: 100 µm slab ×0.69.\n"
-               "White dots: bulk pillars Ø0.6 @ 4.68 mm",
-               "#1c1c1c"),
-              ("L4 pads — 0.68 mm on 0.78 mm pitch\n(88 % Cu over active)",
-               "#e09a55"),
-              ("L5 Y strips (53 %)", "#b87333"),
-              ("L6 X strips (53 %)", "#8a5a28")]
-    yd = 0
-    for i, (lab, c) in enumerate(labels):
-        axd.add_patch(Rectangle((0, yd), 1.4, 0.55, facecolor=c,
-                                edgecolor="k", lw=0.6))
-        axd.text(1.55, yd + 0.27, f"{'①②③④'[i]}  {lab}", va="center",
-                 fontsize=9)
-        yd -= 1.0
-    axd.annotate("", xy=(-0.35, yd + 1.0), xytext=(-0.35, 0.55),
-                 arrowprops=dict(arrowstyle="-|>", lw=1.6, color="k"))
-    axd.text(-0.75, (yd + 1.55)/2, "deeper into the board\n(beam direction)",
-             rotation=90, ha="center", va="center", fontsize=9)
-    axd.set_xlim(-1.2, 8.5); axd.set_ylim(yd + 0.3, 1.3)
-    axd.axis("off")
-    axd.set_title("depth order", fontsize=11)
+    # depth key: mini stack elevation linking bands to depth. The zoom draws
+    # its own in-picture caption per band instead (axd is None there).
+    #
+    # Thickness comes from the model constant, not a literal: this label read
+    # "100 µm slab" long after AsBuiltSpec dropped to 10 µm (corrected
+    # 2026-08-08) — sourcing it from M.PASTE stops it going stale again.
+    #
+    # Strip DIRECTIONS corrected 2026-08-10: this key had them swapped. The
+    # Y-measuring strips (gerber L3-TrackY) sit at constant y and run along x;
+    # the X-measuring strips (L4-TrackX) run along y. Checked in the gerbers:
+    # L3-TrackY's connector stubs are horizontal (dy = 0), L4-TrackX's vertical.
+    if axd is not None:
+        paste_um = M.PASTE * 1000.0
+        labels = [(f"ESL resistive strips — 550 µm wide,\n"
+                   f"250 µm gaps → 0.80 mm pitch (pads show\n"
+                   f"through). Geant4: {paste_um:.0f} µm slab "
+                   f"×{M.PASTE_COV:.2f}.\n"
+                   f"White dots: bulk pillars Ø0.6 @ 4.68 mm",
+                   "#1c1c1c"),
+                  ("L4 pads — 0.68 mm on 0.78 mm pitch\n(88 % Cu over active)",
+                   "#e09a55"),
+                  ("L5 Y strips — run along x (53 %)", "#b87333"),
+                  ("L6 X strips — run along y (53 %)", "#8a5a28")]
+        yd = 0
+        for i, (lab, c) in enumerate(labels):
+            axd.add_patch(Rectangle((0, yd), 1.4, 0.55, facecolor=c,
+                                    edgecolor="k", lw=0.6))
+            axd.text(1.55, yd + 0.27, f"{'①②③④'[i]}  {lab}", va="center",
+                     fontsize=depth_fs)
+            yd -= 1.0
+        axd.annotate("", xy=(-0.35, yd + 1.0), xytext=(-0.35, 0.55),
+                     arrowprops=dict(arrowstyle="-|>", lw=1.6, color="k"))
+        axd.text(-0.75, (yd + 1.55)/2,
+                 "deeper into the board\n(beam direction)",
+                 rotation=90, ha="center", va="center", fontsize=depth_fs)
+        axd.set_xlim(-1.2, 8.5); axd.set_ylim(yd + 0.3, 1.3)
+        axd.axis("off")
+        axd.set_title("depth order", fontsize=depth_fs + 2)
 
     fig.tight_layout()
-    out = os.path.join(outdir, "mx17_board_peel.png")
-    fig.savefig(out, dpi=170); plt.close(fig)
+    out = os.path.join(outdir, out_name)
+    fig.savefig(out, dpi=dpi); plt.close(fig)
     print("wrote", out)
 
 
@@ -854,8 +1129,9 @@ def fig_status(outdir):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out-dir", default=os.path.join(REPO, "design", "figures"))
-    ap.add_argument("--only", choices=["board", "peel", "plan", "xsec", "3d",
-                                       "status"], default=None)
+    ap.add_argument("--only", choices=["board", "peel", "peel_zoom",
+                                       "peel_slide", "plan",
+                                       "xsec", "3d", "status"], default=None)
     args = ap.parse_args()
     os.makedirs(args.out_dir, exist_ok=True)
 
@@ -863,6 +1139,10 @@ def main():
         fig_board(args.out_dir)
     if args.only in (None, "peel"):
         fig_peel(args.out_dir)
+    if args.only == "peel_zoom":
+        fig_peel(args.out_dir, zoom=True)
+    if args.only == "peel_slide":
+        fig_peel(args.out_dir, zoom=True, bare=True)
     if args.only in (None, "plan"):
         fig_plan(args.out_dir)
     if args.only in (None, "xsec"):

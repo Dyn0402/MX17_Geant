@@ -1,0 +1,78 @@
+{
+ "cluster": 16705137,
+ "field_Vcm": 32666.666666666668,
+ "arms": {
+  "A_dry_rp040": {
+   "n": 1600,
+   "survival": 1.0,
+   "surv_err": 0.0,
+   "gain_mean": 45651.599375,
+   "gain_err": 690.3702333217108,
+   "gain_median": 40676.5,
+   "rel_var": 0.37261522273145686,
+   "label": "dry 95/5, rP 0.40",
+   "penning": [
+    "manual",
+    0.4
+   ],
+   "batches": 8
+  },
+  "B_h2o05_rp040": {
+   "n": 1598,
+   "survival": 1.0,
+   "surv_err": 0.0,
+   "gain_mean": 39934.19211514393,
+   "gain_err": 628.0893172317109,
+   "gain_median": 34998.5,
+   "rel_var": 0.3961447618785277,
+   "label": "+0.5 % H2O, rP 0.40",
+   "penning": [
+    "manual",
+    0.4
+   ],
+   "batches": 8
+  },
+  "C_h2o10_rp040": {
+   "n": 1600,
+   "survival": 1.0,
+   "surv_err": 0.0,
+   "gain_mean": 35125.0575,
+   "gain_err": 542.5379722042629,
+   "gain_median": 31071.0,
+   "rel_var": 0.38223566437891565,
+   "label": "+1.0 % H2O, rP 0.40",
+   "penning": [
+    "manual",
+    0.4
+   ],
+   "batches": 8
+  },
+  "D_dry_auto": {
+   "n": 1600,
+   "survival": 1.0,
+   "surv_err": 0.0,
+   "gain_mean": 46391.765,
+   "gain_err": 714.5203775078892,
+   "gain_median": 42024.0,
+   "rel_var": 0.3709759223102594,
+   "label": "dry 95/5, Penning auto",
+   "penning": [
+    "auto",
+    0.0
+   ],
+   "batches": 8
+  }
+ },
+ "ratios": {
+  "B_over_A": 0.8747599790997231,
+  "C_over_A": 0.7694157046168112,
+  "D_over_A": 1.0162133558327275
+ },
+ "prereg": {
+  "direction": true,
+  "magnitude": true,
+  "attachment": true,
+  "ordering": true,
+  "pct_change_1pct_H2O": 23.05842953831888
+ }
+}

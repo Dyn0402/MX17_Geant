@@ -1,0 +1,26 @@
+# Angled ladder, DIAGNOSIS (post-default): rho2M only, CORRECTED noise
+# (noise_det3_satscan_feu07.json, characterised from the T14 target run's own
+# FEU 07). The wrong-noise frozen default remains the T14 verdict record.
+# th00 doubles as the vertical control, so th00-vs-3919390 is a direct
+# wrong-noise/right-noise A/B at zero extra cost.
+# Stage A produced these with a 31.2 mm beam spread; Stage B sees the populated
+# beamSpread branch and does not re-randomise (audit C14).
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+arguments               = "rho2M ang_$(ang) /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07.json /afs/cern.ch/work/d/dneff/mx17_s1/clusters_ang/mx17_muons_3k_ang_$(ang)_t0.root"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_ang_$(ang).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_ang_$(ang).err
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w2.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+queue ang from (
+th00
+thx10
+thx20
+thy10
+thy20
+)

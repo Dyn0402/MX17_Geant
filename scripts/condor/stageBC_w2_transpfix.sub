@@ -1,0 +1,41 @@
+# Stage B + C re-run of the T14 FROZEN DEFAULT with the mesh-transparency
+# double-count fixed (2026-08-11).
+#
+# The fix: Stage B applied DEFAULT_TRANSPARENCY = 0.873 (T6's 1-D value) on
+# top of the meshfield calib's own `survival` = 0.9559, which IS T6's 3-D
+# transparency measured a second way. Physics is a single 0.955; the chain
+# thinned at 0.8345. Every simulated charge was low by x0.874. See
+# design/report/TRANSPARENCY_DOUBLE_COUNT_2026-08-11.md and
+# response/digitizer/test_transparency_split.py.
+#
+# ⚠️ PRE-REGISTERED, written before submission. The fix is a constant factor
+# x1.1455 on the surviving electrons, so on a LINEAR chain:
+#     q_sum ratio  X  0.6416 -> 0.735,  Y 0.6098 -> 0.699
+#     demanded gain   x1.66  -> x1.46   (37 552 -> 32 780 at X)
+#     HV slope        UNCHANGED (a constant factor cannot tilt d lnA/dV)
+# The chain is NOT fully linear — a 14.5 % taller sim waveform rails more
+# often, and railed events are dropped by the reco-quality cut — so the
+# measured move is expected to fall SHORT of x1.1455 on peak, and to track it
+# more closely on q_sum. A move LARGER than x1.1455 on either would mean the
+# fix did something other than what it says.
+#
+# Runs as its OWN variant, so the frozen default that T14's verdict rests on
+# is untouched on disk and the two are directly differenceable.
+#
+# Noise is the DEFAULT spec (noise_det3.json), NOT the corrected
+# noise_det3_satscan_feu07.json the later DIAGNOSIS legs carry: this leg exists
+# to re-quote the frozen ledger, so it must differ from the frozen default in
+# exactly one thing.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+arguments               = "rho2M TRANSPFIX"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_transpfix.out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_transpfix.err
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w2.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+queue

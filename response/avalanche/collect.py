@@ -110,6 +110,14 @@ def reduce_file(path):
         # `penning_tag`.
         "penning_mode": c.get("penning_mode"),
         "penning_rp": c.get("penning_rp"),
+        # Amplification gap is a campaign axis as of 2026-08-11 (the 135 vs
+        # 150 µm effective-gap scan) and has to survive for the same reason
+        # Penning did: without it the two gap arms share (gas, voltage,
+        # Penning) exactly and merge into one silently well-formed point.
+        # Every pre-existing product ran at 150.0, so an absent key defaults
+        # there rather than to None — which keeps old raw directories
+        # re-collectable to byte-identical keys.
+        "gap_um": float(c.get("gap_um", 150.0)),
         "gains": list(r["gains"]),
         "r": (n_r, s_r, s_r2), "t": (n_t, s_t, s_t2),
         "zhist": hz, "zedges": edges,
@@ -131,6 +139,34 @@ def penning_tag(mode, rp):
     if mode == "manual":
         return f"rP{rp:.2f}" if rp is not None else "rPmanual"
     return mode or "penningUNKNOWN"
+
+
+def arm_tags(s):
+    """Every campaign axis beyond (gas, voltage), as ordered key fragments.
+
+    One place to add the next axis. A fragment is emitted for EVERY slice, so
+    two arms differing on any axis can never share a group; `main` then decides
+    which fragments actually reach the string key (only the ambiguous ones, so
+    old products keep their exact key format).
+
+    ⚠️ WHENEVER A CAMPAIGN VARIES SOMETHING NEW, IT GOES HERE. Twice now a
+    campaign has been within hours of merging away the very axis it was built
+    to resolve: Penning (2026-08-10, caught mid-run) and the amplification gap
+    (2026-08-11, caught before submission). Both look perfectly well-formed in
+    the merged file, which is what makes the failure mode dangerous.
+    """
+    tags = [penning_tag(s.get("penning_mode"), s.get("penning_rp"))]
+    # Gap: suffix only off the 150 µm nominal, so every product written before
+    # 2026-08-11 keeps its key unchanged when re-collected.
+    gap = float(s.get("gap_um", 150.0))
+    tags.append(None if abs(gap - 150.0) < 1e-9 else f"gap{gap:.0f}um")
+    # Field model: `uniform_field` vs a meshfield map is a physics arm too, and
+    # the slope hunt shipped both in one product. They stayed apart only
+    # because its uniform arm happened to be the sole `auto` one — an accident,
+    # not a guarantee.
+    fm = str(s.get("field_model") or "")
+    tags.append("uniform" if fm == "uniform_field" else None)
+    return tuple(tags)
 
 
 def load(indir):
@@ -159,8 +195,7 @@ def load(indir):
         except Exception as e:                       # partial transfer
             print(f"  skipping unreadable {os.path.basename(f)}: {e}")
             continue
-        ptag = penning_tag(s.get("penning_mode"), s.get("penning_rp"))
-        points[(s["gas"], s["volt"], ptag)].append(s)
+        points[(s["gas"], s["volt"], arm_tags(s))].append(s)
         print(f"  [{i}/{len(files)}] {os.path.basename(f)}", flush=True)
     return points
 
@@ -239,20 +274,37 @@ def main():
     if not points:
         print(f"no aval_*.json under {a.indir} — has the campaign landed yet?")
         return 1
-    print(f"{len(points)} (gas, voltage, Penning) points from "
+    print(f"{len(points)} (gas, voltage, arm) points from "
           f"{sum(len(v) for v in points.values())} slice files")
 
     # The key stays `gas@voltage` while that is unambiguous, so every product
     # written before 2026-08-10 keeps its exact key format and no consumer
-    # breaks. The Penning suffix appears ONLY where it has to — i.e. where two
-    # arms would otherwise collide, which is exactly the case the grouping fix
-    # above exists for.
+    # breaks. An arm suffix appears ONLY where it has to — i.e. where two arms
+    # would otherwise collide, which is exactly the case the grouping fix above
+    # exists for. Note the arms are SEPARATE regardless (that is `load`'s job);
+    # this only decides how much of the distinction the string key shows.
     n_tags = defaultdict(set)
-    for gas, volt, ptag in points:
-        n_tags[(gas, volt)].add(ptag)
+    for gas, volt, tags in points:
+        n_tags[(gas, volt)].add(tags)
+    # Per (gas, voltage), take the FEWEST leading fragments that already make
+    # the keys unique. Minimal rather than "every fragment that differs", so
+    # that adding an axis to `arm_tags` cannot rename a key in a product where
+    # the older axes were already sufficient — re-collecting the 2026-08-09
+    # slope-hunt raw still writes `...@460V@auto`, not `...@460V@auto@uniform`.
+    live = {}
+    for gv, tagsets in n_tags.items():
+        n = 0
+        while n < len(next(iter(tagsets))) and len(
+                {t[:n] for t in tagsets}) < len(tagsets):
+            n += 1
+        live[gv] = set(range(n))
 
     calib, rows = {}, []
-    for (gas, volt, ptag), sl in sorted(points.items()):
+    for (gas, volt, tags), sl in sorted(points.items(),
+                                        key=lambda kv: str(kv[0])):
+        ptag = tags[0]
+        suffix = "".join(f"@{t}" for i, t in enumerate(tags)
+                         if t is not None and i in live[(gas, volt)])
         m = merge(sl)
         # Machine-readable voltage/gas, not just baked into the string key --
         # a consumer needing "what voltage was this point run at" had to
@@ -267,8 +319,10 @@ def main():
         m["penning_mode"] = sl[0].get("penning_mode")
         m["penning_rp"] = sl[0].get("penning_rp")
         m["penning_tag"] = ptag
-        key = (f"{gas}@{volt:.0f}V" if len(n_tags[(gas, volt)]) == 1
-               else f"{gas}@{volt:.0f}V@{ptag}")
+        # Machine-readable gap for the same reason again — the 135/150 scan's
+        # consumer must not have to parse "@gap135um" out of a string key.
+        m["gap_um"] = float(sl[0].get("gap_um", 150.0))
+        key = f"{gas}@{volt:.0f}V{suffix}"
         rows.append((gas, ptag, volt, m))
         p = m["polya"]
         print(f"  {key:<44s} nev={m['nev_total']:5d}  "

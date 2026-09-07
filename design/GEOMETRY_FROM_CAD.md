@@ -151,6 +151,34 @@ material that governs peripheral scattering and frame-induced background.
   source. The gerbers do give in-plane segmentation: 0.68 mm pads on 0.78 mm
   pitch, 512 × 512 over a 399.36 mm active area, with 3 functional copper layers
   (pads, Y strips, X strips) — not the 4 uniform sheets both sims use.
+- **The Y-edge passivation** (added 2026-08-11). The gerbers' 399.36 mm active
+  area is the *metallised* region, and this sim builds exactly that, square. But
+  the strip plane is **passivated over a ~19 mm band at each end of the Y
+  coordinate**, so a particle landing there produces no collected charge at all
+  — neither plane sees it. The efficient region is therefore
+  **399.4 mm in X × 359.9 ± 1.8 mm in Y**, not square.
+
+  Measured twice, agreeing to 1–2 mm: June 2026 cosmic bench against the M3
+  telescope (all five chambers, `nTof_x17/common/mx17_active_area.py`), and
+  n_TOF beam run_79 paired strip clusters with no external reference (chambers
+  A/B/C, `nTof_x17/ntof_active_area/report.html`). The band is centred.
+
+  **Likely mechanism, not measured:** `RESPONSE_SIM_PLAN.md` §1 records that the
+  ESL resistive strips contact copper bus strips **at both y-ends of the active
+  area and nowhere in between** (user, 2026-08-07). A dead band of the same
+  width, at the same two ends, on the same coordinate, is what a covered bus
+  termination would look like. That would explain why the passivation is on Y
+  and not X, which is otherwise an odd asymmetry. Nobody has checked it against
+  the gerbers — if the bus footprint is ~19 mm, this is closed.
+
+  **This sim does not model it, deliberately.** The pad/strip structure here is
+  the readout geometry and is validated as such; the passivation is a collection
+  effect on top of it, and adding it would change the pad build for no gain in
+  the response chain, which is run at chosen impact points rather than over a
+  flood. **But any study that sweeps the impact point across the full Y range,
+  or that quotes an area or an acceptance, has to apply the band itself.** In
+  `MX17_Full_Geant` — where the sim *is* used for acceptance — it is applied,
+  as `mm_size_v_cm = 36.0`.
 
 ## Method
 
