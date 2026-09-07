@@ -1,0 +1,21 @@
+# DIAGNOSIS run, NOT the frozen default. rho2M only, with the noise spec
+# re-characterised from the T14 target run's own FEU 07 instead of
+# noise_det3.json, which came from a different run (2026-05-06) and from FEU 01
+# -- the M3 TRIGGER FEU, not an MX17 detector plane. That made the injected
+# noise wrong in structure as well as scale: sigma 10.38 vs 7.41, common mode
+# 82.9 vs 271.4, and a different autocorrelation.
+# Writes into its own subdirectory with DIAGNOSIS_noisefix in the filename, so
+# it cannot glob-collide with the decoded set T14's verdict rests on.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+arguments               = "rho2M DIAGNOSIS_noisefix /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07.json"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_noisefix.out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_noisefix.err
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w2.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+queue

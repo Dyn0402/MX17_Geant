@@ -1,0 +1,66 @@
+{
+ "schema": "aval_survival/1",
+ "source": "/eos/experiment/ntof/data/x17/response_sim/avalanche/raw",
+ "method": "streamed via xrdcp root://eospublic.cern.ch, parsed and deleted per slice",
+ "n_files": 56,
+ "n_files_failed": 0,
+ "finding": "survival = P(g>0) is EXACTLY 1.0 at every voltage: 0 of 6400 seed electrons failed to multiply. The conditional Polya in collect.py IS the unconditional one, so the shipped calib was never biased and audit A7's 1/P(g>0) correction is exactly 1. max_avalanche is 0 in every config block, confirming no size cap exists (plan \u00a75 was wrong).",
+ "per_voltage": [
+  {
+   "V": 470.0,
+   "slices": 8,
+   "seeds": 1600,
+   "zero_gain_seeds": 0,
+   "survival": 1.0,
+   "mean_gain": 23107.35
+  },
+  {
+   "V": 480.0,
+   "slices": 8,
+   "seeds": 1360,
+   "zero_gain_seeds": 0,
+   "survival": 1.0,
+   "mean_gain": 31386.725
+  },
+  {
+   "V": 490.0,
+   "slices": 8,
+   "seeds": 1120,
+   "zero_gain_seeds": 0,
+   "survival": 1.0,
+   "mean_gain": 44471.525
+  },
+  {
+   "V": 500.0,
+   "slices": 8,
+   "seeds": 880,
+   "zero_gain_seeds": 0,
+   "survival": 1.0,
+   "mean_gain": 60309.0
+  },
+  {
+   "V": 510.0,
+   "slices": 8,
+   "seeds": 640,
+   "zero_gain_seeds": 0,
+   "survival": 1.0,
+   "mean_gain": 81645.45
+  },
+  {
+   "V": 520.0,
+   "slices": 8,
+   "seeds": 480,
+   "zero_gain_seeds": 0,
+   "survival": 1.0,
+   "mean_gain": 112447.3375
+  },
+  {
+   "V": 530.0,
+   "slices": 8,
+   "seeds": 320,
+   "zero_gain_seeds": 0,
+   "survival": 1.0,
+   "mean_gain": 156730.75
+  }
+ ]
+}

@@ -1,0 +1,35 @@
+# β (PZC residual) scan on the W2 rho2M vertical point — DIAGNOSIS.
+# Fits the shaper's slow-component survival against the T14 rise-time floor
+# and the undershoot, per HANDOFF_S3_ION_2026-08-09.md. The β = 0.75 anchor
+# already exists as DIAGNOSIS_noisefix (provenance-verified pzc_residual_beta
+# = 0.75 in its stageBC json), so only 4 new points run. Corrected noise spec
+# on every point; WITH ions (the term under test).
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+MY.SendCredential       = true
+request_cpus            = 4
+request_memory          = 16000
++MaxRuntime             = 7200
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w2.log
+
+NOISE = /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07.json
+
+arguments               = "rho2M DIAGNOSIS_beta000 $(NOISE) '' '--pzc-residual 0.0'"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_beta000.out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_beta000.err
+queue
+
+arguments               = "rho2M DIAGNOSIS_beta015 $(NOISE) '' '--pzc-residual 0.15'"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_beta015.out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_beta015.err
+queue
+
+arguments               = "rho2M DIAGNOSIS_beta030 $(NOISE) '' '--pzc-residual 0.30'"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_beta030.out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_beta030.err
+queue
+
+arguments               = "rho2M DIAGNOSIS_beta050 $(NOISE) '' '--pzc-residual 0.50'"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_beta050.out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_beta050.err
+queue

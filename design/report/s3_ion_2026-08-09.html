@@ -1,0 +1,324 @@
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--mut:#5b6472;--line:#dfe3e8;--acc:#0b6bcb;
+      --good:#1a7f4b;--bad:#b3261e;--warn:#8a6100;--card:#f7f9fb}
+@media (prefers-color-scheme:dark){:root{--bg:#14171a;--fg:#e8eaed;
+      --mut:#9aa4b2;--line:#2b3138;--acc:#6fb2ff;--good:#5fd394;--bad:#ff8a80;
+      --warn:#e0b34d;--card:#1b1f24}}
+*{box-sizing:border-box}
+body{margin:0;padding:2rem 1rem 4rem;background:var(--bg);color:var(--fg);
+     font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+main{max-width:60rem;margin:0 auto}
+h1{font-size:1.7rem;line-height:1.25;margin:0 0 .3rem}
+h2{font-size:1.25rem;margin:2.4rem 0 .6rem;padding-top:.6rem;
+   border-top:1px solid var(--line)}
+h3{font-size:1.02rem;margin:1.6rem 0 .4rem}
+.sub{color:var(--mut);margin:0 0 1.6rem;font-size:.92rem}
+.verdict{background:var(--card);border-left:4px solid var(--acc);
+         padding:1rem 1.2rem;border-radius:0 6px 6px 0;margin:1.2rem 0}
+.verdict p:first-child{margin-top:0}.verdict p:last-child{margin-bottom:0}
+table{border-collapse:collapse;width:100%;font-size:.9rem;margin:.8rem 0}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+th,td{padding:.4rem .6rem;border-bottom:1px solid var(--line);text-align:right;
+      white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{border-bottom:2px solid var(--line);font-weight:600;color:var(--mut)}
+tbody tr:hover{background:var(--card)}
+code{background:var(--card);padding:.1rem .3rem;border-radius:3px;
+     font-size:.87em}
+.good{color:var(--good);font-weight:600}.bad{color:var(--bad);font-weight:600}
+.warn{color:var(--warn);font-weight:600}
+.note{color:var(--mut);font-size:.88rem}
+ul{padding-left:1.2rem}li{margin:.3rem 0}
+footer{margin-top:3rem;padding-top:1rem;border-top:1px solid var(--line);
+       color:var(--mut);font-size:.84rem}
+</style>
+<main>
+<h1>S3 ion investigation &mdash; f_ion and the i_ion template are both defended</h1>
+<p class="sub">Follow-up to HANDOFF_S3_ION_2026-08-09. Generated 2026-08-09 20:46 by
+<code>design/report/make_s3_ion_report.py</code>.</p>
+
+<div class="verdict">
+<p><strong>Neither of the two dials the handoff put under suspicion can explain
+the rise-time floor, and both corrections go the wrong way.</strong></p>
+<ul>
+<li><strong>f_ion</strong> through the real woven mesh is
+0.9056 if psi_readout ran, against the
+parallel-plate 0.9006 &mdash; a shift of
++0.0050, toward <em>more</em> slow
+charge.</li>
+<li><strong>The i_ion template</strong> reproduces to
+3.8&nbsp;% at every quantile under an independent
+reconstruction. 172-ns-to-half is right.</li>
+<li><strong>Species/mobility</strong> is not a factor-2 lever: the real
+isobutane/cluster ion is ~4&nbsp;% <em>slower</em> than the Ar+ the emitter
+assumes.</li>
+</ul>
+<p>So the ion model is not the defect &mdash; and neither is anything else that
+has been proposed. The data's rise demands an <em>effective</em> slow fraction
+near 0.2, three to four times smaller than a split now defended by two
+independent routes. Cross-check at the median, where the arithmetic is
+independent of the p5 estimate: the ion term is worth 63 ns (333.6 with ions,
+270.3 without) and the gap to data is 50 ns, so ~80&nbsp;% of the ion
+contribution has to disappear.</p>
+<p><strong>Everything with enough leverage to do that has now been eliminated.</strong>
+&beta; (4 ns across its range), the peaking-time register (code 2, 44/44
+archived configs), the ion charge split, the ion template, the ion species, the
+lateral factorisation (3.7 ns), and &mdash; by an exchange-rate argument on
+&beta;'s own measured lever &mdash; the entire class of missing high-pass
+elements. This is a structural contradiction, not a parameter error, and it
+should be reported as one rather than absorbed into a fit.</p>
+</div>
+
+<h2>Item 2 &mdash; f_ion on the readout electrode, through the mesh</h2>
+
+<div class="verdict"><p><strong>Mesh screening does not move the split.</strong>
+f_ion goes from 0.9006 to <strong>0.9056</strong>, a shift of
++0.0050 &mdash; and the shift is in the
+<em>wrong direction</em>: the true weighting potential puts slightly
+<em>more</em> charge on the slow ion, not less.</p></div>
+
+<p>The worry was well posed. <code>mx17_aval_calib.py</code> loads the realistic
+woven-mesh map through <code>ComponentGrid</code> for the <em>drift</em> field,
+but keeps a <code>ComponentConstant</code> with
+<code>SetWeightingField(0,0,1/gap)</code> for the <em>weighting</em> field &mdash;
+even in the meshfield branch. So the measured f_ion = 0.9006 is the
+parallel-plate in-gap split evaluated on a meshfield avalanche profile, and had
+never been checked against a through-mesh readout split.</p>
+
+<p>It turns out the answer was already sitting in <code>solve_fieldmap.py</code>:
+its <code>u_A</code> unit problem (anode = +V_mesh, wires = 0, drift-top = 0) is
+exactly the readout weighting problem. <code>psi_readout.py</code> reuses that
+solve verbatim and takes &psi; = u_A / V_mesh.</p>
+
+<div class="scroll"><table class=""><thead><tr><th>charge split on the readout</th><th>f_electron</th><th>f_ion</th><th>shift</th></tr></thead><tbody><tr><td>parallel plate <code>1 - z/g</code> (what S3 assumes)</td><td>0.0994</td><td>0.9006</td><td>&mdash;</td></tr><tr><td>true &psi; through the woven mesh</td><td>0.0944</td><td>0.9054</td><td>+0.0050</td></tr></tbody></table></div>
+
+<p><strong>Why it barely moves, structurally.</strong> With the ion absorbed on
+a grounded wire the electron gets 1 &minus; &psi;(z) and the ion gets &psi;(z),
+so the split depends only on &psi; at the <em>birth</em> height &mdash;
+14.9 &micro;m above the ESL, where the weave's harmonics
+have decayed by exp(&minus;2&pi;&middot;136/67) = e<sup>&minus;12.8</sup>.
+Whatever the mesh does near itself cannot reach down there. What the mesh
+<em>does</em> change is the overall weighting gradient:
+-6.3289e-03/&micro;m against the parallel-plate
+-6.6667e-03/&micro;m, i.e. the real weighting field
+is ~5&nbsp;% weaker &mdash; but that scales electron and ion together and
+cancels from the ratio.</p>
+
+<p><strong>Ion backflow is real but 0.02&nbsp;%.</strong> T6's
+<code>funnel_ion_endpoints.json</code> measured
+94.8% of ions absorbed on the mesh wires
+(&psi; = 0 exactly) and 5.2% escaping into the drift bulk.
+An escaped ion sits in E<sub>drift</sub> = 333 V/cm at ~5 nm/ns, so it moves
+~5 &micro;m per microsecond and is frozen on any DREAM waveform timescale: it
+carries away its residual &psi; = 0.00317, weighted
+0.052 &rarr; 0.00016 of the charge lost.</p>
+
+<h3>Why this number is quotable</h3>
+<ul>
+<li><strong>Gated, not asserted.</strong> Away from the weave the transverse
+average of &psi; must be <em>exactly</em> linear in z (Laplace on a periodic
+cell kills every harmonic but the constant). The fit residual over the amp bulk
+is <span class="good">4.8e-08</span> RMS, and
+&psi;(anode) = 1.000000 against an exact 1. A mesh too coarse to
+reproduce an exactly-linear function would have failed this.</li>
+<li><strong>Converged.</strong> Refining lc_wire 2.0 &rarr; 1.2 moves f_ion by
+0.0000 and the bulk slope by 0.01&nbsp;%.</li>
+</ul>
+
+
+<h2>Item 3 &mdash; is the S3 v2 i_ion template real?</h2>
+
+<div class="verdict"><p><strong>The measured template is correct.</strong> An
+independent reconstruction sharing no code with the Garfield run that produced
+it agrees at <em>every</em> quantile to
+<span class="good">3.8&nbsp;%</span>,
+with one constant &mdash; the calib's own measured
+t<sub>arrival</sub> = 6.66 ns. 172-ns-to-half is
+kinematically right.</p></div>
+
+<p>The question deserved asking: the schema-1 calib shipped
+<code>i_elec</code>/<code>i_ion</code> as 2000 zeros and silently NaN'd the LUT.
+The v2 arrays are populated, but populated is not validated. So the ion current
+was rebuilt from four inputs that share no code with the emitter: E<sub>z</sub>(z)
+from the T6 production map, Garfield's Ar+ mobility table evaluated <em>at the
+field the ions actually see</em>, the true &psi;(z) from item 2, and the
+measured birth- and absorption-height distributions.</p>
+
+<div class="scroll"><table class=""><thead><tr><th>ion charge delivered, cumulative [ns]</th><th>q10</th><th>q25</th><th>q50</th><th>q75</th><th>q90</th><th>q99</th></tr></thead><tbody><tr><td>reconstruction (ion's own clock)</td><td>33.9</td><td>84.8</td><td>169.7</td><td>255.8</td><td>312.0</td><td>364.0</td></tr><tr><td>reconstruction + t<sub>aval</sub> = 6.66 ns</td><td>40.6</td><td>91.5</td><td>176.4</td><td>262.5</td><td>318.7</td><td>370.7</td></tr><tr><td><strong>S3 v2 measured template</strong></td><td><strong>39.5</strong></td><td><strong>89.0</strong></td><td><strong>171.5</strong></td><td><strong>255.3</strong></td><td><strong>309.9</strong></td><td><strong>357.2</strong></td></tr><tr><td>deviation</td><td>+2.8&nbsp;%</td><td>+2.8&nbsp;%</td><td>+2.8&nbsp;%</td><td>+2.8&nbsp;%</td><td>+2.8&nbsp;%</td><td>+3.8&nbsp;%</td></tr><tr><td><em>analytic 306 ns rectangle</em></td><td><em>30.6</em></td><td><em>76.5</em></td><td><em>153.1</em></td><td><em>229.6</em></td><td><em>275.5</em></td><td><em>303.1</em></td></tr></tbody></table></div>
+
+<h3>The thing nobody was looking at</h3>
+<p>The amplification gap runs at 31018 V/cm =
+<strong>123.8 Td</strong>, where Ar+'s reduced mobility is
+K<sub>0</sub> = <strong>1.212</strong> &mdash; not the
+zero-field 1.530 that <code>ions.py</code>'s analytic model
+uses. The analytic 306 ns rectangle is therefore <strong>~21&nbsp;% too
+fast</strong>. Between the two ion models it is the <em>analytic</em> one that
+is wrong, not the measured one, and the measured template being slower than it
+is a feature.</p>
+
+<h3>Species: the &times;2 worry is not there</h3>
+<p>The emitter hardcodes <code>IonMobility_Ar+_Ar.txt</code> for every gas, and
+in Ar/iC<sub>4</sub>H<sub>10</sub> 95/5 charge transfer really does move the
+charge onto an isobutane / cluster ion. But Blanc's law over the mixture gives
+K<sub>0</sub> = 1.162 against Ar+'s
+1.212 &mdash; the real ion is a few per cent
+<strong>slower</strong>, not twice as fast. (Flagged separately to the
+avalanche session: for a CF<sub>4</sub>-bearing gas the same hardcoded file
+would be much further off.)</p>
+
+
+<h2>The f_ion demand curve</h2>
+
+<div class="verdict"><p><strong>The contradiction is now measured, not
+inferred.</strong> The data demands an effective slow fraction of
+<strong>~0.0&ndash;0.2</strong> against a charge split defended at
+<strong>0.9056</strong> by two independent routes. Per the recommendation
+below, this gets reported &mdash; not absorbed into a fit.</p></div>
+
+<p class="note"><strong>&#9888; Selection caveat (2026-08-09).</strong> The
+per-view reco-quality cut drops railed waveforms, cutting the data saturation
+fraction from the detector's 0.326 &rarr; 0.260 (X) and 0.327 &rarr; 0.110 (Y)
+against sim acceptance 0.954 / 0.989 &mdash; so the data legs are
+low-amplitude-biased and the sim legs are not. Direction checked on the frozen
+parquets: corr(peak_amp, rise) = &minus;0.14, i.e. higher amplitude means
+<em>faster</em> rise, so the cut removes the fastest population and the true
+detector is faster than these legs show. <strong>The demanded f_eff is therefore
+a lower bound &mdash; the contradiction grows, not shrinks.</strong> The legs
+retain essentially no railed waveforms (X max peak_amp 4050), so the fast
+population is not a clipping artifact. The Y-vs-X spread in the demand below is
+a selection artifact (Y is cut ~4&times; harder) and is <em>not</em> read here as
+physics. The per-view undershoot targets are being re-derived on
+saturation-matched samples; the high-pass falsification uses the X figure with a
+~20&times; margin, so it is unaffected.</p>
+
+<p><strong>And the two dials are orthogonal in the real chain.</strong> f_ion
+moves the rise by ~110 ns while leaving the undershoot flat to ~1 point; &beta;
+moves the undershoot by 8.7 points while leaving the rise flat to 4 ns. So a
+descriptive (f_eff &asymp; 0.2, &beta; &asymp; 0.2) reproduces rise <em>and</em>
+X undershoot with no tension at all &mdash; which is precisely why it must not
+be presented as a fit. It is a two-parameter description whose first parameter
+contradicts defended physics by a factor of four.</p>
+
+<h3>X view</h3>
+<div class="scroll"><table class=""><thead><tr><th>f_ion</th><th>p5 rise [ns]</th><th>p50 rise [ns]</th><th>fast frac &lt;240 ns [%]</th><th>undershoot [%]</th><th>peak ratio</th></tr></thead><tbody><tr><td>0.0000</td><td>141.9</td><td>270.3</td><td>41.0</td><td>-8.88</td><td>0.6319</td></tr><tr><td>0.3000</td><td>156.8</td><td>301.9</td><td>30.2</td><td>-9.37</td><td>0.5809</td></tr><tr><td>0.5000</td><td>186.8</td><td>317.0</td><td>18.6</td><td>-9.70</td><td>0.5600</td></tr><tr><td>0.7000</td><td>222.9</td><td>326.0</td><td>8.6</td><td>-9.78</td><td>0.5573</td></tr><tr><td>0.9006 <em>(measured template)</em></td><td>250.4</td><td>333.6</td><td>3.6</td><td>-9.89</td><td>0.5527</td></tr><tr><td>0.9077</td><td>237.8</td><td>320.8</td><td>5.5</td><td>-9.71</td><td>0.5643</td></tr><tr><td><strong>DATA</strong></td><td><strong>150.0</strong></td><td>&mdash;</td><td><strong>40</strong></td><td><strong>-3.4</strong></td><td><strong>1.0</strong></td></tr></tbody></table></div>
+<p>The data's p5 is met at <strong>f_ion &asymp;
+0.16</strong>; its fast fraction
+at <strong>f_ion &asymp; 0.03
+</strong>.</p>
+<p class="note">Undershoot across the whole f_ion range:
+-9.9 % to -8.9 % &mdash; a
+1.0-point swing while the rise moves
+96 ns.</p>
+<h3>Y view</h3>
+<div class="scroll"><table class=""><thead><tr><th>f_ion</th><th>p5 rise [ns]</th><th>p50 rise [ns]</th><th>fast frac &lt;240 ns [%]</th><th>undershoot [%]</th><th>peak ratio</th></tr></thead><tbody><tr><td>0.0000</td><td>129.5</td><td>231.9</td><td>52.0</td><td>-21.90</td><td>0.5928</td></tr><tr><td>0.3000</td><td>139.3</td><td>260.0</td><td>43.8</td><td>-23.26</td><td>0.5457</td></tr><tr><td>0.5000</td><td>157.8</td><td>277.7</td><td>35.9</td><td>-24.41</td><td>0.5183</td></tr><tr><td>0.7000</td><td>197.8</td><td>291.2</td><td>21.1</td><td>-25.12</td><td>0.5200</td></tr><tr><td>0.9006 <em>(measured template)</em></td><td>227.2</td><td>302.3</td><td>8.6</td><td>-25.72</td><td>0.5179</td></tr><tr><td>0.9077</td><td>220.3</td><td>289.5</td><td>13.8</td><td>-25.04</td><td>0.5245</td></tr><tr><td><strong>DATA</strong></td><td><strong>155.0</strong></td><td>&mdash;</td><td><strong>49</strong></td><td><strong>-12.0</strong></td><td><strong>1.0</strong></td></tr></tbody></table></div>
+<p>The data's p5 is met at <strong>f_ion &asymp;
+0.47</strong>; its fast fraction
+at <strong>f_ion &asymp; 0.11
+</strong>.</p>
+<p class="note">Undershoot across the whole f_ion range:
+-25.7 % to -21.9 % &mdash; a
+3.8-point swing while the rise moves
+91 ns.</p>
+
+<h3>How the pre-registration came out</h3>
+<p>Predicted before the jobs ran: p5 rises monotonically and convexly, with
+f_ion 0.30 landing at 150&ndash;175 ns, 0.50 at 175&ndash;205 and 0.70 at
+205&ndash;235. Measured: <strong>156.8, 186.8, 222.9</strong> &mdash; all three
+inside their bands, and the shape convex as predicted. The attached conclusion
+that "the data's 150 ns is met at f_ion ~ 0.25&ndash;0.35" was
+<strong>wrong by about a factor of two</strong>: the true answer is ~0.16 on p5
+and lower still on the fast fraction, because the curve is steeper near f_ion = 0
+than the estimate assumed. The direction of the finding is unaffected &mdash; it
+makes the contradiction larger, not smaller.</p>
+
+<h2>Two leads sized, so nobody chases the wrong one</h2>
+
+<h3>The lateral factorisation is not it (&minus;4 ns)</h3>
+<p><code>apply_longitudinal</code> convolves the <em>surface</em> kernel with
+the longitudinal profile, so the ion is handed the surface kernel's lateral
+shape frozen at its creation point, while the true &Psi;<sub>n</sub> broadens
+as the ion climbs. <code>ions.py</code>'s own docstring flags this, and T10
+exists to replace it. It moves the rise the right way &mdash; but not nearly
+far enough:</p>
+<div class="scroll"><table class=""><thead><tr><th>single-channel toy, 10&amp;ndash;90 % rise</th><th>ns</th></tr></thead><tbody><tr><td>frozen surface kernel (what the model does)</td><td>192.3</td></tr><tr><td>ion image broadened with height (what T10 would give)</td><td>189.8</td></tr><tr><td><strong>effect of the known-wrong approximation</strong></td><td><strong>-2.5</strong></td></tr></tbody></table></div>
+<p>The reason is a scale mismatch. The ion's image width is at most its own
+height, 149 &micro;m at the end of transit, against an 800 &micro;m channel
+pitch: the central channel's share falls only from 1.0000 to 0.977 even at the
+worst moment. <strong>T10 will not close this gap.</strong></p>
+
+<h3>The peaking-time register is not it either &mdash; it is code 2</h3>
+<p>&beta; is only one of the shaper's two parameters and it is the weak one:
+one peaking-code step is worth <strong>50&ndash;65 ns</strong> of rise against
+&beta;'s 4 ns across its entire range, which is the order of the discrepancy.
+So the register looked like the live suspect. It is not:</p>
+<div class="scroll"><table class=""><thead><tr><th>peaking code</th><th>t&lt;sub&gt;peak&lt;/sub&gt; [ns]</th><th>shaper alone [ns]</th><th>channel rise, f_ion 0.9006 [ns]</th><th>f_ion 0 [ns]</th></tr></thead><tbody><tr><td>0</td><td>76</td><td>49.1</td><td>73.0</td><td>42.3</td></tr><tr><td>1</td><td>123</td><td>79.2</td><td>127.7</td><td>65.0</td></tr><tr><td>2 &larr; assumed</td><td>180</td><td>115.5</td><td>192.3</td><td>91.4</td></tr><tr><td>3</td><td>228</td><td>145.9</td><td>240.1</td><td>113.0</td></tr><tr><td>4</td><td>283</td><td>180.5</td><td>270.6</td><td>137.3</td></tr></tbody></table></div>
+<p>All <strong>44</strong> archived <code>CosmicTb_MX17.cfg</code> copies under
+the bench disk carry <code>1 0x081F 0xD023 0x0000 0x0000</code> &rarr;
+<strong>code 2</strong>, across det1/det3/det4 from January to 2026-06-16.
+Uniform, no exceptions.</p>
+<p class="note"><strong>Inference, not measurement, and the record should say
+so.</strong> The T14 target run
+(<code>mx17_det3_p2_det1_overnight_6-27-26</code>) archived <em>no</em>
+<code>.cfg</code> at all &mdash; only <code>run_config.json</code> and the
+subrun directory &mdash; and its config points at a DAQ-side template
+<em>path</em>, not an archived file. So the evidence is 44 identical copies of
+that template from <em>other</em> runs, the most recent 11 days before the
+target. Strong, and adopted; just not a read-back of the target run's own
+register.</p>
+
+<h3>And a missing high-pass cannot do it, whatever its topology</h3>
+<p>The natural next thought is that the shaper <em>model</em> is missing a real
+AC-coupling / high-pass element between DREAM output and ADC, which would
+differentiate slow content and take the fast side back. The &beta; scan already
+measured the exchange rate for exactly that, because &beta; <em>is</em> a
+high-pass strength knob:</p>
+<div class="scroll"><table class=""><thead><tr><th></th><th>X p5 rise [ns]</th><th>undershoot [%]</th></tr></thead><tbody><tr><td>beta = 0.00</td><td>254.4</td><td>-1.14</td></tr><tr><td>beta = 0.75 (production)</td><td>250.4</td><td>-9.80</td></tr><tr><td><strong>bought / paid</strong></td><td><strong>-4.0</strong></td><td><strong>-8.65</strong></td></tr></tbody></table></div>
+<p>That is <strong>0.46 ns of rise per point of undershoot</strong>. Buying the 104 ns needed would cost
+~226 points of undershoot &mdash; while the data requires the undershoot to
+move <em>the other way</em>, from &minus;9.8&nbsp;% to &minus;3.4&nbsp;%, i.e.
+6.4 points shallower. A shorter time constant is a better deal but not nearly
+enough: over an extra series high-pass with &tau; from 100 ns to 5 &micro;s the
+best exchange rate anywhere is ~1.0 ns of rise per point of undershoot, still
+~104 points against a budget of &minus;6.4.</p>
+<p>Any element that differentiates slow content buys rise by deepening
+undershoot, and the data demands faster rise <em>and</em> shallower undershoot
+at once. <strong>That falsifies the class, not just one realisation of it</strong>
+&mdash; the argument is a generic property of high-pass filters.</p>
+
+<h2>Item 1 &mdash; analytic vs measured ion model</h2>
+<p>Answered, and the pre-registered prediction held. X median rise: measured
+template 333.6 ns, analytic 320.8 ns, no ions 270.3 ns, data 283.9 ns. The
+analytic model is <strong>3.8&nbsp;% faster</strong>, inside the pre-registered
+2&ndash;10&nbsp;% band, and the falsifier (analytic below 200 ns, meaning the
+template's time profile is load-bearing) did not trigger. The direction was
+predicted too: analytic runs on the zero-field K<sub>0</sub> = 1.53 while the
+gap sits at 123.8 Td where it is 1.212, so the 306 ns rectangle is ~21&nbsp;%
+too fast. <strong>The template's fine shape is not load-bearing; the measured
+one is the correct of the two.</strong></p>
+
+<h2>What this does not rule out</h2>
+<ul>
+<li><strong>&beta;, jointly.</strong> The &beta; scan moved the rise by 4 ns
+over 0&ndash;0.75, but it was run <em>with</em> f_ion = 0.90. A joint
+(&beta;, f_ion) fit is not the same experiment &mdash; though with every
+parameter here defended, a fit that closes it would be absorbing a modelling
+error rather than measuring anything.</li>
+<li><strong>The amplitude deficit is genuinely separate.</strong> Tested, not
+assumed: a single-channel toy predicted that removing the slow charge would
+raise the peak &times;1.87, which would have unified amplitude, rise and
+undershoot into one cause. The measured ratios say &times;1.14 (peak_amp_med
+0.5527 with ions &rarr; 0.6319 without), so the toy over-predicts amplitude
+sensitivity ~6&times; and the unification does <em>not</em> hold.</li>
+<li><strong>The amplitude deficit.</strong> Untouched and deliberately so: the
+no-ions sim still peaks at &times;0.63 of data, so amplitude is upstream of all
+of this.</li>
+<li><strong>Anything at 490 V only.</strong> Every number here is the pooled
+490 V bench point in Ar/iC<sub>4</sub>H<sub>10</sub> 95/5. The mobility is
+field-dependent, so a different mesh voltage moves the transit.</li>
+</ul>
+
+<footer>Products: <code>response/meshcell/psi_readout.json</code>,
+<code>response/meshcell/ion_template_check.json</code>. Scripts:
+<code>psi_readout.py</code>, <code>ion_template_check.py</code>.
+Stage B points: DIAGNOSIS_ionanalytic, DIAGNOSIS_fion030/050/070 at rho2M.</footer>
+</main>

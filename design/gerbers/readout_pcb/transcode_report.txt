@@ -1,0 +1,1546 @@
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\3498A_help.gbr' ----   Tue Jun  3 09:35:33 2025
+
+D10   --> D100
+D11   --> D101
+D12   --> D102
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\3498A_top-resist.gbr' ----   Tue Jun  3 09:35:33 2025
+
+D10   --> D103
+D11   --> D104
+D12   --> D105
+D13   --> D106
+D14   --> D107
+D15   --> D108
+D16   --> D109
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_activearea.gbr' ----   Tue Jun  3 09:35:33 2025
+
+D10   --> D110
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_Bot.gbr' ----   Tue Jun  3 09:35:33 2025
+
+D10   --> D111
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_det.gbr' ----   Tue Jun  3 09:35:33 2025
+
+D10   --> D112
+D11   --> D113
+D12   --> D114
+D13   --> D115
+D14   --> D116
+D15   --> D117
+D16   --> D118
+D17   --> D119
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_gasframe.gbr' ----   Tue Jun  3 09:35:33 2025
+
+D10   --> D120
+D11   --> D121
+D12   --> D122
+D13   --> D123
+D14   --> D124
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L2-pads.gbr' ----   Tue Jun  3 09:35:34 2025
+
+D10   --> D125
+D11   --> D126
+D12   --> D127
+D13   --> D128
+D14   --> D129
+D15   --> D130
+D16   --> D131
+D17   --> D132
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L3-TrackY.gbr' ----   Tue Jun  3 09:35:36 2025
+
+D10   --> D133
+D11   --> D134
+D12   --> D135
+D13   --> D136
+D14   --> D137
+D15   --> D138
+D16   --> D139
+D17   --> D140
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L4-TrackX.gbr' ----   Tue Jun  3 09:35:38 2025
+
+D10   --> D141
+D11   --> D142
+D12   --> D143
+D13   --> D144
+D14   --> D145
+D15   --> D146
+D16   --> D147
+D17   --> D148
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L5.gbr' ----   Tue Jun  3 09:35:39 2025
+
+D10   --> D149
+D11   --> D150
+D12   --> D151
+D13   --> D152
+D14   --> D153
+D15   --> D154
+D16   --> D155
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_pla1-2.gbr' ----   Tue Jun  3 09:35:39 2025
+
+D10   --> D156
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_pla2-5.gbr' ----   Tue Jun  3 09:35:40 2025
+
+D10   --> D157
+D11   --> D158
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_top-cu.gbr' ----   Tue Jun  3 09:35:40 2025
+
+D10   --> D159
+D11   --> D160
+D12   --> D161
+D13   --> D162
+D14   --> D163
+D15   --> D164
+D16   --> D165
+D17   --> D166
+D18   --> D167
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\3498A_help.gbr' ----   Fri Jun  6 13:32:29 2025
+
+D10   --> D100
+D11   --> D101
+D12   --> D102
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\3498A_top-resist.gbr' ----   Fri Jun  6 13:32:30 2025
+
+D10   --> D103
+D11   --> D104
+D12   --> D105
+D13   --> D106
+D14   --> D107
+D15   --> D108
+D16   --> D109
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_activearea.gbr' ----   Fri Jun  6 13:32:30 2025
+
+D10   --> D110
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_Bot.gbr' ----   Fri Jun  6 13:32:30 2025
+
+D10   --> D111
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_det.gbr' ----   Fri Jun  6 13:32:30 2025
+
+D10   --> D112
+D11   --> D113
+D12   --> D114
+D13   --> D115
+D14   --> D116
+D15   --> D117
+D16   --> D118
+D17   --> D119
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_gasframe.gbr' ----   Fri Jun  6 13:32:30 2025
+
+D10   --> D120
+D11   --> D121
+D12   --> D122
+D13   --> D123
+D14   --> D124
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L2-pads.gbr' ----   Fri Jun  6 13:32:31 2025
+
+D10   --> D125
+D11   --> D126
+D12   --> D127
+D13   --> D128
+D14   --> D129
+D15   --> D130
+D16   --> D131
+D17   --> D132
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L3-TrackY.gbr' ----   Fri Jun  6 13:32:33 2025
+
+D10   --> D133
+D11   --> D134
+D12   --> D135
+D13   --> D136
+D14   --> D137
+D15   --> D138
+D16   --> D139
+D17   --> D140
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L4-TrackX.gbr' ----   Fri Jun  6 13:32:34 2025
+
+D10   --> D141
+D11   --> D142
+D12   --> D143
+D13   --> D144
+D14   --> D145
+D15   --> D146
+D16   --> D147
+D17   --> D148
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L5.gbr' ----   Fri Jun  6 13:32:35 2025
+
+D10   --> D149
+D11   --> D150
+D12   --> D151
+D13   --> D152
+D14   --> D153
+D15   --> D154
+D16   --> D155
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_pla1-2.gbr' ----   Fri Jun  6 13:32:35 2025
+
+D10   --> D156
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_pla2-5.gbr' ----   Fri Jun  6 13:32:36 2025
+
+D10   --> D157
+D11   --> D158
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_top-cu.gbr' ----   Fri Jun  6 13:32:36 2025
+
+D10   --> D159
+D11   --> D160
+D12   --> D161
+D13   --> D162
+D14   --> D163
+D15   --> D164
+D16   --> D165
+D17   --> D166
+D18   --> D167
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\3498A_help.gbr' ----   Thu Jun 12 09:51:40 2025
+
+D10   --> D100
+D11   --> D101
+D12   --> D102
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\3498A_top-resist.gbr' ----   Thu Jun 12 09:51:40 2025
+
+D10   --> D103
+D11   --> D104
+D12   --> D105
+D13   --> D106
+D14   --> D107
+D15   --> D108
+D16   --> D109
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_activearea.gbr' ----   Thu Jun 12 09:51:40 2025
+
+D10   --> D110
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_Bot.gbr' ----   Thu Jun 12 09:51:40 2025
+
+D10   --> D111
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_det.gbr' ----   Thu Jun 12 09:51:41 2025
+
+D10   --> D112
+D11   --> D113
+D12   --> D114
+D13   --> D115
+D14   --> D116
+D15   --> D117
+D16   --> D118
+D17   --> D119
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_gasframe.gbr' ----   Thu Jun 12 09:51:41 2025
+
+D10   --> D120
+D11   --> D121
+D12   --> D122
+D13   --> D123
+D14   --> D124
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L2-pads.gbr' ----   Thu Jun 12 09:51:42 2025
+
+D10   --> D125
+D11   --> D126
+D12   --> D127
+D13   --> D128
+D14   --> D129
+D15   --> D130
+D16   --> D131
+D17   --> D132
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L3-TrackY.gbr' ----   Thu Jun 12 09:51:44 2025
+
+D10   --> D133
+D11   --> D134
+D12   --> D135
+D13   --> D136
+D14   --> D137
+D15   --> D138
+D16   --> D139
+D17   --> D140
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L4-TrackX.gbr' ----   Thu Jun 12 09:51:46 2025
+
+D10   --> D141
+D11   --> D142
+D12   --> D143
+D13   --> D144
+D14   --> D145
+D15   --> D146
+D16   --> D147
+D17   --> D148
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L5.gbr' ----   Thu Jun 12 09:51:47 2025
+
+D10   --> D149
+D11   --> D150
+D12   --> D151
+D13   --> D152
+D14   --> D153
+D15   --> D154
+D16   --> D155
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_pla1-2.gbr' ----   Thu Jun 12 09:51:47 2025
+
+D10   --> D156
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_pla2-5.gbr' ----   Thu Jun 12 09:51:48 2025
+
+D10   --> D157
+D11   --> D158
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_top-cu.gbr' ----   Thu Jun 12 09:51:48 2025
+
+D10   --> D159
+D11   --> D160
+D12   --> D161
+D13   --> D162
+D14   --> D163
+D15   --> D164
+D16   --> D165
+D17   --> D166
+D18   --> D167
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\3498A_help.gbr' ----   Wed Jun 18 13:24:57 2025
+
+D10   --> D100
+D11   --> D101
+D12   --> D102
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\3498A_top-resist.gbr' ----   Wed Jun 18 13:24:58 2025
+
+D10   --> D103
+D11   --> D104
+D12   --> D105
+D13   --> D106
+D14   --> D107
+D15   --> D108
+D16   --> D109
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_activearea.gbr' ----   Wed Jun 18 13:24:58 2025
+
+D10   --> D110
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_Bot.gbr' ----   Wed Jun 18 13:24:58 2025
+
+D10   --> D111
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_det.gbr' ----   Wed Jun 18 13:24:58 2025
+
+D10   --> D112
+D11   --> D113
+D12   --> D114
+D13   --> D115
+D14   --> D116
+D15   --> D117
+D16   --> D118
+D17   --> D119
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_gasframe.gbr' ----   Wed Jun 18 13:24:59 2025
+
+D10   --> D120
+D11   --> D121
+D12   --> D122
+D13   --> D123
+D14   --> D124
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L2-pads.gbr' ----   Wed Jun 18 13:25:01 2025
+
+D10   --> D125
+D11   --> D126
+D12   --> D127
+D13   --> D128
+D14   --> D129
+D15   --> D130
+D16   --> D131
+D17   --> D132
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L3-TrackY.gbr' ----   Wed Jun 18 13:25:03 2025
+
+D10   --> D133
+D11   --> D134
+D12   --> D135
+D13   --> D136
+D14   --> D137
+D15   --> D138
+D16   --> D139
+D17   --> D140
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L4-TrackX.gbr' ----   Wed Jun 18 13:25:06 2025
+
+D10   --> D141
+D11   --> D142
+D12   --> D143
+D13   --> D144
+D14   --> D145
+D15   --> D146
+D16   --> D147
+D17   --> D148
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L5.gbr' ----   Wed Jun 18 13:25:07 2025
+
+D10   --> D149
+D11   --> D150
+D12   --> D151
+D13   --> D152
+D14   --> D153
+D15   --> D154
+D16   --> D155
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_pla1-2.gbr' ----   Wed Jun 18 13:25:07 2025
+
+D10   --> D156
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_pla2-5.gbr' ----   Wed Jun 18 13:25:09 2025
+
+D10   --> D157
+D11   --> D158
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_top-cu.gbr' ----   Wed Jun 18 13:25:09 2025
+
+D10   --> D159
+D11   --> D160
+D12   --> D161
+D13   --> D162
+D14   --> D163
+D15   --> D164
+D16   --> D165
+D17   --> D166
+D18   --> D167
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\3498A_help.gbr' ----   Mon Jun 30 13:43:34 2025
+
+D10   --> D100
+D11   --> D101
+D12   --> D102
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\3498A_top-resist.gbr' ----   Mon Jun 30 13:43:35 2025
+
+D10   --> D103
+D11   --> D104
+D12   --> D105
+D13   --> D106
+D14   --> D107
+D15   --> D108
+D16   --> D109
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_activearea.gbr' ----   Mon Jun 30 13:43:35 2025
+
+D10   --> D110
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_Bot.gbr' ----   Mon Jun 30 13:43:35 2025
+
+D10   --> D111
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_det.gbr' ----   Mon Jun 30 13:43:35 2025
+
+D10   --> D112
+D11   --> D113
+D12   --> D114
+D13   --> D115
+D14   --> D116
+D15   --> D117
+D16   --> D118
+D17   --> D119
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_gasframe.gbr' ----   Mon Jun 30 13:43:35 2025
+
+D10   --> D120
+D11   --> D121
+D12   --> D122
+D13   --> D123
+D14   --> D124
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L2-pads.gbr' ----   Mon Jun 30 13:43:37 2025
+
+D10   --> D125
+D11   --> D126
+D12   --> D127
+D13   --> D128
+D14   --> D129
+D15   --> D130
+D16   --> D131
+D17   --> D132
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L3-TrackY.gbr' ----   Mon Jun 30 13:43:39 2025
+
+D10   --> D133
+D11   --> D134
+D12   --> D135
+D13   --> D136
+D14   --> D137
+D15   --> D138
+D16   --> D139
+D17   --> D140
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L4-TrackX.gbr' ----   Mon Jun 30 13:43:43 2025
+
+D10   --> D141
+D11   --> D142
+D12   --> D143
+D13   --> D144
+D14   --> D145
+D15   --> D146
+D16   --> D147
+D17   --> D148
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L5.gbr' ----   Mon Jun 30 13:43:45 2025
+
+D10   --> D149
+D11   --> D150
+D12   --> D151
+D13   --> D152
+D14   --> D153
+D15   --> D154
+D16   --> D155
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_pla1-2.gbr' ----   Mon Jun 30 13:43:45 2025
+
+D10   --> D156
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_pla2-5.gbr' ----   Mon Jun 30 13:43:46 2025
+
+D10   --> D157
+D11   --> D158
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_top-cu.gbr' ----   Mon Jun 30 13:43:46 2025
+
+D10   --> D159
+D11   --> D160
+D12   --> D161
+D13   --> D162
+D14   --> D163
+D15   --> D164
+D16   --> D165
+D17   --> D166
+D18   --> D167
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\3498A_help.gbr' ----   Tue Jul  1 12:39:44 2025
+
+D10   --> D100
+D11   --> D101
+D12   --> D102
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\3498A_top-resist.gbr' ----   Tue Jul  1 12:39:45 2025
+
+D10   --> D103
+D11   --> D104
+D12   --> D105
+D13   --> D106
+D14   --> D107
+D15   --> D108
+D16   --> D109
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_activearea.gbr' ----   Tue Jul  1 12:39:46 2025
+
+D10   --> D110
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_Bot.gbr' ----   Tue Jul  1 12:39:46 2025
+
+D10   --> D111
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_det.gbr' ----   Tue Jul  1 12:39:46 2025
+
+D10   --> D112
+D11   --> D113
+D12   --> D114
+D13   --> D115
+D14   --> D116
+D15   --> D117
+D16   --> D118
+D17   --> D119
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_gasframe.gbr' ----   Tue Jul  1 12:39:46 2025
+
+D10   --> D120
+D11   --> D121
+D12   --> D122
+D13   --> D123
+D14   --> D124
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L2-pads.gbr' ----   Tue Jul  1 12:39:47 2025
+
+D10   --> D125
+D11   --> D126
+D12   --> D127
+D13   --> D128
+D14   --> D129
+D15   --> D130
+D16   --> D131
+D17   --> D132
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L3-TrackY.gbr' ----   Tue Jul  1 12:39:52 2025
+
+D10   --> D133
+D11   --> D134
+D12   --> D135
+D13   --> D136
+D14   --> D137
+D15   --> D138
+D16   --> D139
+D17   --> D140
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L4-TrackX.gbr' ----   Tue Jul  1 12:39:55 2025
+
+D10   --> D141
+D11   --> D142
+D12   --> D143
+D13   --> D144
+D14   --> D145
+D15   --> D146
+D16   --> D147
+D17   --> D148
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L5.gbr' ----   Tue Jul  1 12:39:56 2025
+
+D10   --> D149
+D11   --> D150
+D12   --> D151
+D13   --> D152
+D14   --> D153
+D15   --> D154
+D16   --> D155
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_pla1-2.gbr' ----   Tue Jul  1 12:39:57 2025
+
+D10   --> D156
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_pla2-5.gbr' ----   Tue Jul  1 12:39:59 2025
+
+D10   --> D157
+D11   --> D158
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_top-cu.gbr' ----   Tue Jul  1 12:39:59 2025
+
+D10   --> D159
+D11   --> D160
+D12   --> D161
+D13   --> D162
+D14   --> D163
+D15   --> D164
+D16   --> D165
+D17   --> D166
+D18   --> D167
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\3498A_help.gbr' ----   Thu Sep  4 10:44:40 2025
+
+D10   --> D100
+D11   --> D101
+D12   --> D102
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\3498A_top-resist.gbr' ----   Thu Sep  4 10:44:41 2025
+
+D10   --> D103
+D11   --> D104
+D12   --> D105
+D13   --> D106
+D14   --> D107
+D15   --> D108
+D16   --> D109
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_activearea.gbr' ----   Thu Sep  4 10:44:41 2025
+
+D10   --> D110
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_Bot.gbr' ----   Thu Sep  4 10:44:41 2025
+
+D10   --> D111
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_det.gbr' ----   Thu Sep  4 10:44:41 2025
+
+D10   --> D112
+D11   --> D113
+D12   --> D114
+D13   --> D115
+D14   --> D116
+D15   --> D117
+D16   --> D118
+D17   --> D119
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_gasframe.gbr' ----   Thu Sep  4 10:44:41 2025
+
+D10   --> D120
+D11   --> D121
+D12   --> D122
+D13   --> D123
+D14   --> D124
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L2-pads.gbr' ----   Thu Sep  4 10:44:43 2025
+
+D10   --> D125
+D11   --> D126
+D12   --> D127
+D13   --> D128
+D14   --> D129
+D15   --> D130
+D16   --> D131
+D17   --> D132
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L3-TrackY.gbr' ----   Thu Sep  4 10:44:45 2025
+
+D10   --> D133
+D11   --> D134
+D12   --> D135
+D13   --> D136
+D14   --> D137
+D15   --> D138
+D16   --> D139
+D17   --> D140
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L4-TrackX.gbr' ----   Thu Sep  4 10:44:48 2025
+
+D10   --> D141
+D11   --> D142
+D12   --> D143
+D13   --> D144
+D14   --> D145
+D15   --> D146
+D16   --> D147
+D17   --> D148
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L5.gbr' ----   Thu Sep  4 10:44:50 2025
+
+D10   --> D149
+D11   --> D150
+D12   --> D151
+D13   --> D152
+D14   --> D153
+D15   --> D154
+D16   --> D155
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_pla1-2.gbr' ----   Thu Sep  4 10:44:50 2025
+
+D10   --> D156
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_pla2-5.gbr' ----   Thu Sep  4 10:44:52 2025
+
+D10   --> D157
+D11   --> D158
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_top-cu.gbr' ----   Thu Sep  4 10:44:52 2025
+
+D10   --> D159
+D11   --> D160
+D12   --> D161
+D13   --> D162
+D14   --> D163
+D15   --> D164
+D16   --> D165
+D17   --> D166
+D18   --> D167
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\3498A_help.gbr' ----   Tue Sep 23 14:02:31 2025
+
+D10   --> D100
+D11   --> D101
+D12   --> D102
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\3498A_top-resist.gbr' ----   Tue Sep 23 14:02:33 2025
+
+D10   --> D103
+D11   --> D104
+D12   --> D105
+D13   --> D106
+D14   --> D107
+D15   --> D108
+D16   --> D109
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_activearea.gbr' ----   Tue Sep 23 14:02:33 2025
+
+D10   --> D110
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_Bot.gbr' ----   Tue Sep 23 14:02:33 2025
+
+D10   --> D111
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_det.gbr' ----   Tue Sep 23 14:02:33 2025
+
+D10   --> D112
+D11   --> D113
+D12   --> D114
+D13   --> D115
+D14   --> D116
+D15   --> D117
+D16   --> D118
+D17   --> D119
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_gasframe.gbr' ----   Tue Sep 23 14:02:34 2025
+
+D10   --> D120
+D11   --> D121
+D12   --> D122
+D13   --> D123
+D14   --> D124
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L2-pads.gbr' ----   Tue Sep 23 14:02:35 2025
+
+D10   --> D125
+D11   --> D126
+D12   --> D127
+D13   --> D128
+D14   --> D129
+D15   --> D130
+D16   --> D131
+D17   --> D132
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L3-TrackY.gbr' ----   Tue Sep 23 14:02:39 2025
+
+D10   --> D133
+D11   --> D134
+D12   --> D135
+D13   --> D136
+D14   --> D137
+D15   --> D138
+D16   --> D139
+D17   --> D140
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L4-TrackX.gbr' ----   Tue Sep 23 14:02:42 2025
+
+D10   --> D141
+D11   --> D142
+D12   --> D143
+D13   --> D144
+D14   --> D145
+D15   --> D146
+D16   --> D147
+D17   --> D148
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L5.gbr' ----   Tue Sep 23 14:02:45 2025
+
+D10   --> D149
+D11   --> D150
+D12   --> D151
+D13   --> D152
+D14   --> D153
+D15   --> D154
+D16   --> D155
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_pla1-2.gbr' ----   Tue Sep 23 14:02:45 2025
+
+D10   --> D156
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_pla2-5.gbr' ----   Tue Sep 23 14:02:48 2025
+
+D10   --> D157
+D11   --> D158
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_top-cu.gbr' ----   Tue Sep 23 14:02:48 2025
+
+D10   --> D159
+D11   --> D160
+D12   --> D161
+D13   --> D162
+D14   --> D163
+D15   --> D164
+D16   --> D165
+D17   --> D166
+D18   --> D167
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498AM2_top.gbr' ----   Fri Sep 26 13:13:54 2025
+
+D10   --> D100
+D11   --> D101
+D12   --> D102
+D13   --> D103
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\3498A_help.gbr' ----   Fri Sep 26 13:13:55 2025
+
+D10   --> D104
+D11   --> D105
+D12   --> D106
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_det.gbr' ----   Fri Sep 26 13:13:55 2025
+
+D10   --> D107
+D11   --> D108
+D12   --> D109
+D13   --> D110
+D14   --> D111
+D15   --> D112
+D16   --> D113
+D17   --> D114
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_gasframe.gbr' ----   Fri Sep 26 13:13:55 2025
+
+D10   --> D115
+D11   --> D116
+D12   --> D117
+D13   --> D118
+D14   --> D119
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_pla1-2.gbr' ----   Fri Sep 26 13:13:55 2025
+
+D10   --> D120
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_pla2-5.gbr' ----   Fri Sep 26 13:13:57 2025
+
+D10   --> D121
+D11   --> D122
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_activearea.gbr' ----   Fri Sep 26 13:13:58 2025
+
+D10   --> D123
+D11   --> D124
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_Bot.gbr' ----   Fri Sep 26 13:13:58 2025
+
+D10   --> D125
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L5.gbr' ----   Fri Sep 26 13:13:59 2025
+
+D10   --> D126
+D11   --> D127
+D12   --> D128
+D13   --> D129
+D14   --> D130
+D16   --> D131
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L4-TrackX.gbr' ----   Fri Sep 26 13:14:03 2025
+
+D10   --> D132
+D11   --> D133
+D12   --> D134
+D13   --> D135
+D14   --> D136
+D15   --> D137
+D16   --> D138
+D17   --> D139
+D18   --> D140
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L3-TrackY.gbr' ----   Fri Sep 26 13:14:08 2025
+
+D10   --> D141
+D11   --> D142
+D12   --> D143
+D13   --> D144
+D14   --> D145
+D15   --> D146
+D17   --> D147
+D18   --> D148
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L2-pads.gbr' ----   Fri Sep 26 13:14:11 2025
+
+D10   --> D149
+D11   --> D150
+D12   --> D151
+D13   --> D152
+D14   --> D153
+D15   --> D154
+D16   --> D155
+D17   --> D156
+D18   --> D157
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\3498A_bulk.gbr' ----   Fri Sep 26 13:14:11 2025
+
+D10   --> D158
+D11   --> D159
+D12   --> D160
+D13   --> D161
+D14   --> D162
+D15   --> D163
+D16   --> D164
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\3498A_top-resist.gbr' ----   Fri Sep 26 13:14:12 2025
+
+D10   --> D165
+D11   --> D166
+D12   --> D167
+D13   --> D168
+D14   --> D169
+D15   --> D170
+D16   --> D171
+D17   --> D172
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_top-cu.gbr' ----   Fri Sep 26 13:14:13 2025
+
+D10   --> D173
+D11   --> D174
+D12   --> D175
+D13   --> D176
+D14   --> D177
+D15   --> D178
+D16   --> D179
+D17   --> D180
+D18   --> D181
+D19   --> D182
+D20   --> D183
+D21   --> D184
+D22   --> D185
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498AM2_top.gbr' ----   Fri Sep 26 13:19:04 2025
+
+D10   --> D100
+D11   --> D101
+D12   --> D102
+D13   --> D103
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\3498A_help.gbr' ----   Fri Sep 26 13:19:04 2025
+
+D10   --> D104
+D11   --> D105
+D12   --> D106
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_det.gbr' ----   Fri Sep 26 13:19:04 2025
+
+D10   --> D107
+D11   --> D108
+D12   --> D109
+D13   --> D110
+D14   --> D111
+D15   --> D112
+D16   --> D113
+D17   --> D114
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_gasframe.gbr' ----   Fri Sep 26 13:19:04 2025
+
+D10   --> D115
+D11   --> D116
+D12   --> D117
+D13   --> D118
+D14   --> D119
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_pla1-2.gbr' ----   Fri Sep 26 13:19:04 2025
+
+D10   --> D120
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_pla2-5.gbr' ----   Fri Sep 26 13:19:05 2025
+
+D10   --> D121
+D11   --> D122
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_activearea.gbr' ----   Fri Sep 26 13:19:05 2025
+
+D10   --> D123
+D11   --> D124
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_Bot.gbr' ----   Fri Sep 26 13:19:05 2025
+
+D10   --> D125
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L5.gbr' ----   Fri Sep 26 13:19:06 2025
+
+D10   --> D126
+D11   --> D127
+D12   --> D128
+D13   --> D129
+D14   --> D130
+D16   --> D131
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L4-TrackX.gbr' ----   Fri Sep 26 13:19:09 2025
+
+D10   --> D132
+D11   --> D133
+D12   --> D134
+D13   --> D135
+D14   --> D136
+D15   --> D137
+D16   --> D138
+D17   --> D139
+D18   --> D140
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L3-TrackY.gbr' ----   Fri Sep 26 13:19:13 2025
+
+D10   --> D141
+D11   --> D142
+D12   --> D143
+D13   --> D144
+D14   --> D145
+D15   --> D146
+D17   --> D147
+D18   --> D148
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_L2-pads.gbr' ----   Fri Sep 26 13:19:14 2025
+
+D10   --> D149
+D11   --> D150
+D12   --> D151
+D13   --> D152
+D14   --> D153
+D15   --> D154
+D16   --> D155
+D17   --> D156
+D18   --> D157
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\3498A_bulk.gbr' ----   Fri Sep 26 13:19:15 2025
+
+D10   --> D158
+D11   --> D159
+D12   --> D160
+D13   --> D161
+D14   --> D162
+D15   --> D163
+D16   --> D164
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\3498A_top-resist.gbr' ----   Fri Sep 26 13:19:16 2025
+
+D10   --> D165
+D11   --> D166
+D12   --> D167
+D13   --> D168
+D14   --> D169
+D15   --> D170
+D16   --> D171
+D17   --> D172
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\dapnia\data\manip\DEDIP_CAO\Z021_MX17\ressources\CERN\download\Gerber\DFS3498A_top-cu.gbr' ----   Fri Sep 26 13:19:17 2025
+
+D10   --> D173
+D11   --> D174
+D12   --> D175
+D13   --> D176
+D14   --> D177
+D15   --> D178
+D16   --> D179
+D17   --> D180
+D18   --> D181
+D19   --> D182
+D20   --> D183
+D21   --> D184
+D22   --> D185
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\DAPDC5\Manip\DEDIP_CAO\Z021_MX17\ressources\CERN\PCB MX17\Gerber\3498A_help.gbr' ----   Mon Jan 26 10:26:56 2026
+
+D10   --> D100
+D11   --> D101
+D12   --> D102
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\DAPDC5\Manip\DEDIP_CAO\Z021_MX17\ressources\CERN\PCB MX17\Gerber\3498A_top-resist.gbr' ----   Mon Jan 26 10:26:58 2026
+
+D10   --> D103
+D11   --> D104
+D12   --> D105
+D13   --> D106
+D14   --> D107
+D15   --> D108
+D16   --> D109
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\DAPDC5\Manip\DEDIP_CAO\Z021_MX17\ressources\CERN\PCB MX17\Gerber\DFS3498A_activearea.gbr' ----   Mon Jan 26 10:26:58 2026
+
+D10   --> D110
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\DAPDC5\Manip\DEDIP_CAO\Z021_MX17\ressources\CERN\PCB MX17\Gerber\DFS3498A_Bot.gbr' ----   Mon Jan 26 10:26:59 2026
+
+D10   --> D111
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\DAPDC5\Manip\DEDIP_CAO\Z021_MX17\ressources\CERN\PCB MX17\Gerber\DFS3498A_det.gbr' ----   Mon Jan 26 10:26:59 2026
+
+D10   --> D112
+D11   --> D113
+D12   --> D114
+D13   --> D115
+D14   --> D116
+D15   --> D117
+D16   --> D118
+D17   --> D119
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\DAPDC5\Manip\DEDIP_CAO\Z021_MX17\ressources\CERN\PCB MX17\Gerber\DFS3498A_gasframe.gbr' ----   Mon Jan 26 10:26:59 2026
+
+D10   --> D120
+D11   --> D121
+D12   --> D122
+D13   --> D123
+D14   --> D124
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\DAPDC5\Manip\DEDIP_CAO\Z021_MX17\ressources\CERN\PCB MX17\Gerber\DFS3498A_L2-pads.gbr' ----   Mon Jan 26 10:27:01 2026
+
+D10   --> D125
+D11   --> D126
+D12   --> D127
+D13   --> D128
+D14   --> D129
+D15   --> D130
+D16   --> D131
+D17   --> D132
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\DAPDC5\Manip\DEDIP_CAO\Z021_MX17\ressources\CERN\PCB MX17\Gerber\DFS3498A_L3-TrackY.gbr' ----   Mon Jan 26 10:27:09 2026
+
+D10   --> D133
+D11   --> D134
+D12   --> D135
+D13   --> D136
+D14   --> D137
+D15   --> D138
+D16   --> D139
+D17   --> D140
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\DAPDC5\Manip\DEDIP_CAO\Z021_MX17\ressources\CERN\PCB MX17\Gerber\DFS3498A_L4-TrackX.gbr' ----   Mon Jan 26 10:27:15 2026
+
+D10   --> D141
+D11   --> D142
+D12   --> D143
+D13   --> D144
+D14   --> D145
+D15   --> D146
+D16   --> D147
+D17   --> D148
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\DAPDC5\Manip\DEDIP_CAO\Z021_MX17\ressources\CERN\PCB MX17\Gerber\DFS3498A_L5.gbr' ----   Mon Jan 26 10:27:19 2026
+
+D10   --> D149
+D11   --> D150
+D12   --> D151
+D13   --> D152
+D14   --> D153
+D15   --> D154
+D16   --> D155
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\DAPDC5\Manip\DEDIP_CAO\Z021_MX17\ressources\CERN\PCB MX17\Gerber\DFS3498A_pla1-2.gbr' ----   Mon Jan 26 10:27:19 2026
+
+D10   --> D156
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\DAPDC5\Manip\DEDIP_CAO\Z021_MX17\ressources\CERN\PCB MX17\Gerber\DFS3498A_pla2-5.gbr' ----   Mon Jan 26 10:27:22 2026
+
+D10   --> D157
+D11   --> D158
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\DAPDC5\Manip\DEDIP_CAO\Z021_MX17\ressources\CERN\PCB MX17\Gerber\DFS3498A_top-cu.gbr' ----   Mon Jan 26 10:27:22 2026
+
+D10   --> D159
+D11   --> D160
+D12   --> D161
+D13   --> D162
+D14   --> D163
+D15   --> D164
+D16   --> D165
+D17   --> D166
+D18   --> D167
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\DAPDC5\Manip\DEDIP_CAO\Z021_MX17\ressources\CERN\PCB MX17\Gerber\DFS3498AM2_bot.gbr' ----   Mon Jan 26 10:27:22 2026
+
+D10   --> D168
+D11   --> D169
+D12   --> D170
+D13   --> D171
+-----------------------------------------------------------------
+
+
+   ---- Transcoding '\\DAPDC5\Manip\DEDIP_CAO\Z021_MX17\ressources\CERN\PCB MX17\Gerber\DFS3498AM2_top.gbr' ----   Mon Jan 26 10:27:22 2026
+
+D10   --> D172
+D11   --> D173
+D12   --> D174
+D13   --> D175
+D14   --> D176
+D15   --> D177
+D16   --> D178
+D17   --> D179
+D18   --> D180
+D19   --> D181
+D20   --> D182
+D21   --> D183
+D22   --> D184
+-----------------------------------------------------------------

@@ -1,0 +1,85 @@
+V6 — exposing the 100 µm inter-pad gaps (plan §3 W2)
+
+  pads 680 µm on 780 µm pitch  ->  gap 100 µm, metal fraction 0.76003
+  insulator to the pads: 50 µm kapton + 18.76 µm glue
+  under the gap:         26 µm glue (the pad trench) + 264 µm FR4 to L5
+
+  VERIFICATION
+  1. the two-port must reproduce the certified solver
+  C(k) vs wpot.stack_coeffs : 1.70e-16
+  A12(k) vs S(k)            : 7.23e-16
+  two-port passivity min(A11 A22 - A12^2) = 5.049e-29 > 0
+
+  2. tiling pads (gap -> 0): W2 IS W1, so S(0)/C(0) must come back
+  tiling pads, W1 (gaps grounded)             max |Psi - S(0)/C(0)| / expect = 1.26e-16   (0 CG it)
+  tiling pads, open (no conductor below)      max |Psi - S(0)/C(0)| / expect = 1.26e-16   (0 CG it)
+  tiling pads, nominal substrate              max |Psi - S(0)/C(0)| / expect = 1.26e-16   (0 CG it)
+  (S(0)/C(0) = 0.881583)
+     worst 1.26e-16 vs a 1e-12 bar   PASS
+
+  3. ground the gap from just below and the mixed-BC solve must
+     converge back onto W1 — first order in the standoff h
+     h =   1000.0 nm   |W2 - W1| = 1.491e-02   (5 CG it)
+     h =    100.0 nm   |W2 - W1| = 1.522e-03   x9.80   (3 CG it)
+     h =     10.0 nm   |W2 - W1| = 1.525e-04   x9.98   (2 CG it)
+     h =      1.0 nm   |W2 - W1| = 1.525e-05   x10.00   (2 CG it)
+     ratios ['9.80', '9.98', '10.00'] -> order 1 in h   PASS
+
+  4. INDEPENDENT: a real-space (x, z) finite-difference solve,
+     sharing no code — no Fourier, no two-port, no M operator.
+     Strip pads, the only geometry 2-D can reach.
+     W1           spectral 0.768560   FD 0.768560   rel 9.55e-14
+     W2 nominal   spectral 0.866804   FD 0.866476   rel 3.79e-04
+     W1 strips closed form (PAD_SIZE/PAD_PITCH) x S(0)/C(0) = 0.768560, solved 0.768560
+     PASS
+
+  -> verification PASS
+
+  RESULT 1 — prompt image charge captured by the readout pads
+    (mean over deposit position; W1's mean is exactly
+     (PAD_SIZE/PAD_PITCH)^2 x S(0)/C(0), because a solid plane
+     divides the k=0 image charge by area)
+
+    model                                            mean    vs W1     min     max  max/min
+    W1  gaps grounded at the pad plane            0.67003   +0.0%  0.1947  0.8783     4.51
+    W2  nominal: 26 µm glue + 264 µm FR4 to L5    0.85194  +27.2%  0.7558  0.8812     1.17
+    W2  FR4 halved (132 µm)                       0.83652  +24.8%  0.6915  0.8809     1.27
+    W2  open: no conductor below at all           0.86350  +28.9%  0.8032  0.8813     1.10
+
+    Read as a pad-plane potential: capture = S(0)/C(0) x <Vd>,
+    so W1 puts the inter-pad channel at 0 and gives <Vd> = 0.7600 = the metal fraction,
+    while the real channel floats to 0.86 of the pad potential and gives <Vd> = 0.9664.
+
+  RESULT 2 — one pad's prompt kernel, read at pad centres
+    model                                             self    +1 pad  diagonal
+    W1  gaps grounded at the pad plane            0.877619  1.65e-04  1.68e-06
+    W2  nominal: 26 µm glue + 264 µm FR4 to L5    0.879310  4.32e-04  1.19e-05
+    W2  FR4 halved (132 µm)                       0.879211  4.06e-04  8.79e-06
+    W2  open: no conductor below at all           0.879404  4.49e-04  1.13e-05
+    (the PEAK barely moves — the shift is entirely in deposits that
+     land over a channel, which is 24 % of the area)
+
+  CONVERGENCE
+    cell 20.00 µm   capture 0.848928
+    cell 10.00 µm   capture 0.850909
+    cell  5.00 µm   capture 0.851945
+    cell  2.50 µm   capture 0.852472
+    successive deltas ['2.0e-03', '1.0e-03', '5.3e-04'] -> first order (the metal edge is an r^-1/2 singularity)
+    Richardson limit 0.852998; at 5 µm we are 0.12% low, far inside the effect
+    box 2x2 pads   single-pad self 0.879283
+    box 4x4 pads   single-pad self 0.879283
+    box 6x6 pads   single-pad self 0.879283
+    box 8x8 pads   single-pad self 0.879283
+
+  HOW IT SCALES WITH THE GAP (nominal substrate)
+    gap   0.0 µm   W1 0.88158   W2 0.88158     +0.0%
+    gap  25.0 µm   W1 0.82598   W2 0.87953     +6.5%
+    gap  50.0 µm   W1 0.77218   W2 0.87387    +13.2%
+    gap 100.0 µm   W1 0.67003   W2 0.85194    +27.2%
+    gap 150.0 µm   W1 0.57512   W2 0.81622    +41.9%
+
+  VERDICT
+    prompt capture, W1 -> W2:            +28.9%
+    spread over the W2 substrate bracket: 1.7%  (so the board's internal stackup barely matters)
+    sub-pad amplitude modulation:        W1 4.51x  ->  W2 1.17x
+    plan §3 expected 'percent-level' -> REFUTED: it is an order of magnitude larger

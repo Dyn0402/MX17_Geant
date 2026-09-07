@@ -1,0 +1,20 @@
+# Stage B + C on the W2 kernels, one job per rho_s scan point.
+# rho2M is the point the T2b spread measurement supports for the production
+# 70.5 um effective insulator; rho1M is carried because the plan's "nominal"
+# names it and it should be compared, not assumed away. See run_stageBC_w2.sh.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+arguments               = $(rhotag)
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_$(rhotag).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_$(rhotag).err
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w2.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+queue rhotag from (
+rho2M
+rho1M
+)

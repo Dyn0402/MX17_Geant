@@ -1,0 +1,33 @@
+# mx17_aval.sub — S3 avalanche calibration grid (design/RESPONSE_SIM_PLAN.md §5).
+#
+# One job = one (gas table, mesh voltage, seed slice). Uniform-field first pass;
+# the S2 woven-mesh map (T6) replaces ComponentConstant later without changing
+# the JSON contract, so this grid does not have to be re-thrown then — only
+# re-run.
+#
+# Wall-time budgeting: cost per seed electron scales with the avalanche size,
+# which grows ~x1.5 per 10 V. NEV is therefore set per voltage in
+# mx17_aval_points.txt so that every job lands in the 1-2 h band, rather than
+# using a flat NEV that would be trivial at 470 V and time out at 530 V.
+#
+#     condor_submit mx17_aval.sub
+#
+# Columns in mx17_aval_points.txt: GASFILE VOLT NEV SEED TAG
+
+universe                = vanilla
+executable              = mx17_aval_wrap.sh
+arguments               = $(GASFILE) $(VOLT) $(NEV) $(SEED) $(TAG)
+transfer_input_files    = mx17_aval_calib.py, setup_garfield.sh, /afs/cern.ch/user/d/dneff/work/git/nTof_x17/garfield_sim/gas_tables/$(GASFILE), /afs/cern.ch/user/d/dneff/work/garfield_install/garfield-927e5c21.tar.gz
+should_transfer_files   = YES
+when_to_transfer_output = ON_EXIT
+transfer_output_files   = aval_$(TAG).json
+transfer_output_remaps  = "aval_$(TAG).json = results/aval_$(TAG).json"
+output                  = logs/aval_$(TAG).out
+error                   = logs/aval_$(TAG).err
+log                     = logs/aval.clog
+request_cpus            = 1
+request_memory          = 6 GB
+request_disk            = 2 GB
++MaxRuntime             = 86400
+max_retries             = 2
+queue GASFILE,VOLT,NEV,SEED,TAG from mx17_aval_points.txt

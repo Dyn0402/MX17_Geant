@@ -1,0 +1,29 @@
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_point.sh
+arguments               = $(rho) $(dk)
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/s1_$(rho)_$(dk).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/s1_$(rho)_$(dk).err
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/s1.log
+request_cpus            = 4
+request_memory          = 24000
+request_disk            = 12000000
++JobFlavour             = "tomorrow"
+should_transfer_files   = NO
+# Kerberos/EOS credential: without this the job cannot read AFS or
+# xrdcp to EOS, and fails only at the very end after a full solve.
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+queue rho, dk from (
+0.5, 50
+0.5, 75
+0.5, 125
+1.0, 50
+1.0, 75
+1.0, 125
+2.0, 50
+2.0, 75
+2.0, 125
+5.0, 50
+5.0, 75
+5.0, 125
+)

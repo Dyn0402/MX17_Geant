@@ -1,6 +1,5 @@
 // mm_sim.cc
-// Main entry point for the Micromegas GEANT4 simulation
-// Simulates energy deposition and primary ionization in a Micromegas detector
+// Micromegas + full-experiment GEANT4 simulation
 // Author: Dylan Neff / n_TOF X17 group
 
 #include "G4RunManager.hh"
@@ -17,74 +16,127 @@
 #include "PhysicsList.hh"
 #include "ActionInitialization.hh"
 #include "SimConfig.hh"
+#include "GeometryDump.hh"
+
+#include "G4TransportationManager.hh"
 
 #include <iostream>
 #include <string>
+#include <fstream>
+#include <iterator>
 #include <ctime>
 
 void PrintUsage() {
-    std::cerr << "Usage: mm_sim [options] [macro_file]" << std::endl;
-    std::cerr << "Options:" << std::endl;
-    std::cerr << "  -g <gas>         Gas mixture: ArIso, HeEth, NeCO2, ArCO2, PurAr (default: ArIso)" << std::endl;
-    std::cerr << "  -p <particle>    Particle: gamma, neutron, electron, proton, muon (default: gamma)" << std::endl;
-    std::cerr << "  -e <energy>      Particle energy in MeV (default: 1.0)" << std::endl;
-    std::cerr << "  -n <nevents>     Number of events (default: 10000)" << std::endl;
-    std::cerr << "  -o <output>      Output file base name (default: mm_output)" << std::endl;
-    std::cerr << "  -s <seed>        Random seed (default: time-based)" << std::endl;
-    std::cerr << "  -t <nthreads>    Number of threads for MT mode (default: 1)" << std::endl;
-    std::cerr << "  -a <mm>          Al shielding thickness in mm, 0 = none (default: 0)" << std::endl;
-    std::cerr << "  -v               Verbose output" << std::endl;
-    std::cerr << "  -h               Print this help" << std::endl;
+    std::cerr << "Usage: mm_sim [options] [macro_file]\n";
+    std::cerr << "Options:\n";
+    std::cerr << "  -g <gas>         Gas: ArCF4, ArIso, HeEth, ArCO2, ArCF4Iso, NeIso, NeCF4,\n";
+    std::cerr << "                       ArCF4CO2, PureCF4, PureAr, PureHe, PureNe,\n";
+    std::cerr << "                       PureEthane, PureIso, PureCO2  (default: ArCF4)\n";
+    std::cerr << "  -p <particle>    gamma, neutron, electron, positron, proton, muon, muon+,\n";
+    std::cerr << "                   pion, alpha, triton  (default: gamma)\n";
+    std::cerr << "  -e <energy>      Particle energy [MeV]  (default: 1.0)\n";
+    std::cerr << "  -n <nevents>     Number of events  (default: 10000)\n";
+    std::cerr << "  -o <output>      Output file base name  (default: mm_output)\n";
+    std::cerr << "  -s <seed>        Random seed  (default: time-based)\n";
+    std::cerr << "  -t <nthreads>    MT threads  (default: 1)\n";
+    std::cerr << "  -m <mode>        vacuum | full | sr90 | sr90nomm | lscalib | backscintcalib\n";
+    std::cerr << "  --spectrum <csv> Sample energies from Sr-90/Y-90 CSV (lscalib/backscintcalib)\n";
+    std::cerr << "  --beam-spread <mm> Uniform transverse spread of the impact point (default 0 =\n";
+    std::cerr << "                   pencil beam). Use >= 31.2 (the ESL/pad superperiod) for any\n";
+    std::cerr << "                   response-chain run: a pencil beam lands on a pad boundary.\n";
+    std::cerr << "  --theta-x <deg>  Track angle in the x-z plane, tan(theta)=dx/dz (default 0)\n";
+    std::cerr << "  --theta-y <deg>  Track angle in the y-z plane (default 0)\n";
+    std::cerr << "  --src-dist <mm>  Source-to-detector air gap [mm] (default: 100)\n";
+    std::cerr << "  --bulge-front <mm>  Front-window overpressure dome sag (default: 8, 0=flat)\n";
+    std::cerr << "  --legacy-geometry   Use the pre-2026-08 uniform-slab MM module\n";
+    std::cerr << "  --homogenized-readout  Density-scaled copper sheets + resist slab\n";
+    std::cerr << "                      instead of the default real 512x512 pad/X/Y\n";
+    std::cerr << "                      copper and discrete ESL strips (~3%% faster)\n";
+    std::cerr << "  --dump-geometry <f> Write the constructed geometry to JSON and exit\n";
+    std::cerr << "  -a <mm>          Al shielding [mm], vacuum mode only  (default: 0)\n";
+    std::cerr << "  -c <mm>          CFRP wall thickness [mm] for LS cells, full mode only  (default: 1.5)\n";
+    std::cerr << "  -v               Verbose output\n";
+    std::cerr << "  -h               Print this help\n";
 }
 
 int main(int argc, char** argv) {
-    // ---- Parse command-line arguments ----
     SimConfig config;
-    config.gas           = "ArIso";
-    config.particle      = "gamma";
-    config.energy        = 1.0 * MeV;
-    config.nEvents       = 10000;
-    config.outFile       = "mm_output";
-    config.seed          = static_cast<long>(std::time(nullptr));
-    config.nThreads      = 1;
-    config.verbose       = false;
+    config.gas            = "ArCF4";
+    config.particle       = "gamma";
+    config.energy         = 1.0 * MeV;
+    config.nEvents        = 10000;
+    config.outFile        = "mm_output";
+    config.seed           = static_cast<long>(std::time(nullptr));
+    config.nThreads       = 1;
+    config.verbose        = false;
     config.alThickness_mm = 0.0;
+    config.mode           = SimMode::kVacuum;
+    config.cfrpThickness_mm = 2.0;  // updated to match Full_Geant
 
     std::string macroFile = "";
+    std::string geomDumpFile = "";
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
-        if (arg == "-h") { PrintUsage(); return 0; }
-        else if (arg == "-g" && i+1 < argc) config.gas      = argv[++i];
-        else if (arg == "-p" && i+1 < argc) config.particle = argv[++i];
-        else if (arg == "-e" && i+1 < argc) config.energy   = std::stod(argv[++i]) * MeV;
-        else if (arg == "-n" && i+1 < argc) config.nEvents  = std::stoi(argv[++i]);
-        else if (arg == "-o" && i+1 < argc) config.outFile  = argv[++i];
-        else if (arg == "-s" && i+1 < argc) config.seed     = std::stol(argv[++i]);
-        else if (arg == "-t" && i+1 < argc) config.nThreads      = std::stoi(argv[++i]);
-        else if (arg == "-a" && i+1 < argc) config.alThickness_mm = std::stod(argv[++i]);
-        else if (arg == "-v")               config.verbose        = true;
-        else if (arg[0] != '-')             macroFile       = arg;
-        else { std::cerr << "Unknown option: " << arg << std::endl; PrintUsage(); return 1; }
+        if      (arg == "-h")              { PrintUsage(); return 0; }
+        else if (arg == "-g" && i+1<argc)  config.gas              = argv[++i];
+        else if (arg == "-p" && i+1<argc)  config.particle         = argv[++i];
+        else if (arg == "-e" && i+1<argc)  config.energy           = std::stod(argv[++i]) * MeV;
+        else if (arg == "-n" && i+1<argc)  config.nEvents          = std::stoi(argv[++i]);
+        else if (arg == "-o" && i+1<argc)  config.outFile          = argv[++i];
+        else if (arg == "-s" && i+1<argc)  config.seed             = std::stol(argv[++i]);
+        else if (arg == "-t" && i+1<argc)  config.nThreads         = std::stoi(argv[++i]);
+        else if (arg == "-a" && i+1<argc)  config.alThickness_mm   = std::stod(argv[++i]);
+        else if (arg == "-c" && i+1<argc)  config.cfrpThickness_mm = std::stod(argv[++i]);
+        else if (arg == "-v")              config.verbose           = true;
+        else if (arg == "-m" && i+1<argc) {
+            std::string mode = argv[++i];
+            if      (mode == "vacuum") config.mode = SimMode::kVacuum;
+            else if (mode == "full")   config.mode = SimMode::kFullExperiment;
+            else if (mode == "sr90")    config.mode = SimMode::kSr90Calibration;
+            else if (mode == "sr90nomm") config.mode = SimMode::kSr90NoMM;
+            else if (mode == "lscalib")       config.mode = SimMode::kLSCalib;
+            else if (mode == "backscintcalib") config.mode = SimMode::kBackScintCalib;
+            else { std::cerr << "Unknown mode: " << mode << "\n"; return 1; }
+        }
+        else if (arg == "--spectrum" && i+1<argc) config.spectrum_file  = argv[++i];
+        else if (arg == "--beam-spread" && i+1<argc) config.beam_spread_mm = std::stod(argv[++i]);
+        else if (arg == "--theta-x" && i+1<argc) config.theta_x_deg = std::stod(argv[++i]);
+        else if (arg == "--theta-y" && i+1<argc) config.theta_y_deg = std::stod(argv[++i]);
+        else if (arg == "--src-dist" && i+1<argc) config.source_to_det_mm = std::stod(argv[++i]);
+        else if (arg == "--bulge-front" && i+1<argc) config.mx17_bulge_front_mm = std::stod(argv[++i]);
+        else if (arg == "--legacy-geometry") config.legacy_mm_geometry = true;
+        else if (arg == "--patterned-readout")   config.mx17_patterned_readout = true;
+        else if (arg == "--homogenized-readout") config.mx17_patterned_readout = false;
+        else if (arg == "--dump-geometry" && i+1<argc) geomDumpFile = argv[++i];
+        else if (arg[0] != '-') macroFile = arg;
+        else { std::cerr << "Unknown option: " << arg << "\n"; PrintUsage(); return 1; }
     }
 
-    // ---- Random engine ----
     CLHEP::HepRandom::setTheEngine(new CLHEP::RanecuEngine);
     CLHEP::HepRandom::setTheSeed(config.seed);
 
-    std::cout << "=== Micromegas Simulation ===" << std::endl;
-    std::cout << "  Geant4 version : " << G4Version << std::endl;
-    std::cout << "  Gas            : " << config.gas << std::endl;
-    std::cout << "  Particle       : " << config.particle << std::endl;
-    std::cout << "  Energy         : " << config.energy / MeV << " MeV" << std::endl;
-    std::cout << "  Events         : " << config.nEvents << std::endl;
-    std::cout << "  Output         : " << config.outFile << std::endl;
-    std::cout << "  Seed           : " << config.seed << std::endl;
-    std::cout << "  Threads        : " << config.nThreads << std::endl;
-    std::cout << "  Al shielding   : " << config.alThickness_mm << " mm" << std::endl;
-    std::cout << "=============================" << std::endl;
+    std::cout << "=== Micromegas Simulation ===" << "\n";
+    std::cout << "  Geant4 version : " << G4Version << "\n";
+    std::string modeStr = (config.mode == SimMode::kFullExperiment  ? "full-experiment"       :
+                           config.mode == SimMode::kSr90Calibration ? "sr90-calibration"    :
+                           config.mode == SimMode::kSr90NoMM        ? "sr90-no-mm"          :
+                           config.mode == SimMode::kLSCalib         ? "ls-calibration"      :
+                           config.mode == SimMode::kBackScintCalib  ? "backscint-calibration": "vacuum");
+    std::cout << "  Mode           : " << modeStr << "\n";
+    std::cout << "  Gas            : " << config.gas << "\n";
+    std::cout << "  Particle       : " << config.particle << "\n";
+    std::cout << "  Energy         : " << config.energy/MeV << " MeV" << "\n";
+    std::cout << "  Events         : " << config.nEvents << "\n";
+    std::cout << "  Output         : " << config.outFile << "\n";
+    std::cout << "  Seed           : " << config.seed << "\n";
+    std::cout << "  Threads        : " << config.nThreads << "\n";
+    if (config.mode == SimMode::kVacuum)
+        std::cout << "  Al shielding   : " << config.alThickness_mm << " mm\n";
+    else
+        std::cout << "  CFRP thickness : " << config.cfrpThickness_mm << " mm\n";
+    std::cout << "=============================" << "\n";
 
-    // ---- Run Manager ----
 #ifdef G4MULTITHREADED
     G4MTRunManager* runManager = new G4MTRunManager;
     runManager->SetNumberOfThreads(config.nThreads);
@@ -92,26 +144,45 @@ int main(int argc, char** argv) {
     G4RunManager* runManager = new G4RunManager;
 #endif
 
-    // ---- Mandatory initializations ----
-    runManager->SetUserInitialization(new DetectorConstruction(config));
+    // DetectorConstruction must outlive ActionInitialization so that
+    // PrimaryGeneratorAction can read GetHe3GasCenterZ() after Construct().
+    auto* detCon = new DetectorConstruction(config);
+    runManager->SetUserInitialization(detCon);
     runManager->SetUserInitialization(new PhysicsList());
-    runManager->SetUserInitialization(new ActionInitialization(config));
+    runManager->SetUserInitialization(new ActionInitialization(config, detCon));
 
     runManager->Initialize();
 
-    // ---- UI manager ----
-    G4UImanager* UI = G4UImanager::GetUIpointer();
+    if (!geomDumpFile.empty()) {
+        auto* world = G4TransportationManager::GetTransportationManager()
+                          ->GetNavigatorForTracking()->GetWorldVolume();
+        DumpGeometry(world, geomDumpFile);
+        delete runManager;
+        return 0;
+    }
 
+    G4UImanager* UI = G4UImanager::GetUIpointer();
     if (macroFile.empty()) {
-        // Batch mode: run directly
         UI->ApplyCommand("/run/beamOn " + std::to_string(config.nEvents));
     } else {
-        // Run macro file
-        std::string command = "/control/execute " + macroFile;
-        UI->ApplyCommand(command);
+        UI->ApplyCommand("/control/execute " + macroFile);
+        // A MACRO THAT DOES NOT BEAM ON STILL HAS TO RUN (audit C14).
+        // macros/run_default.mac sets verbosity and cuts and says in its own
+        // header that "the run is launched by the C++ main() after this
+        // macro" -- but main() only did that when NO macro was given, so
+        // passing the default macro silently ran zero events and produced an
+        // empty file. Launch the run unless the macro launched it itself.
+        std::ifstream mf(macroFile);
+        std::string body((std::istreambuf_iterator<char>(mf)),
+                          std::istreambuf_iterator<char>());
+        if (body.find("/run/beamOn") == std::string::npos) {
+            G4cout << "mm_sim: " << macroFile << " contains no /run/beamOn; "
+                   << "running " << config.nEvents << " events" << G4endl;
+            UI->ApplyCommand("/run/beamOn " + std::to_string(config.nEvents));
+        }
     }
 
     delete runManager;
-    std::cout << "Simulation complete. Output: " << config.outFile << std::endl;
+    std::cout << "Simulation complete. Output: " << config.outFile << "\n";
     return 0;
 }

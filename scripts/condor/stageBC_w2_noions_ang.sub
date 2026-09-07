@@ -1,0 +1,29 @@
+# Angled --no-ions points — DIAGNOSIS (ion thread).
+# Tests whether the amplitude-deficit-vs-angle trend (peak ratio 0.553 →
+# 0.447 → 0.378 at 0/10/20°, view-symmetric) is time-structure: an inclined
+# track broadens each strip's current, and the ion-dominated slow response
+# converts that spread into peak loss where a fast response retains it.
+# Falsifier: if the trend flattens without ions, only the angle-independent
+# floor (~x0.63) is gain/kernel; if it persists, the trend is upstream too.
+# Proposed by the angled-ladder session (t14_ang_trend report), submitted by
+# the T14/ion-thread session. Vertical anchor = DIAGNOSIS_noions.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+MY.SendCredential       = true
+request_cpus            = 4
+request_memory          = 16000
++MaxRuntime             = 7200
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w2.log
+
+NOISE = /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07.json
+CLUS  = /afs/cern.ch/work/d/dneff/mx17_s1/clusters_ang
+
+arguments               = "rho2M DIAGNOSIS_noions_thx10 $(NOISE) $(CLUS)/mx17_muons_3k_ang_thx10_t0.root --no-ions"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_noions_thx10.out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_noions_thx10.err
+queue
+
+arguments               = "rho2M DIAGNOSIS_noions_thx20 $(NOISE) $(CLUS)/mx17_muons_3k_ang_thx20_t0.root --no-ions"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_noions_thx20.out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_noions_thx20.err
+queue

@@ -1,52 +1,147 @@
 // PrimaryGeneratorAction.cc
+// Vacuum mode          : pencil beam at z = -10 cm, along +z.
+// Full / sr90 modes    : beam from detector stack front, along +z.
+// kLSCalib / kBackScintCalib : bare electron gun at detector front, optionally
+//                              sampling the Sr-90/Y-90 beta spectrum from a CSV file.
 
 #include "PrimaryGeneratorAction.hh"
+#include "DetectorConstruction.hh"
 
 #include "G4Event.hh"
 #include "G4ParticleTable.hh"
 #include "G4ParticleDefinition.hh"
 #include "G4SystemOfUnits.hh"
 #include "G4ThreeVector.hh"
+#include "Randomize.hh"
 
+#include <algorithm>
+#include <cmath>
+#include <fstream>
+#include <numeric>
+#include <sstream>
 #include <stdexcept>
 #include <map>
 
-PrimaryGeneratorAction::PrimaryGeneratorAction(const SimConfig& cfg)
-    : G4VUserPrimaryGeneratorAction(), fConfig(cfg) {
+PrimaryGeneratorAction::PrimaryGeneratorAction(const SimConfig& cfg,
+                                               const DetectorConstruction* detCon)
+    : G4VUserPrimaryGeneratorAction(), fConfig(cfg), fDetCon(detCon) {
 
     fGun = std::make_unique<G4ParticleGun>(1);
 
-    // Map config string to G4 particle name
     static const std::map<std::string, std::string> particleMap = {
         {"gamma",    "gamma"},
         {"neutron",  "neutron"},
         {"electron", "e-"},
+        {"positron", "e+"},
         {"proton",   "proton"},
         {"muon",     "mu-"},
         {"muon+",    "mu+"},
         {"pion",     "pi-"},
         {"alpha",    "alpha"},
+        {"triton",   "triton"},
     };
 
     auto it = particleMap.find(cfg.particle);
-    if (it == particleMap.end()) {
-        throw std::runtime_error("Unknown particle: " + cfg.particle +
-            "\nAvailable: gamma, neutron, electron, proton, muon, muon+, pion, alpha");
-    }
+    if (it == particleMap.end())
+        throw std::runtime_error("Unknown particle: " + cfg.particle);
 
-    G4ParticleTable* ptable = G4ParticleTable::GetParticleTable();
-    G4ParticleDefinition* particle = ptable->FindParticle(it->second);
-    if (!particle) {
+    G4ParticleDefinition* particle =
+        G4ParticleTable::GetParticleTable()->FindParticle(it->second);
+    if (!particle)
         throw std::runtime_error("G4 particle not found: " + it->second);
-    }
 
     fGun->SetParticleDefinition(particle);
     fGun->SetParticleEnergy(cfg.energy);
-    fGun->SetParticleMomentumDirection(G4ThreeVector(0, 0, 1));  // along +z
-    // Gun at z = -10 cm; world is expanded in DetectorConstruction to include this position.
-    fGun->SetParticlePosition(G4ThreeVector(0, 0, -10.0 * cm));
+    // tan(theta) = dx/dz per view (wft convention); (0,0) is the vertical gun.
+    fGun->SetParticleMomentumDirection(
+        G4ThreeVector(std::tan(cfg.theta_x_deg * deg),
+                      std::tan(cfg.theta_y_deg * deg), 1).unit());
+
+    // Gun position
+    G4double gunZ = -10.0 * cm;
+    bool useDetZ = (cfg.mode == SimMode::kFullExperiment  ||
+                    cfg.mode == SimMode::kSr90Calibration ||
+                    cfg.mode == SimMode::kSr90NoMM        ||
+                    cfg.mode == SimMode::kLSCalib          ||
+                    cfg.mode == SimMode::kBackScintCalib);
+    if (useDetZ && fDetCon)
+        gunZ = fDetCon->GetHe3GasCenterZ();
+
+    fGunPos = G4ThreeVector(0, 0, gunZ);
+    fBeamSpread = cfg.beam_spread_mm * mm;
+    fGun->SetParticlePosition(fGunPos);
+
+    // Load Sr-90/Y-90 spectrum if requested
+    if (!cfg.spectrum_file.empty()) {
+        LoadSpectrum(cfg.spectrum_file);
+    }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+void PrimaryGeneratorAction::LoadSpectrum(const std::string& filepath) {
+    std::ifstream f(filepath);
+    if (!f.is_open())
+        throw std::runtime_error("Cannot open spectrum file: " + filepath);
+
+    std::vector<double> energies, weights;
+    std::string line;
+    while (std::getline(f, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        // Skip header lines (contain non-numeric first token)
+        std::istringstream ss(line);
+        double e, w;
+        if (!(ss >> e >> w)) continue;
+        if (e < 0 || w < 0) continue;
+        energies.push_back(e);
+        weights.push_back(w);
+    }
+
+    if (energies.size() < 2)
+        throw std::runtime_error("Spectrum file too short: " + filepath);
+
+    // Build normalised CDF
+    double total = std::accumulate(weights.begin(), weights.end(), 0.0);
+    fSpecEnergies = energies;
+    fSpecCDF.resize(weights.size());
+    double cumsum = 0.0;
+    for (size_t i = 0; i < weights.size(); ++i) {
+        cumsum += weights[i] / total;
+        fSpecCDF[i] = cumsum;
+    }
+    fSpecCDF.back() = 1.0;  // ensure exact 1 at end
+    fUseSpectrum = true;
+
+    G4cout << "PrimaryGeneratorAction: Loaded spectrum from " << filepath
+           << "  (" << fSpecEnergies.size() << " points, "
+           << "E_max=" << fSpecEnergies.back() << " MeV)" << G4endl;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+double PrimaryGeneratorAction::SampleSpectrum() const {
+    double r = G4UniformRand();
+    // Inverse CDF via binary search
+    auto it = std::lower_bound(fSpecCDF.begin(), fSpecCDF.end(), r);
+    size_t i = std::distance(fSpecCDF.begin(), it);
+    if (i >= fSpecEnergies.size()) i = fSpecEnergies.size() - 1;
+    return fSpecEnergies[i];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 void PrimaryGeneratorAction::GeneratePrimaries(G4Event* event) {
+    if (fUseSpectrum) {
+        double E = SampleSpectrum();
+        fGun->SetParticleEnergy(E * MeV);
+    }
+    // Spread the impact point when asked. Uniform over a square, centred on
+    // the beam axis: for the response chain what matters is sampling every
+    // ESL-vs-pad phase and every sub-pitch position uniformly, which a
+    // uniform square of at least one 31.2 mm superperiod does exactly.
+    if (fBeamSpread > 0.0) {
+        const G4double dx = (G4UniformRand() - 0.5) * fBeamSpread;
+        const G4double dy = (G4UniformRand() - 0.5) * fBeamSpread;
+        fGun->SetParticlePosition(fGunPos + G4ThreeVector(dx, dy, 0.));
+    }
+    // The vertex is published by EventAction, which reads it back off the
+    // G4Event -- no coupling needed here (audit C14).
     fGun->GeneratePrimaryVertex(event);
 }

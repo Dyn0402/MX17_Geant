@@ -1,0 +1,1389 @@
+# MX17 Full Detector-Response Simulation — Implementation Plan
+
+**Status:** IN IMPLEMENTATION — the chain runs end to end and wft reads its output unmodified. See §0a for the state of play, what is certified, what is next, and the open problems. **Date:** 2026-08-06, last updated 2026-08-09.
+**Authority:** this document. Where it conflicts with older notes, this wins. Update it as decisions land ("living document").
+**Audience:** an implementing agent/developer who has NOT read the research behind this plan. Every stage gives the equation or the reference, the file contract, the host to run on, and acceptance criteria. When something is genuinely open, it is listed in §12 with the default to proceed with — do not block on §12 items.
+
+~~**Coordination rule:** a parallel effort is updating the Geant4 geometry; until it merges, do NOT edit existing C++ files.~~ **The geometry work has merged (2026-08-07)** and Stage A is done (T8). A parallel effort may still be active in this repo — check `git log` before editing C++.
+
+---
+
+## 0a. STATE OF PLAY — read this first (updated 2026-08-10; earlier snapshots below are 2026-08-09, 2026-08-08 and 2026-08-07)
+
+### 2026-08-10 update — the ion term IS the rise discrepancy, the amplitude ledger closes to ONE candidate, and the ion contradiction is now structurally cornered
+
+Overnight worker, 2026-08-09 → 08-10. Full record `design/report/OVERNIGHT_2026-08-10.md`;
+five-minute version `design/report/MORNING_BRIEF_2026-08-10.md`.
+
+**The rise discrepancy is the ion term, measured across the whole distribution.**
+Previously this rested on p5 of a single vertical sample. At 10° and 20° the ion
+term is a **near-rigid ~95 ns delay at every quantile**, the data needs ~75 of
+those removed, and removing it entirely slightly overshoots (−10 ns at 10°,
+−24 at 20°). **The data's rise is reproduced at f_eff ≈ 0–0.25 on six quantiles
+at two independent inclinations**, against the defended f_ion = 0.9056. Nothing
+was fitted — the DIAGNOSIS legs already existed and were read at matched
+quantiles. **Track inclination is eliminated** as the explanation, and
+`ANGLED_LADDER_2026-08-09.md` §4's "the sim barely responds to inclination" is
+**WITHDRAWN** — a 200 ns threshold artifact sitting below the sim's own floor
+(at 240 ns the sim goes 0.045 → 0.749 over 0–20°). Its open thread #4 is also
+tested and answered **NO**: cutting the vertical leg on |θ_other| < 3° moves the
+offset span by +1 ns (X) / −4 ns (Y), so the vertical broadening is real, not a
+one-view-window artifact — measure the rise offset at INCLINED points.
+
+**The amplitude ledger has exactly one surviving candidate.** Quote the deficit
+in CHARGE: `q_sum` is **f_ion-invariant** (0.626–0.642 across the whole f_ion
+range), so the ×0.63 charge deficit cannot be double-counted against the ion
+thread. It demands a gain of **~4 × 10⁴ against the sim's 24 094 (×1.6)**, and
+an independent re-measurement off the raw HV-scan calib gives a slope error of
+**sim 0.3106 ± 0.0033 vs data 0.4487 ± 0.0093 per 10 V (×1.44)**. Both rows that
+owed numbers are now closed: **primary ionisation is measured and correct**
+(91.2 e⁻/cm, W = 25.97 eV, 3.83 e⁻/cluster — cannot carry ×1.6) and diffusion
+dilution cannot touch an integral. **A single α(E)/Penning error at the
+operating point would produce both numbers, and neither was derived from the
+other.** The T7 slope hunt is the test; its decision rule is pre-registered in
+`response/validation/slopehunt_verdict.py` (outcomes A–D, self-tested).
+
+**The ion contradiction is now cornered structurally, not just empirically.**
+Resistive-sheet screening — the last candidate and the acknowledged soft spot —
+was re-derived by an independent method and the retirement **hardens**: the
+weighting potential factorises as Ψ_sheet(k,τ)·cont(k,z) with the continuation
+factor **time-independent** (the gas is source-free and bounded by the grounded
+mesh), so an in-gas source sees exactly the same temporal sheet response as an
+on-sheet source. **The sheet cannot distinguish induced from deposited charge**;
+the ρ_s-dependent part is 0.34 % across a factor 10 where ×4.5 was needed. ⚠️ The
+two derivations agree on the verdict but **dispute the ρ-dependence** (ours flat,
+the original swinging 26 %) — flagged, not resolved. Consequence: every
+mechanism *inside the modelled system* is excluded, so the ×4–5 suppression must
+live outside the current chain decomposition or in an assumption all the
+defended pieces inherit — the **weighting-field family**, the **DAQ frame/t0
+definition**, or the **mapping of the 10–90 % rise metric onto the model**.
+
+**X/Y asymmetry: real, sim-side, and 18 %.** 0.8190 ± 0.0171 on peak Y/X
+(sim ÷ data, 10.6 σ), decomposing into a charge-partition term 0.8823 ± 0.0156
+(7.6 σ) and an extra-spreading term 1.0777 ± 0.0254 (3.1 σ). Charge is not lost —
+both legs show Y carrying more charge at a lower peak. Excluded: the data
+(symmetric once de-biased), selection (the sim is immune), and the S1
+electrostatics (a strips-vs-uniform A/B moves Y/X by 0.02–0.03, the wrong way —
+though the strips ARE the whole sharing anisotropy, X rms 0.46 vs Y 1.25 strips,
+isotropic when uniform). It lives in Stage B/C; `kY` is probably not the culprit
+since it is applied identically to both legs.
+
+**§0a morning checklist DONE** without the desktop — the merged HV-scan product
+was already on EOS. All six certifications pass on both gases, including "one
+distinct field map per voltage" 8/8 and 7/7, the direct guard against the T7
+voltage-label incident. At 490 V: gain 24 172 vs pooled 24 094, survival 0.9518
+vs T6's independent 0.955, and f_ion **0.9006 exactly** — confirming the shipped
+calib still uses the parallel-plate ψ rather than the through-mesh 0.9056 (a
+known ≤0.005 understatement, not a new defect).
+
+**det3 contaminant family prefers O₂-like attachment.** 29 of the 30 water-grid
+mixtures give η = 0 *exactly*, so any finite decay excludes attachment-free
+transport, and det3 decays at λ = 5.6–11.1 mm at every drift field. Agrees
+independently with the freeze queue's 0.8 % H₂O + ~1 % air v_drift row. ⚠️ The
+λ(E) **shape** test does not close (Magboltz rises with field, det3 falls), so
+this rests on the decay existing, not on its shape — family-constraint
+inference, no concentration readable.
+
+⚠️ **`GAS_AND_DRIFT_CAGE_ROADMAP_2026-08-08.md` §2 corrected**: the wet
+amp-range tables already exist (the `.gas` files store **E/p** — ×745.83 Torr
+gives 5–60 kV/cm), so **zero Magboltz jobs** are needed, and the bracket as
+specified would have confounded water with a Penning-model change. Wet gain
+bracket submitted as condor **16705137** at rP = 0.40 across all arms, with
+dry-at-auto carried separately; pre-registration in
+`design/report/WET_GAIN_BRACKET_PREREG_2026-08-10.md`.
+
+**Wet gain bracket COMPLETE (condor 16705137, 32/32, 42.4 h CPU) — 4/4
+pre-registered predictions confirmed, and it makes the amplitude problem
+WORSE.** Gain at 490 V: dry 45 652, +0.5 % H₂O 39 934 (×0.875, −6.1 σ), +1 %
+H₂O 35 125 (**×0.769, −12.0 σ**). Survival exactly 1.0000 with zero attachment
+in every arm, so the loss is **pure electron cooling** — consistent with H₂O's
+12.62 eV IP sitting above both Ar metastables, quenching without opening a
+Penning channel. Cross-checks: uniform-vs-meshfield ratio **1.895** against the
+independently recorded 1.85, and the Penning-model delta (dry auto vs dry
+rP 0.40) only ×1.0162. **Roadmap §2 step 2 decides the contaminant axis STAYS
+in the gain campaign**, and the slope hunt's fixed-composition assumption needs
+an error bar. ⚠️ **Consequence for the amplitude ledger:** the thread wants MORE
+gain and water gives LESS — at 1 % H₂O the sim's gain would be 18 538 and the
+demanded factor would rise from **×1.66 to ×2.16**. The two fitted-to-data axes
+pull against each other. All water fractions remain fitted-to-data; one voltage
+only, so it says nothing about the gain slope.
+
+⚠️ **Blocked, needs Dylan:** the desktop refuses new ssh sessions pending a
+**Tailscale re-authentication** (`ssh desktop true` prints the link). The T7
+slope-hunt chain runs there unattended and self-merges, so it is a morning
+collect either way.
+
+### 2026-08-09 update — the W2 grid is DONE and S1's absolute amplitude is fixed; T10 still fails
+
+**S1 is no longer blocked.** The W2 re-solve ran overnight on condor (66 family jobs + combine)
+and its four products are on EOS `response_sim/s1_w2_ny512/products/` with a `README.md`
+supersession note. Prompt capture 0.670026 → **0.841977 (+25.66 %)**, matching a value
+**pre-registered before the products existed** from an independent full-grid CG, so the family
+assembly is cross-checked at production scale by a second code path. `x_fraction_prompt` =
+0.50000002 and `gd_rank` = 6200 exactly in every family (= N × [1 − 67·7/(78·8)]), which
+certifies the snapped mask geometry and the pinv threshold at an N the solver battery cannot
+reach. **The V6 27 %-low defect is fixed.** ⚠️ But the new grid is **ny=512**, so it re-inherits
+the ~0.45 % pad-edge shoulder term audit C6 rejected for W1: three grids now exist and they are
+**not interchangeable dimension-for-dimension** — read `s1_w2_ny512/README.md` before choosing one.
+
+**T10's open question is answered, and the answer is no.** The plan said V6's re-solve might
+overturn the 8.26 % slow-path failure. Like-for-like on W2 it is **7.55 % against a 2 % bar —
+still FAIL** — and ρ_s alone moves the number by as much as W2 does. **§7 step 5 (LUT from
+slow-path templates) remains required.**
+
+✅ **The caching cert is fixed and W2 is certified at 1e-4** (resolved later the same morning).
+The cert had been reading 1.87 % on *every* product because `test_lut_vs_solver` compared the
+solver at 3101 ns against the LUT at 3000 ns — a harness misalignment, never a caching defect,
+and itself a side effect of Audit A1/Fix 1 correctly raising `t_max` to 3000. Harness fixed in
+`f1daf7a`; re-cert gives **worst 0.0001 PASS on both W2 rho2M and the W1 ny=1024 baseline**.
+Lesson worth keeping: a correct fix in one place silently invalidated a certification in
+another, and nothing re-ran it for two days.
+
+✅ **T14 DEFAULT FROZEN by Dylan, 2026-08-09, before any comparison:
+ρ_s = 2 MΩ/sq · DRY 95/5 table · det3 data bundle as-analysed.** The first
+comparison runs against this default and that verdict stands. **Iteration is
+pre-declared**: ρ_s and the gas/v axis are the two variables to vary afterwards,
+and post-default runs are **diagnosis, not verdict**. Pre-built so later looks
+need no new production: Stage B/C decoded at all four ρ_s, and a v-axis reco
+variant that needs no new simulation (v enters at reconstruction). Wet gas is
+the only axis needing production and is prepared-not-run. ⚠️ **There is NO
+measured humidity** (Dylan, 2026-08-09): the ~1 % H₂O and the det3 drying
+history were themselves inferred from v_drift by Magboltz matching, i.e. from
+the same observable family T14 compares — so a contaminant hypothesis is an
+**unconstrained search axis, labelled fitted-to-data**, never a physics input,
+until an independent assay exists (a hygrometer on the gas line is the way
+out). It does not even fit well: at the assumed ~1 % H₂O the table gives
+34.81 µm/ns, **4.9 % too slow**, trading the sign of the error. The one real
+constraint is on contaminant FAMILY not concentration — air/O₂ vs H₂O is
+separable by attachment SHAPE (`eta_per_cm`), independently of v_drift.
+Full record, including where the laundering line sits, in
+`design/report/T14_FREEZE_QUEUE_2026-08-09.md`.
+
+⚠️ *(pre-freeze analysis, kept as the evidence the decision rests on)* **TWO
+DECISIONS OWED BY DYLAN BEFORE T14 — both written up side by side in
+`design/report/T14_FREEZE_QUEUE_2026-08-09.md`.** The second is the **P1 water sub-item, now
+quantified**: Stage B's dry table drifts at 39.14 µm/ns against the det3 bundle's measured
+36.60 — **6.9 % fast**, scaling reconstructed depth by ~6.5 %. Either keep the dry table and
+quote it as an input systematic, or move to a wet ~1 % H₂O table — the latter being physics
+if the water fraction comes from the June bench humidity record, and laundering if it is
+chosen because it closes the 6.9 %. The first is ρ_s: Re-quoting T2b's spread constraint for the production kapton+glue stack
+(`d_eff` = 70.5 µm) gives **ρ_s = 1.42–2.56 MΩ/sq**, i.e. **rho2M central and rho1M below the
+band**. The "1 MΩ/sq nominal" line dating from 2026-08-07 is a pre-glue artifact at bare
+d_k = 75 µm. Stage B/C exists at both points so nothing is forced; see the T14 row.
+
+Also open from the same night: `w2_production._gather()` re-reads each slab per (drive, ρ_s) —
+~640 GB of repeated decompression in the X stage alone. Accepted rather than optimised overnight;
+the fix belongs in the library with battery test 8 as its gate.
+Detail for all of the above: `design/report/W2_NIGHT_REPORT_2026-08-09.md`.
+
+### 2026-08-08 update (below) — S1 upgraded then superseded by V6, T6 done, T7 ran at 490 V (label accident, salvaged), overnight ladder + HV scan in flight
+
+**S1 (kapton+glue) is DONE.** The ESL⇄pad insulator is a two-dielectric stack, not bare kapton
+(`design/report/KAPTON_GLUE_2026-08-08.md`): 50 µm kapton (confirmed, header-pinned) + 18.76 µm
+laminating glue over the pad, 70.5 µm series thickness, `S(0)/C(0) = 0.881583` vs the legacy
+0.913043. Re-solved on condor (4 ρ_s points at the one confirmed thickness — the old {50,75,125} µm
+scan axis is retired), every point certified against the closed-form sum rule to ~5e-7, and the full
+test suite (`test_longitudinal/lut_vs_solver/charge_audit/induce_equivalence/daq_wft`) passes on the
+new kernel. **All 12 pre-2026-08-08 S1 products are legacy bare-kapton** — `manifest --check`
+excludes them from grid completeness and the glue is baked into new product filenames
+(`_g19um`) so a re-solve cannot silently overwrite one. ~~Nothing further to do on S1.~~ ⚠️ **SUPERSEDED THE SAME DAY BY V6**: the dielectric stack is settled, but the pad-plane BOUNDARY is not — W1 grounds the 100 µm inter-pad channels, which are not copper, and that costs 27 % of the prompt capture (§3 V6, `design/report/V6_PAD_GAPS_2026-08-08.md`). **A W2 re-solve of the grid is now the blocker for absolute amplitude.**
+
+**T6 (field map) is DONE.** FEM (gmsh+scikit-fem) rebuild replaced the neBEM draft, which was
+disqualified by measurement (§ T6 row below). **PRODUCTION ACCEPTED same day** (git `5763342`):
+1 µm map, all gates pass, 3D transparency 0.955 −0.045/+0.005. This is orthogonal to the kapton
+change — the ESL is a DC equipotential in this solve, so the PCB dielectric stack does not touch
+it. S2 (transparency curve `eps(E_amp/E_drift)`, funneling map, ion-endpoint classification) is
+also done against the accepted map.
+
+**T7 (S3 avalanche in the real field) — RAN 2026-08-08 16:44–18:08 at 490 V; the "voltage scan"
+was an accident, salvaged as one pooled point; the real scan runs overnight.** The desktop
+campaign (`run_meshfield_campaign.sh`, 56 slices) reused `mx17_aval_points.txt` from the
+uniform-field era, where `--voltage` WAS the physics — against a single pre-solved 490 V
+`ComponentGrid` map it measured identical 490 V physics 7 times.
+**`aval_calib_meshfield_pooled.json` is the correct reduction** (all 56 slices = ONE 6400-seed
+490 V point); the per-"voltage" collect output is quarantined
+(`aval_calib_meshfield_QUARANTINED.json`, see `MESHFIELD_QUARANTINE_README.md`) and nothing may
+read it. The physics of the pooled point is healthy and cross-checks: survival 0.9559 vs T6's
+independent 3D transparency 0.955; gain 24 094 = 1.85× below the uniform-field 490 V table,
+consistent with 31.0 vs 32.7 kV/cm; f_ion 0.900 vs 0.908. `mx17_aval_calib.py` (commit
+`6e2aad0`) now guards `--voltage` against the map's own provenance sidecar, so the mislabel
+cannot recur. ⚠ Caveat for Stage B: meshfield σ0 (94.5 µm vs uniform 33.7) and t_arrival include
+the 180 µm drift leg + funnelling (seeds start above the mesh) — do not double-count drift
+diffusion. Raw archived at desktop `/media/ucla/mx17_response_sim/avalanche/`
+`results_meshfield_490V_20260808/`, shuttled to EOS overnight.
+**OVERNIGHT (launched 18:59, `overnight_chain.sh` on the desktop, unattended):** the
+gas-agnostic mesh-voltage map ladder (`voltage_ladder.sh`, 41 FEM maps 300–700 V @ 10 V,
+E_drift held 333 V/cm, ~315 s each, all gates checked) → EOS shuttle → the real Ar/iso 95/5 HV
+scan (`run_meshfield_hvscan.sh`, det3's bench range 460–530 V × 8 seeds = 64 slices, one ladder
+map per voltage, tmax 500 ns) → merge to `aval_calib_meshfield_hvscan.json` → shuttle. Expected
+complete by morning 2026-08-09 — check `/media/ucla/mx17_response_sim/overnight_chain.log`
+before quoting; an audit session verified the chain mechanics (per-voltage maps genuinely
+differ, sidecars travel, Kerberos through 08-09 11:21) and removed a stale process that would
+have hung the wait loop. `scripts/check_ion_template_repro.py` can then run against real output
+(expect `f_ion` to genuinely move vs the uniform-field calib — an all-zero template is the only
+real failure it should catch).
+
+### Where things are
+
+| what | where |
+|---|---|
+| S1 kernel grid, 4 points, kapton+glue (production) | EOS `response_sim/s1_ny1024/` + `MANIFEST.csv`; 12 legacy bare-kapton points still in `s1/`, excluded from completeness |
+| T6 field map (production, accepted 2026-08-08) | `~/x17/response_sim/meshfield/` + manifest |
+| S3 avalanche calib (**uniform-field**, superseded once T7 lands) | EOS `response_sim/avalanche/aval_calib_v2.json`/`v3.json` (+ `raw/`, 19 GB; real v2 raw is AFS `results_v2/`, see `KAPTON_GLUE_2026-08-08.md`) |
+| T7 real-field 490 V pooled point (**production**, 2026-08-08) | `response/avalanche/aval_calib_meshfield_pooled.json` (repo); raw at desktop `/media/ucla/mx17_response_sim/avalanche/results_meshfield_490V_20260808/` → EOS `avalanche/raw_meshfield_490V_20260808/`; per-"voltage" collect QUARANTINED next to it |
+| T7 HV scan + gas-agnostic map ladder (**overnight 08-08→09, in flight**) | desktop `/media/ucla/mx17_response_sim/` (`meshfield_ladder/`, `avalanche/results_meshfield_hvscan/`), chain log `overnight_chain.log`; shuttles to EOS `s2/meshfield_ladder/` + `avalanche/raw_meshfield_hvscan_20260808/` |
+| wet-CF₄ Magboltz | EOS `response_sim/gas/wet_cf4_drift.json` |
+| DREAM noise spec | laptop `~/x17/response_sim/dream/noise_det3.json` |
+| Stage B working set | desktop `~/mx17_stageb/` (kernels, clusters, calib, sim_decoded) |
+| measured-data source docs | `~/PycharmProjects/nTof_x17/sps_beam_test_26/analysis/` |
+
+### 2026-08-07 snapshot (superseded by the update above for S1/T6/T7 — kept for history)
+
+**Nothing is running.** Desktop, lxplus and laptop are all idle; no condor jobs, no background
+solves. Every product listed below is complete and on EOS.
+
+Compute policy (§10): the **laptop is for orchestration only** — 16 GB, and another agent's jobs
+share it. Real work goes to the desktop (fast, but disk is the tightest in the fleet, ~91 % full) or
+lxplus/condor. Desktop reaches EOS only via `rsync … lxplus:/eos/…` with a live Kerberos ticket.
+
+### The chain, end to end
+
+Geant4 ClusterTree → drift/diffusion → mesh transparency (T6) → avalanche (S3) → S1 comb-kernel
+induction → ion longitudinal template → DREAM shaper → FEU sampling/ADC/noise → `sim_decoded_*.root`.
+**It runs, and wft's own `FeuReader` reads the output unmodified** (`run.py --decoded-out`).
+
+### What is certified, and against what
+
+Two columns matter as much as the numbers: whether a row is an **anchor** (checked against
+something outside the code — a closed form, a datasheet, data) or an **internal-consistency**
+check (the code reproducing itself, which catches regressions and nothing else). The audit of
+2026-08-07 found several rows reading as anchors that are not, and they are relabelled here.
+
+| check | result | reference | kind |
+|---|---|---|---|
+| S1 sum rule | 5e-7, plane partition 4e-13 | closed form S(0)/C(0) | anchor (tiling pads only) |
+| real-pad capture | 0.665023 vs 0.665023, 5e-9 | (PAD_SIZE/PAD_PITCH)² × S(0)/C(0) | anchor — **asserted** since 2026-08-07 |
+| V5 mesh-as-plane | 7.8e-7 vs 1 % bar | exp(−2πg/p) | **analytic bound, not a test** (see below) |
+| T10 fast path, per channel | **1e-4** vs 2 % bar | `kernels.charge_budget_y/_x` | internal — two independent indexings agree |
+| T10 off-grid booking (C2) | exact, 0 disagreements | LUT band's own column | internal |
+| S1 time-grid adequacy | <0.5 % vs 2 % bar | 4× denser re-solve (nt 60→240) | internal |
+| charge audit | **≤0.6 % at every depth** (n_side 8, t_max 3000) | `sum_over_rows`+`sum_over_columns` at the probe's own (x,y) | internal |
+| ny grid convergence | **0.452 % vs a 0.3 % bar — FAILS** | ny=1024 re-solve, smeared 150 µm | internal |
+| avalanche survival | P(g>0) = 1.0, 0/4080 seeds | S3 raw slices on EOS | anchor |
+| ion template A/B | <1 % | analytic vs measured S3 v2 | internal |
+| noise round-trip | **0.2 % / 1.5 % / 0.043** | det3 pedestals | internal |
+| ADC scale end-to-end | **101.1 vs 102.4 ADC (1.2 %)** | derived 20.48 ADC/fC | anchor (datasheet-derived scale) |
+| wet-CF₄, dry column | 74.66 vs 74.7 µm/ns | nTof_x17 published Magboltz | anchor — but **dry vs dry** |
+| wet-CF₄ bracket | **PASS**, wet span 10.3–20.0 µm/ns | measured 13–15 µm/ns at 233 V/cm | anchor — `design/report/WET_CF4_BRACKET_2026-08-07.md` |
+| V6 inter-pad gaps | **+27.2 % — FAILS the "few %" estimate** | mixed-BC solve vs W1, + independent FD | anchor — `design/report/V6_PAD_GAPS_2026-08-08.md` |
+| T10 ion lateral shape | **8.26 % vs a 2 % bar — FAILS** | slow path (exact Ψ(z)) vs the fast path | internal — two paths, shared S1 product |
+
+Notes on rows the audit corrected:
+- **V5** — `v5_mesh_ripple.py` EVALUATES exp(−2πng/p) and compares it to a 1 % bar. Nothing is
+  tested against anything, so this is an analytic bound, not a test. (This resolves the §0a
+  "certified" vs T5 "still not run" contradiction: both were half right.)
+- **charge audit** — the old "1.5 %" was measured against the grid-MEAN capture, and was an
+  EXCESS, which no leak can produce. It was the reference: capture ranges 0.25–0.89 across the
+  cell and a handful of probes do not average to the mean. Now evaluated per position; what
+  remains is a genuine ~2 % window deficit at n_side = 4, to be re-recorded after the Fix 1
+  LUT rebuild (which truncates late charge in the same direction).
+- **ADC scale** — the old "98.0 vs 102.4" gap was the test injecting signal into every event and
+  then taking its pedestal from those same events. With signal-free pedestal events it closes to
+  1.2 %, and the tolerance is tightened from 10 % (which would have passed a +13 % gain error)
+  to 3 %.
+- **noise round-trip** — the 3.5 % per-channel residual was a real +3.7 % scale bug (C1),
+  not estimator noise; it is 0.2 % now and the bar is 3 %.
+- **per-product sum rule** — `kernels.py:492-493` re-checks only t ≤ ~0.2 ns on a reduced grid.
+  The full-axis claim rests on the original T2b run, whose parameters are not recorded.
+- **V1's "Riegler closed form"** shares `stack_coeffs` with the code under test. The reviewer
+  re-derived C(k), S(k) by hand and they ARE correct, but the certification is narrower than
+  "against an independent closed form"; an FD Laplace solve would make σ_p independent.
+
+### ⚠️ Full-chain audit 2026-08-07 — read `design/report/AUDIT_2026-08-07.md` before T13b/T14
+### → implementation spec for the fixes: `design/report/AUDIT_FIXES_2026-08-07.md`
+### → what the compute-side runs actually found: `design/report/DESKTOP_RUNS_2026-08-07.md`
+
+**Three of the audit's own conclusions did not survive being run** (details in DESKTOP_RUNS):
+
+1. **A1's direction is wrong.** Rebuilding the LUT with a window that covers the DAQ frame
+   does NOT raise the halo shares. c1_Y *falls* 11.5 % at the DAQ window (32 % over the full
+   record) and c1_X does not move at all (+0.1 % over a 3× change in t_max). The corrected
+   prediction sits further from the measured 0.23–0.28, not closer. Recorded as a prediction
+   revision; the §9 firewall forbids tuning it back.
+2. **A1's second cause does not exist.** The longitudinal convolutions were never losing
+   their tail — both are already linear convolutions and padding them is bit-for-bit
+   identical. The only defect was `t_max` itself.
+3. **A7's avalanche-survival bias is zero, not unknown.** P(g>0) = 1.0, with 0 of 4080 seed
+   electrons failing to multiply at the three lowest voltages (survival can only rise with
+   field). The conditional Polya is the unconditional one and the shipped calib is unbiased.
+
+**And one thing the fix order got exactly right, which turned out to matter most:** the
+sizing trap. Opening the time window at a fixed `n_side = 4` LOSES 8–10 % of the induced
+charge at every depth. **Production defaults are now `t_max_ns = 3000` AND `n_side = 8`
+(`y_window_mm = 7.02`) — they are not separable**, and shipping the window fix alone would
+have made the charge accounting five times worse than the bug it fixed.
+
+⚠️ **C6 FAILS**: at the 150 µm smear floor the ny = 512 grid is off by 0.452 % against the
+0.3 % bar, so production wants **ny = 1024** (~2× cost). Blocked on desktop disk, not compute.
+
+Five adversarial reviews of the whole chain, run before any data comparison. Headlines: the
+digitizer LUT truncates kernels at 1 µs (biases the d=±2/3 halo LOW — the direction of the
+headline §9 tension) — rebuild before concluding anything about the halo; the §3 "in-gap"
+sharing row is actually a second on-strip deposit (`nearest_column` picks by absolute x, not
+ESL phase) — no genuine in-gap numbers exist in any product; the decoded output gives X and Y
+independent trigger phases and writes ftst=0 (uncorrectable fake inter-plane jitter); the
+"wet-CF₄" cert row is dry-vs-dry (the wet bracket check is unrecorded); attachment is absent
+(blocks P1); the S3 calib drops the avalanche-survival factor (gain biased high, feeds P2);
+sim FEU naming 07/08 contradicts det3's 3/4. Also resolved there: the 98.0-vs-102.4 ADC gap
+(test artifact, scale correct), the phantom "avalanche size cap" (no cap exists), and P5's
+inversion ambiguity (reference decoder reverses per connector, unconditionally). P6 is
+resolved (below). The solver core, unit chains, Polya/diffusion statistics, and the decoded
+schema were verified clean, several by hand re-derivation.
+
+### Next, in order (updated 2026-08-08)
+
+1. **T7 — collect the overnight HV scan (morning 2026-08-09).** The 490 V pooled point exists
+   (§0a); the ladder + 460–530 V scan runs overnight unattended. Morning checklist: read
+   `overnight_chain.log` (desktop) end to end — the merge and both EOS shuttles are
+   warn-and-continue, so failures are silent-but-recoverable; check per-slice logs for gate/guard
+   warnings; run `scripts/check_ion_template_repro.py` as a sanity display (expect `f_ion` to
+   genuinely move vs the uniform-field calib, not match); then re-run the avalanche-survival and
+   gain/Polya certifications that the uniform-field pass got, and re-point Stage B/C at
+   `aval_calib_meshfield_hvscan.json`.
+2. **T10 slow path** — Ψ at z > 0, i.e. the ion's *lateral* shape. **Machinery built 2026-08-08**
+   (`response/solver/zextend.py` + `response/validation/t10_slowpath.py`). Two things to know
+   before reading any T10 number:
+   (a) the S1 Ψ z-slices §2 specifies **never existed** — `solve()` returns z = 0 only — but no
+   re-solve is needed, because in W1 the gas gap is charge-free under a grounded mesh and
+   Ψ(k,z,t) = Ψ(k,0,t)·sinh(k(g−z))/sinh(kg) exactly, whose k→0 limit IS the 1−z/g the digitizer
+   already uses (FD-verified to 2nd order in `zextend`);
+   (b) **the Garfield `ComponentGrid::LoadWeightingField` route of §3 point 6 was deliberately
+   NOT used** — given an exact analytic lift it would add only ComponentGrid interpolation plus
+   the unmerged local region-flag patch whose applicability to the weighting-field path is
+   unverified. The slow path shares no code with the LUT, which is where independence matters.
+   (The 2026-08-08 19:12 run was VOID — seconds-vs-ns on the S1 time axis, caught by a parallel
+   audit; the k=0 self-check cannot see it because both paths read the same corrupted table.
+   `to_uniform` now raises instead of extrapolating. Nothing from that run may be quoted.)
+   **DONE, and it FAILS at 8.26 % against the 2 % bar** — see the T10 row and
+   `design/report/T10_SLOWPATH_2026-08-08.md`. The fix (LUT from slow-path templates, §7 step 5)
+   belongs after V6's W2 re-solve.
+3. ~~**V6** — expose the 100 µm inter-pad gaps (W2) and re-solve; expected percent-level.~~
+   **RUN 2026-08-08 and it FAILS**: +27.2 % on prompt capture, not percent-level, plus a 4.5×
+   spurious sub-pad amplitude modulation that the real board does not have
+   (`design/report/V6_PAD_GAPS_2026-08-08.md`). The check is done; **the W2 re-solve it implies
+   is not, and that is the new blocker for any absolute amplitude.**
+   **Sized 2026-08-08 evening — brute force is AFFORDABLE and is the chosen route (user):**
+   ~770 core-h ±2× = one overnight condor fan-out (~128 jobs × 4 cores × 32 GB, ~1.5–2 h wall
+   each), all 4 ρ_s points and all 42 kernels. The V6 report's "dense over 3120 modes per k_y"
+   is structurally wrong in both directions: the gap lattice also couples ky (families of
+   N≈24,960 at ny=512, 64 independent ky-classes, halved again by y-parity) — but three exact
+   reductions collapse the cost: the eigendecomposition is drive-independent (one per family
+   serves all 42 kernels), it serves the whole ρ_s grid (M ∝ 1/ρ_s: eigenvectors invariant,
+   eigenvalues scale), and everything is real-symmetric at the production registration (8×
+   faster eigh than complex). The effective-diagonal C_eff/S_eff route is NOT the production
+   path: measuring its neglected off-diagonal scattering is half the brute-force operator
+   anyway, and it structurally cannot fix the 4.5× sub-pad modulation (inherently
+   off-diagonal). Dev cost is the real cost: 3–5 focused days; main risk = Bloch index
+   bookkeeping (a bug class W1's small exact blocks never exposed). Sequencing: prototype ONE
+   family block on the desktop, validated against `v6_pad_gaps.py`'s static solve at t=0 and
+   the gap→0 W1 identity, then submit the 128-job grid with the `s1_ny1024` condor pattern
+   (SendCredential, pinned OMP threads, new product tag — no silent overwrite). Watch the
+   y-resolution of the 100 µm gap (~2 cells/gap at ny=1024 → ~few % of the 27 % effect;
+   mitigate with fractional-coverage masks + a Richardson check against the static solver).
+   Then re-run T10 against the W2 kernels (T10 row).
+   **STARTED 2026-08-08 evening — prototype DONE, fan-out SUBMITTED (commit c425d69).**
+   `response/solver/wpot_w2.py` (dynamic W2: gap free-charge constraint at all t → C_eff
+   Schur complement, exact Bloch families) + `w2_validate.py` (8-test battery, ALL PASS:
+   family-vs-dense 7e-12, prompt-vs-CG 3e-14, ρ_s-scaling exact 1e-12, both W1 reductions ==
+   certified wpot at 7e-12, tiling sum rule 1.3e-16, production-vs-prototype 3e-8) +
+   `w2_production.py` (real-arithmetic memory-ordered family jobs + combine). Two lessons the
+   sizing did not predict: **(a) constraint masks must be HARD** — fractional coverage on the
+   boundary support enforces the full floating-gap equation on partially-covered metal cells
+   (whose only global solution is Vd = 0): capture read −14.8 % at ny=512 and 0 at ny=64
+   before the snap (`mask_snap`, default on). **(b) the y-resolution systematic, measured**
+   (hard-mask CG ladder vs V6 static 0.852998): ny=512 −1.29 %, ny=1024 −3.14 %, ny=2496
+   −1.50 %; machinery Richardson 0.854171 = V6 +0.14 % (the full-box↔static cross-validation).
+   So the ny=512 run carries a ~1–3 % grid systematic on ABSOLUTE amplitude — small against
+   the 27 % it fixes; the ny=1024 W2 upgrade needs the y-parity/mirror-family reduction first
+   (49,920-mode families otherwise). Submitted: 66 family jobs (64 Y-box + 2 X-box, each
+   serving all 42 kernels AND all 4 ρ_s — eigenvectors are ρ_s-invariant), canaries y0/x0 =
+   cluster 13353067, rest gated on their logs; slabs → EOS
+   `response_sim/s1_w2_ny512/slabs/`, then `w2_production combine` (cheap, anywhere) writes
+   the 4 `greens_comb_w2_*` products. Job scripts: `scripts/condor/{run_w2_family.sh,
+   w2_canary.sub, w2_rest.sub}`.
+   **DONE 2026-08-09.** All 66 slabs landed 04:12 (8.1 GB, 487 core-h, `wall_s`
+   3376–20724 s — a 6.1× node-heterogeneity spread at identical N; `x001` alone held the
+   completion gate for 2 h after 65/66 were down, so size the ny=1024 follow-up against p95,
+   not the median). Combine 05:46. **Products on EOS `response_sim/s1_w2_ny512/products/`**
+   (4 × 1.15 GB) with a `README.md` supersession note; combine and cert run as condor jobs
+   (`run_w2_combine.sh`, `run_w2_cert.sh`) because **the laptop cannot reach /eos/experiment
+   at all** — it redirects to `eosexperiment.cern.ch`, which does not resolve off-site.
+   **All four ρ_s pass every pre-registered bar**: `channel_capture_prompt` = **0.841977**
+   (pre-registered from an independent full-grid CG — so this is a full-scale cross-check of
+   the family assembly, not a tautology), `x_fraction_prompt` = 0.50000002 (pinned at 0.5 by
+   a pad-pitch translation symmetry, so the 110 vs 97.5 µm gap anisotropy cannot reach it at
+   t=0), **+25.66 % vs W1** against +25.5 % predicted (V6 static +27.2 % × 0.987 ny-grid).
+   `gd_rank` = 6200 in every family = N × [1 − (67·7)/(78·8)] exactly, which certifies the
+   snapped mask geometry (670 × 682.5 µm) and `pinv_rtol` cutting at exactly the geometric
+   rank, at a production N the battery cannot reach. Two expectations were wrong: late
+   capture *rises* 0.40 % rather than staying flat, and `x_fraction_late` is also 0.5 (the
+   predicted ESL-period late asymmetry does not appear, in W1 either).
+   Full write-up: `design/report/W2_NIGHT_REPORT_2026-08-09.md`.
+4. **T13 completion** — wft *reconstruction*, not just io, through to `events.parquet`.
+5. **T13b** — τ_g closure with the unmodified `rc_line_step1/2.py`.
+6. **T14** — the blind comparison, ONCE (see principle 1), **against det3 cosmic-bench data** (P1
+   decision above) — not run_71/SPS. Settle the wet-Ar/iso bracket (RUN, not yet resolved — see
+   P1) before running it — the effective drift gap is no longer open (30 mm, decided 2026-08-08,
+   below). Needs the T7 calib in hand first.
+
+### Open questions and problems
+
+**P1 — DECIDED 2026-08-07 (user): simulate Ar/Iso 95/5, compare against det3 cosmic-bench data only.**
+
+| | gas | drift field | status |
+|---|---|---|---|
+| **target: det3 cosmic bench** | Ar/Iso 95/5 (= Ar/iC₄H₁₀ 95/5) | 1000 V drift / 490 V mesh over 30 mm nominal = 333 V/cm | **the T14 comparison point** |
+| what Stage B simulates | Ar/iC₄H₁₀ 95/5, dry | 333 V/cm (`digitize.py` `DEFAULT_DRIFT_V=1000`, `DEFAULT_MESH_V=490`, `DEFAULT_DRIFT_GAP_MM=30`) | **already matches the target — no code change needed** |
+| §9 targets (run_71/SPS) | Ar/CF₄/iC₄H₁₀ 88/10/2 + 1.3–1.7 % H₂O | 233 V/cm | **SHELVED — a different detector; do not compare against it until det3 closure is done (see §9)** |
+
+**Why this resolves it without touching the sim:** the old three-way conflict was mostly an
+artifact of chasing two different data sources at once. Stage B's existing defaults are not a
+guess at "some Ar/iso point" — they already *are* the det3 bench's own operating point:
+333 V/cm = 1000 V / 30 mm nominal is exactly the `long_run_resist_490V_drift_1000V` sub-run in
+`~/x17/cosmic_bench/det3/mx17_det3_saturday_scan_6-27-26/`, the same run T12's pedestals and noise
+spec already come from. Redirecting T14's target from run_71 (SPS, CF₄-bearing, 233 V/cm) to det3
+(cosmic bench, Ar/iso, 333 V/cm) removes the gas/field mismatch with zero simulation changes. The
+old P1 table's "900 V" for the det3 bench was itself wrong/stale — §1 already said 1000 V; that
+inconsistency is now resolved by fixing the canonical point at 1000 V drift / 490 V mesh (both a
+real det3 point and the one every downstream number already uses).
+
+This does not make P1 fully closed — it rescopes the remaining sub-items from "which of three
+detectors" to "which det3 wrinkles matter":
+- **Water content — RUN, not resolved.** `design/report/WET_ARISO_BRACKET_2026-08-07.md` (raw:
+  `response/params/wet_ariso_drift.json`). Unlike run_71 there is no single measured band to
+  bracket — det3 has two disagreeing "measured" v_drift numbers (36.6 §1, 28.1±0.7 µm/ns
+  micro-TPC). At 333 V/cm / 30 mm assumed, the actual surveyed water fraction (1.46 %) gives
+  v = 25.25 µm/ns — far from 36.6 (31 % off) but only ~10 % off 28.1, i.e. the measured water
+  content favors the micro-TPC number over §1's, though the micro-TPC point was taken at a
+  different (~19 mm) gap so this isn't conclusive. Also found: v_drift is non-monotonic in H₂O
+  near this field (0.5 % *raises* it above dry before higher fractions drop it). Sharpens rather
+  than closes the gap sub-item below — the two competing v_drift numbers disagree along exactly
+  the axis (gap/field) that item is about.
+- **Effective drift gap — DECIDED 2026-08-08 (user): 30 mm.** Use the mechanical nominal
+  everywhere in this repo; this is settled and not to be re-derived or re-opened. (Earlier text
+  here noted that nTof_x17 docs disagree — `mx_june_cosmic_qa/PAPER_STATUS.md` ~23 mm,
+  `mx_june_wft/ANALYSIS_STATE_2026-07-31.md` 27.9±0.1(stat)±1.0(calib) mm,
+  `HANDOFF_det3_vdrift_and_kernels.md` ~19 mm — that disagreement is in the *nTof_x17* measurement
+  docs and is out of scope here; for this repo the number is 30 mm, full stop.) Stage B's
+  `DEFAULT_DRIFT_GAP_MM=30` already matches — no code change needed, only this record.
+- **HV point.** 900 V (`drift_scan_resist_490V_drift_900V`) is a real det3 point too, but it is not
+  the one behind T12 or Stage B's defaults — treat it as a future scan point, not the T14 target.
+
+Follow-on kept from before the decision, now read as "for det3" rather than "for run_71": if the
+water fraction lands well above ~0, the dry Ar/iso Magboltz table Stage B currently uses inherits
+the same ~3–5× v_drift error the CF₄ analysis found, and T_drift/halo-width predictions should not
+be trusted until the wet bracket is run.
+
+**P2 — simulated MIPs saturate the ADC.** 16.5 % of events peg the 12-bit ADC at 490 V. That *is* a
+genuine det3 operating point (their HV scan runs 460–530 V), and per the P1 decision above 490 V
+mesh / 1000 V drift is now the exact T14 target — so this is judgeable at T14 directly against
+det3's own 490 V saturation rate, once the water/gap sub-items are settled.
+
+**P3 — the ion's lateral shape is frozen at z = 0.** Ions carry 90.8 % of the induced charge and
+currently get the surface kernel's lateral shape, the narrowest possible, because S1 solves only that
+plane. This is T10's slow path.
+
+**P4 — S3 runs in a uniform field.** No longer blocked on T6 (accepted 2026-08-08); the real-field
+campaign (T7) is staged but not yet launched — see §0a 2026-08-08 update. Provenance is tagged
+`uniform_field` on every existing calib so it cannot be mistaken for the real thing.
+
+**P5 — FEU channel ordering — the ambiguity is RESOLVED; the relabelling is still not applied.**
+det3's `run_config.json` gives `x_1..x_8 → FEU 3`, `y_1..y_8 → FEU 4`, connector-to-connector
+identity within a view, but **every connector on both views is `"inverted"`**. What "inverted"
+means is no longer open: `Mx17StripMap.apply_orientation` reverses within `n_channels = 64`,
+i.e. **per connector, unconditionally** (audit 2026-08-07 B3). The simulation still writes the
+deliberate identity mapping, which is pure relabelling and changes nothing computed so far; it
+matters only for a channel-by-channel comparison at T14.
+
+Two mechanical consequences are now handled (Fix 8): the decoded files are named by the target
+run's **FEU ids** (`--feu-ids`, default `3 4` for det3 — the old hardcoded `07/08` is a
+different physical detector, mx17_2, and wft keys its strip map off that suffix), and the
+basename carries `_datrun_<tag>_` so that `wft/io.file_tag` can PAIR the X and Y file of a
+subrun. Without the tag `reco.py`'s `by_tag` dict never assembles a pair and the run
+reconstructs zero events with no error anywhere.
+
+**The x/y sign convention is SETTLED 2026-08-08, and the simulation had it wrong.**
+`ActiveAreaFrame.hh` used `sy = -1`, chosen only to keep the local frame right-handed after
+the z flip. Nothing in the response chain takes a cross product, so handedness is free while a
+flipped y mislabels every Y channel: `sy = +1` and the frame is now deliberately left-handed.
+
+The convention, from the detector (user, 2026-08-08): viewed from the pixel side, X connectors
+along the bottom and Y up the right, x counting left→right and y bottom→top, x FEU DREAM 1 at
+the far left and y DREAM 1 at the bottom — channel 0 at the LOW end of each coordinate, which
+is exactly what `mx17_m1_map.csv` encodes. So the strip map's "x0 = 0, increasing" was never an
+assumption awaiting a check; it IS the wiring. The sign follows without agreeing on which way
+is "up": the pads sit at larger world z than the ESL, so +z_world points toward a viewer on the
+pixel side, (right, up, toward-viewer) is right-handed for any viewer, therefore
+(x_det, y_det, z_local) is left-handed and sx·sy = +1.
+
+Verified: physical bottom → row 74, top → row 444, far left → col 64, far right → col 447 on a
+300 mm-spread run. The connector inversion stays on the DATA side (`apply_orientation`, already
+unconditional) and the comparison happens after it. The bench is a third, swapped frame
+(bench x = detector y), which is why the June M3 alignment needed ~90° plus a flip.
+
+⚠️ Cluster files written before 2026-08-08 carry `sy = -1` in their Meta and remain
+self-consistent read through it, but their y is mirrored against new files — never mix them
+channel-by-channel. Every observable quoted in this plan is symmetric in y (c1/c2 average
+d = ±1, the X/Y balance), so no number changes.
+
+**P6 — DREAM undershoot — RESOLVED 2026-08-07, and the original premise was wrong.** The fix was
+never the biquad: the manual (§2.1.4) sets the Sallen-Key damping to ζ = 0.75 precisely "so that the
+global filter response exhibits a 1 % only undershoot" — the complex poles cannot produce −4 to −6 %.
+The mechanism is the **CSA main pole**: Rf·Cf = 5 µs (state1<31> = 0 in `CosmicTb_MX17.cfg`; the
+FEU 1 trigger-plane override `0x881F 0xD043` = 50 µs + 283 ns pins the register word order), which
+the PZC exists to cancel (§2.1.3) and evidently does not cancel completely. `shaper.py` now
+implements the manual topology (PZC real pole + ζ = 0.75 SK; reproduces the manual's 1 % as −1.12 %)
+times a residual high-pass `1 − β/(1 + sτ_f)`, τ_f = 5 µs. β (the un-cancelled fraction) is not in
+the datasheet → **scan/nuisance parameter like ρ_s**, default 0.75, `--pzc-residual`. Indicative:
+the measured −4 to −6 % depth maps to β ≈ 0.6–0.9 and the −30 % end-of-drift-ladder lobe at 700 V
+(run_71 reanalysis §3) independently to β ≈ 0.85–0.9 — two features, one parameter, consistent. At
+T14 the undershoot target selects β; the ladder-lobe shape and the late-window sag are then
+cross-checks, not fits. Side effects now in the model: ~1–2 % peak loss (β-dependent) and ∫h =
+(1−β)·∫h_nom, so long-window area budgets are no longer shaper-invariant.
+
+**P7 — the c1 = 0.23–0.28 target is weak.** `RAW_RUN71_REANALYSIS` §6 states c1 as a cascade-model β
+"is not a robust observable in any of the passes" and directs users to the library + charge budget
+instead. Weight it below the area/peak table.
+
+**P8 — carried smaller items.** ESL registration phase unknown (assumed centred, §12 item 3); mesh
+weave 5.5 % scale systematic (67 vs 63.5 µm pitch); uproot writes counter-based jagged branches
+rather than true `std::vector` (invisible to wft, which is uproot-based; visible to a ROOT/C++
+consumer); desktop disk ~91 % full.
+
+### Two process rules earned the hard way
+
+**Do not re-derive the channel indexing.** Four separate times on 2026-08-07 an ad-hoc summation over
+the S1 arrays was wrong while the solver's own helpers were right — it cost most of an afternoon
+chasing a 23 % "loss" that was the inter-pad copper and a 59 % "residual" that was a 20 µm source
+position mismatch. The traps: y = 0 sits at `ny//2` (`_to_y0_origin`), rows alternate parity, X is
+indexed by absolute column mod the 40-pad superperiod, and `check_sum_rule` deliberately substitutes
+**fictitious 0.78 mm pitch-sized pads** so a closed form exists — production uses the real 0.68 mm
+pads and the right reference is the product's own `channel_capture_prompt`. Always certify against
+code that already passes a closed-form check.
+
+**Check amplitude and shape separately.** A 5.7× noise scale error passed a normalised
+autocorrelation check perfectly, because a pure scale error cannot move a normalised autocorrelation.
+
+---
+
+## 0. Goal and principles
+
+Simulate the complete MX17 response to MIPs from first principles: Geant4 ionization → drift/diffusion → mesh transparency → avalanche gain → **charge spreading on the resistive strips + signal induction on the X/Y readout** → DREAM electronics → digitized waveforms that the existing `wft` reconstruction (in `~/PycharmProjects/nTof_x17`) can process **unchanged**.
+
+Principles:
+1. **First-principles first.** No parameter is tuned to MX17 detector data on the first pass. Measured MX17 quantities (sharing fractions, peak-time shifts, response library — §9) are *blind validation targets*. Only after the blind comparison do we iterate.
+
+   ⚠️ **Blind means blind, and the comparison happens ONCE, at T14** (added 2026-08-07 after this was
+   violated repeatedly). Do not run §9 comparisons stage by stage as the chain is built. On
+   2026-08-07 the §9 numbers were consulted after almost every stage — the ρ_s scan, the ion
+   template, the timing diagnostics — and it produced churn rather than progress: T10 was promoted
+   to critical path and then demoted, a diffusion-vs-transport hypothesis was raised and refuted a
+   run later, and a headline conclusion was published and then withdrawn. It is premature on its own
+   terms as well: a mismatch cannot be attributed to anything while T10, T12 and T13 are missing or
+   stubbed, so every such comparison is uninterpretable by construction. And each look erodes the
+   blindness that is the only thing making the eventual comparison worth running.
+
+   **Validate on INTERNAL physics instead**, which is what actually finds defects: charge
+   conservation, sum rules, closed-form limits, impulse responses, LTI invariances, and agreement
+   between two independent routes to the same quantity. Every real bug caught on 2026-08-07 came
+   from one of those — the `apply_ion_transit` running mean that put 5.9 units of charge on the
+   readout per unit induced was caught by an impulse test, not by any data comparison.
+
+   **Inputs are not targets.** Which gas, which drift voltage, which mesh voltage are configuration
+   that must match the apparatus; setting them from logged run conditions is not tuning. The §9
+   *response* observables — sharing fractions, peak ratios, peak-time shifts, τ — are targets and
+   stay untouched until T14.
+2. **Staged, file-joined pipeline** (adopted from `~/CLionProjects/p2_geant/docs/SIM_CAMPAIGN_PLAN.md` §2): expensive stages run once, cheap stages re-run per parameter point. Every stage reads/writes documented files; any stage can be re-run in isolation.
+3. **Two-tier fidelity.** A rigorous slow path (Garfield++ delayed-signal formalism) validates a fast path (precomputed response-function convolution). The fast path is the production digitizer. Same physics, different caching.
+4. **Everything scanned that is unknown.** Resistivity, coverlay thickness, amplification gap are scan axes, not guesses.
+
+Pipeline overview:
+
+```
+S1  Weighting solver   Ψ_n(x,y,z,t)  dynamic weighting potentials      [new python]
+S2  Mesh field solver  E(x,y,z) unit cell, transparency, funneling     [Garfield++ neBEM / Elmer]
+S3  Avalanche calib    gain(V), Polya θ, σ0, ion current shape         [Garfield++ microscopic]
+A   Geant4             ClusterTree upgrade: time + local coords        [this repo, C++]
+B   Digitizer          clusters → per-strip induced current waveforms  [new python package]
+C   DREAM electronics  currents → ADC samples, noise, ZS               [new python package]
+V   Validation         wft reconstruction on sim output vs data        [nTof_x17 tooling]
+```
+
+---
+
+## 1. Detector description and parameter table
+
+Anode stack, top (gas) to bottom. z=0 at the top surface of the ESL resistive layer, +z toward the mesh.
+
+| # | Layer | Value | Source | Confidence |
+|---|---|---|---|---|
+| 1 | Micromesh (grounded ref. for amp field; at −HV_mesh in reality) | woven SS, wire 2×19 µm crossing, fill factor 0.223 | `shared/MX17ModuleGeometry.hh` | good |
+| 2 | Amplification gap | **150 µm — CONFIRMED (user, 2026-08-06). Not 128. Do not scan.** | user; supersedes the "unverified" flag in `design/GEOMETRY_IMPLEMENTATION_NOTES.md` | fixed |
+| 2b | Pillars (inside the amp gap) | **Dynamask** dry-film (photoimageable solder mask; user 2026-08-06), Ø 0.60 mm on a 4.68 mm grid (3571 pillars), height = gap 150 µm; area coverage ≈ 1.3% | material: user; geometry: `3498A_bulk.gbr` | good |
+| 3 | **ESL resistive strips** | **550 µm wide, 250 µm gap, 800 µm pitch, running along y ("vertical")**; terminated on copper bus strips at both y-ends only (user 2026-08-07); print thickness ~10 µm (user estimate, unconfirmed — does NOT enter the model: S1 treats the ESL as a zero-thickness sheet, thickness is absorbed into ρ_s) | user/fab knowledge; NOT in gerbers (screen-printed after fab) | geometry good; ρ_s unknown → scan **{0.5, 1, 2, 5} MΩ/sq** |
+| 4 | Insulator between pad Cu and ESL | **kapton 50 µm, ε_r = 3.5, CONFIRMED 2026-08-08** against `pcbKapton_um` in the header and the MX17_Full_Geant PCB stack (NOT Dynamask — that is the pillar material only; user 2026-08-06). **Plus lamination adhesive in series**: ~25 µm supplied, 18.8 µm left over the pad after squeeze-out, ε_r ≈ 3.2 → series thickness **70.5 µm** | kapton: header + CAD. glue: ESTIMATED (standard 2 mil coverlay pairing + volume bookkeeping) | kapton **fixed, no longer scanned**; glue not a production scan axis, bracket {12.5, 25, 35} µm supplied for sensitivity only |
+| 5 | Pad plane (Cu) | 512×512 pads, **0.68 mm square on 0.78 mm pitch**, active area 399.36 mm | `design/gerbers/readout_pcb/DFS3498A_L2-pads.gbr` | exact |
+| 6 | Buried interconnect | pads bussed by vias to 512 Y-strip traces (L3-TrackY) and 512 X-strip traces (L4-TrackX), 0.1 mm traces on 0.78 mm pitch | gerbers | exact (in-plane); layer z-spacing unknown |
+
+Critical geometric facts:
+- **Pitch mismatch / beat:** resistive pitch 800 µm vs readout pitch 780 µm. The ESL-to-pad registration phase advances 20 µm per pitch and repeats every **LCM = 31.2 mm** (39 resistive strips = 40 readout pitches). The response kernel is therefore **position-dependent with a 31.2 mm superperiod** in x. The solvers and the digitizer must carry the absolute x position, not just position-within-one-strip. This beat is itself a physics prediction to look for in data (position-dependent sharing/residuals with 31.2 mm period).
+- **Orientation and sharing anisotropy:** resistive strips run along y. Resistive transport moves charge along y → spreads signal across the *y-measuring* channels → the Y view has stronger, slower sharing (data: τ_Y ≈ 410 ns vs τ_X ≈ 230 ns; kY ≈ 1.8–2.9). Across x, gaps block DC transport; X-view sharing is diffusion + induction + weak inter-strip capacitance. The simulation must reproduce this asymmetry *from geometry alone* — it is a headline validation target.
+- **Strip biasing/grounding — A1 CONFIRMED as hardware, τ_g REINTERPRETED (2026-08-07):** the ESL strips contact copper bus strips at both y-ends of the active area and **nothing in between** (user, 2026-08-07 — this is now a fact, not an assumption). The implied global drain is L²/(π²D) = 4–41 ms across the ρ_s scan. The quantity previously mislabeled here as "measured global drain constant τ_g = 5.3–7.3 µs" (nTof_x17 `rc_line_step2.py`) is **not a drain measurement**: it is fitted as T_Y = T_X ⊛ [δ + d/dt(Gaussian diffusion × e^(−t/τ_g))] on a ≤1.4 µs window with the measured X template as reference, so (i) any decay common to both views — electronics, a true global drain, HV sag — cancels by construction, and (ii) an ms-scale drain is a factor 0.9998 over the window, invisible. τ_g is the *extra decay of the Y view relative to X beyond the Gaussian toy model*, i.e. a kernel-shape observable. A drain-free S1 kernel of the true comb channel, pushed through the same toy fit, reproduces an apparent τ_g ≈ 2.2–3.3 µs for on-strip deposits and ∞ for gap deposits (charge level, ρ_s 1–2 MΩ/sq; `response/validation/tau_g_reinterpretation.py`); a strip/gap mixture lands in the measured 5.3–7.3 µs band, and the mechanism is position-flat along the strip and fleet-consistent, both as observed. Consequence for the solver: **`tau_drain_s=None` is the production default** (§3). The digitizer-level closure (run the actual rc_line fit on simulated waveforms) is task T13b.
+- Gas: Ar/iso 95/5 (+~1% H2O on the bench — matters, measured v_drift 36.6 µm/ns is far below dry Magboltz). Drift gap 30 mm nominal at 1000 V / 490 V mesh — this is the det3 `long_run_resist_490V_drift_1000V` run, and per the **P1 decision (§0a)** it is now the sole T14 target; do not compare against run_71/SPS. Water fraction and effective gap for this exact run are still open — see §0a P1 sub-items.
+
+---
+
+## 2. Repository layout and file contracts
+
+New code lives in this repo under `response/` (Python ≥3.10, numpy/scipy only for the core; ROOT via `uproot` for I/O):
+
+```
+response/
+  solver/          S1 semi-spectral weighting solver
+  meshcell/        S2 unit-cell scripts (Garfield++/neBEM driver + collectors)
+  avalanche/       S3 calibration campaign scripts + frozen JSON outputs
+  digitizer/       B  cluster → strip-current pipeline
+  dream/           C  electronics + ZS emulation
+  validation/      V  closure scripts, blind-comparison figures
+  common/          geometry constants (single source: parse shared/MX17ModuleGeometry.hh
+                   values into python once, assert against the header at import)
+  params/          *.yaml parameter sets (one file per scan point; git-tracked)
+```
+
+Large products (grids, libraries, waveform files) never go in git. **Canonical bulk store is EOS: `/eos/experiment/ntof/data/x17/response_sim/`** (user, 2026-08-07 — effectively unlimited under the nTOF allocation), laid out as `s1/ s2/ avalanche/raw/ clusters/ currents/`. `~/x17/response_sim/` on the laptop is a *working copy*, not the archive, and the desktop holds nothing permanently (20 GB free there is the tightest disk in the fleet).
+
+Transfer routing. **All three hosts can write EOS** (desktop enabled 2026-08-07). Two details that are not obvious and will waste an afternoon if forgotten:
+
+- There is **no `/eos` mount and no `eos`/`xrdcp` client on the desktop.** Its access is via `ssh lxplus` with GSSAPI credential delegation — `~/.ssh/config` there already sets `GSSAPIAuthentication`/`GSSAPIDelegateCredentials yes`, so a plain `rsync … lxplus:/eos/…` works. There is no local `/eos/...` path to write to, so any script that assumes one fails with "No such file or directory".
+- That route depends on a **Kerberos ticket, which expires** (24 h; `klist` on the desktop to check). Before the ticket existed, desktop→lxplus could read EOS but writes failed with "Operation not permitted" and even `.bashrc` was unreadable — so a *silent* AFS/EOS permission failure in an unattended desktop job means the ticket lapsed, not that the code is wrong. Long campaigns should either renew it or fall back to desktop → laptop → EOS.
+
+Anything produced on the desktop must be drained on a `.done` marker written *after* the producer returns, never on file existence: rsync of a file numpy is still writing produces a silently truncated archive (cost us one bad 1 GB transfer). Every product file embeds: git hash of `response/`, the parameter YAML content, and a UTC timestamp. **No un-manifested runs** — one CSV manifest row per production run (copy the discipline from p2 `SIM_CAMPAIGN_PLAN.md` §"bookkeeping").
+
+Key file contracts (formats frozen here; extend, don't break):
+
+| Product | Producer | Format |
+|---|---|---|
+| `wpot_<ch>_<params>.npz` | S1 | Ψ_n on grid: axes `x` (over 31.2 mm superperiod, ≤10 µm step near strip edges), `y` (relative, to ±25 mm), `z` {0, 8–16 slices to mesh}, `t` (60 log-spaced, 0.1 ns–10 µs); arrays `psi[t,z,y,x]`, prompt slice `psi_p[z,y,x]` |
+| `greens_<params>.npz` | S1 post | G_n(x0,y0,t): induced charge on channel n (X and Y sets) for unit point charge landing at (x0,y0); same axes; this is Ψ on the z=0 plane by reciprocity |
+| `meshfield.root/.txt` | S2 | E-field map of one weave unit cell, amp gap + last 200 µm of drift |
+| `aval_calib.json` | S3 | per (gas, HV, gap): mean gain ḡ, Polya θ, transverse avalanche σ0, funneling offset map, ion current shape i_ion(t) (normalized), ion fraction to mesh, transparency ε(E_d/E_a) |
+| `clusters.root` | A | ClusterTree (schema §6) |
+| `currents_<ev>.npz` / batched | B | per-event dict: `{channel_id: i(t)}` on a 1 ns grid, plus truth block |
+| `sim_decoded.root` | C | **identical schema to data** `decoded_root/*_<feu>.root` tree `nt` (`eventId`, `amplitude[n_samp×512]`, `ftst`) so `wft/io.py` reads it unchanged |
+
+---
+
+## 3. S1 — semi-spectral dynamic weighting-potential solver
+
+**Physics.** Extended Ramo–Shockley for resistive elements (Riegler, JINST 11 (2016) P11002, arXiv:1602.07949; Janssens et al., arXiv:2304.01883). To get the signal induced on readout channel n: apply V_w·Θ(t) to channel n's electrode (all its pads), everything else (other pads, mesh) grounded; solve the **quasi-static** relaxation of the potential in the stack where the ESL layer is a thin sheet with patterned surface conductivity. The time-dependent solution Ψ_n(x,y,z,t) is the dynamic weighting potential. Induced current from a charge q at position x_q(t):
+
+```
+i_n(t) = -(q/V_w) ∇ψ_p·ẋ_q(t)  -  (q/V_w) ∫₀ᵗ H_d[x_q(t'), t-t']·ẋ_q(t') dt'
+H_d(x,t) = -∇ ∂ψ_d(x,t)/∂t ,   ψ_d = Ψ - ψ_p ,  ψ_p = Ψ(t→0⁺)
+```
+
+At t=0⁺ the ESL acts as a dielectric (prompt/static solution); as t→∞ it acts as a grounded conductor. By reciprocity, Ψ_n(x0,y0,0⁻ surface, t)/V_w is exactly the Green's function G_n: the charge induced on channel n by a unit point charge *sitting* on the ESL at (x0,y0) since t=0.
+
+**Geometry model W1 (baseline).** Layers in z: grounded mesh plane at z=+g (treat as solid — justified: weave-scale field ripple decays as e^(−2πz/p_weave), negligible at the ESL for p_weave ≪ g; verify in V5) / gas ε=1 thickness g / ESL sheet at z=0 with σ_s(x) = 1/ρ_s on strips, 0 in gaps (periodic in x, period 800 µm, uniform in y) / kapton ε_r=3.5 thickness d_k **then lamination adhesive ε_r≈3.2 thickness d_g, in series** / segmented pad plane at z=−(d_k+d_g). **The two dielectrics are solved as an exact cascaded two-layer stack, not as one layer at an effective thickness** — the effective thickness is exact only at k→0 and understates S(k) by 5.3 % at k = 5/pad-pitch. Layer order is fixed (kapton against the ESL): S(k) is reciprocal but C(k) is not, by 2.9 %. (Pillars — Dynamask, 1.3% coverage — are ignored in the weighting solve; they matter only as dead/perturbed spots, checked in validation, and in S2 if included in the unit cell.) Buried trace layers are screened by the pad plane and ignored in W1. ⚠️ **W1 also clamps the 100 µm INTER-PAD channels to ground, and that is wrong by 27 % — V6, run 2026-08-08, refuted this section's own "expected percent-level" estimate** (`design/report/V6_PAD_GAPS_2026-08-08.md`). There is no copper between the pads; the channel floats to 0.86 of the pad potential, and prompt capture goes 0.67003 → 0.85194. Every shipped S1 product still carries the deficit.
+
+**How many distinct kernels there are — RESOLVED 2026-08-07 (T2b).** The checkerboard plus the 31.2 mm superperiod collapses 1024 channels to an exact, small set, and this is what makes the comb solve affordable:
+
+- **2 distinct Y kernels.** Moving a Y channel by one row shifts its comb by one pad pitch in x and flips which columns it owns; the row's own y position is a pure translation of a y-uniform sheet. Only the column *parity* survives.
+- **40 distinct X kernels**, one per column phase — the column's x position relative to the ESL strips does not drop out. **So the 31.2 mm beat lives in the X view.** The Y view averages over all phases within its own comb and sees the beat only through where the *deposit* lands. That sharpens the §9 prediction: look for the 31.2 mm period in X-view sharing/residuals, not in Y.
+- An X channel's drive is exactly 1.56 mm periodic in y, so its solver box can *be* 1.56 mm — the periodic images are the rest of the comb, not an artifact. The 40 X solves are therefore cheap; the Y kernel, localised in y, is the expensive one.
+
+**Sum-rule validation (new, and the strongest test in S1).** Driving every pad is a uniform Dirichlet plane, which excites only k=0, where the sheet has no in-plane gradient and never relaxes. So with pitch-sized (tiling) pads the total induced charge must equal S(0)/C(0) = ε_r/d ÷ (ε_r/d + 1/g) = 0.875 at **every** time. Reproduced to 4×10⁻⁷, with the channels partitioning the plane to 2×10⁻¹². It exercises the comb assembly, the Bloch blocks, all 40 X phases and the row sum against a closed form, and it caught three bugs that would each have silently biased every §9 sharing number (row-sum roll direction; X pads on the wrong row parity; hard-pixel pad masks, which made the total swing 0.76→0.57 with resolution — replaced by exact fractional-area coverage).
+
+**First predictions from the comb kernels (charge level, ρ_s 1 MΩ/sq, d_k 75 µm):**
+- **X/Y charge balance is exactly 0.500/0.500 at t=0, necessarily** — at t=0 the sheet is a plain dielectric and the checkerboard is 90°-symmetric, so any measured departure from 0.5 (data: 0.49/0.51) is generated by the *time-dependent* part plus electronics, not by geometry.
+- ~76 % of a deposit's image charge lands on the channels, the rest on the mesh and on the grounded 100 µm inter-pad copper.
+- **Point-charge prompt sharing between adjacent channels is near zero.** In the checkerboard a d=±1 neighbour's nearest pad is 0.78 mm away in x *and* 0.78 mm in y, i.e. 1.10 mm diagonally, while the prompt kernel is localised on the ~0.2 mm scale of the stack. So essentially all of the measured ±1 sharing (§9: c1 = 0.23–0.28) has to come from the avalanche's own transverse size, electron diffusion, and resistive spreading — none of it from prompt induction geometry. That is a strong, falsifiable statement and it is a headline check for T9.
+
+Production point (ρ_s 1 MΩ/sq, d_k 75 µm, nx 3120, ny 1024, 61 log times, drain-free), deposit **exactly on a pad centre**, shares within d = −3..+3:
+
+| deposit | view | prompt share d=−3..+3 | view total | late (10 µs) share | view total |
+|---|---|---|---|---|---|
+| on-strip (pad owned by X) | X | 0 0 0 **1.000** 0 0 0 | 0.870 | 0 0 0.006 **0.990** 0.004 0 0 | 0.366 |
+| | Y | 0 0 0.258 0.485 0.258 0 0 | **0.001** | 0.241 0.003 0.255 0.001 0.255 0.003 0.241 | 0.143 |
+| ~~in-gap (pad owned by Y)~~ | ~~X~~ | ~~0 0 0.243 0.515 0.243 0 0~~ | ~~**0.001**~~ | ~~0 0 0.004 **0.991** 0.005 0 0~~ | ~~0.365~~ |
+| | ~~Y~~ | ~~0 0 0 **1.000** 0 0 0~~ | ~~0.870~~ | ~~0.002 0.323 0.005 0.338 0.005 0.323 0.002~~ | ~~0.111~~ |
+
+⚠️ **The struck-through "in-gap" row was never in a gap** (audit 2026-08-07 A2, fixed by Fix 2).
+`nearest_column` selected the deposit by nearest pad centre in ABSOLUTE x, and the 800/780 µm
+beat advances the ESL phase by only 20 µm per pad, so both candidate pads near x = 15.6 mm sat
+~10 µm from a **strip centre**. The row above is a second ON-STRIP deposit differing from the
+first only in pad-ownership parity — which is exactly why its late X total (0.365) was
+indistinguishable from the on-strip row's (0.366). The G arrays themselves were never affected,
+and `tau_g_reinterpretation.py` selects by an explicit phase cut, so its "∞ in-gap" conclusion
+stands.
+
+`sharing_report` now selects by ESL phase (`column_nearest_phase`), pins both deposits to the
+same column parity so the pair differs only in phase, and prints σ_s(x₀) so an on-strip
+deposit cannot masquerade as a gap one again. Genuinely-in-gap pad centres exist only at
+columns 10–21; the pair is now column 35 (phase 10 µm, on strip) and column 15 (phase 410 µm,
+σ_s = 0 exactly).
+
+**Regenerated at production resolution** (nx = 3120, ny = 512, nt = 60, ρ_s = 1 MΩ/sq,
+d_k = 75 µm; desktop, 2026-08-07):
+
+| deposit | view | prompt share d=−3..+3 | view total | late (10 µs) share | view total | τ(1/e) |
+|---|---|---|---|---|---|---|
+| on-strip (col 35, phase 10 µm) | X | 0 0 0 **1.000** 0 0 0 | 0.8730 | 0 −0 0.006 **0.990** 0.004 −0 0 | **0.3662** | 42 ns |
+| | Y | 0.022 0 0.395 0.167 0.395 0 0.022 | 0.0028 | 0.241 0.003 0.255 0.001 0.255 0.003 0.241 | 0.1426 | 42 ns |
+| in-gap (col 15, phase 410 µm) | X | 0 0 0 **1.000** 0 0 0 | 0.8730 | 0 −0 0.012 **0.973** 0.016 0 −0 | **0.7938** | 52 ns |
+| | Y | 0.022 0 0.395 0.167 0.395 0 0.022 | 0.0028 | 0.083 0.090 0.269 0.117 0.269 0.090 0.083 | 0.0240 | 35 ns |
+
+The qualitative difference the mislabelled row hid, and the reason the check matters: **a gap
+deposit's charge has no conductive path along a strip, so the view that owns its pad keeps
+that charge instead of draining it away** — X view total 0.794 late against 0.366 on-strip,
+and the cross-view late feed into Y is ~6× smaller (0.024 vs 0.143). The two rows are now
+plainly different objects, where before they agreed to three digits.
+
+⚠️ `meta.sharing["in-gap"]` in all 12 SHIPPED products remains mislabelled — they predate the
+fix. Either re-run `run_point` for each (~90 s/point on the desktop) or read the sharing block
+only from products solved after 2026-08-07.
+
+Read three things off it. (i) **Prompt charge division is essentially total**: the view owning the pad under the deposit takes 0.870, the other view takes 0.001 — a factor ~870. The checkerboard does not "share" between views at t=0, it assigns. (ii) **The other view is fed only by sheet transport**, rising from 0.001 to 0.11–0.14 by 10 µs, and it arrives spread over ±3 channels rather than concentrated — so cross-view charge is a *late, diffuse* component. (iii) **The owning view's own total falls** (0.870 → 0.366) as charge migrates outside the ±3 window; the drain-free sheet conserves charge globally (the all-channel total is time-independent at 0.665) but not locally.
+
+**ρ_s scan, 2026-08-07 (d_k 75 µm, four points, desktop).** The position-independent quantities are exactly ρ_s-independent, as they must be: the all-channel total (0.6650), the 0.500/0.500 prompt balance, and the sum rule (passes at 4.6–5.1×10⁻⁷ at every point) are all fixed by the k=0 mode and by symmetry, not by transport. The ρ_s dependence is entirely in the *timing*, and it is clean:
+
+⚠️ **A first version of this section quoted a `τ(1/e)` per view and concluded that the measured τ sits "at the top of the scanned range, nearest 5 MΩ/sq", recommending the scan be extended above 5. That was wrong and is withdrawn.** The estimator — time for the d=+1 neighbour to cover 1−1/e of the way from its prompt value to its maximum — is unsound whenever `tau_drain_s=None`, because a charge-conserving sheet never saturates: the "maximum" is just the value at the 10 µs window edge, so the normalisation is set by where the window was cut. It moved τ_X from 42 ns to 1169 ns on a d_k change that can shift real timescales by at most 1.44. See `response/solver/spread.py`.
+
+**The sound measurement.** Charge on the sheet spreads diffusively, so the induced-charge profile obeys σ²(t) = σ_p² + 2Dt, with σ_p the prompt electrostatic width before the sheet conducts at all. Both terms come from moments of the kernel — no normalisation, no saturation, no window choice:
+
+Over the **complete 12-point grid** (`python3 -m response.solver.spread ~/x17/response_sim/s1`):
+
+| d_k | σ_p | D_fit/D_exact | t(σ = one pad pitch) at ρ_s = 0.5 / 1 / 2 / 5 MΩ/sq |
+|---|---|---|---|
+| 50 µm | 211.9 ± 0.7 µm | 0.906 | 105 / 211 / 422 / 1055 ns |
+| 75 µm | 221.8 ± 0.8 µm | 0.877 | 75 / 151 / 301 / 753 ns |
+| 125 µm | 244.7 ± 1.0 µm | 0.834 | 50 / 101 / 202 / 505 ns |
+
+Two free validations fall out. σ_p is flat to <1 % across a factor 10 in ρ_s — it is a prompt geometric width, so it must be — while correctly *depending* on d_k, thicker kapton letting the image spread further. And D_fit/D_exact is constant to three decimals *within* each d_k row, so the solver reproduces the 1/ρ_s law exactly without being told it; the ~10 % deficit, and its growth with d_k, is expected rather than an error, because D_exact uses c′ = C(k→0) while a profile of finite width samples k > 0 where C(k) > c′.
+
+**What this says about ρ_s — and the degeneracy that stops it saying more.** Reading the measured τ_X ≈ 230 ns / τ_Y ≈ 410 ns as the time to spread of order one pad pitch gives ρ_s ≈ 1.5–2.7 MΩ/sq at d_k = 75 µm, but 1.1–1.9 at d_k = 50 and 2.3–4.1 at d_k = 125. **Every one of those is inside the existing 0.5–5 MΩ/sq scan, which therefore does not need extending** — but the spread alone cannot do better than that, because it constrains only the product: D = 1/(ρ_s·c′(d_k)), so ρ_s and d_k trade off exactly along a line.
+
+**σ_p is what breaks the degeneracy, and it is free.** The prompt width depends on d_k *alone* — 212 / 222 / 245 µm across the scan — and not at all on ρ_s. So the two parameters separate cleanly with two different observables:
+
+- **prompt** sharing width → d_k (independent of ρ_s),
+- **spreading rate** → ρ_s given that d_k.
+
+Concretely for T9/T14: fit the prompt (early-time, pre-spreading) charge profile to get d_k, then the time development to get ρ_s. Doing it the other way round, or fitting only the time development, leaves a one-parameter family that no amount of data will resolve. The 33 µm avalanche σ₀ from T7 (§5) is small enough not to contaminate this — but the drift diffusion is not, so the "prompt width" the digitizer sees is σ_p ⊕ σ_diffusion and the diffusion term has to be taken from the gas tables, not fitted, or the degeneracy comes straight back.
+
+All of this remains indicative rather than a measurement: the data numbers are fits to shaped waveforms with 180 ns peaking, and the legitimate comparison is T13b/T14.
+
+The X/Y asymmetry cannot be read off this table at all — σ_y here measures spreading *along* the strips, which is the Y-sharing direction only. Getting the §9 X-vs-Y asymmetry requires the x-direction profile, where transport is blocked by the inter-strip gaps; that is a T9 observable.
+
+Caveat, and it matters for reading any of the above against §9: these are **point-charge, charge-level** kernels. A real avalanche has transverse extent and the electrons arrive with diffusion spread, both comparable to the pad pitch, so the "all on one channel" prompt result will be substantially smeared before it reaches a waveform. The τ(1/e) values the run prints (7–42 ns) are likewise *not* comparable to the measured τ_X ≈ 230 ns / τ_Y ≈ 410 ns, which come from fits to shaped waveforms with a 180 ns peaking time. Both comparisons become legitimate only at T9/T11.
+
+**Electrode definition — RESOLVED 2026-08-07 (T2, gerber-derived).** The checkerboard is confirmed, from the 0.1 mm connector stubs (the vias do NOT answer it — the plated through hole rings every layer on all 512×512 pads). A Y channel = one row's pads at (col+row) even; an X channel = one column's pads at (col+row) odd. **A channel is therefore a comb of 256 pads on a 1.56 mm pitch, not a solid line of 512 pads on 0.78 mm.** Extraction and proof: `response/common/channel_map.py` (262030/262144 pads assigned; the 114 stragglers are a 0.04% edge effect). All channel-level kernels must be built with comb drive patterns — the solid-line `pad_pattern`/`strip_pattern_y` in `wpot.py` are per-pad/limiting cases only (task T2b). The x/y sign convention vs `Mx17StripMap.py` **is now verified — see P5: it required `sy = +1`, not the `-1` the frame shipped with.**
+
+**Method.** Expand in lateral Fourier modes. In y (uniform sheet direction) modes decouple: continuous wavenumber k_y (discretize, ~200 log+linear points to k_y·L=π·400). In x the periodic conductivity couples k_x ↔ k_x + m·2π/p_ESL (Bloch): for each (k_y, k_x∈[0, 2π/p)) truncate to |m| ≤ M (start M=12, converge-test). Each dielectric layer gives an algebraic transfer relation per mode; the sheet gives the junction condition
+
+```
+n·(J_above − J_below) = −∇_T · [ σ_s(x) ∇_T V ]|_{z=0}   (+ ε0 ∂/∂t displacement terms in the layers)
+```
+
+Result: per (k_y, Bloch block) a linear ODE system `dV/dt = A·V + b·Θ(t)` of dimension ~(2M+1); solve by eigendecomposition of A (exact exponentials — no time-stepping error). Assemble Ψ on the output grid at the 60 requested times. Runtime target: minutes per channel type on the laptop. Pure numpy.
+
+**Boundary/drain — AMENDED 2026-08-07.** Production default is **`tau_drain_s=None`** (strict charge conservation on the sheet). The real drain — copper bus at the two y-ends, §1 — is ms-scale, a factor ≥0.999 over any waveform window, and indistinguishable from no drain in every §9 observable; implementing it as a boundary condition buys nothing. The solver keeps the uniform-leak term (`tau_drain_s` explicit) strictly as a nuisance/systematic knob. Do NOT pin it to "the measured τ_g" — that number is not a drain (§1). Superseded: ~~implement A1 as a lumped leak 1/τ_g on the k_y→0 mode and check the tail against the measured 5–7 µs~~.
+
+**Validation (all must pass before S1 output is used):**
+- V1: set σ_s uniform (no gaps) → matches Riegler's closed-form uniform-layer solution (JINST 2016 eqns; also the Gaussian limit σ²(t)=2t/(ρ_s c′), c′=ε0(ε_r/d_k + 1/g)).
+- V2: single isolated strip, k_y only. **What the implementation actually tests** (its own docstring, corrected here 2026-08-07) is charge conservation and the convergence order — NOT the Galan closed form this line used to name. A genuine comparison against the 1D telegraph solution (Galan arXiv:1110.6640) is still to be written.
+- V3: charge conservation: Σ_n G_n(x0,y0,t) + charge remaining on sheet + mesh charge = 1 at all t; each G_n → its t→∞ electrostatic value.
+- V4 — REDEFINED 2026-08-07 (the original "drain tail within factor ~2 of τ_g, else revisit A1" compared incommensurable observables and correctly "failed"; that failure is documented in `design/report/s1_validation.txt` and resolved in §1): the drain-free comb-channel kernel, fitted with the rc_line toy model (Gaussian line diffusion × exp(−t/τ_g), ≤1.4 µs window), must yield an apparent τ_g of the measured order for on-strip deposits and a much slower/no decay for gap deposits. Passed at charge level (2.2–3.3 µs on-strip, ∞ in-gap; `response/validation/tau_g_reinterpretation.py`). Final closure at waveform level is T13b.
+- V5: mesh-as-plane check: perturbative estimate of weave ripple amplitude at z=0 < 1%. **This is an analytic BOUND, not a test** — `v5_mesh_ripple.py` evaluates exp(−2πng/p) and compares it to the bar; nothing is checked against anything. Physically fine, but §0a and T5 used to describe it as "certified" and "still not run" respectively, and both were half right.
+- V6 — **RUN 2026-08-08, and it FAILS its own expectation** (`response/solver/v6_pad_gaps.py`,
+  report `design/report/V6_PAD_GAPS_2026-08-08.md`). Exposing the gaps shifts prompt capture by
+  **+27.2 %** (nominal substrate) — not "< few %". It is a DC error, not a fine-structure one:
+  W1 pins 24 % of the pad plane at ground, so `<V_pad-plane>` = 0.7600 (the metal fraction, which
+  is exactly where the 0.665023 real-pad anchor comes from) instead of 0.9664. It therefore does
+  NOT decay with insulator thickness (+27 % at 50 µm kapton, +28 % at 5 mm).
+  Bracketing the board under the gap — ground at the pad plane / 26 µm glue + 264 µm FR4 to L5 /
+  no conductor at all — moves the answer by 1.7 %, so **`NEEDED_INPUTS.md` §6's open FR4
+  thickness does not propagate into the response**. Second consequence, arguably the bigger one:
+  W1 carries a **4.5× spurious amplitude modulation across one pad cell**, against 1.17× for the
+  real board. Verified four ways (two-port vs `stack_coeffs` at 2e-16; tiling-pad identity at
+  1.3e-16; first-order convergence back onto W1 as the gap's ground is raised; and an independent
+  real-space (x,z) finite-difference solve agreeing to 4e-4). Prompt only — the late-time kernel
+  is screened by the relaxed sheet and is not computed.
+
+Numbers to expect (sanity): c′ ≈ 5×10⁻⁷ F/m²; sheet diffusivity D = 1/(ρ_s c′) ≈ 2.0 m²/s at 1 MΩ/sq → relaxation of a 130 µm feature in ~8 ns, of one 800 µm pitch in ~0.3 µs.
+
+**Host:** laptop (light). **Scan matrix:** ρ_s {0.5,1,2,5} MΩ/sq × d_k {50,75,125} µm = 12 points (gap fixed at 150 µm); each point = 2 channel types → 24 solver runs, laptop-scale; if slow, desktop.
+
+---
+
+## 4. S2 — realistic mesh field (unit cell)
+
+Purpose: (a) electron transparency ε(E_drift/E_amp) from geometry instead of an assumed constant; (b) funneling map (entry (x,y) in the weave cell → avalanche seed position/spread below); (c) field non-uniformity feeding S3; (d) ion drift endpoints (fraction terminating on mesh vs escaping to drift — sets the ion-tail shape split).
+
+Method: one weave unit cell (period from `shared/MX17ModuleGeometry.hh` wire diameter + fill factor — **resolve the weave pitch from these two numbers and cross-check against the bulk-MM standard 400 lpi; if inconsistent, flag in §12 and use the header**), woven wire geometry (two orthogonal sinusoid-ish wires, standard Garfield++ neBEM wire/primitive representation or an Elmer tetra mesh), periodic lateral BCs, plates: drift cathode far above (apply E_drift), anode plane at ESL surface potential below. Solve electrostatics; export field map.
+
+Tools — **RESOLVED 2026-08-08, see `response/meshcell/FIELD_MAP_RUNBOOK.md`**: neBEM was tried first per this paragraph and disqualified by measurement (its bounding-plane/mirror interface data is read but unused upstream, so plates are finite patches with a 1/n² fringe error that swamps the drift field — `copies_scan.C`); the shipped solution is the fallback family: gmsh + scikit-fem P2 + pyamg (all pip, no sudo), with mirror-symmetry Neumann walls giving the exact infinite lattice. ~~Fallback: install `gmsh`+`Elmer` (apt/pip, ~30 min) if neBEM struggles with the woven geometry~~ — note `ComponentElmer2d` gained delayed weighting-potential support in the pinned version. **Host: desktop** (one-off heavy; hours). Deliverable includes a transparency curve figure vs field ratio compared to the generic bulk-MM curve from literature.
+
+**Start from the upstream example, not from scratch:** `Examples/ResistiveMicromegas/` in the pinned Garfield (added 2026-05-21 from the DRD1 GDSimS 2026 tutorial) is a working resistive-MM chain that ships COMSOL maps for a **woven mesh** and a **dynamic weighting potential** with strip electrodes, and drives them with `SetDynamicWeightingPotential` + `CopyWeightingPotential` (one solved map translated onto many electrodes — the answer to "512 channels"), `EnableDelayedSignal`, `AvalancheMicroscopic::GetIons()` → `AvalancheMC` for the ion tail, and a `Shaper`. Its maps are also an independent cross-check for S1's V1–V3.
+
+## 5. S3 — avalanche calibration campaign
+
+Garfield++ `AvalancheMicroscopic` + `MediumMagboltz` in the S2 field map (or uniform-field fallback for first pass): 10³–10⁴ single electrons per (gas, HV) point.
+
+Extract per point into `aval_calib.json`: mean gain ḡ, Polya θ (fit P(g) ∝ (g/ḡ)^θ e^(−(1+θ)g/ḡ)), transverse avalanche spread σ0 at the ESL, longitudinal α(z) profile, normalized ion-induced current shape i_ion(t) in the gap (uniform-field ion mobility from Magboltz tables; **flag: ion mobility is the single softest parameter** — carry ±30% as a systematic), fraction of ions to mesh.
+
+Gases: Ar/iso 95/5 dry AND +1% H2O (tables partly exist in `~/PycharmProjects/nTof_x17/garfield_sim/results/` and on EOS — reuse; the condor workflow in that repo is the template). HV: 480–540 V mesh in 10 V steps (bench operating 490 V — this is the det3/T14 target per the §0a P1 decision; SPS up to 625 V different gas — add Ar/CO2/iso 95/3/2 and Ar/CF4/iso 88/10/2 later, now further deprioritized since run_71/SPS is shelved as a T14 target).
+
+**Host: lxplus condor** (systematic campaign; reuse `garfield_sim/mm_condor_*` submission machinery). Quick single-point smoke tests: laptop.
+
+**Result, first pass (uniform field, Ar/iC₄H₁₀ 95/5 dry, 150 µm gap), 2026-08-07.** `aval_calib.json`, figure `design/figures/response/s3_avalanche_calib.png`:
+
+| V_mesh | mean gain | Polya θ | σ₀ at the ESL | nev |
+|---|---|---|---|---|
+| 470 | 23 107 | 1.42 | 34.3 µm | 1600 |
+| 480 | 31 387 | 1.54 | 34.0 µm | 1360 |
+| 490 | 44 472 | 1.64 | 33.7 µm | 1120 |
+| 500 | 60 309 | 1.84 | 33.4 µm | 880 |
+| 510 | 81 646 | 1.66 | 33.2 µm | 640 |
+| 520 | 112 447 | 1.95 | 32.6 µm | 480 |
+| 530 | 156 731 | 1.66 | 32.4 µm | 320 |
+
+Gain rises by ×6.8 over 60 V — an e-folding every **31 V**, which is the normal slope for a 150 µm bulk MM. At the 490 V bench operating point the gain is ≈4.4×10⁴. θ ≈ 1.4–1.9 with no real trend; the non-monotonicity is statistics, since nev falls 1600 → 320 at high V and θ here is a moment estimator. If θ(V) is ever wanted as a physical trend rather than a per-point constant, the high-V points need more events.
+
+⚠️ **Correction 2026-08-07 (audit A7).** This paragraph used to attribute the falling nev to "the avalanche size cap biting at high V". **There is no cap** — `--max-avalanche` defaults to 0 (uncapped) and the falling nev is simply the deliberate per-voltage schedule in `mx17_aval_points.txt`. The real defect in this calibration is different and unfixed: `avalanche/collect.py:38` fits the Polya on `g[g > 0]`, i.e. CONDITIONAL on the avalanche surviving, the per-slice `survival` field present in each raw JSON is dropped by `reduce_file`/`merge`, and `digitize.py` then applies that conditional Polya to every mesh-surviving electron. Per-electron charge is therefore biased HIGH by 1/P(g>0), by an amount not recoverable from the shipped calib — it needs the raw slices on EOS (`response_sim/avalanche/raw/`, 19 GB, process on lxplus). This feeds the P2 saturation puzzle. Fix 7 in `design/report/AUDIT_FIXES_2026-08-07.md`.
+
+**The induced-current shapes were empty, and why (2026-08-07).** `i_elec` and `i_ion` came back identically zero in all 56 slices. Root cause: both `AvalancheMicroscopic` and `AvalancheMC` default to `m_useWeightingPotential = true`, i.e. they compute the induced current from the weighting **potential**, not the weighting field. `ComponentConstant` has no weighting potential until `SetWeightingPotential()` is called, and the campaign set only the weighting *field*. So `WeightingPotential()` returned 0 everywhere and every signal was zero — silently, with the avalanche and the ion drift both running normally, which is why gain, θ and σ₀ are unaffected and still trustworthy. Confirmed by direct test:
+
+| configuration | signal |
+|---|---|
+| weighting potential unset, `UseWeightingPotential=True` (what the campaign did) | **0 nonzero bins** |
+| weighting potential unset, `UseWeightingPotential=False` | signal appears |
+| weighting potential **set**, `UseWeightingPotential=True` | signal appears |
+
+Fixed by anchoring ψ = 1 at the readout plane, which with a constant weighting field gives ψ(z) = 1 − z/gap exactly; the potential-based estimator is kept because it is the more accurate one and because relying on a default that has already moved once is how this happened. A near-miss worth recording: a first weighting-field probe returned zero and looked like the smoking gun, but that probe had omitted `SetMedium`, and `ComponentConstant::WeightingField` zeroes its output where there is no medium. With the medium set the field had been correct all along — the field was never the problem.
+
+Post-fix smoke test gives the expected two-component shape: a 13-bin electron spike and a 1740-bin ion tail, i.e. ~348 ns, which independently reproduces the analytic transit g²/(μV) ≈ 306 ns (§7 ion term, `response/digitizer/ions.py`).
+
+**σ₀ ≈ 33 µm is the number to carry forward, and it is a strong constraint on T9.** The avalanche footprint at the ESL is **~24× smaller than the 780 µm pad pitch** and barely moves with voltage. Combined with the T2b finding that point-charge prompt sharing to d=±1 is near zero (§3), this means the avalanche's own size contributes essentially *nothing* to the measured c1 = 0.23–0.28. The sharing has to come from transverse diffusion over the 30 mm drift gap plus resistive spreading — nothing else is left. That is a sharp, testable corner for T9: if the digitizer cannot reach c1 ≈ 0.25 from diffusion + sheet transport alone, the model is missing physics, and per §9 the answer is to find it rather than to widen σ₀.
+
+## 5a. Garfield++ version — PINNED (decided 2026-08-06)
+
+**Pin: garfieldpp master `927e5c21`.** Built from source on all three hosts; all pass upstream `ctest` 22/22.
+
+| Host | ROOT | Garfield install (full path) | source clone |
+|---|---|---|---|
+| laptop | 6.36.06 | `/home/dylan/garfield/install` | `/home/dylan/garfield` |
+| desktop | 6.30.02 (`/home/dylan/Software/root_6_30`) | `/home/dylan/Software/garfield/install` | `/home/dylan/Software/garfield` |
+| lxplus | 6.38.00 (LCG_109 view) | `/afs/cern.ch/user/d/dneff/work/garfield_install/lcg109-927e5c21` | `/afs/cern.ch/user/d/dneff/work/git/garfieldpp` |
+
+**lxplus paths in full** (these are the ones to paste into job scripts):
+
+```
+# the install
+/afs/cern.ch/user/d/dneff/work/garfield_install/lcg109-927e5c21
+# the tarball shipped to condor workers (6.7 MB)
+/afs/cern.ch/user/d/dneff/work/garfield_install/garfield-927e5c21.tar.gz
+# the source clone it was built from, pinned at 927e5c21
+/afs/cern.ch/user/d/dneff/work/git/garfieldpp
+# the LCG view supplying ROOT/python/compiler (its Garfield is NOT used)
+/cvmfs/sft.cern.ch/lcg/views/LCG_109/x86_64-el9-gcc14-opt
+```
+
+The install sets `GARFIELD_INSTALL`, `LD_LIBRARY_PATH`, `PYTHONPATH`
+(`lib64/python3.13/site-packages`) and `HEED_DATABASE`. Upstream examples,
+including `Examples/ResistiveMicromegas` and its COMSOL maps, live under the
+source clone.
+
+Single entry point on every host: `source nTof_x17/garfield_sim/setup_garfield.sh`. It is the only file that names a Garfield or LCG path; nothing else in the toolchain hard-codes one. It resolves the paths above automatically (and on a condor worker unpacks the tarball instead), so prefer it over pasting a path.
+
+**Do not use the CVMFS Garfield.** LCG_108 ships `6fb94b35` (2025-07-07, 664 commits behind the pin) and LCG_109 ships `78fe1bd3` (2026-02-02, 281 behind). The APIs this plan names in §7 exist in all of them, so this is not about being blocked — it is that everything aimed at *this* problem landed between March and August 2026: the `ResistiveMicromegas` example (§4), `AvalancheMicroscopic::GetIons()` for the ion component of §7 step 5, the neBEM OpenMP race fix in the SVD inversion (S2 correctness), interface-crossing checks (electrons no longer tunnel through mesh wires — that *is* the S2 transparency observable), the FFT-convolution fix and arbitrary-PSD noise generators (§8), and the regression test suite itself.
+
+**Magboltz needs no separate upgrade** and the existing gas tables stay valid: Magboltz is vendored inside Garfield at version 11.19 (January 2024), and between the LCG_108 Garfield and the pin `Magboltz/magboltz.f` changes only by the fixed-form continuation marker in column 6 (`/` → `&`, 354 lines) plus one missing comma in a `FORMAT` *print* statement. No cross-section or transport change. Garfield's built-in Penning table is likewise unchanged — re-probed with `garfield_sim/probe_penning.py`, every rP in `mm_config.py` reproduces exactly.
+
+Re-run `probe_penning.py` and reconcile it against `mm_config.py` whenever the pin moves.
+
+## 6. Stage A — Geant4 upgrades (AFTER geometry work merges)
+
+Port the p2_geant ClusterTree schema (`p2_geant/docs/OUTPUT_FORMAT.md`) into this repo's `SteppingAction`/`EventData`/`RunAction`:
+1. Add **`time`** (globalTime, ns) per ionization cluster. (Blocking for everything downstream.)
+2. Add module-local coordinates or store the world→active-area transform in the file header. Active-area frame: origin at active-area center, x/y per strip-map convention (`nTof_x17/common/Mx17StripMap.py`), z=0 at ESL surface. Beware: PCB plates are offset (+15,+15) mm from the active-area axis — use the active-area axis, not the plate center.
+3. Optional (cheap, valuable): the p2 provenance block (creator process, origin volume, ancestor).
+4. Do NOT model strips/pads/coverlay as Geant4 volumes — material budget is unchanged at the level that matters and the response chain owns that geometry.
+
+Physics settings: keep EM opt4; evaluate PAI model in a gas G4Region (p2 `TOOLCHAIN_NOTES.md` argues default condensed-history straggling is inadequate in thin gas — for our 30 mm drift gap it matters less than for p2's 3 mm, but PAI in the gas region is cheap: turn it on, compare cluster statistics, keep it).
+Acceptance: a 10⁴-event muon run whose ClusterTree loads in `response/digitizer` and produces sensible (x,y,z,t,nPrimary) distributions.
+
+### ⚠️ STANDING RULE — every Stage B/C input carries its run, FEU and conditions
+
+Adopted 2026-08-09 after **three instances in one day** of a per-RUN or
+per-DETECTOR property being used as though it were universal:
+
+| input | what went wrong | how it failed |
+|---|---|---|
+| FEU ids | defaulted to 3/4; the T14 target run reads out on 7/8 (det3 moved between runs) | **silent** — wft globs `*_07.root`, finds nothing, reconstructs zero events |
+| calibration bundle | valid only for its own detector + run conditions | silent — a bundle from elsewhere fits, badly |
+| noise spec | `noise_det3.json` came from a different run (2026-05-06) **and from FEU 01, the M3 trigger FEU**, not an MX17 plane | silent — σ 10.38 vs 7.41, common mode 82.9 vs 271.4, wrong autocorrelation |
+
+None of these announced itself. Two were caught only because something *else*
+failed loudly nearby, and the noise one was caught by the T14 comparison — i.e.
+after it had already influenced a result.
+
+**The rule:** every Stage B/C input — noise spec, avalanche calib, run config,
+kernels — records the run, FEU and conditions it was derived from, and the
+driver **refuses to run when they contradict the target run** unless explicitly
+forced. The reference implementation is the FEU binding in
+`response/digitizer/run.py` (`--run-config` reads the mapping from the target
+run; a contradicting `--feu-ids` is refused; `--force-feu-ids` is the deliberate
+escape; the bare fallback announces itself as UNVERIFIED).
+
+The point is that **this class of error has to die at the reader, not in
+review.** Each of the three was individually obvious in hindsight and none was
+noticed by inspection; what catches them is a loader that knows what run it is
+supposed to be modelling. `digitize.load_calib` already refuses a pooled calib
+at the wrong mesh voltage on the same principle.
+
+## 7. Stage B — digitizer
+
+Per event, per ionization cluster (vectorize over clusters):
+1. Electrons: n = round(edep/W) with a Fano correction (F ≈ 0.2 Ar); or later Heed re-ionization mode. **IMPLEMENTED in Stage A 2026-08-08** (`SteppingAction.cc`, audit C8): n is drawn from a truncated Normal(n̄, √(F·n̄)) above n̄ = 5, falling back to the exact floor + Bernoulli remainder below that, where a Gaussian would return negative counts and lose the sub-W remainder. `MX17_FANO` overrides F; `MX17_FANO=0` reproduces the pre-2026-08-08 behaviour bit-for-bit, which is how the A/B was done at a fixed seed. **Measured effect: none.** The conversion residual widens from sd 0.41 to 1.53 on the Gaussian branch exactly as specified, but the per-event electron count is unchanged (sd 266.70 → 266.75 on 3000 muons) because it is dominated by delta rays and energy straggling at 81 % relative spread. The conversion term adds only √(F·n) = 8.1 e in quadrature — predicting 266.82 against 266.75 measured. Fano was never a candidate explanation for any §9 tension; the plan simply no longer promises what the code did not do.
+2. Drift each electron packet: arrival time t = t_cluster + z/v_d + Gauss(σ_L√z /v_d); transverse Gauss(σ_T√z); attachment survival e^(−z/λ). Parameters interpolated from Magboltz tables (wet gas!). Use the packet approximation (per-cluster, not per-electron) until profiling says otherwise.
+3. Mesh transparency ε (S2) — binomial thin.
+4. Per surviving electron: gain g ~ Polya(ḡ,θ) (S3); avalanche lands at (x+funnel offset, y) with spread σ0.
+5. **Induction — fast path (production):** for an avalanche of total charge Q=g·e at (x0,y0) at time t0: per readout channel n,
+   `i_n(t) = Q·[ f_e·δ_fast(t−t0) ⊛ (−∂G̃_n/∂t) + f_ion·i_ion ⊛ ... ]`
+   concretely implemented as precomputed **response templates** `R_n(x0 mod 31.2 mm, t)`: the full current on channel n for a standard avalanche at (x0,y0), built once by running the slow path (below) over a grid of source positions and caching. Ion component included (ions drift up; their induction uses Ψ at moving z — this is why templates come from the slow path, not from surface G alone).
+6. **Induction — slow path (validation, and template generation):** Garfield++ `Sensor` with `ComponentGrid` loading the S1 Ψ time slices (`LoadWeightingField(file, fmt, t_k, true)` per slice; `SetDelayedSignalTimes`; `EnableDelayedSignal(true)`; `SetWeightingFieldOffset` to place channels), drift/avalanche trajectories parameterized (electron spike + ion line current), NOT microscopic per event. Run on O(100) events per parameter point to certify the fast path (<2% waveform residual target).
+7. Sum currents per channel on a 1 ns grid; write `currents` product + truth block (true (x,y), t0, per-channel true charge).
+
+**Host:** laptop for development/small runs; **lxplus condor** for productions (pure python + npz — trivially portable); desktop for medium one-offs.
+
+### First Stage-B result — the ±1 share, predicted with nothing tuned (2026-08-07)
+
+`response/digitizer/selftest.py`, ρ_s 2 MΩ/sq, d_k 75 µm, S3 gain at 490 V, point deposits on a pad centre over a resistive strip. Shares within each view:
+
+| z [mm] | σ_T [µm] | X: d=0 | d=±1 | d=±2 | Y: d=0 | d=±1 | d=±2 |
+|---|---|---|---|---|---|---|---|
+| 0.5 | 107 | **0.990** | 0.005 | −0.000 | 0.006 | 0.387 | 0.003 |
+| 2 | 213 | 0.910 | 0.045 | 0.000 | 0.103 | 0.340 | 0.010 |
+| 5 | 337 | 0.724 | 0.137 | 0.001 | 0.187 | 0.275 | 0.046 |
+| 10 | 477 | 0.561 | 0.213 | 0.007 | 0.224 | 0.224 | 0.082 |
+| 20 | 674 | 0.417 | 0.262 | 0.028 | 0.229 | 0.192 | 0.111 |
+| 30 | 826 | 0.351 | **0.239** | 0.076 | 0.228 | 0.210 | 0.102 |
+
+Three things, in order of how much they should be believed.
+
+1. **c1 comes out right, and nothing was tuned to make it.** Integrating over clusters uniform in z across the 30 mm gap gives a track-level **c1_X = 0.202** against the measured **0.23–0.28**. Every input was fixed before this was run: the kernel from S1, the gain and σ₀ from the S3 campaign, the diffusion from the Magboltz table. The remaining ~15 % is the right size for what is still missing — the ion tail, the DREAM shaping, and the fact that the measured number comes out of the full wft chain rather than off a charge integral.
+
+2. **The z dependence is the real evidence, not the single number.** c1_X rises from 0.005 to 0.239, a factor 45, tracking σ_T. That is the diffusion signature and it is falsifiable: had the sharing come from the avalanche footprint or from induction geometry it would have been *flat* in z. Taken with T7's σ₀ = 33 µm and T2b's near-zero point-charge prompt sharing, this closes the argument — diffusion is the mechanism, by elimination and now by direct calculation.
+
+3. **The checkerboard shows up exactly where §3 said it would.** At z = 0.5 mm the X view holds 0.990 on a single channel while the Y view's d=0 holds 0.006 — the deposit's pad belongs to X, and the Y row through it owns no pad there, so its charge sits on d=±1 (0.387) instead. The two views only become comparable once diffusion is wide enough to reach both combs.
+
+### ⚠️ PREMATURE §9 COMPARISONS — held pending T14 (2026-08-07)
+
+Everything in this subsection was a stage-by-stage §9 comparison run before the chain was
+complete, against principle 1 above. **The physics defects it uncovered are real and stand**
+(the charge-non-conserving ion filter, the 1-D ESL strip anisotropy, the measured ion
+template). **The data-facing conclusions do not** — they compared an incomplete chain against
+targets from a different gas at a different drift field, and are superseded by T14. Kept for
+the record of what was checked and what it cost.
+
+### First waveform-level comparison — ⚠️ WITHDRAWN, the filter was broken (2026-08-07)
+
+Full chain — Geant4 (gun spread over the superperiod) → drift → mesh (T6 transparency) → avalanche (S3) → induction (S1 comb kernels) → ion transit → DREAM shaper — over 400–600 muons per point, 30 ms/event on the desktop.
+
+| ρ_s [MΩ/sq] | peak ±1/0, X | peak ±1/0, Y | area c1, X |
+|---|---|---|---|
+| 0.5 | 0.373 | 0.528 | 0.169 |
+| 1.0 | 0.342 | 0.516 | 0.159 |
+| 2.0 | 0.320 | 0.503 | 0.152 |
+| 5.0 | 0.295 | 0.487 | 0.144 |
+| **measured (§9)** | **0.16–0.19** | **0.16–0.19** | **0.23–0.28** |
+
+⚠️ **This table and the conclusion drawn from it are WITHDRAWN.** They were produced through a
+charge-non-conserving ion filter. `apply_ion_transit` normalised the leading edge of its running
+mean by samples-so-far, `c[n]/(n+1)`, instead of by the rectangle length, `c[n]/L`. The ion
+delivers f_i/T per unit time from birth, so for t < T the answer is (1/T)∫₀ᵗx = c[n]/L. The bug
+inflated the first T = 340 ns — exactly where the peak lives — by up to **340×** and put **5.9**
+units of charge on the readout per unit induced. Because it is a *time-dependent* distortion and
+channels peak at different times, it did not cancel from inter-channel ratios.
+
+Nothing caught it because every check to that point compared ratios or shapes, and a
+charge-non-conserving filter passes those. `response/digitizer/test_longitudinal.py` now feeds
+each folding path a unit impulse, whose response is h itself — exact by inspection, with no
+reference implementation that could be wrong the same way.
+
+#### Redone after the fix (2026-08-07), and the conclusion inverts
+
+Same chain, same 400 muons, d_k = 75 µm, with the S3 v2 *measured* ion template:
+
+| ρ_s [MΩ/sq] | area c1, X | area c1, Y | peak ±1/0, X | peak ±1/0, Y |
+|---|---|---|---|---|
+| 0.5 | 0.209 | 0.140 | 0.500 | 0.647 |
+| 1.0 | 0.209 | 0.153 | 0.500 | 0.637 |
+| 2.0 | 0.209 | 0.174 | 0.497 | 0.619 |
+| 5.0 | 0.209 | 0.200 | 0.499 | 0.581 |
+| **measured (§9)** | **0.23–0.28** | **0.23–0.28** | **0.16–0.19** | **0.16–0.19** |
+
+**ρ_s moves both Y observables the right way at once** — area 0.140 → 0.200 *up* toward target
+while peak 0.647 → 0.581 comes *down*. The withdrawn claim that "the area moves the wrong way" was
+an artifact of the bug. What remains true is that the rates are far too slow to reach the targets.
+
+**The X view does not respond to ρ_s at all**, to three decimals, and that is real physics rather
+than a second bug — checked at both levels below it: the S1 product's `G_X` differs by 42 % between
+ρ_s = 0.5 and 2, and the digitizer's `I_X` by 11 %, so the dependence is present and simply does
+not reach the inter-channel budget. The ESL is **1-D strips**, so sheet transport is 1-D: charge
+moves *along* a strip and cannot cross the gap. With strips running along y, charge that moves stays
+in the same column, so the X view (columns) sees no inter-channel redistribution while the Y view
+(rows) sees all of it. `I_X` still shifts by 11 % because the arrival *time* on a column changes as
+charge redistributes within that column's comb — the budget is conserved, the shape is not.
+
+**This predicts a strong X/Y asymmetry in sharing that the measured numbers do not show**, both
+views sitting at 0.16–0.19 and 0.23–0.28. That is now a headline tension in its own right.
+
+**The dominant discrepancy is the neighbour pulse SHAPE.** Ours has area ratio 0.45 and peak ratio
+0.50 — a neighbour the *same width* as the central channel. The data's neighbour carries ~¾ the
+area at ~⅙ the peak, i.e. **~4× broader**. This is the sharpest statement available because it is a
+ratio of ratios and needs no absolute calibration.
+
+It also points at a mechanism, and the direction is uncomfortable for §8. Sharing that arrives by
+**diffusion** is deposited on the neighbour at the *same instant* as on the centre, so it predicts
+peak-time shift ≈ 0 and width ≈ 1. Sharing that arrives by **sheet transport** is late and broad.
+§9 measures a **+54–61 ns median peak-time shift**, which is direct evidence that the sharing is
+*not* diffusion-dominated — while §8 concluded from the z-dependence that it is. Both cannot stand.
+`run.py` now reports peak-time shift and relative width so the model can be put on the same axis;
+the run is in flight.
+
+If the tension survives, the coherent resolution is that the **drift field is not the assumed
+333 V/cm**. A higher field gives smaller σ_T, which removes prompt diffusion sharing and forces the
+measured c1 to come from the slow sheet instead — fixing the amount, the timing and the width
+together. §5 already records that v_drift is quoted three incompatible ways (39.1 dry Magboltz,
+36.6 in §1, 28.1 ± 0.7 bias-free micro-TPC), which is the same parameter under suspicion.
+
+**T10 is no longer the sole critical path.** The withdrawn argument for promoting it assumed the ion
+carried ~97 % of the charge with the narrowest possible lateral shape; the measured split is 90.8 %,
+and the A/B test below shows the ion model barely moves these observables at all. T10 remains worth
+doing for rigour, but the drift field and the X/Y asymmetry are ahead of it now.
+
+#### The measured ion template changes almost nothing (2026-08-07)
+
+S3 v2 supplies real `i_elec`/`i_ion`, so the analytic δ + rectangle can be tested rather than
+trusted. A/B at ρ_s = 2, same seed, same events, differing only in the ion model:
+
+| | analytic | measured S3 v2 |
+|---|---|---|
+| peak ±1, X | 0.493 / 0.498 | 0.500 / 0.494 |
+| area c1, X | 0.208 | 0.209 |
+
+The measurement also corrects the model's two numbers — f_ion 0.967 → **0.908**, transit 306 ns →
+**~340 ns**, mean ion birth height 5 µm → **13.84 µm** (`ions.py` assumed the avalanche sits "within
+microns of the anode"; the ionization profile is exponential with 1/α = 14 µm). The transit lands
+inside the ±30 % mobility band, so **§5's "single softest parameter" survives contact with the
+data** — and, more usefully, the observables turn out not to care.
+
+Two independent routes agree to four digits: Q_i/(Q_e+Q_i) = 0.9079 from the current integrals,
+1 − ⟨z⟩/g = 0.9077 from the `alpha_z` histogram. That agreement is *also* the proof that no ion
+charge was clipped by the 400 ns S3 window. The histogram's own decay length, 14.8 µm, matches
+g/ln(G) = 14.1 µm from the measured gain.
+
+#### The "missing 23 %" was the inter-pad gaps — and both failures were the test harness (2026-08-07)
+
+A charge audit reported the digitizer inducing only 0.675 of the deposited charge against an expected
+0.875, flat at every drift depth. Three explanations were tested and eliminated — not diffusion (the
+deficit moves 0.8 % while σ_T moves 8×), not the channel window (converges at 0.6753 by n_side = 8,
+and n_side must grow *together* with y_window because Y channels sit on the 0.78 mm pad pitch, so a
+3.9 mm window holds only ±5 of them however large n_side is), not a kernel time cut (opening t_max
+makes it *worse* at fixed n_side, which is charge dispersing into more channels).
+
+**The expectation was wrong, and the right number was already in every product's metadata.**
+`prompt_sum_rule` = S(0)/C(0) = 0.875 applies only to the **fictitious pitch-sized 0.78 mm pads** that
+`check_sum_rule` substitutes so that a closed form exists — with those, the checkerboard tiles the
+plane exactly. Production kernels use the **real 0.68 mm pads**, which do not tile: (0.68/0.78)² =
+0.760 of the plane is pad, and image charge on the 100 µm inter-pad gaps lands on no readout channel.
+`run_point` computes exactly this and stores it:
+
+| | |
+|---|---|
+| `sum_rule_expect` (tiling pads) | 0.875000 |
+| **`channel_capture_prompt`** (real pads) | **0.665023** |
+| digitizer measured | 0.6753 → within **1.5 %** |
+
+`channel_capture` is identical prompt and late (0.665023 both), which is the correct signature: a
+geometric partition cannot be time-dependent.
+
+**The T10 certification then "failed" at 59 % for an equally mundane reason.** The LUT keeps every
+4th x sample, so pad centres fall *between* LUT samples; evaluating the reference at a pad centre and
+the LUT at the nearest sample compares two source positions up to 20 µm apart, and the kernel's
+sub-pad dependence is strong enough (d=0 charge spans 0.22–0.35 across columns) that this alone reads
+as a 59 % residual. Drawing sources from the LUT grid — every LUT sample *is* a full-res sample — the
+residual drops to **1e-4**.
+
+**The lesson, recorded because it recurred four times today:** every ad-hoc re-derivation of the
+channel indexing was wrong (y = 0 sits at ny//2 via `_to_y0_origin`, rows alternate parity, X is
+indexed by absolute column mod the 40-pad superperiod), while the solver's own helpers were right
+every time. Certify against the code that already passes a closed-form check, not against a
+freshly-written summation.
+
+#### Chain closed end to end, and what the build found (2026-08-07)
+
+Three defects, all caught by internal checks rather than by any comparison with §9 — which is the
+case for principle 1's revision:
+
+1. **`apply_ion_transit` did not conserve charge** — normalised its leading edge by samples-so-far
+   instead of by the rectangle length, putting 5.9 units of charge on the readout per unit induced
+   and inflating the first 340 ns by up to 340×. Found by an impulse test whose answer is exact by
+   inspection.
+
+2. **The noise generator was 5.7× too loud** from a stray √ns — and the *autocorrelation still
+   matched perfectly*, because a pure scale error leaves a normalised autocorrelation untouched.
+   Amplitude and shape are now asserted separately. A second bug behind it: mean-subtracting each
+   trace before the FFT zeroes the DC bin, but the pedestal is already removed, so DC is genuine
+   baseline wander — and it is most of the common mode.
+
+3. **A 6200× units error** between Stage B and the DAQ. `induce()` returns elementary charges per
+   second and the shaper's `h` is peak-normalised, so the shaped waveform is in units of *e*, not
+   fC. Found by physics, not by a test: the median simulated MIP pegged the 12-bit ADC at 3888 of
+   3748 available counts. Half of every event saturating is something no cosmic run does.
+
+Also resolved from det3's `run_config.json` rather than assumed: the readout wiring is
+`x_1..x_8 → FEU 3` and `y_1..y_8 → FEU 4`, connector-to-connector identity within a view, but
+**every connector on both views is `"inverted"`** — the channel order inside each connector is
+reversed. That is a pure relabelling and changes no observable computed here; it matters only for a
+channel-by-channel comparison at T14, and is left explicit rather than guessed a second time.
+
+Open, and belonging to T14 setup rather than to the build: at 490 V the simulated MIP still
+saturates in 16.5 % of events. 490 V *is* a genuine det3 point (their HV scan runs 460–530 V), so
+this may be real behaviour at the top of their range rather than a modelling error — but the run to
+compare against, its voltage and its gas, all have to be settled before that question means
+anything.
+
+#### ⚠️ The §9 targets are measured at an operating point the simulation does not simulate (2026-08-07)
+
+**Superseded by the P1 decision in §0a (2026-08-07): T14 now targets det3 cosmic-bench data, not
+run_71/SPS, which sidesteps the gas/field mismatch documented below rather than resolving it. Kept
+for the record — the physics reasoning (drift-velocity mismatch → halo-width mismatch) is exactly
+the same argument now applied to det3's own gas, see §0a's water/gap sub-items.**
+
+The timing run put numbers on the discriminator and refuted the diffusion-vs-transport framing
+above: our d=±1 peak-time shift is **+93 to +142 ns** against a measured **+54–61 ns** — our
+neighbour is not prompt at all, it is *twice as late* as the data's. Relative width stays ~1.0
+because the 180 ns DREAM shaping is common to every channel and dominates each pulse's width, so
+delay survives as a shift while broadening does not.
+
+Chasing that led to the source documents behind §9, and the mismatch is upstream of any of it.
+The matched area/peak table (`RAW_RUN71_REANALYSIS_2026-08-04.md` §4) is **one table from one run**,
+so the shape disagreement is internally consistent and cannot be dismissed as mixing datasets:
+
+| d | 0 | ±1 | ±2 | ±3 |
+|---|---:|---:|---:|---:|
+| measured window-integral area | 1.00 | 0.71–0.77 | 0.40–0.48 | 0.15–0.18 |
+| measured peak amplitude | 1.00 | 0.16–0.19 | 0.06–0.08 | 0.03 |
+| **ours** (ρ_s=2, area) | 1.00 | 0.45 | 0.09 | 0.011 |
+| **ours** (ρ_s=2, peak) | 1.00 | 0.50 | 0.13 | 0.018 |
+
+As shares this reads: the data puts **0.271** on the central strip and carries a broad slow halo out
+to ±3; we put **0.462** there and have essentially nothing past ±1. The ±1 share happens to agree
+(0.20 measured vs 0.209 ours) — which is why every earlier check passed. **The disagreement is in
+the halo and in the peak, not in c1.**
+
+But run_71 was taken in a **different gas at a different field than we simulate**:
+
+| | run_71 (the §9 source) | this simulation |
+|---|---|---|
+| gas | Ar/CF₄/iC₄H₁₀ 88/10/2 + **1.3–1.7 % H₂O** | Ar/iC₄H₁₀ 95/5, dry |
+| drift field | **233 V/cm** (700 V) | 333 V/cm |
+| v_drift | **13–15 µm/ns** measured | 39.1 µm/ns (dry Magboltz) |
+| T_drift | ≈ 2.1 µs | ≈ 0.77 µs |
+
+The data-side reanalysis establishes the water independently and quantitatively: dry Magboltz for
+that mixture gives 74.7 µm/ns at 233 V/cm against 13–15 measured, a factor ~5, and the measured
+v ∝ E (constant mobility) is the signature of vibrational cooling by a polar contaminant. Adding
+1 %/2 % H₂O brackets the measurement (20.1 / 10.4), fixing the water at 1.3–1.7 %.
+
+**So the model is being validated against a detector it is not a model of.** A ~3× slower drift over
+the same 30 mm means a ~3× longer arrival spread, which is exactly the broad late halo we are
+missing — before invoking any new physics. §5 already carried v_drift three incompatible ways
+(39.1 / 36.6 / 28.1 µm/ns); this is that open item, and it is larger than the spread suggested.
+
+This does not license tuning. The correct move under the §9 firewall is to **simulate the operating
+point the data was taken at** — Magboltz for Ar/CF₄/iC₄H₁₀ 88/10/2 + 1.5 % H₂O at 233 V/cm,
+including **transverse diffusion** — and only then compare. `nTof_x17`'s
+`drift_velocity_beamtest_cf4_wet{1,2}_CERN.json` carry v_drift only, so that run is still needed.
+
+One further caution on the targets: `RAW_RUN71_REANALYSIS` §6 records that **c1 as a cascade-model β
+is not a robust observable in any pass**, and directs users to the library + charge budget instead.
+The c1 = 0.23–0.28 line in §9 should be treated as weaker than the area/peak table above.
+
+**A trap in comparing the AREA budget once the front end is in (2026-08-07).** The ion smear and the DREAM shaper are both linear time-invariant filters applied *identically to every channel*, and for such a filter ∫(h⊛f) = ∫h·∫f. The integrated-charge ratio between channels is therefore **mathematically invariant** under them — switching shaping on cannot change the area budget over an infinite window. It appeared to (c1_X 0.201 → 0.146), and that was pure **window truncation**: the shaped tail runs ~12τ ≈ 1.2 µs past the last avalanche, and neighbour channels are fed later than the central one by resistive spreading, so a fixed window clips them harder. A control run at the identical window with shaping off returned exactly 0.201, as the invariance requires. Consequence: **the area budget is only comparable to data when integrated over the same window the DAQ uses** (32 samples × 60 ns = 1.92 µs), not an arbitrarily long one — and peak amplitude, which has no such invariance and *is* genuinely changed by shaping, is the more informative observable until the DAQ window is modelled in T12.
+
+Not yet included and each will move these numbers: the ion tail (electrons only so far), DREAM shaping, ZS, and noise.
+
+### Track level, on real Geant4 tracks (2026-08-07)
+
+500 normal-incidence 4 GeV muons through the full 30 mm gap, 337 primary electrons/event, run through Stage B at ρ_s 2 MΩ/sq, d_k 75 µm, with T6's measured mesh transparency. 200 events, 19 s (93 ms/event):
+
+| d | −3 | −2 | −1 | 0 | +1 | +2 | +3 |
+|---|---|---|---|---|---|---|---|
+| X | 0.006 | 0.048 | 0.205 | **0.482** | 0.198 | 0.036 | 0.004 |
+| Y | 0.045 | 0.112 | 0.161 | **0.283** | 0.165 | 0.112 | 0.047 |
+
+**c1_X = 0.201, c1_Y = 0.163** against the measured 0.23–0.28, and an **X/Y charge balance of 0.506/0.494** against the measured 0.49/0.51 — both untuned, with every input fixed before the run. The remaining deficit in c1 is the right size and sign for what is still missing (ion tail, DREAM shaping, ZS, noise).
+
+**A trap in the Stage A generator, worth knowing before anyone reads a positional observable off this file.** The gun is a **pencil beam at (0, 0)**, and 512 pads is even, so the active-area centre falls exactly on a pad *boundary*. Every muon therefore lands at the one x where "the channel with the most charge" is a coin flip: in a first 200-event run 216 events rounded one way and 256 the other, producing a spurious X-view asymmetry (d=−1 → 0.308 against d=+1 → 0.093) that is entirely an artifact of the beam position. A sub-pitch scan confirmed the digitizer itself is symmetric to 0.019 once the impact point is averaged. `run.py` now offsets each event by a uniform draw over the 31.2 mm superperiod in x and 1.56 mm in y — exact rather than approximate, since the stack is periodic with those periods — and the X profile comes back symmetric (0.205 / 0.482 / 0.198). **The proper fix is to randomise the gun in Stage A**; until then, do not use `--fixed-position` for any §9 comparison.
+
+Note also that the *cluster* x range in that file spans −140 to +104 mm while the *track* positions are all at x ≈ 0: those wide clusters are delta rays, and mistaking the cluster range for the beam spread is what hid the pencil beam at first.
+
+## 8. Stage C — DREAM electronics
+
+1. Shaper: build the DREAM transfer function **from the manual** (`~/x17/Documents/dream/DREAM_User Manual_prod_v3.pdf`) at the register settings in the run config (`CosmicTb_MX17.cfg`, local copies in `~/x17/cosmic_bench/det_3/*/raw_daq_data/`; peaking-time code `(0xd023>>4)&0xF = 2` → 180 ns class per nTof_x17 notes). Convolve channel currents.
+2. Sampling: 60 ns (bench, 32 samp) / 60 ns 64 samp (SPS config) with uniform-random trigger phase; ftst semantics as in data.
+3. Gain/ADC: charge→ADC scale from the manual's mV/fC + ADC full scale; leave one global scale factor free-but-recorded (this is the one place absolute calibration enters; it does not affect shapes/sharing).
+4. Noise: per-channel Gaussian σ from the det3 pedestal runs (raw fdf/decoded root at `~/x17/cosmic_bench/det3/mx17_det3_saturday_scan_6-27-26/*/raw_daq_data/MX17_pedestals_pedthr_260627_16H35_*` and the standalone 6-22 run) **plus** the common-mode component per 64-ch block (measure covariance from pedestal data; inject correlated noise; the analysis CNS step then removes most of it, as in data). Optional pink/coherent extras only if pedestal PSD demands.
+5. Saturation: the ADC is 12-bit and clips at **0..4095**, which is what the code does and what the data reaches. (The "3550" this line used to give is not a clip at all — it is wft's *censoring threshold* on pedestal-subtracted W, `wft/model.py:57`. Code was right, plan was wrong; corrected 2026-08-07.) Plus the repeated-constant pathology only if needed later. ZS: port `nTof_x17/mx_july_beam_qa/26_zs_sim_extract.py` (DREAM firmware ZS: `ZsTyp=1`, **`ZsChkSmp=1`** — the code matches det3's own config; `ZsChkSmp=4` is the July-beam setting and was wrong here), N·σ thresholds; RAW mode = no ZS. If ZS is ever switched on, take `ZsChkSmp` from the run config rather than a constant, and first verify whether the firmware keeps pre-samples.
+6. Output in the exact `decoded_root` schema (§2) so `wft/io.py` reads simulation as if it were data.
+
+**Host:** laptop.
+
+## 9. Validation & closure (blind targets — do not tune to these)
+
+**Per the P1 decision (§0a, 2026-08-07): the T14 target is det3 cosmic-bench data, Ar/Iso 95/5 at
+1000 V drift / 490 V mesh. Run_71/SPS (CF₄-bearing, 233 V/cm) is a different detector and is
+SHELVED — its rows below are kept for the record but are NOT the comparison to run at T14.** The
+table mixes two data sources; the "dataset" column below states which, inferred from each source
+doc's naming (`sps_beam_test_26/*` = run_71/SPS; `mx_june_*` = det3-era cosmic analysis) — confirm
+the gas/HV recorded inside each doc before trusting a row as a genuine det3 target, this was not
+independently re-checked doc-by-doc.
+
+Run the **unmodified** wft chain (`nTof_x17/wft/`) + the SPS-style kernel analyses on simulated det3-bench cosmics and simulated normal-incidence tracks. Compare:
+
+| Observable | Measured value | Source | dataset |
+|---|---|---|---|
+| Dispersed ±1 share c1 | 0.23–0.28 (gain/gas/drift-invariant) | `sps_beam_test_26/analysis/M70V_FLAT_ANALYSIS.md`, `FLAT_CF4_RUN63.md` | run_71/SPS — **SHELVED** |
+| ±1 median peak-time shift | +54–61 ns | `RAW_RUN71_REANALYSIS_2026-08-04.md` | run_71/SPS — **SHELVED** |
+| Charge budget d=0/±1/±2/±3 (area) | 1.00 / 0.71–0.77 / 0.40–0.48 / 0.15–0.18 | same (trim20, clean) | run_71/SPS — **SHELVED** |
+| Peak-amplitude ratios | 1.00 / 0.16–0.19 / 0.06–0.08 / 0.03 | same | run_71/SPS — **SHELVED** |
+| Full W_d(t) library, 3 drift fields | npz archive | `staging/run_71/reanalysis_2026-08-04/` (data disk) | run_71/SPS — **SHELVED** |
+| X vs Y sharing asymmetry | τ 230 vs 410 ns; kY 1.8–2.9 | `mx_june_wft/ANALYSIS_STATE_2026-07-31.md` | presumed det3 — **confirm gas/HV in-doc** |
+| Apparent τ_g from the rc_line fit (differential Y-vs-X kernel decay, NOT a drain — §1) | 5.3–7.3 µs; predicted two-component (gap charge ~no decay) | `rc_line_step2.py` results; closure = T13b | presumed det3 — **confirm gas/HV in-doc** |
+| X/Y charge balance | 0.49/0.51 (det3) | `bench_constants.py` | det3, confirmed |
+| Undershoot | −4 to −6% | run_71 reanalysis | run_71/SPS — **SHELVED** |
+| Angular/position resolution | σ_θ 1.08–1.11°, core σ|r| 0.46 mm | `ANALYSIS_STATE_2026-07-31.md` | presumed det3 — **confirm gas/HV in-doc** |
+| Prompt diffusion onto ±1 | 0.19–0.21 | M70V analysis (checks steps B.2–B.4 alone) | run_71/SPS — **SHELVED** |
+| **Predicted, look for in data:** 31.2 mm beat in sharing/residuals | — | this plan §1 | applies to either dataset |
+
+**Before T14 runs**, the SHELVED rows above need det3-equivalent replacements (c1, peak-time shift,
+charge budget, peak-amplitude ratios, undershoot) — either found in an existing det3-era cosmic
+analysis or measured fresh from det3 raw data; do not substitute the run_71 numbers for them.
+
+Procedure: predictions FIRST for the full ρ_s × d_k grid, as a band; then overlay data; identify which scan point matches; only then permit tuning, restricted to the physical parameter set {ρ_s, d_k, ion mobility, absolute gain, ENC scale} — the p2 "don't tune past these" firewall applies: if *shapes* disagree beyond these knobs, the model is missing physics; find it, don't fudge it.
+
+## 10. Compute distribution policy
+
+| Host | Hardware | Use for | Don't use for |
+|---|---|---|---|
+| **laptop** (this machine) | i7-8550U 4c/8t, 16 GB, GTX 1050 4 GB | **orchestration, code, small checks, plots.** Nothing heavy — see below | **any real compute.** S1 solves, Stage B runs, LUT builds |
+| **desktop** (`ssh desktop`) | Ryzen 7 5800X 8c/16t, 62 GB, RTX 3060 Ti 8 GB. Garfield++ ready at the pin (§10a); ⚠ home disk 20 GB free | one-off heavy: S2 neBEM/Elmer solves, medium Garfield campaigns, big single Geant4 runs, S1 if it outgrows laptop | systematic multi-point campaigns (no batch system); storing bulk output (ship results back to `~/x17/response_sim/`) |
+| **lxplus** (`ssh lxplus`) | HTCondor + CVMFS; LCG_109 view for the runtime, our own Garfield (§5a) | ALL systematic campaigns: S3 avalanche grid, gas tables, Stage A productions, Stage B parameter sweeps | interactive iteration |
+
+Existing lxplus workflow to reuse: `nTof_x17/garfield_sim/mm_condor_submit.py` and wrappers (AFS work dir `/afs/cern.ch/user/d/dneff/work/git/...`, EOS for tables). Copy the pattern, don't reinvent.
+
+**Laptop compute policy — HARDENED 2026-08-07 (user).** Push real compute to the desktop or lxplus; keep the laptop for orchestration, editing, and small checks. This is not a preference, it is a constraint that has already bitten twice today:
+
+- the digitizer LUT build peaks at ~3.7 GB and the Stage B run on top of it needs ~5 GB — on a 16 GB machine that only works if nothing else is running;
+- **it usually is.** Several agents share this repo and this machine. A parallel `scripts/gerber/extract_readout_pattern.py` was holding **9.9 GB of 15 GB**, and three consecutive Stage B runs were silently OOM-killed before the cause was found. The failure mode is a zero-length output file and no traceback, which reads exactly like a hang.
+
+So: S1 solves, Stage B/C runs, LUT builds and any Garfield work go to the desktop (62 GB) or lxplus. Check `free -g` and `ps --sort=-rss` before assuming a laptop job is hung — another agent's job is the likelier explanation.
+
+### 10a. Desktop (`ssh desktop`, `dylan-MS-7C84`) — state as of 2026-08-06
+
+Correcting this plan's original claim that the desktop had "no Geant4/ROOT/Garfield installed yet": ROOT and Garfield were already there. A bare `ssh desktop <cmd>` runs a *non-login* shell that does not source `.bashrc`, so `which root` finds nothing and the box looks emptier than it is — use `ssh desktop 'bash -lc "..."'` when probing.
+
+**Present and working:**
+
+| | |
+|---|---|
+| OS / toolchain | Ubuntu 22.04.5, gcc 11.4.0, cmake 3.22.1, system python 3.10.12, gfortran |
+| ROOT | **6.30.02** at `~/Software/root_6_30`, sourced from `.bashrc` (line 121) |
+| Garfield++ | `~/Software/garfield`, **at the pin `927e5c21`** — rebuilt 2026-08-06 (72 s, `make -j12`), `CMAKE_BUILD_TYPE=Release`, installed to `~/Software/garfield/install`. Upstream `ctest`: **22/22 pass**. PyROOT smoke test passes (`import Garfield`, `GetIons`, `SetDynamicWeightingPotential`, neBEM all present) |
+| Repos | `~/PycharmProjects/nTof_x17`, `~/CLionProjects/MX17_Geant` |
+
+Use it via `source ~/PycharmProjects/nTof_x17/garfield_sim/setup_garfield.sh` — it detects the desktop and wires up ROOT + the pinned Garfield. Nothing else needs configuring for S2/S3/Stage-B work.
+
+**Still needed (the remainder of T0):**
+
+1. ~~**Python stack**~~ — **done (2026-08-06).** No conda/mamba, system python 3.10 only, but the analysis stack is present and verified importable: `numpy 2.2.6`, `scipy 1.15.3`, `matplotlib 3.10.8`, `uproot 5.7.5`, `awkward 2.12.0`, `PyYAML 5.4.1`, plus PyROOT 6.30/02. (`uproot`/`awkward` installed via `pip --user`; the rest were already present.) Conda was deliberately *not* installed: PyROOT here is hard-bound to python 3.10 (`libcppyy3_10.so` → system `libpython3.10.so`), so a conda python 3.11+ env would have no PyROOT and could not use the pinned Garfield without a full rebuild. Same reason the note below matters — the pinned Garfield's python module lives under `lib/python3.10/site-packages`, so a *different* python would not see it without re-pointing `PYTHONPATH`.
+2. **Geant4** — genuinely absent. Only needed if big single Geant4 runs are actually wanted here; lxplus covers Stage A productions.
+3. **Disk** — 20 GB free on `/` (plus 28 GB on `/media/ucla`, 7 GB on `/media/dylan/data`). The garfieldpp clone alone is 639 MB because the `ResistiveMicromegas` COMSOL maps are ~100 MB each. Keep bulk products off this box, per the table above.
+4. ~~**Cleanup**~~ — **done (2026-08-06).** `~/Software/garfield/build_lcg110/` and `install_lcg110/` (a `3627927` build; the name was misleading — it used local ROOT 6.30 and `/usr/bin/c++`, not an LCG_110 view) have been deleted, reclaiming 267 MB. **Note for whoever wrote that step:** they were *not* safe to delete as written — `.bashrc` sourced `install_lcg110/share/Garfield/setupGarfield.sh`, so deleting first would have broken every login shell. `.bashrc` now sources `install/` (the `927e5c21` pin) and was fixed before the deletion. A login shell and `setup_garfield.sh` now agree on one Garfield path.
+
+**Constraints to remember:** there is **no CVMFS** on this machine (`/cvmfs` does not exist, the client is not installed) — so no LCG views, and the Garfield build must go against the local ROOT. `sudo` works but **requires a password**, so nothing here can be provisioned non-interactively.
+
+## 11. Task graph
+
+| ID | Task | Depends | Host | Acceptance |
+|---|---|---|---|---|
+| T0 | Desktop env setup — **Garfield++ part DONE** (2026-08-06: pinned build, ctest 22/22, smoke test passes). Remaining: python stack (numpy/scipy/uproot) and, if wanted there, Geant4 | — | desktop | `python -c "import numpy"`; ~~garfield smoke test~~ ✅ |
+| T1 | `response/` package skeleton + `common/` geometry constants (parse/assert vs `MX17ModuleGeometry.hh`) + params YAML schema — **DONE 2026-08-07** | — | laptop | unit tests pass |
+| T2 | Pad↔X/Y channel mapping from gerbers — **DONE 2026-08-07** (checkerboard confirmed from connector stubs, §3; `response/common/channel_map.py`) | T1 | laptop | map figure; agrees with `Mx17StripMap.py` channel count |
+| **T2b** | **Comb channel kernels** — **DONE 2026-08-07** (`response/solver/kernels.py`). 2 distinct Y kernels + 40 distinct X kernels (§3); validated against the closed-form sum rule to 4e-7 with an exact plane partition; first charge-level predictions in §3. ~~Remaining: the x/y sign convention vs `Mx17StripMap.py` connector numbering is still unverified~~ **SETTLED 2026-08-08: it needed `sy = +1` (P5)** | T2, T5 | laptop/desktop | comb G_n(t) exported for both channel types ✅; sum rule passes ✅ |
+| T3 | **S1 solver core** (uniform sheet first: V1) — **DONE 2026-08-07** (V1 at machine precision) | T1 | laptop | V1 passes to <1% |
+| T4 | S1 Bloch patterning (strips) + V2, V3 — **DONE 2026-08-07** (superperiod-commensurate box, no truncation parameter) | T3 | laptop | V2, V3 pass |
+| T5 | S1 boundary/drain + full grid export; V4, V5, V6 — solver + V4 (as redefined, charge level) **DONE 2026-08-07**. **Production grid COMPLETE 2026-08-07**: all 12 ρ_s × d_k points on EOS `response_sim/s1/` (27.7 GB), every one passing the closed-form sum rule at ~5e-7 with the plane partition exact to 4e-13; register at `s1/MANIFEST.csv` via `response.solver.manifest --check`. V5 (mesh-ripple) is an analytic bound, not a test (§0a). **V6 RUN 2026-08-08** (`response/solver/v6_pad_gaps.py`) and it **FAILS**: exposing the inter-pad gaps moves prompt capture +27.2 %, not the percent-level §3 predicted, and removes a 4.5× spurious sub-pad amplitude modulation — `design/report/V6_PAD_GAPS_2026-08-08.md`. The substrate bracket spans only 1.7 %, closing NEEDED_INPUTS §6's FR4 question for the response. ~~A W2 re-solve of the grid is NOT done~~ **W2 RE-SOLVE DONE 2026-08-09** (next-in-order item 3): 66-job condor fan-out + combine, products on EOS `response_sim/s1_w2_ny512/products/`, all four ρ_s passing pre-registered acceptance — prompt capture **0.841977** (+25.66 % vs W1, predicted +25.5 %), `x_fraction_prompt` 0.50000002, `gd_rank` = 6200 exactly in every family. The absolute-amplitude defect is FIXED. Note the new grid is ny=512, so it re-inherits the ~0.45 % pad-edge shoulder term audit C6 rejected for W1 — the three grids are not interchangeable dimension-for-dimension, see `s1_w2_ny512/README.md`. `design/report/W2_NIGHT_REPORT_2026-08-09.md` | T4 | laptop/desktop/lxplus | grid produced ✅; V6 defect **fixed by W2** ✅ |
+| T6 | S2 mesh unit cell — **TRANSPARENCY (1D) DONE 2026-08-07** (`response/meshcell/mesh_transparency.C`): 0.873 at the bench field ratio 98; wired into Stage B as `DEFAULT_TRANSPARENCY` until the 3D value supersedes it. **FIELD MAP REBUILT AND GATED 2026-08-08** (`response/meshcell/FIELD_MAP_RUNBOOK.md` is now the authority): the neBEM route was disqualified by measurement (bounding planes unused upstream; 1/n² fringe error swamps the 333 V/cm drift side — `copies_scan.C`), replaced by a gmsh+scikit-fem P2 solve of the exact infinite lattice via mirror-symmetry Neumann walls. Two physics corrections vs the draft: amp gap is pillar height (anode at −168.5 µm; mean amp field ~31.0 kV/cm, NOT 32.7 — S3 gains will drop, that is physics), and mesh field-penetration (+1.95 V) handled exactly by a two-solve BC combination pinning bulk drift to 333 V/cm. Requires the LOCAL Garfield ComponentGrid patch (3D region flag; see runbook Decision 5 — losing it reads as transparency = 1.000). Smoke map passed all solver gates S1–S6 and Garfield gates G1–G3+G7 on the desktop; **PRODUCTION ACCEPTED 2026-08-08** (git 5763342): 68×68×387 @ 1 µm, all gates pass; amp bulk 31 014 V/cm, 3D transparency 0.955 −0.045/+0.005 (supersedes DEFAULT_TRANSPARENCY on Stage B's next touch); shipped to `~/x17/response_sim/meshfield/` with manifest. S3 re-run out of `uniform_field` is now UNBLOCKED (T7) | T0 | desktop | ✅ DONE |
+| T7 | S3 avalanche campaign — **uniform-field pass MERGED 2026-08-07** (`aval_calib_v2.json`/`v3.json`, all 56 slices real currents, f_ion = 0.908, ion transit ~340 ns). **Real-field 490 V point DONE 2026-08-08** (`aval_calib_meshfield_pooled.json`, 6400 seeds): the first desktop campaign's 7-voltage labels were an accident (one fixed 490 V map behind every label — quarantined, see §0a and `MESHFIELD_QUARANTINE_README.md`), but pooled it is a healthy high-stat 490 V measurement (survival 0.9559 ≈ T6 transparency 0.955; gain 24 094 = 1.85× below uniform-field, consistent with 31.0 vs 32.7 kV/cm; f_ion 0.900). `mx17_aval_calib.py` loads the T6 map (weighting-field component given area + medium, anode anchored to the map grid, logging capped for disk) and since `6e2aad0` guards `--voltage` against the map sidecar. **Real HV scan (460–530 V, per-voltage ladder maps) launched overnight 08-08 18:59** (`overnight_chain.sh`: 41-map ladder → EOS → 64-slice scan → `aval_calib_meshfield_hvscan.json` → EOS); collect + certify in the morning (§0a next-in-order 1) | T6 (DONE) | desktop | 490 V pooled ✅; HV-scan grid — overnight, collect 08-09 |
+| T8 | Stage A schema upgrade — **DONE 2026-08-07** (`time`, `creator`, Meta tree with world→active-area transform) | geometry merge | laptop | §6 acceptance |
+| T9 | Stage B fast path — **RUNS END TO END 2026-08-07** on synthetic deposits (`response/digitizer/`, self-test below). ~~Remaining: the analytic ion term, real ClusterTree input, per-event throughput~~ — **all three done**: measured ion template (`ions.measured_longitudinal`), real Geant4 ClusterTree input, and a 5.8× induction speed-up that turned out to be pure memory layout (time axis last), ~30 ms/event | T5, T7 | laptop | digitizes 10³ events; energy/charge bookkeeping closes |
+| T10 | Certify the fast path — **DONE 2026-08-07** (`response/digitizer/test_lut_vs_solver.py`). The LUT is compared per channel against `kernels.charge_budget_y`/`charge_budget_x`, the solver's own indexing whose closed-form sum rule passes at 4.8e-07. **Worst residual 1e-4** over 6 source positions against a 2 % bar — the windowing, x-striding, log→uniform time resampling, G→current differentiation and absolute-column→channel-offset re-indexing all preserve the per-channel charge to 0.01 %. Time-grid adequacy separately certified against a 4× denser re-solve (`test_time_grid.py`, residual <0.5 %). **The slow path (Ψ at z>0, the ion's lateral shape) was built 2026-08-08** — `response/solver/zextend.py` + `response/validation/t10_slowpath.py`; it is a *different* approximation from the caching certified above. Three decisions are recorded here because each departs from this plan as written. **(a) The §2 Ψ z-slices never existed** (`solve()` returns z=0 only) and are NOT needed: in W1 the gas gap is charge-free under a grounded mesh, so Ψ(k,z,t) = Ψ(k,0,t)·sinh(k(g−z))/sinh(kg) exactly, at every t independently, with k→0 giving the 1−z/g the digitizer already uses. Verified in `zextend` against an independent real-space FD Laplace solve, which converges onto it at 2nd order in h_x with a flat constant. **(b) The Garfield `ComponentGrid::LoadWeightingField` route of §3 point 6 was deliberately NOT used.** Given an exact analytic lift it would add only ComponentGrid's interpolation of a resampled volumetric grid plus the unmerged local region-flag patch whose applicability to the weighting-field path is unverified — both chances at the 'runs cleanly, plausible, wrong' failure mode. Independence is kept where it matters: the slow path shares no code with the LUT. **(c) The 2026-08-08 19:12 run is VOID** — it fed the S1 time axis (seconds) to a ns grid, so the interpolation collapsed the kernel to prompt + fully-relaxed and nothing from it may be quoted. Caught by a parallel audit session. Note the k=0-only self-check passed at 6e-15 throughout: both paths read the same corrupted table, so a two-path identity check is blind to an error in their shared input. `to_uniform` now raises instead of extrapolating. **RESULT after the fix: the fast path FAILS the 2 % bar at 8.26 %** (`design/report/T10_SLOWPATH_2026-08-08.md`). Integrated per-channel charge is fine (≤0.09 % of the event) and the sharing fractions agree to ≤0.0018 absolute — it is a redistribution in TIME that the 180 ns shaper sees. Confined to shallow deposits over an ESL gap and dies with diffusion: 8.26 % at the 34 µm avalanche footprint, 2.66 % at σ_T = 213 µm (z = 2 mm), 0.75 % at 477 µm, 0.20 % at the cathode. c1 moves +28.5 % at worst but that is 0.022 → 0.028, a big shift in a negligible number; it also moves −4.1 % at an ordinary c1 (in-gap Y 0.380 → 0.365), saved by amplitude rather than by size — that view is 2.4 % of the event peak. On a view that carries the event the worst is +1.5 %, and at full drift zero. **Fix = plan §7 step 5, which was never done because the slow path did not exist**: build the LUT from slow-path templates R_n, turning this from a physics approximation into the caching question T10 already certifies at 1e-4. ~~**Sequence it AFTER V6's W2 re-solve**~~ — **W2 ANSWER IN, 2026-08-09: the verdict does NOT change.** Re-run on the W2 product like-for-like (ρ_s = 2 MΩ/sq, same calib md5 `ece7ccd5`, same mesh-V) gives **7.55 % against the 2 % bar — still FAIL**. W2 improves it by 0.71 pp (−8.6 % relative), which is above the ~0.45 % ny=512 grid bound and the ~0.1 % stack term, but **ρ_s alone moves it 0.65 pp** (rho1M 8.20 %, rho2M 7.55 %) — comparable to the W1→W2 move, so the improvement is not a sharp discriminator while the FAIL is robust to both. c1 moved the wrong way (+28.5 → +29.2 % at rho2M, +34.6 % at rho1M), confirming the shaped residual as the comparator to quote. **So §7 step 5 (LUT from slow-path templates) REMAINS REQUIRED.** **CACHING RE-CERTIFIED ON W2, 2026-08-09** — and the caching layer was never broken. A rehearsal against the W1 baseline showed the cert reading **1.87 %** instead of its published 1e-4, on *every* product tried (W1 glue, W1 no-glue, W1 ny=512, W2 alike). Three hypotheses were falsified in turn — the kapton+glue stack, then `e36a39c`'s `y_stride` decimation — before the cause was pinned: **`test_lut_vs_solver` was comparing two different times.** It snapped `t_ref` from the LUT's last sample (3000 ns) onto the nearest *log-grid* point (3101.2 ns), reassigned `t_ref` to it, and then `kt` clamped back to 3000 — solver-at-3101 against LUT-to-3000, a 101 ns misalignment. Y-specific because Y's d=0 charge is still decaying at ~3 µs while X is prompt-dominated (X stayed at 1e-4 throughout), and the LUT read *higher* than the reference, as a decaying channel requires. It also explains the original 1e-4 rather than contradicting it: at the pre-Fix-1 `T_MAX_NS_DEFAULT` = 1000 the snap landed at 961.7 ns, *below* the LUT's end and onto a real 1 ns sample, matching to 0.3 ns. **Audit A1/Fix 1 — a correct change, raising `t_max` to 3000 because the DAQ integrates that long — silently invalidated the certification as a side effect.** Harness fixed in `f1daf7a` (compare at the last COVERED source time, plus a misaligned-axes guard) and re-run: **worst 0.0001 PASS on both W2 rho2M and the W1 ny=1024 baseline**, compared at 2551 ns aligned exactly to the LUT sample. So: **caching ✅ 1e-4 on W2**, and the 1.87 % era was harness artifact, never product. Detail in `design/report/W2_NIGHT_REPORT_2026-08-09.md` §4 | T5, T9 | laptop/lxplus | caching ✅ **1e-4 on W2 (f1daf7a harness)**; **lateral shape ❌ 7.55 % vs 2 % on W2** |
+| T11 | Stage C DREAM — **DONE 2026-08-07** (`response/dream/shaper.py`). Peaking time from the manual's Table 9 read as **5 %→100 %** (not 0→peak: a ~10 % difference in the shaping constant), code `(0xD023>>4)&0xF = 2` → 180 ns. Gain is NOT in register 1 — it is `state6/state7`, 2 bits per channel, `0xAAAA` = code 2 → 200 fC range into a fixed 2 V p-p output → **10 mV/fC**. ~~Known limitation: CR-RC² stands in for a complex-pole Sallen-Key, so this model **cannot predict the measured −4 to −6 % undershoot** (P6)~~ **UPDATED 2026-08-07: undershoot mechanism found and implemented — residual CSA-pole (5 µs) high-pass, β scan parameter; see P6 (resolved)** | T9 | laptop | ✅ |
+| T12 | Stage C noise from det3 pedestals + ZS port — **DONE 2026-08-07** (`response/dream/noise.py`, `daq.py`). Noise is dominated by *coherent* common mode (83 ADC vs 10 ADC per-channel) and is strongly correlated sample-to-sample from the 180 ns shaping, so it is generated from the measured **power spectrum**, not an rms. `selftest()` round-trips at 3.5 % / 1.5 % / 0.043. Firmware `tpc` ZS implemented (ZsTyp=1, ZsChkSmp=1, CmOffset=256, 5 σ) but OFF by default — wft needs dense data and the det3 reference runs are themselves dense | T11 | laptop | ✅ round-trip matches data pedestals |
+| T13 | End-to-end: sim decoded_root through wft unchanged — **CHAIN CLOSES 2026-08-07**. `run.py --decoded-out` runs Geant4 ClusterTree → drift → mesh → avalanche → S1 induction → ion → DREAM → FEU → `sim_decoded_{07,08}.root`, and wft's own `FeuReader` reads it **unmodified**, recovering pedestal (346 vs 341) and noise (11.1 vs 10.4) and yielding 512×32 waveforms with ~6 channels over 5 σ per muon. ADC scale is derived, not fitted (20.48 ADC/fC); a 5 fC injection returns 98.0 ADC against 102.4 predicted. ~~Remaining: run wft's *reconstruction* (not just io) to events.parquet~~ **RECONSTRUCTION CLOSES 2026-08-09** — `mx17_sim_wft/t13_reco.py` (nTof_x17) runs wft's own `reconstruct_run` over simulated `decoded_root` on the frozen default (W2 rho2M + pooled 490 V calib + det3 bundle): **2 980 events, x fitted 98.4 % / quality_ok 95.4 %, y 100 % / 98.9 %**. What was missing was never io — it was SEEDS: `reco._load_hits` takes them from `combined_hits`, which the simulation does not produce. They are now built from the raw 32×60 ns samples through wft's own `FeuReader` (so pedestal/CNS is bit-identical to data) and `truth.parquet` is deliberately never read, since seeding from truth would inflate efficiency. Corroboration that the sim reads as data: the seed pass measures median noise **11.1 / 10.8 ADC** against the 11.1 / 10.4 recorded when io was first pointed at simulation. ⚠️ **The driver is DUAL-USE by design and both legs must go through it**: wft's normal data path seeds from `combined_hits`, i.e. waveform-analyzer output, so seeding sim from raw waveforms and data from the analyzer would put the analyzer's detection efficiency into one leg and read it as physics. Identical code at identical σ makes seeding common-mode — and per Dylan (2026-08-09) the comparison is at the **waveform level**, with the analyzer and hits chain out of the loop entirely. Seed statistics are written beside each table because, once seeding is common-mode, a residual seed-rate difference is itself the cheapest waveform-level observable. Recorded but NOT interpreted (held for T14): median χ²/dof ≈ 20 and low `slope_reliable` (4.6 % x, 13.4 % y), both expected to move since the bundle's shaping and v were fitted to data while the default runs dry gas | T8–T12 | laptop | ✅ **io AND reco both close on simulation** |
+| **T13b** | **τ_g closure at waveform level**: run the *unmodified* nTof_x17 `rc_line_step1/2.py` fit machinery on simulated waveforms produced with `tau_drain_s=None`; the apparent τ_g must land in the measured 5.3–7.3 µs and be position-flat along the strip. Also look for the predicted two-component tail (gap-deposit charge barely decays — kept ~0.70 at 1.4 µs deep in a gap). Charge-level version already passes: `response/validation/tau_g_reinterpretation.py` | T13 | laptop | apparent τ_g within the measured band with NO drain in the model |
+| **Td** | *(nTof_x17 repo, data-side, can run any time)* Two-component refit of the measured rc_line templates: replace the single exp(−t/τ_g) with a strip+gap pair (amplitude ratio ~ the 550/250 area split as a starting point). A resolved second component is direct evidence for the kernel-shape reading of τ_g | — | laptop | refit result recorded either way |
+| T14 | Blind comparison (§9) + report. ⚠️ **TWO INPUTS MUST BE FROZEN BEFORE LOOKING — see `design/report/T14_FREEZE_QUEUE_2026-08-09.md`, which states both side by side with their evidence: (1) ρ_s, (2) dry vs wet Ar/iso 95/5 (the P1 water sub-item, now quantified: Stage B drifts 39.14 µm/ns against the bench bundle's measured 36.60, i.e. 6.9 % fast, scaling reconstructed depth ~6.5 %). A wet table is legitimate physics input if the water fraction comes from the June bench humidity record, and laundering if it is chosen because it closes the 6.9 %.** ⚠️ **On ρ_s specifically:** ρ_s is an unknown scanned over {0.5,1,2,5} MΩ/sq, so T14's input is not determined by the chain — and choosing it *after* seeing which value matches the data would launder the comparison into its own input. The only independent constraint is T2b's spread measurement, which bounds the product ρ_s·c′; re-quoted for the production stack (50 µm kapton + 18.76 µm glue in series, `d_eff` = 70.5 µm, factor c′(75)/c′(70.5) = 0.947) it gives **ρ_s = 1.42–2.56 MΩ/sq**. The mapping is validated against the plan's own numbers: the same rescaling to bare 50 µm gives 1.04–1.88 against the 1.1–1.9 quoted in §3. **On today's evidence that makes rho2M the central choice and puts rho1M below the allowed band** — the "ρ_s 1 MΩ/sq nominal" line elsewhere in this plan is a **pre-glue artifact** (2026-08-07, bare d_k = 75 µm) and should not be read as a T14 decision. Stakes: ρ_s alone moved the T10 slow-path residual 0.65 pp (2026-08-09). Stage B/C has been produced at **both** rho2M and rho1M so the decision is not forced by what exists | T13 | laptop/lxplus | prediction-band figures vs data; **ρ_s frozen and recorded before looking** |
+| T15 | Iterate: constrained tuning, systematics, feed kernel back to wft as physical model | T14 | — | documented parameter posterior |
+
+~~Parallelizable now (before geometry merge): T0–T7. T3–T5 is the critical path and the highest-skill task.~~ **State 2026-08-07:** geometry merged; T1–T5 (solver), T2, T7 (jobs), T8 done. The critical path is now **T2b (comb kernels) → S1 export decision → T9 (digitizer)**, with T6 (desktop mesh cell) and the T7 collect step parallel to it. Td can run immediately in nTof_x17.
+
+**State 2026-08-07, later:** T2b done and validated (§3). Running: the nominal comb-kernel production point on the **desktop** (ρ_s 1 MΩ/sq, d_k 75 µm, nx 3120 = 10 µm, ny 1024 = 48.75 µm, 61 log times; ~2.5 min per Y kernel), and the T7 `collect.py` merge on **lxplus** — run *there*, not locally, because the 56 raw seed JSONs are 19 GB and only the merged `aval_calib.json` needs to travel. Critical path is now **S1 export decision → T9**. The export decision has hard numbers at last, measured not estimated: **one grid point is 2.3 GB compressed and takes 6 minutes of desktop wall clock** (2 Y kernels at 139 s each, 40 X kernels in 67 s together, at nx 3120 / ny 1024 / nt 61). So the 12-point scan is ~28 GB and ~75 minutes of compute. Compute is a non-issue, and as of 2026-08-07 **storage is no longer a constraint either**: EOS `/eos/experiment/ntof/data/x17/response_sim/s1/` is effectively unlimited (§2). The earlier decision to defer the full grid until T9 was made purely on the desktop's 20 GB, so it no longer applies — **the full 12-point ρ_s × d_k grid is being produced** (~28 GB, ~75 min), with the desktop throttled to at most 3 resident points by the drain. The drain is routed desktop → laptop → EOS, which also leaves the laptop a complete working copy for analysis; the desktop can now push to EOS directly, so future *bulk-only* products (Stage B waveforms, S2 maps) should go straight there and skip the hop. Trimming the Y kernel's y range from ±25 mm to ±12.5 mm remains available if a *resident working set* is ever wanted small, but it is no longer needed for the archive.
+
+## 12. Outstanding questions — REFERENCE ONLY
+
+**These are NOT being sent to anyone and will likely never be answered. They exist to record exactly which inputs are assumed rather than known. Never block on, or wait for, any item here — the listed default is the answer for all purposes.**
+
+**Fab-side unknowns (Saclay/CEA would know):**
+1. ESL resistive paste: measured surface resistivity (Ω/sq) and paste type/batch for our modules. *Default: scan 0.5–5 MΩ/sq. The T2b spread measurement (§3) puts the data at roughly 1.5–2.7 MΩ/sq, i.e. comfortably inside that range — **the scan does not need extending**. (An earlier note here said to extend above 5 MΩ/sq; that came from a broken τ estimator and is withdrawn — see §3.)* (2026-08-07: the τ_g reinterpretation in §1 removes the apparent pressure toward absurdly low ρ_s; the scan stands. Print thickness ~10 µm per user, unconfirmed — irrelevant to the thin-sheet model, useful only for sanity-checking ρ_s against paste volume resistivity.)
+2. ~~Kapton thickness between pad Cu and ESL~~ **CLOSED 2026-08-08: 50 µm**, confirmed against the geometry header. What replaced it as the open number is the **lamination adhesive** bonding that kapton to the pads — estimated at 18.8 µm over the pad (ε_r ≈ 3.2), which is 29 % of the insulator and moves S(0)/C(0) from 0.913043 to 0.881583. A fab stackup drawing would close it. *(Material IS kapton — user 2026-08-06; pillars are Dynamask, a separate fact.)*
+3. Screen-print registration: nominal alignment/tolerance of the 800 µm ESL pattern vs the 780 µm pad pattern (and vs active-area center). *Default: nominal aligned at center; the beat makes absolute phase measurable from data later.*
+4. ~~ESL strip termination: how strips connect to the HV/ground bus~~ **RESOLVED (user, 2026-08-07): copper bus strips at both y-ends of the active area, no connection anywhere in between. A1 confirmed as hardware; see §1 for why this never conflicted with the data.**
+5. ~~Amplification gap as built: 128 or 150 µm~~ **RESOLVED: 150 µm (user, 2026-08-06).**
+6. PCB internal stackup: layer z-spacings (pads→L3→L4). *Default: pads-only model W1; spacing irrelevant in W1.*
+7. ~~Confirm pad↔X/Y bussing pattern (checkerboard?)~~ **RESOLVED (T2, 2026-08-07): exact checkerboard, extracted from the connector stubs (not the vias — those ring every pad on both layers). A channel is a 256-pad comb on 1.56 mm pitch. See §3 and `response/common/channel_map.py`.**
+
+**DAQ-side unknowns:**
+8. Confirm `CosmicTb_MX17.cfg` on `daq:/mnt/cosmic_data/MX17/dream_config/` is byte-identical to the May copies we have locally (for the 6-27 det3 runs). *Default: trust local copies.*
+9. DREAM ADC full-scale and mV/fC at our register settings if not unambiguous from the manual. *Default: manual values + one recorded global scale factor.*
+
+**Internal (resolve by doing):**
+10. ~~Mesh weave pitch from fill factor 0.223 + 19 µm wire vs standard 400 lpi — reconcile in T6.~~ **RESOLVED 2026-08-07, and there was never a conflict.** The header does not leave the pitch to be inferred from the fill factor — it states the weave directly (`meshWire_um = 19.0`, `meshOpen_um = 48.0`, so pitch = 67 µm = 379 lpi) and *derives* the fill as the areal-mass scale for a 2d-thick slab, `fill = πd/(4·pitch)` = 0.2227, which is the quoted 0.223. Against the bulk-MM standard 400 lpi / 18 µm wire (pitch 63.5 µm):
+
+    | | header 19/48 | standard 400 lpi / 18 µm | difference |
+    |---|---|---|---|
+    | d / pitch | 0.2836 | 0.2835 | **+0.04 %** |
+    | optical open fraction | 0.5133 | 0.5134 | −0.03 % |
+    | areal-mass fill | 0.2227 | 0.2226 | +0.04 % |
+    | pitch | 67.0 µm | 63.5 µm | +5.5 % |
+
+    The two are the **same weave geometry up to a uniform 5.5 % scale** — identical d/pitch, hence identical optical transparency, identical areal mass, and an identical *shape* of the electrostatic field pattern. The only physical difference is the absolute scale against the 150 µm gap: pitch/gap 0.447 vs 0.423. So per plan §4, use the header, and carry the 5.5 % pitch as a **systematic** in T6 rather than treating it as an inconsistency to be resolved. Note the header still flags the 19 µm wire as a "P2-like weave, placeholder" — the *scale* is the assumption, the weave family is not.
+11. Whether per-electron (vs per-cluster-packet) treatment changes closure observables — profile in T9.
+
+## 13. References
+
+Dixit & Rankin, NIM A 566 (2006) 281 (physics/0605121) — dispersion model · Riegler, JINST 11 (2016) P11002 (arXiv:1602.07949) — resistive-layer weighting theory, THE math reference for S1 · Janssens et al., arXiv:2304.01883 — 2D resistive-strip bulk MM with delayed weighting potentials, the rigor benchmark · Galan et al., arXiv:1110.6640, 1304.2057 — strip telegraph line · Alexopoulos et al., arXiv:2409.19297 — NSW strip spreading solutions · T2K ERAM, arXiv:2303.04481 — data-constrained RC workflow · Garfield++ User Guide 2025.1 §7.2 (delayed signals), `ComponentGrid::LoadWeightingField`, `Sensor::EnableDelayedSignal` · p2_geant `docs/SIM_CAMPAIGN_PLAN.md`, `docs/TESTBEAM_PLAN.md` — architecture and tuning-firewall templates · nTof_x17 `RAW_RUN71_REANALYSIS_2026-08-04.md`, `ANALYSIS_STATE_2026-07-31.md` — validation targets.

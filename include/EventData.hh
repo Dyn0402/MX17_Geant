@@ -1,40 +1,98 @@
 #pragma once
-// EventData.hh
-// Plain data container for one simulated event.
-// Passed between EventAction and SteppingAction.
+// EventData.hh — per-event data container
 
 #include "G4ThreeVector.hh"
 #include <vector>
 
 struct IonizationCluster {
-    double x, y, z;       // position [mm]
-    double edep;          // energy deposited in this step [eV]
-    int    nPrimary;      // number of primary ion pairs estimated for this step
+    double x, y, z;
+    // Global time of the ionisation [ns]. Stage A of the response chain
+    // (design/RESPONSE_SIM_PLAN.md §6 item 1): the drift time of every electron
+    // is measured from here, so without it no waveform can be built at all.
+    // Both endpoints of the step carry a time; the midpoint is used, matching
+    // the midpoint already used for the position.
+    double time;
+    double edep;
+    int    nPrimary;
     int    trackID;
     int    parentID;
     std::string volumeName;
     std::string particleName;
-    double kineticEnergy;  // particle KE at step start [MeV]
+    // Process that created the track this cluster belongs to ("primary" for
+    // the beam particle). Plan §6 item 3 — cheap provenance that lets the
+    // digitizer separate e.g. delta rays from the primary's own ionisation.
+    std::string creatorProcess;
+    double kineticEnergy;
 };
 
 struct EventData {
     int eventID = -1;
 
-    // Total energy deposition per volume
-    double edepDrift = 0.0;  // [eV]
-    double edepAmp   = 0.0;  // [eV]
+    // Primary vertex, world frame [mm]. Recorded so the impact point is TRUTH
+    // rather than something reconstructed from the cluster centroid (audit
+    // C14). It also lets the response chain tell that Stage A already
+    // randomised the impact point (--beam-spread) and so must not randomise it
+    // a second time in post.
+    double vertexX = 0.0;
+    double vertexY = 0.0;
+    double vertexZ = 0.0;
+    // The half-width Stage A actually used, 0 for a pencil beam.
+    double beamSpread = 0.0;
 
-    // Primary ionization cluster list (one per ionizing step in gas)
+    // ── Micromegas gas scoring ─────────────────────────────────────────────
+    double edepDrift = 0.0;
+    double edepAmp   = 0.0;
+
     std::vector<IonizationCluster> driftClusters;
     std::vector<IonizationCluster> ampClusters;
 
-    // Aggregate primary ion pair counts
-    int nPrimaryDrift = 0;
-    int nPrimaryAmp   = 0;
-
-    // Did primary particle enter each volume?
+    int  nPrimaryDrift = 0;
+    int  nPrimaryAmp   = 0;
     bool primaryInDrift = false;
     bool primaryInAmp   = false;
+
+    // ── Full-experiment per-layer edep [eV] ───────────────────────────────
+    double edepHe3Gas      = 0.0;
+    double edepResistPaste = 0.0;
+
+    // ── MM entrance / dead layers ─────────────────────────────────────────
+    double edepMylar     = 0.0;
+    double edepCathode   = 0.0;
+    double edepMicromesh = 0.0;
+
+    // ── PCB stack ─────────────────────────────────────────────────────────
+    double edepPCB         = 0.0;
+    double edepPCBKapton   = 0.0;
+    double edepPCBCu       = 0.0;
+    double edepPCBFR4      = 0.0;
+    double edepPCBRohacell = 0.0;
+    double edepPCBAlFoil   = 0.0;
+
+    // ── Scintillator wall ─────────────────────────────────────────────────
+    double edepScintWall   = 0.0;
+    double edepScintTape   = 0.0;
+    double edepScintAlFoil = 0.0;
+
+    // ── Liquid scintillator stack (2 layers × 2 cm) ───────────────────────
+    double edepLS1    = 0.0;
+    double edepLS2    = 0.0;
+    double edepLSCFRP = 0.0;  // all structural + inner CFRP/Al walls combined
+
+    // ── Back plastic scintillator (kBackScintCalib) ────────────────────────
+    double edepBackScint = 0.0;  // PVT active volume [eV]
+
+    // ── Primary beam kinetic energy (kLSCalib / kBackScintCalib) ──────────
+    // Stored so the analysis can see what spectrum was sampled.
+    double primaryKE_MeV = 0.0;
+
+    // ── Transmission flags ─────────────────────────────────────────────────
+    bool primInHe3Gas    = false;
+    bool primInPCB       = false;
+    bool primInScintWall = false;
+    bool primInLS1       = false;
+    bool primInLS2       = false;
+    bool primInLSCFRP5   = false;  // primary exited LS stack (reached back CFRP wall)
+    bool primInBackScint = false;
 
     void Reset() {
         eventID = -1;
@@ -43,5 +101,15 @@ struct EventData {
         primaryInDrift = primaryInAmp = false;
         driftClusters.clear();
         ampClusters.clear();
+        edepHe3Gas = edepResistPaste = 0.0;
+        edepMylar = edepCathode = edepMicromesh = 0.0;
+        edepPCB = edepPCBKapton = edepPCBCu = edepPCBFR4
+                = edepPCBRohacell = edepPCBAlFoil = 0.0;
+        edepScintWall = edepScintTape = edepScintAlFoil = 0.0;
+        edepLS1 = edepLS2 = edepLSCFRP = 0.0;
+        edepBackScint = 0.0;
+        primaryKE_MeV = 0.0;
+        primInHe3Gas = primInPCB = primInScintWall = false;
+        primInLS1 = primInLS2 = primInLSCFRP5 = primInBackScint = false;
     }
 };
