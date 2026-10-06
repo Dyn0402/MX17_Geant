@@ -1,0 +1,19 @@
+[production] meshing (lc_wire=0.8, lc_far=8.0) ...
+
+  mesh: 381910 nodes, 2265833 tets
+  solve: ndof=3071253, Dirichlet=58572; A: 38 iters rel=7.7e-11; B: 38 iters rel=6.1e-11
+  drift BC: top plane set to -5.334 V (naive -7.276 V); mesh field-penetration offset 1.942 V (effective penetration depth 0.64 um)
+  S5 evaluator vs skfem probes: max rel diff 4.28e-14 -> PASS
+  S1 far field (z=+178um): <Ez>= 333.00 V/cm (want +333.0, dev +0.000%), std 0.00, <|Exy|>= 0.00 -> PASS
+  S2 amp bulk: <Ez>(z=-90um) = 31014.0 V/cm (neBEM infinite-lattice: 30561.0, dev +1.48%) -> PASS
+  S3 wire BC: max |V| at r+0.4um = 0.954 V -> PASS
+  S4 mirror symmetry: median rel Ez diff 0.004% (p95 0.19%) -> PASS
+  product grid: 68 x 68 x 387 = 1789488 nodes
+    z-plane 1/387    z-plane 26/387    z-plane 51/387    z-plane 76/387    z-plane 101/387    z-plane 126/387    z-plane 151/387    z-plane 176/387    z-plane 201/387    z-plane 226/387    z-plane 251/387    z-plane 276/387    z-plane 301/387    z-plane 326/387    z-plane 351/387    z-plane 376/387    grid sampled+written in 2 s (14 workers); 31092 nodes flagged inactive (1.74% — wire interiors)
+  S6: solving 1.4x coarser mesh for the refinement gate ...
+
+  solve: ndof=1147162, Dirichlet=30048; A: 37 iters rel=6.6e-11; B: 36 iters rel=6.0e-11
+  S6 refinement: 95th pct |dE|/|E| vs coarser = 0.245% -> PASS
+[production] ALL SOLVER GATES PASS — wall 314.8 s
+  wrote /home/dylan/CLionProjects/MX17_Geant/response/meshcell/meshfield_production.txt
+  wrote /home/dylan/CLionProjects/MX17_Geant/response/meshcell/meshfield_production.json

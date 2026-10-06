@@ -1,0 +1,15 @@
+[edrift0500] meshing (lc_wire=2.0, lc_far=14.0) ...
+
+  mesh: 29746 nodes, 161815 tets
+  solve: ndof=228972, Dirichlet=9804; A: 33 iters rel=7.7e-11; B: 33 iters rel=6.6e-11
+  drift BC: top plane set to -8.798 V (naive -10.925 V); mesh field-penetration offset 2.127 V (effective penetration depth 0.71 um)
+  S5 evaluator vs skfem probes: max rel diff 2.28e-14 -> PASS
+  S1 far field (z=+178um): <Ez>= 500.00 V/cm (want +500.0, dev +0.000%), std 0.00, <|Exy|>= 0.00 -> PASS
+  S2 amp bulk: <Ez>(z=-90um) = 31008.7 V/cm (neBEM infinite-lattice: 30561.0, dev +1.46%) -> PASS
+  S3 wire BC: max |V| at r+0.4um = 0.993 V -> PASS
+  S4 mirror symmetry: median rel Ez diff 0.007% (p95 0.63%) -> PASS
+  product grid: 23 x 23 x 130 = 68770 nodes
+    z-plane 1/130    z-plane 26/130    z-plane 51/130    z-plane 76/130    z-plane 101/130    z-plane 126/130    grid sampled+written in 0 s (3 workers); 755 nodes flagged inactive (1.10% — wire interiors)
+[edrift0500] ALL SOLVER GATES PASS — wall 21.6 s
+  wrote /home/dylan/CLionProjects/MX17_Geant/response/meshcell/meshfield_edrift0500.txt
+  wrote /home/dylan/CLionProjects/MX17_Geant/response/meshcell/meshfield_edrift0500.json

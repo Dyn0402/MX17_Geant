@@ -1,0 +1,60 @@
+   ------------------------------------------------------------------
+  | Welcome to ROOT 6.30/02                        https://root.cern |
+  | (c) 1995-2023, The ROOT Team; conception: R. Brun, F. Rademakers |
+  | Built for linuxx8664gcc on Nov 27 2023, 19:50:38                 |
+  | From tags/v6-30-02@                                              |
+  | With c++ (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0                   |
+  | Try '.help'/'.?', '.demo', '.license', '.credits', '.quit'/'.q'  |
+   ------------------------------------------------------------------
+
+
+MediumMagboltz::SetComposition: Ar/iC4H10 (95/5)
+MediumMagboltz::Mixer:
+    4000 linear energy steps between 0 and 40 eV.
+    ARGON ANISOTROPIC    201
+      mass: 39.948 amu
+      ionisation threshold: 15.7596 eV
+      44 inelastic terms (44 excitations, 0 superelastic, 0 other)
+    ISO-C4H10 2014 ANISOTRPI
+      mass: 58.1234 amu
+      ionisation threshold: 10.67 eV
+      24 inelastic terms (15 excitations, 4 superelastic, 5 other)
+MediumMagboltz::Mixer:
+    Lowest ionisation threshold in the mixture: 10.67 eV (iC4H10)
+MediumMagboltz::Mixer:
+    Energy [eV]    Collision Rate [ns-1]
+          2.50               1177.22
+          7.50               3467.31
+         12.50               6613.78
+         17.50              10094.59
+         22.50              12666.60
+         27.50              13963.38
+         32.50              13579.02
+         37.50              12916.93
+MediumMagboltz::ComputePhotonCollisionTable:
+    Photoabsorption cross-section for iC4H10 not available.
+    Using n-butane cross-section instead.
+MediumMagboltz::ComputePhotonCollisionTable:
+    Energy [eV]      Mean free path [um]
+          1.00          ------------
+          3.00          ------------
+          5.00          ------------
+          7.00          ------------
+          9.00              253.7037
+         11.00              132.7543
+         13.00               76.3575
+         15.00               55.5377
+         17.00               10.6061
+         19.00               10.1039
+ComponentGrid::LoadMesh:
+   -0.003350 < x [cm] <     0.003350,    23 points
+   -0.003350 < y [cm] <     0.003350,    23 points
+   -0.016800 < z [cm] <     0.021800,   130 points
+ComponentGrid::LoadData:
+    Read 68770 values from meshfield_edrift0100.txt.
+G3 load: map extent x [-0.00335, 0.00335] z [-0.0168, 0.0218] cm -> PASS
+G1 far field: <Ez> = 100.00 V/cm (want +100, dev +0.00%), <|Exy|> = 0.00 -> PASS
+G2 amp bulk: <Ez>(z=-90um) = 31007.5 V/cm (neBEM: 30561, dev +1.46%, tol 3%) -> PASS
+  transparency: 200 / 400 e-  transparency: 400 / 400 e-G7 transparency: 0.993 +- 0.004 (1D-model reference 0.873; 3D value is the deliverable), funnel rms 96.4 um -> FAIL
+
+*** GATE FAILURE for meshfield_edrift0100.txt

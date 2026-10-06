@@ -1,0 +1,50 @@
+{
+  "product": "meshfield_production.txt",
+  "tag": "production",
+  "utc": "2026-08-08T13:38:41.898825+00:00",
+  "host": "dylan-MS-7C84",
+  "git_MX17_Geant": "5763342",
+  "solver": "gmsh+scikit-fem P2+pyamg (solve_fieldmap.py)",
+  "geometry_um": {
+    "wire_r": 9.5,
+    "pitch": 67.0,
+    "overlap": 1.0,
+    "z_anode": -168.5,
+    "z_cath": 218.5,
+    "amp_gap_def": "pillar height, ESL to mesh underside"
+  },
+  "potentials_V": {
+    "mesh": 0.0,
+    "anode": 490.0,
+    "cath": -7.276050000000001
+  },
+  "E_drift_Vcm": 333.0,
+  "mesh": {
+    "lc_wire_um": 0.8,
+    "lc_far_um": 8.0,
+    "nodes": 381910,
+    "tets": 2265833
+  },
+  "grid": {
+    "nx": 68,
+    "ny": 68,
+    "nz": 387,
+    "step_um": 1.0
+  },
+  "gates": {
+    "c_top_V": -5.33411334723191,
+    "penetration_V": 1.9419366527680904,
+    "S5_evaluator_rel": 4.2786501742543163e-14,
+    "S1_Ez_top_Vcm": 333.0000843202529,
+    "S1_dev_pct": 2.5321397261651072e-05,
+    "S2_Ez_amp_Vcm": 31013.964673483195,
+    "S2_dev_vs_nebem_pct": 1.4821657455030757,
+    "S3_wire_V_max": 0.9541383804524965,
+    "S4_mirror_rel": 3.6467767397068744e-05,
+    "S4_mirror_rel_p95": 0.0018735013785858665,
+    "S6_refine_p95": 0.0024525816800486733
+  },
+  "all_gates_pass": true,
+  "note": "production map for S3",
+  "wall_s": 314.8
+}

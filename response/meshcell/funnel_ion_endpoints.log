@@ -1,0 +1,25 @@
+MediumMagboltz::LoadGasFile:
+    Reading file /home/dylan/PycharmProjects/nTof_x17/garfield_sim/gas_tables/Ar_iC4H10_95_5_Saclay_160m.gas.
+    Version 13.
+    Gas composition set to Ar/iC4H10 (95/5).
+MediumMagboltz::LoadMobility:
+    Read 36 values from file /home/dylan/Software/garfield/install/share/Garfield/Data/IonMobility_Ar+_Ar.txt
+ComponentGrid::LoadMesh:
+   -0.003350 < x [cm] <     0.003350,    68 points
+   -0.003350 < y [cm] <     0.003350,    68 points
+   -0.016800 < z [cm] <     0.021800,   387 points
+ComponentGrid::LoadData:
+    Read 1789488 values from meshfield_production.txt.
+DriftLineRKF::Avalanche:
+    Cannot retrieve alpha at drift line point 12, segment 5.
+DriftLineRKF::Avalanche:
+    Cannot retrieve alpha at drift line point 8, segment 4.
+DriftLineRKF::Avalanche:
+    Cannot retrieve alpha at drift line point 8, segment 4.
+DriftLineRKF::Avalanche:
+    Cannot retrieve alpha at drift line point 8, segment 5.
+DriftLineRKF::Avalanche:
+    Cannot retrieve alpha at drift line point 8, segment 4.
+[funnel] geometric (no-diffusion) transparency: 0.993 (438/441 field lines reach the ESL)
+[funnel] ion endpoints (n=3000): absorbed_on_mesh=0.948, escaped_to_drift=0.052, other=0.000
+[funnel] wrote funnel_ion_endpoints.json
