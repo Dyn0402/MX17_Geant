@@ -17,3 +17,5 @@ Written up in `design/report/FRESH_LOOK_2026-10-12.md` §6–7.
   `wf_matched_ang` (edge at matched peak delay), `wf_psi_scan` (front-loaded
   ion weighting), `wf_tail20` (averaged inclined pulse shapes), `wf_peak_scan`
   (shaper peaking time × ion fraction × transit against the inclined shapes).
+- `wf_ion_T_scan.py` — §7.5: ion transit T scan (= mobility scaling) at 123 and 180 ns,
+  full ions, against the inclined shapes. Needs pandas (nTof_x17 `.venv`) and both npz files in the cwd.

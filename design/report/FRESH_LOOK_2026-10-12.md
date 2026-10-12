@@ -316,6 +316,7 @@ was one corner of a degenerate family. The others are:
    Code 1 is 123 ns. One FEU pulser shot, or reading the register back from
    the FEU, settles it.
 2. **The ion transit is ~2× shorter than 340 ns.** That would need either a
+   *(Superseded by §7.5: ×2 is not plausible, ×1.3–1.5 is.)* Needs either a
    smaller effective gap or higher ion mobility. Mobility ×2 (iC4H10⁺ in Ar
    at ~125 Td, rather than the `IonMobility_Ar+_Ar` table S3 uses), or an
    effective gap ×0.7, both enter as T ∝ g²/μ. Note S3 drives its ions with
@@ -333,7 +334,7 @@ old campaign did not question. Its exclusion list covered "mobility within
   word order against the DREAM manual's register map for a *second*
   register whose meaning is unambiguous. If that is not possible, fire the
   FEU pulser once. Either result breaks the degeneracy in §7.3.
-- **Ion mobility.** Rerun S3 at 490 V with an isobutane-ion mobility table
+- *(Done, see §7.5.)* **Ion mobility.** Rerun S3 at 490 V with an isobutane-ion mobility table
   (or Ar⁺ scaled ×1.5 and ×2 as a bracket) and read T_ion and the 20° shape.
   This is cheap: one voltage, the meshfield map, a few hundred seeds.
 - **Amplitude (§6) and rise may connect through the shaper.** With a faster
@@ -343,3 +344,68 @@ old campaign did not question. Its exclusion list covered "mobility within
   threads separate unless a number says otherwise.
 - **The vertical observable** should be retired as an f_ion handle. Use 10°
   and 20°, matched by angle, with no quality cut.
+
+## 7.5 Ion speed alone cannot close it; a 123 ns shaper with a correctly identified ion can (2026-10-12)
+
+**No Garfield rerun needed.** S3 drifts its ions with `AvalancheMC` and no ion
+diffusion, so v = K(E)·E along fixed field lines. Scaling K by s at every
+field rescales the ion current exactly, I(t) → s·I(st), and the transit
+becomes T/s. A uniform scaling of the Ar⁺ table therefore *is* the requested
+"Ar⁺ ×1.5 / ×2" bracket. The only thing a rerun would add is a different
+*shape* of K(E/N), and over the narrow field range of the gap (~124 Td,
+higher only in the funnel) that is second order.
+
+**Scan** (`wf_ion_T_scan.py`, same fit as `wf_peak_scan.py`: f_ion 0.908,
+rms of the averaged 10° / 20° peak-strip shape in units of peak; data rise
+166 / 181 ns):
+
+| T_ion (ns) | ×K vs Ar⁺ | manual 180 | CR-RC² 180 | manual 123 | CR-RC² 123 |
+|---|---|---|---|---|---|
+| 340 | 1.0 | 0.183 / 0.172 | 0.233 / 0.225 | 0.133 / 0.115 | 0.164 / 0.151 |
+| 260 | 1.3 | 0.109 / 0.107 | 0.169 / 0.169 | **0.037 / 0.032** | 0.069 / 0.069 |
+| 227 | 1.5 | 0.085 / 0.086 | 0.148 / 0.150 | **0.036 / 0.030** | 0.037 / 0.042 |
+| 200 | 1.7 | 0.067 / 0.070 | 0.133 / 0.137 | 0.056 / 0.046 | **0.020 / 0.024** |
+| 170 | 2.0 | 0.051 / 0.056 | 0.120 / 0.125 | 0.080 / 0.066 | 0.027 / 0.019 |
+| 110 | 3.1 | 0.029 / 0.035 | 0.102 / 0.108 | 0.116 / 0.099 | 0.059 / 0.041 |
+| 80 | 4.3 | 0.024 / 0.028 | 0.097 / 0.103 | 0.129 / 0.110 | 0.071 / 0.050 |
+
+(For reference, the no-ion 180 ns manual shaper scores 0.021 / 0.023.)
+
+- **At the decoded 180 ns shaper, full ions need T ≲ 110 ns**, i.e. an ion
+  3–4× faster than Ar⁺ at 124 Td. No plausible ion does that. So with a
+  180 ns shaper the ions really must be suppressed, as August concluded.
+- **At 123 ns (code 1), full ions fit with T ≈ 200–260 ns**, i.e. K ×1.3–1.7
+  over Ar⁺ (manual shape best at ×1.3–1.5, CR-RC² at ×1.7–2). Even at
+  123 ns, the Ar⁺ transit (340 ns) still fails (rms 0.12–0.16). The two
+  corrections are both needed and point the same way.
+
+**The August "species: 4 % slower" check does not stand.**
+`response/meshcell/ion_template_check.py:193` applies Blanc's law to two
+*different* ions: Ar⁺ in Ar (95 %) and C8Hn⁺ in iC4H10 (5 %). Blanc's law
+combines the *same* ion's mobility in each component gas. In Ar/iC4H10 95/5
+the Ar⁺ hands its charge to isobutane within ~ns (IP 10.6 vs 15.8 eV,
+k·n_iso ~ 10⁹ s⁻¹), so what drifts is an isobutane-derived ion. Its mobility
+*in argon* is the one that matters, and it is not slowed by resonant charge
+exchange the way Ar⁺ is. The polarization limit for a mass-58 ion in Ar is
+K₀ ≈ 2.2. Measured hydrocarbon-ion mobilities in Ar-rich mixtures are
+typically ~1.6–1.9 at low field, against Ar⁺'s 1.21 at the gap's 124 Td.
+That is ×1.3–1.6, **exactly the range the 123 ns fit wants**. This is an
+estimate, not a measurement: the Coimbra Ar–iC4H10 data (Cortez et al.,
+JINST 14 (2019) P04010, 8 Torr, 10–45 Td) is the place to pin the low-field
+value, and there is no high-field (~124 Td) measurement for this ion in Ar
+that I could find.
+
+**Where this leaves the degeneracy.** It is no longer two equally free
+corners. It is:
+
+1. **180 ns shaper:** requires an unexplained ×3–5 suppression of the ion
+   signal (the August reading; no mechanism found in August either).
+2. **123 ns shaper + isobutane-ion mobility ×1.3–1.5:** each input
+   independently physically motivated, no suppression needed.
+
+Option 2 is the more economical explanation, but it rests on the
+peaking-code word order. **The shaper readback / FEU pulser is now the single
+deciding measurement.** If the shaper is 180 ns, option 1 stands and the
+search for an ion-suppression mechanism reopens. If it is 123 ns, set the
+chain to code 1, swap the ion table for an isobutane-ion-in-Ar mobility
+(×1.3–1.5 bracket until measured), and rerun T14 at 0°/10°/20°.
