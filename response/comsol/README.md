@@ -194,3 +194,22 @@ COMSOL API notes:
 Solver gotcha: `(s<=gap)*exp(-(gap-s)/Lb)` gives 0·inf = NaN once the exponent passes
 709. COMSOL reports this as "Repeated error test failures. May have reached a
 singularity" at a fixed time. Keep the exponent bounded (`abs()`).
+
+## Induce3D: the real strips and comb in 3D (2026-10-13)
+
+The model puts a point avalanche on the centre of a 550 µm strip (800 µm pitch,
+isolated strips) and of a Y pad. It uses the real checkerboard comb channels X0..X3
+and Y0..Y5 and the real stack, with quarter symmetry and exact mirror planes. The
+geometry is a 2D partition extruded through the layers, with a swept prism mesh.
+Production runs go to condor (`condor/induce3d.sub`, about 15 min linear and 2 h
+quadratic, on 8 cores). Outputs are in
+`/eos/experiment/ntof/data/x17/response_sim/comsol/condor/`.
+
+- `compare_kernels3d.py deposit.csv greens_comb_w2_*.npz` compares against the chain's W2
+  kernels at the matching point (FRESH_LOOK §10.1):
+  - timing agrees to 0–7 ns, including the neighbour delays X0−Y0 +124/+125 and
+    Y1−Y0 +107/+102;
+  - amplitude agrees to ~5 %, converging (0.907 → 0.954 linear → quadratic);
+  - the Y negative lobe is identical (−0.283 vs −0.284).
+- `compare_induce2d.py deposit.csv pair.csv` (central channel Y0) gives the ion operator on
+  real strips: f_eff 0.89, rise 186/189 ns, absolute +6 % (quadratic).
