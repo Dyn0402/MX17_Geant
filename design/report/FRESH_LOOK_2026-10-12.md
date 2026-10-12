@@ -207,3 +207,139 @@ the "anomalously broad vertical data leg" already flagged in
 **Not yet redone with the cut removed:** the angled-closure f_eff numbers
 (10°/20°). Those data legs went through the same cut, but given the vertical
 result the rise is expected to move only a few ns.
+
+## 7. Step 1 result (2026-10-12): the chain is right, the vertical rise is the wrong observable, and the inclined data pins shaper ⊗ ion only
+
+Scripts: `scratchpad/2026-10-12/` (see its README). The toy is
+`toy_pulse.py`, numpy only, with no imports from `response/`. Waveforms are the
+real sim and data peak strips with ±3 neighbours, dumped on the laptop with no
+quality cut (`waveforms_pm3.npz`, `waveforms_angled_pm3.npz` in
+`~/x17/response_sim/stageB_w2/fresh_look_2026-10-12/`). Anchors checked on
+the way:
+
+- **60 ns sampling is right.** The run config says `sample_period 60`, and the
+  DREAM cfg's `WrClk_Div 6` on the 100 MHz base agrees.
+- **The shaper family doesn't matter for a point charge.** CR-RC², CR-RC⁴ and
+  the manual's PZC + ζ = 0.75 Sallen-Key, each scaled to 180 ns (5→100 %),
+  give a 10–90 % rise of 114–118 ns.
+
+### 7.1 The toy confirms the chain, so the rise mismatch is not a chain bug
+
+At the chain's settings (f_ion 0.908, a 340 ns ion rectangle, 180 ns
+shaper), the toy is *slower* than the chain: vertical X rise median 368 vs
+339 ns, 20° 265 vs 231 ns. That is expected, because the chain also has the
+β = 0.75 PZC residual undershoot and a distribution of ion birth heights.
+Neither the toy nor the chain gets near the data at any angle. The chain is
+therefore not hiding a bug that makes it slow.
+
+### 7.2 Vertical tracks: the rise mostly measures where the maximum lands
+
+For a vertical track the peak strip sees a ~770 ns flat-topped input, and
+"10–90 % of max" depends mostly on where along that top the maximum falls.
+In data the 10 % onset is stable (sample ~4–6), while the peak sits 1–15
+samples after it. The 10→50 % edge tracks the peak position in both legs
+(X data: 76 ns at peak sample 6, 271 ns at sample 18).
+
+**At matched peak delay (peak − 10 % onset), the data's leading edge agrees
+with the full ion model and not with the no-ion one:**
+
+| delay 350–450 / 450–550 / 550–700 ns | X edge 10→50 % (ns) |
+|---|---|
+| data | 159 / 184 / 210 |
+| chain (f 0.91) | 154 / 189 / 219 |
+| toy f 0.91 | 164 / 184 / 208 |
+| toy f 0 | 126 / 141 / 141 |
+
+The vertical rise mismatch is a difference in **delay distribution**: 32 %
+(X) / 49 % (Y) of data pulses peak within 350 ns of onset, against 4 % / 15 %
+for the chain and 0 % for the toy. So the vertical-point f_eff inference
+mixed two things. Removing the ions made the sim peak earlier, which
+mimicked the early-peaking data population.
+
+What makes data pulses peak early (data shapes from `wf_sumshape.py`):
+- **The peak strip passes late charge to its neighbours faster than in the
+  sim, strongly in Y.** Data Y peak strip is 0.37 of peak at +480 ns vs the
+  chain's 0.66, while the ±3 sums agree better (0.70 vs 0.82).
+- **The summed charge is mildly front-loaded.** In X it is 0.57 vs 0.68 of
+  peak at +600 ns, i.e. some loss with drift depth.
+- **Drift velocity × gap is consistent.** The summed signal ends at the same
+  time in both legs: both reach 0.19 at +840 ns.
+- Not modelled: the chain's Y channels carry a −0.2 negative lobe (peak strip
+  and neighbours) that the data does not have (data −0.11, sum ~0).
+- Not explained: the data has a +0.04–0.08 early foot at −360…−240 ns on the
+  peak strip and +0.06–0.16 on the neighbours, absent in the sim. It is also
+  why data edges at long peak delays (230–263 ns) are slower than every model.
+
+### 7.3 Inclined tracks: the clean observable, and what it does and doesn't fix
+
+At 10° and 20° each strip sees only ~110 / ~55 ns of drift, so the
+waveform is close to the single-electron response. The early-peaking escape
+does not apply here (the peak-delay distributions are narrow), and the
+mismatch is real:
+
+| rise median (ns) | 0° | 10° | 20° |
+|---|---|---|---|
+| data | 294 | 180 | 165 |
+| chain | 328 | 252 | 231 |
+| toy f 0.91, 340 ns, 180 ns shaper | 370 | 279 | 265 |
+| toy f 0 | 303 | 176 | 144 |
+
+The averaged 20° data pulse is **narrower than the no-ion toy**. It is 0.50 of
+peak 300 ns after the leading 50 % point and 0.02 by 540 ns. The CR-RC² no-ion
+toy is at 0.63 and 0.15, the chain at 0.82 and 0.07. A front-loaded ion
+current (weighting potential Ψ = (1 − z/g)^p, p ≈ 5–8) fixes the rise (20°:
+168 vs 165) but leaves the tail too long.
+
+Fitting the shaper peaking time, shaper family, ion fraction and transit
+against the averaged 10° and 20° shapes (`wf_peak_scan.py`, rms residual in
+units of peak):
+
+| shaper | f_ion | T_ion | rms 20° / 10° | rise 20° / 10° (data 166 / 181) |
+|---|---|---|---|---|
+| manual (PZC + SK), 180 ns | 0 | — | **0.021 / 0.023** | 144 / 174 |
+| CR-RC², 123 ns | 0.91 | 170 ns | **0.027 / 0.019** | 161 / 181 |
+| CR-RC², 180 ns | 0 | — | 0.092 / 0.097 | 144 / 176 |
+| manual, 180 ns | 0.91 | 340 ns | 0.183 / 0.172 | 256 / 269 |
+| CR-RC², 180 ns | 0.91 | 340 ns | 0.233 / 0.225 | 266 / 278 |
+
+**The inclined data pins only the convolution shaper ⊗ ion current, and that
+convolution is about as narrow as a 180 ns shaper by itself.** "Full ions
+with a 340 ns transit through a 180 ns shaper" (the chain) is excluded at
+any shaper family. But "no ions" is not the only way out: **a ~120 ns shaper
+with full ions over a ~170 ns transit fits equally well.** Waveforms alone
+cannot separate the two, so the previous campaign's "f_ion suppressed ×3–5"
+was one corner of a degenerate family. The others are:
+
+1. **The shaper is faster than 180 ns.** The peaking code was decoded from a
+   register word whose word order was *inferred*
+   (`response/dream/shaper.py`: "only the reading … makes both sensible").
+   Code 1 is 123 ns. One FEU pulser shot, or reading the register back from
+   the FEU, settles it.
+2. **The ion transit is ~2× shorter than 340 ns.** That would need either a
+   smaller effective gap or higher ion mobility. Mobility ×2 (iC4H10⁺ in Ar
+   at ~125 Td, rather than the `IonMobility_Ar+_Ar` table S3 uses), or an
+   effective gap ×0.7, both enter as T ∝ g²/μ. Note S3 drives its ions with
+   the **Ar⁺ in Ar** table. Ar⁺ suffers resonant charge exchange and is slow;
+   the real drifting ion is isobutane-like after charge transfer.
+3. A combination of 1 and 2.
+
+Both the ion mobility and the decoded peaking code were taken as inputs the
+old campaign did not question. Its exclusion list covered "mobility within
+±30 %", but not a wrong ion species.
+
+### 7.4 Next
+
+- **Peaking code.** Read the DREAM register back, or check the shipped cfg's
+  word order against the DREAM manual's register map for a *second*
+  register whose meaning is unambiguous. If that is not possible, fire the
+  FEU pulser once. Either result breaks the degeneracy in §7.3.
+- **Ion mobility.** Rerun S3 at 490 V with an isobutane-ion mobility table
+  (or Ar⁺ scaled ×1.5 and ×2 as a bracket) and read T_ion and the 20° shape.
+  This is cheap: one voltage, the meshfield map, a few hundred seeds.
+- **Amplitude (§6) and rise may connect through the shaper.** With a faster
+  shaper and a long ion signal, the ballistic deficit grows, and the peak
+  amplitude per unit charge falls. That would make the sim's amplitude
+  deficit *worse*, not better, so it does not unify them. Keep the two
+  threads separate unless a number says otherwise.
+- **The vertical observable** should be retired as an f_ion handle. Use 10°
+  and 20°, matched by angle, with no quality cut.
