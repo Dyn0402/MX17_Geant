@@ -682,3 +682,195 @@ scan1/scan2 gas drift. Figure: `figs/feedback_fit_2026-10-13.png`.
    the ×1.8 match from "within calibration" into a measurement.
 3. **Chain:** adopt G_eff = G/(1 − bG) with b fitted once on the 95/5 ladder,
    and rerun T14 amplitudes. This is a gain calibration, not a shape change.
+
+## 10. The real strips in 3D, and the shaper from the noise (2026-10-13, overnight)
+
+### 10.1 COMSOL 3D on the real strips validates the chain's kernels
+
+`response/comsol/Induce3D.java` puts a point avalanche on the real board:
+
+- the 550 µm ESL strips on an 800 µm pitch, isolated by 250 µm gaps, along
+  which the landed charge diffuses;
+- the checkerboard pads (680 µm on 780 µm) wired into the real comb channels,
+  X columns and Y rows;
+- the real stack;
+- no weighting theorem.
+
+It uses quarter symmetry about the centre of a strip and of a Y pad; both
+mirror planes are exact, including the checkerboard parity. Runs went to lxplus
+condor (`response/comsol/condor/`), with outputs in
+`/eos/.../response_sim/comsol/condor/`.
+
+`compare_kernels3d.py` reads the chain's own W2 product
+(`greens_comb_w2_rho2M_dk50um_g19um.npz`) at the matching source point: column
+36, 10 µm off the strip centre. It compares channel by channel.
+
+| | linear elements (228k) | quadratic (135k) | chain W2 |
+|---|---|---|---|
+| Y0 (the avalanche's row), G at 2 ns | 0.790 | 0.822 | 0.876 |
+| Y0 shaped peak, COMSOL/chain | 0.907 | **0.954** | |
+| X0 (the crossing column) shaped peak, COMSOL/chain | 0.960 | **0.958** | |
+| shaped peak time Y0 / X0 | 156 / 281 ns | 157 / 281 ns | 156 / 281 ns |
+| delay X0 − Y0 | +125 ns | **+124 ns** | +125 ns |
+| delay Y1 − Y0 | +112 ns | **+107 ns** | +102 ns |
+| delay X1 − Y0 | +23 ns | +25 ns | +32 ns |
+| late Y0 decay (G at 300 / 1000 ns) | 0.297 / 0.154 | 0.325 / 0.183 | 0.336 / 0.189 |
+
+- **The chain's induction kernels are right.** This is the first check by a
+  solver that shares nothing with them. Timing agrees to 0–7 ns on every
+  channel that carries signal, and the sheet's spreading along the strip
+  (Y0's decay, Y2/Y4 filling at 0.3–1 µs) agrees to a few %. The amplitude
+  agrees to ~5 %, and the gap shrinks with refinement (0.907 → 0.954). The
+  residual is partly the 10 µm ESL thickness (~2 %) that the chain's
+  zero-thickness sheet omits.
+- **So the ×2 neighbour-delay discrepancy is not the solver.** Data
+  +54–61 ns, sim +93–142 ns. That leaves the inputs, ρ_s first (§10.3).
+- **The ion operator holds on the real strips too.** With pair against chain
+  operator: rise 186 / 189 ns on Y0, f_eff 0.89, absolute +6 % (quadratic;
+  +13.5 % linear). Real strips do not suppress the ion signal either, which
+  completes §8.
+
+### 10.2 The shaper's real time scale, measured from the target run's own noise
+
+`scratchpad/2026-10-13/noise_shaper.py` uses the det3 27 June long run, the T14
+target, both FEUs (raw decoded_root), quiet traces only. It removes the
+per-channel pedestal and the per-64-block common mode, then takes the unbiased
+autocorrelation over lags 0–31 × 60 ns. The model is
+R(τ) = A·(h⋆h) + B·(h′⋆h′) + C: parallel and series noise through the chain's
+own DreamShaper h, stretched in time by s.
+
+| FEU | data R(1..6) | best s | effective peaking | s allowed (χ² < 1.5 min) | series fraction |
+|---|---|---|---|---|---|
+| 07 (X) | 0.698 0.277 −0.022 −0.154 −0.173 −0.142 | 0.92 | **~166 ns** | 0.90–0.94 | 0.80 |
+| 08 (Y) | 0.704 0.289 −0.010 −0.146 −0.167 −0.135 | 0.92 | **~166 ns** | 0.92 | 0.78 |
+
+The model reproduces R(k) to ~0.01 out to lag 11, including the undershoot,
+and CR-RC² gives the same s.
+
+**The shaper behaves like its nominal 180 ns to within 8 %, measured in situ.**
+It is not the 123 ns that full ions with a ×1.3–1.5 ion mobility would need
+(§7.5). This closes the "chip spread / PZC trim" escape hatch of §7.6 from the
+data alone, as far as a time scale can. The FEU pulser is still the direct
+measurement, and still sets the absolute ADC/fC scale (§9.4).
+
+**What that does to the ion requirement.** The §7.5 scan, rerun at 166 ns
+(`scratchpad/2026-10-13/wf_ion_T_scan166.py`, same toy and fit; data rise
+166 / 181 ns at 20° / 10.7°):
+
+| 166 ns | shape rms 20° / 10° | rise 20° / 10° |
+|---|---|---|
+| full ions, T = 340 ns (Ar⁺) | 0.168 / 0.156 | 248 / 263 |
+| full ions, T = 200 ns (×1.7) | 0.040 / 0.045 | 188 / 206 |
+| full ions, T = 140 ns (×2.4) | **0.010 / 0.017** | 164 / 187 |
+| f_ion = 0.2, T = 340 ns | 0.048 / 0.052 | 143 / 173 |
+| f_ion = 0, T = 340 ns | 0.028 / 0.017 | 138 / 165 |
+
+At the measured shaper, full ions need T ≈ 140 ns (×2.4 Ar⁺ mobility), down
+from ×3–4 at exactly 180 ns. An isobutane-derived ion (×1.3–1.6, §7.5)
+covers about half of that factor in mobility. **The rise puzzle is smaller
+but still open.**
+
+(The stored `dream/noise.py` autocorrelation "1.00 0.99 0.92 0.81 0.66 0.51" is
+a different, per-trace-mean-subtracted estimator on another run, and is not
+comparable to these numbers.)
+
+### 10.3 Neighbour delay against ρ_s
+
+The chain's W2 kernels exist at ρ_s = 0.5, 1, 2 and 5 MΩ/sq.
+`scratchpad/2026-10-13/delay_vs_rho.py` uses the chain's operator on those
+kernels and the 180 ns shaper. It takes Gaussian charge clouds (σ_T) centred
+uniformly over a pad cell and computes the event-wise ±1 Y-row peak delay
+against the peak row (log: `delay_vs_rho.log`).
+
+| ±1 delay [ns] | 0.5 MΩ/sq | 1 | 2 | 5 |
+|---|---|---|---|---|
+| σ_T = 200 µm | 36 | 55 | 79 | 119 |
+| σ_T = 400 µm | 25 | 34 | 41 | 40 |
+| σ_T = 800 µm | 10 | 10 | 9 | 6 |
+
+- The delay is mostly a **cloud-size** observable. Once σ_T ≳ 400 µm the
+  neighbours get charge directly and ρ_s hardly matters.
+- The data's +60 ns is **invariant across drift fields of 95–243 V/cm and
+  two gases** (DEEP_DIVE §5), which change σ_T a lot. In this model that
+  happens only if the neighbours see *sheet-transported* charge, the
+  small-cloud limit. There, **+60 ns ↔ ρ_s ≈ 1.1 MΩ/sq**, while 2 MΩ/sq
+  gives ~80 ns.
+- **Caveats:**
+  - the +60 ns is det4 at SPS (a different, defective chamber with its own
+    ρ_s);
+  - the sim's +93–142 ns comes from the full chain with its own depth
+    distribution;
+  - the toy has no track, only clouds.
+
+  So this is a hint toward a lower ρ_s (or a narrower effective cloud), not a
+  measurement.
+
+**But ρ_s cannot fix the neighbour observables on its own: they pull it in
+opposite directions.** The Y negative lobe is board physics. COMSOL 3D
+reproduces the chain's Y undershoot exactly: deposit kernel shaped min/max
+−0.283 vs −0.284 on Y0, and −0.172 vs −0.172 on Y1. With the chain operator,
+a point avalanche over a Y pad, and the 180 ns shaper:
+
+| ρ_s | Y0 undershoot | Y1 undershoot | X0 undershoot | delay X0 − Y0 | delay Y1 − Y0 |
+|---|---|---|---|---|---|
+| 0.5 MΩ/sq | −0.43 | −0.30 | −0.07 | +95 ns | +61 ns |
+| 1 | −0.41 | −0.26 | −0.07 | +104 | +77 |
+| 2 | −0.39 | −0.21 | −0.06 | +125 | +101 |
+| 5 | −0.34 | −0.13 | −0.06 | +184 | +146 |
+
+- The data need a **shorter** ±1 delay, which means *lower* ρ_s.
+- They also need a **shallower** Y undershoot (−9.3 % unselected, against
+  the sim's −19 % in HV_SLOPE §4–5), which means *higher* ρ_s.
+- The X undershoot does not depend on ρ_s.
+
+So the Stage B sharing tension is **not a ρ_s error and not a solver
+error**. What remains has to make neighbours arrive earlier *and* drain the
+central Y row less, which is beyond the board model as it stands. Two
+candidates for a next look:
+- capacitive crosstalk between adjacent channels in the readout or
+  electronics, which is prompt and bipolar, so it shortens apparent delays
+  without touching the drain;
+- strips that are not fully isolated, so charge also spreads across them.
+
+Both are untested. The T2b spread measurement put det3 at 1.42–2.56 MΩ/sq. The
+  sheet resistance of det3/det4 measured with an ohmmeter on the bus bars
+  would settle it.
+
+## 11. Scoreboard after the overnight session (2026-10-13 morning)
+
+| §1 row | status now | how |
+|---|---|---|
+| **Amplitude** ×1.8 low | **explained, pending test**: photon feedback G/(1 − bG) | §9: the ladder's curvature alone predicts ×1.5–2.1 |
+| **Gain slope** ×1.5 shallow, and curved | **explained by the same parameter** | §9: no α(E) gives the curvature at real gain |
+| Discharge onset ~510–520 V | consistent | §9: feedback runaway at 511–520 V |
+| **Rise / ion fraction** | **open, narrower** | induction-side suppression excluded by full solves (§8, §10.1); the shaper is ~166 ns in situ (§10.2); full ions now need T_ion ≈ 140 ns (×2.4 Ar⁺) instead of ×3–4 |
+| ±1 neighbour delay ×2 | **not the solver** (kernels validated, §10.1) and **not ρ_s alone** (it needs ρ_s down while the Y undershoot needs it up, §10.3) | open: crosstalk or inter-strip leakage are untested candidates |
+| Y negative lobe, sim deeper than data | **real board physics** (COMSOL reproduces it exactly) | its depth is an input question, tied to the row above |
+| X/Y peak ratio | selection artefact on the data side (HV_SLOPE §4) | unchanged |
+
+**What is now excluded, with the method:**
+- resistive-sheet screening of the ion signal: 2D, axisymmetric and real-strip
+  3D COMSOL time-domain solves;
+- errors in the chain's induction kernels: COMSOL 3D;
+- any α(E) explanation of the slope (Penning, gas tables, iso, water,
+  effective gap, field shape): curvature at real gain;
+- ion-impact secondary emission: pulse shapes;
+- a DREAM shaper far from nominal: the noise autocorrelation of the target run.
+
+**Next, in order of information per effort:**
+1. **Bench ladder at a second isobutane fraction** (the mixer is logged).
+   This decides feedback, and fixes the chain's gain model.
+2. **FEU pulser shot:** the shaper response directly, plus the absolute
+   ADC/fC scale. It turns §9's ×1.8 match into a measurement and closes §10.2
+   for good.
+3. **Measure det3's bus-to-bus resistance** (ρ_s) with an ohmmeter. It pins
+   the T2b band, though §10.3 shows ρ_s alone cannot fix the neighbour rows.
+   The same bench session could pulse one channel and record its
+   neighbours, which measures crosstalk directly.
+4. **Ion mobility of the actual drifting ion in Ar/iC4H10 at ~124 Td** (the
+   Coimbra data, Cortez et al. 2019, is at low field). It decides whether the
+   ×2.4 of §10.2 is reachable by ion species alone.
+5. **Chain:**
+   - T10 step 5 (exact z-lift of the ion weighting; a few % and a few ns);
+   - adopt G/(1 − bG) once item 1 confirms it;
+   - optionally the woven-mesh map (−4 % transparency).

@@ -1,8 +1,8 @@
 # Handoff
 
-## T14 fresh look (sim vs data waveforms) — updated 2026-10-12 (dylan-MS-7C84)
+## T14 fresh look (sim vs data waveforms) — updated 2026-10-13 (dylan-MS-7C84)
 
-**Resume:** shaper confirmed 180 ns. COMSOL direct solves (§8) now exclude induction-side ion suppression. Next: FEU pulser shot; do T10 step 5; 3D kernel validation.
+**Resume:** read FRESH_LOOK §11 (scoreboard). Overnight 2026-10-13: photon feedback G/(1−bG) explains amplitude AND slope (§9); COMSOL 3D validates the chain's kernels (§10.1); the shaper is ~166 ns from the run's own noise (§10.2). The rise/ion puzzle remains: full ions need T_ion ≈ 140 ns. Next: a bench ladder at a second iso fraction, then the FEU pulser.
 
 **Goal:** find out why the end-to-end MX17 response simulation (Geant4 → Garfield → DREAM)
 gives slower and wider pulses than the det3 cosmic-bench data. The rise-time / f_ion
@@ -40,28 +40,44 @@ contradiction of T14 is the problem being worked here.
   - True-weave mesh map: transparency 0.918 ± 0.006, against 0.960 ± 0.004
     for the straight-wire production map through the same macro. Not adopted.
 
+- **Overnight 2026-10-13 (FRESH_LOOK §9–11):**
+  - §9: **avalanche (photon) feedback**, G_eff = G/(1 − bG). Fitted to the *shape* of the det3
+    27 June ladder alone, it predicts the data ×1.5–2.1 above Garfield at 490 V; T14 measured
+    ×1.77–1.82. It also gives the slope ×1.5 and its positive curvature, which no α(E) can give
+    at real gain (a Townsend fit needs G ≈ 200). The runaway lands at 511–520 V, where the bench
+    discharges. Ion-impact feedback is excluded by the shapes. Scripts and figure in
+    `scratchpad/2026-10-13/` and `design/report/figs/`.
+  - §10.1: **COMSOL 3D on the real strips and comb** (`response/comsol/Induce3D.java`, condor)
+    against the chain's W2 kernels: timing exact (neighbour delays within 0–7 ns), amplitude
+    within ~5 % and converging. The ion operator holds on real strips too (f_eff 0.89).
+  - §10.2: **the shaper from the target run's noise autocorrelation** is ~166 ns (s = 0.92,
+    0.88–0.94). At that shaper, full ions need T_ion ≈ 140 ns (×2.4 Ar⁺).
+  - §10.3: the ±1 delay is mainly a cloud-size observable. The data's transport invariance
+    implies sheet-transported neighbours, which at +60 ns points to ρ_s ~1 MΩ/sq. Only a hint.
+
 **In progress / where it stopped:** nothing half-done. The conclusion is that with the true
 180 ns shaper the inclined data needs the ion signal largely absent (f_eff ≈ 0.2). That is
 August's reading, and it still has **no mechanism**.
 
-**Next steps:**
-1. Measure the shaper's *actual* response: fire the FEU pulser once through the test capacitor
-   (bench). Chip spread and PZC trim aren't in any register. After §8 this is the only untested
-   link that could still give the ×3–5 ion suppression.
+**Next steps** (FRESH_LOOK §11 has the reasoning):
+0. **Bench mesh ladder at a second isobutane fraction** (mixer logged since 2026-07-07). Photon
+   feedback must weaken with more quencher; this decides §9.
+1. Fire the FEU pulser once through the test capacitor (bench). It measures the shaper's actual
+   response (§10.2 says ~166 ns from noise) and the absolute ADC/fC scale (§9's ×1.8 match).
+   Also measure det3's ρ_s bus to bus (§10.3).
 2. **T10 step 5** (plan §7 step 5): build the LUT from the slow-path templates
    (`solver/zextend.py`). This is a known error, now confirmed by COMSOL. It makes the rise a
    few ns faster and the central-pad ion signal larger. Small, but the chain is wrong without it.
-3. **Validate the chain's kernels G with a full solver.** COMSOL so far tested the *operator*,
-   using its own G. The three induction-side discrepancies were only ever checked against the
-   chain's own solvers: neighbour delay ×2, X/Y 18 %, and the Y negative lobe. Two routes:
-   - **Cheap first:** compare the chain's uniform-sheet kernel with `InduceAxi` deposit runs.
-   - **Then:** a 3D COMSOL patch of the real checkerboard + ESL strips, or the COMSOL maps in
-     Garfield's `Examples/ResistiveMicromegas` (plan §4, never used).
+3. ~~Validate the chain's kernels G with a full solver~~ **done (§10.1)**: COMSOL 3D on the real
+   strips and comb agrees on timing (0–7 ns) and to ~5 % in amplitude. The Y negative lobe
+   (item 5) was not in that comparison's window; it is the next thing to read from the 3D runs
+   (`/eos/.../response_sim/comsol/condor/i3d_*_o2.csv`).
 4. Woven mesh: rerun S3 gain and `funnel_ion_endpoints.py` in `meshfield_woven_production.txt`,
-   then decide whether to adopt it. Transparency −4.2 % makes the amplitude deficit about ×1.52.
+   then decide whether to adopt it. Its −4.2 % transparency is absorbed into the feedback fit's
+   scale if §9 is adopted.
 5. Still unexplained: the early "foot" before data pulses, and the −0.2 negative lobe on the
    sim's Y channels (§7.2).
-6. Amplitude (§6) and gain slope remain separate open threads (FRESH_LOOK §1, §4 step 3).
+6. Amplitude and gain slope: one candidate mechanism now (§9). Item 0 tests it.
 
 **Gotchas / decisions:**
 - **Garfield on the desktop is built against ROOT 6.40**, but `setup_garfield.sh` still selects
@@ -80,7 +96,11 @@ August's reading, and it still has **no mechanism**.
   answering on 2026-10-12.
 
 **Key files & commands:**
-- `response/comsol/` — COMSOL models, the comparison script and a README with all §8 numbers.
+- `response/comsol/` — COMSOL models (2D, axisymmetric, 3D strips, woven mesh), condor
+  submission, `compare_induce2d.py` (ion operator) and `compare_kernels3d.py` (chain W2 kernels
+  vs COMSOL), and a README with the numbers.
+- `scratchpad/2026-10-13/` (README inside) — feedback fit, noise-shaper fit, ion-T scan at
+  166 ns, ±1 delay vs ρ_s. The data inputs came from the laptop (`yoga`, read-only).
   Outputs are on EOS: `/eos/experiment/ntof/data/x17/response_sim/comsol/`.
 - `design/report/FRESH_LOOK_2026-10-12.md` — the running write-up (§6–7.6).
 - `design/DREAM_SETTINGS.md`, `design/dream_cfg/` — DREAM settings record, per-run CSV,
