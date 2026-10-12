@@ -140,3 +140,70 @@ check.
 - Desktop: `/media/ucla/mx17_response_sim/` (avalanche raw, meshfield ladder).
 - Trap: `w2_rho2M/default/calib_bundle/` is the v-table **variant**, not the
   frozen default. Use `data_leg_satdet3/calib_bundle/`.
+
+## 6. Step 0 result (2026-10-12): the quality cut hid a third of the amplitude deficit; the rise time is unaffected
+
+**What was run.** `t14_compare.py` was run unmodified on the TRANSPFIX sim leg
+against the `data_leg_satdet3` data leg. Both event tables were copied with
+`{x,y}_quality_ok` set True everywhere, so the cut is a no-op and nothing else
+changes. Outputs are on the laptop under
+`~/x17/response_sim/stageB_w2/fresh_look_2026-10-12/`
+(`t14_compare_transpfix_noq/`, `run_noq.sh`). The amplitude ledger was
+re-derived read-only from the reco tables with
+`scratchpad/2026-10-12/quality_cut_amplitude.py`. Rise quantiles come from
+`scratchpad/2026-10-12/quality_cut_rise.py`. **Both scripts reproduce the
+frozen numbers exactly with the cut in** (q_sum X 0.7344, peak X 0.6462,
+rise X 1.106).
+
+**What the cut was doing.** `quality_ok = χ²/dof < 300` with pedestal-only
+weights, so χ²/dof ∝ amplitude². On the vertical point the cut removes **27.8 %
+(X) and 48.8 % (Y) of data tracks**, but **1.0 % / 0.5 % of sim tracks**,
+because the sim is dimmer. In the top q_sum quintile it keeps 17 % (X) and 1 %
+(Y) of data. In other words, the frozen comparison removed most of the
+brightest data events and almost none of the sim's.
+
+**Amplitude ledger, q_sum median within ±3° of the sim's median angle:**
+
+| selection | data kept X / Y | X ratio | **X deficit** | Y ratio | **Y deficit** |
+|---|---|---|---|---|---|
+| `quality_ok` (frozen) | 0.72 / 0.51 | 0.7344 ± 0.0075 | ×1.36 | 0.6929 ± 0.0096 | ×1.44 |
+| no quality cut | 1 / 1 | 0.6111 ± 0.0063 | **×1.64** | 0.4836 ± 0.0074 | **×2.07** |
+| gain-normalised χ² < data p95 | 0.95 / 0.95 | 0.5967 | ×1.68 | 0.4692 | ×2.13 |
+| single track candidate, no χ² cut | 0.95 / 0.92 | 0.6180 | ×1.62 | 0.4858 | ×2.06 |
+
+The three cut-free or fairly-cut selections agree with each other. The
+waveform-level ratios move the same way: peak X 0.646 → 0.523, Y 0.603 →
+0.431. These are lower bounds, because without the cut **44 % (X) / 41 % (Y)
+of data peak strips hit the ADC ceiling**, against 11 % / 7 % for the sim.
+
+Consequences:
+- **The uncorrected X deficit is ×1.64, not ×1.36**, about 20 % worse. The
+  frozen ×1.46 was the saturation-corrected figure, so it now needs redoing
+  on the uncut sample. A pure gain fix would need about 4×10⁴, above the
+  stable Ar/iso bulk-Micromegas band (3–4×10⁴), so "physically available, only
+  just" no longer holds.
+- **The Y/X asymmetry grows.** The Y deficit is now 1.26× the X deficit, up
+  from 1.06×. The 18 % X/Y term (OVERNIGHT §5) was measured under the same
+  cut, which removes 49 % of Y but only 28 % of X on the data side, so it
+  needs redoing too.
+- **The HV-slope comparison** (`mx17_sim_wft/hv_slope/`) has to be checked
+  for the same cut. Its quality-pass fraction collapses with HV, so the cut
+  would bias the slope. The 29 Aug threshold-free estimators (0.42–0.43 per
+  10 V) do not use the cut, and they agree with the T14 HV test's 0.449,
+  which suggests the slope test was not badly affected. Not verified.
+
+**Rise time: unchanged.** X median rise sim/data goes 1.106 → 1.101 and Y
+1.162 → 1.175. The sim−data quantile offsets move by ≤7 ns everywhere
+(X p5..p90 +103 +102 +83 +31 −57 −69 ns). Railed pulses were already
+censored from the rise, so adding them back does not move it. A second
+fairness check, keeping each leg's own dimmest 55 % so that both lose the
+same top fraction, gives the same offsets (X +108 … −73, Y +94 … +1).
+**The rise contradiction is not a selection artifact.** Note the vertical
+offsets are not a rigid shift: the sim is slower at low quantiles and
+*faster* at p75–p90, i.e. the data's rise distribution is broader. That is
+the "anomalously broad vertical data leg" already flagged in
+`RISE_SATURATION_CENSOR_2026-08-11.md`.
+
+**Not yet redone with the cut removed:** the angled-closure f_eff numbers
+(10°/20°). Those data legs went through the same cut, but given the vertical
+result the rise is expected to move only a few ns.
