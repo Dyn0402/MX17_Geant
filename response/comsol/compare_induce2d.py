@@ -19,6 +19,8 @@ If the resistive layer screens the in-gas ion differently, I_pair and I_chain
 part company, and the fitted f_eff on the central pad says by how much.
 
 Usage:  python3 -m response.comsol.compare_induce2d deposit.csv pair.csv [T_ion_ns]
+
+Works for both Induce2D and InduceAxi output (the central terminal is "p0").
 """
 import sys
 import numpy as np
@@ -104,8 +106,10 @@ def main():
     f_eff = B / (A + B)
     chain = (1 - f0) * SG + f0 * SC
     sc = SP[ic].max() / chain[ic].max()
-    print(f"\nchain p0 peak with no free scale (G rescaled to the pair's final charge): "
-          f"pair/chain = {SP[ic].max() / (chain[ic].max() * QP / QG):.3f}")
+    # deposit and pair carry the same Q, so G is already per unit avalanche charge and
+    # the chain prediction is absolute: no rescaling (a final-charge rescale is
+    # meaningless once the sheet drains the pad, as in the axisymmetric model)
+    print(f"\nchain p0 shaped peak, absolute (no free scale): pair/chain = {SP[ic].max() / chain[ic].max():.3f}")
     print(f"\nf_ion (profile <1-z/g>) = {f0:.3f}")
     print(f"fitted f_eff on p0      = {f_eff:.3f}   (data want 0.17-0.31; chain uses ~0.90)")
     for k, name in enumerate(cols[1:]):

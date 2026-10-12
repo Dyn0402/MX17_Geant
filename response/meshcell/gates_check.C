@@ -27,6 +27,11 @@
 // Transparency-curve scan points (not the bench 333 V/cm) pass their own
 // E_DRIFT as a 3rd argument so G1's "want" tracks the map:
 //   gates_check("meshfield_edrift0100.txt", 400, 100.0);
+//
+// The true-weave map from response/comsol (WovenMesh.java + woven_map.py) repeats
+// only by MIRRORING across the wire-centre planes (its translation period is 2p),
+// so it is loaded with mirror periodicity:
+//   gates_check("meshfield_woven.txt", 2000, 333.0, true);
 
 #include <cmath>
 #include <cstdio>
@@ -52,7 +57,7 @@ const double kNeBemAmpEz = 30561.0;  // V/cm, independent cross-check
 // (FIELD_MAP_RUNBOOK.md "Cheap follow-ups") passes the scan point instead —
 // G2/G3/G7 do not depend on it, only G1's "want" value does.
 int gates_check(const char* mapfile = "meshfield_production.txt",
-                int nev = 2000, double kEDrift = 333.0) {
+                int nev = 2000, double kEDrift = 333.0, bool mirror = false) {
   const bool production =
       std::string(mapfile).find("production") != std::string::npos;
 
@@ -73,10 +78,15 @@ int gates_check(const char* mapfile = "meshfield_production.txt",
   // becomes laterally infinite afterwards).
   double xlo, ylo, zlo, xhi, yhi, zhi;
   grid.GetBoundingBox(xlo, ylo, zlo, xhi, yhi, zhi);
-  grid.EnablePeriodicityX();
-  grid.EnablePeriodicityY();
-  std::printf("G3 load: map extent x [%g, %g] z [%g, %g] cm -> PASS\n",
-              xlo, xhi, zlo, zhi);
+  if (mirror) {
+    grid.EnableMirrorPeriodicityX();
+    grid.EnableMirrorPeriodicityY();
+  } else {
+    grid.EnablePeriodicityX();
+    grid.EnablePeriodicityY();
+  }
+  std::printf("G3 load: map extent x [%g, %g] z [%g, %g] cm, %s periodicity -> PASS\n",
+              xlo, xhi, zlo, zhi, mirror ? "mirror" : "plain");
   // Lateral probes over one period.
   xlo = ylo = -kPitch / 2.;
   xhi = yhi = +kPitch / 2.;
