@@ -366,7 +366,7 @@ function drawDet(stage){
         arrived++;
         const dt = t - e.ta;
         if (dt < 40){ // avalanche flash in the gap
-          const r = 3 + dt / 4; c.fillStyle = col.av; c.globalAlpha = 0.8 * (1 - dt / 40);
+          const r = 1.5 + dt / 20; c.fillStyle = col.av; c.globalAlpha = 0.8 * (1 - dt / 40);
           c.beginPath(); c.moveTo(xs(e.x), DY1 + 2); c.lineTo(xs(e.x) - r, DY1 + AMP); c.lineTo(xs(e.x) + r, DY1 + AMP); c.fill(); c.globalAlpha = 1;
         }
         if (ions && dt < P.t_ion) glowDot(c, xs(e.x), DY1 + AMP - (AMP - 3) * dt / P.t_ion, 1.6, col.ion, 0.85);
@@ -378,43 +378,97 @@ function drawDet(stage){
   drawInset(c, stage, col);
 }
 
+// One representative avalanche, pre-sampled once (own RNG, so events are unaffected).
+// Physics as in Garfield S3 (response/avalanche/mx17_aval_calib.py, meshfield_pooled):
+// exponential growth, 1/alpha = 14 um, so ionisations (= ion birth points) pile up
+// near the anode (mean 13.8 um); transverse spread grows like sqrt(depth) to
+// sigma0 = 33 um at the ESL; 94.8 % of ions end on the mesh wires, 5.2 % escape
+// (meshcell/funnel_ion_endpoints.json). Ions barely diffuse, so in the uniform gap
+// field the ion cloud rises almost rigidly: the few born high arrive first.
+const CLOUD = (() => {
+  let s2 = 12345; const r = () => { s2 = (s2 * 1664525 + 1013904223) >>> 0; return s2 / 4294967296; };
+  const g = () => { let u = 0; while (!u) u = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r()); };
+  const G = 150, L = 14, S0 = 33, out = [];
+  for (let i = 0; i < 420; i++){
+    // birth height above the anode: density ∝ exp(-h/L) on [0, G]
+    const h = -L * Math.log(1 - r() * (1 - Math.exp(-G / L))), d = G - h;
+    const sb = S0 * Math.sqrt(d / G);
+    out.push({h, d, xb: g() * sb, gx: g(), gz: g(), esc: r() < 0.052, ph: r()});
+  }
+  return out;
+})();
+
 function drawInset(c, stage, col){
-  const X0 = 700, Y0 = 60, Wd = 270, Hd = 300;
+  const X0 = 700, Y0 = 60, Wd = 270, Hd = 300, G = 150, PX = 1.2, PITCH_UM = 67, RW = 9.5;
+  c.save();
   c.fillStyle = '#121722'; c.fillRect(X0, Y0, Wd, Hd); c.strokeStyle = '#283044'; c.strokeRect(X0, Y0, Wd, Hd);
   c.fillStyle = css('--muted'); c.font = '12px IBM Plex Mono, monospace';
-  c.fillText('zoom: one hole of the mesh', X0 + 8, Y0 - 10);
-  const yM = Y0 + 60, yA = Y0 + Hd - 50;
-  // mesh wires
-  for (let i = 0; i < 6; i++){ c.fillStyle = '#9aa3b5'; c.beginPath(); c.arc(X0 + 30 + i * 46, yM, 6, 0, 7); c.fill(); }
-  c.fillStyle = '#3a3346'; c.fillRect(X0 + 10, yA, Wd - 20, 6);
+  c.fillText('zoom: one hole of the mesh (to scale)', X0 + 8, Y0 - 10);
+  c.beginPath(); c.rect(X0, Y0, Wd, Hd); c.clip();
+  const yA = Y0 + Hd - 44, yTop = yA - G * PX, yW = yTop - RW * PX, cxA = X0 + Wd / 2;
+  const X = um => cxA + um * PX, Yh = h => yA - h * PX;          // h = height above the anode [µm]
+  // mesh wires (Ø 19 µm, 67 µm pitch); the avalanche sits under a hole
+  const wires = [-1.5, -0.5, 0.5, 1.5].map(k => k * PITCH_UM);
+  c.fillStyle = '#9aa3b5'; for (const w of wires){ c.beginPath(); c.arc(X(w), yW, RW * PX, 0, 7); c.fill(); }
+  c.fillStyle = '#3a3346'; c.fillRect(X0, yA, Wd, 6);
   c.fillStyle = css('--muted');
-  c.fillText('mesh (wire Ø 19 µm)', X0 + 8, yM - 18); c.fillText('resistive anode', X0 + 8, yA + 22);
-  c.fillText('150 µm, ~31 kV/cm', X0 + 8, (yM + yA) / 2 + 4);
-  if (!ev) return;
-  // the representative avalanche follows the first arrival in each 120 ns window
-  const a = ev.firstA; if (t < a) { // electron coming in
-    const f = Math.max(0, Math.min(1, (t - a + 120) / 120)); glowDot(c, X0 + 145, Y0 + 10 + f * (yM - Y0 - 10), 3, col.ele, f > 0 ? 1 : 0); return; }
-  const dt = (t - a) % 520;
-  const cxA = X0 + 145;
-  // electrons: rapid multiplication down to the anode (few ns, shown slowed)
-  const fe = Math.min(1, dt / 60);
-  for (let i = 0; i < 70; i++){
-    const u = (i * 0.618) % 1, yy = yM + 4 + (yA - yM - 4) * Math.min(1, fe * (0.5 + u));
-    const spread = 4 + 46 * Math.pow((yy - yM) / (yA - yM), 1.3) * (u - 0.5) * 2;
-    if (fe < 1) glowDot(c, cxA + spread, yy, 1.5, col.av, 0.9);
+  c.fillText('mesh: Ø19 µm wires, 67 µm pitch', X0 + 8, yW - 16); c.fillText('resistive anode (ESL)', X0 + 8, yA + 18);
+  c.fillText('150 µm, ~31 kV/cm', X0 + 8, yTop + 22);
+  // 20 µm scale bar
+  c.fillRect(X0 + Wd - 36, yTop + 10, 20 * PX, 2); c.fillText('20 µm', X0 + Wd - 44, yTop + 26);
+  c.fillStyle = col.av; c.fillText(`gain ≈ ${P.gain.toLocaleString('en')} (sim)`, X0 + 8, Y0 + 16);
+  if (!ev){ c.restore(); return; }
+  // the representative avalanche follows the first arrival, repeating every 520 ns
+  const a = ev.firstA;
+  if (t < a){
+    const f = Math.max(0, Math.min(1, (t - a + 120) / 120));
+    if (f > 0) glowDot(c, cxA, Y0 + 30 + f * (yTop - Y0 - 30), 3, col.ele, 1);
+    c.restore(); return;
   }
-  if (fe >= 1 && dt < 90) { c.fillStyle = col.av; c.globalAlpha = 0.5 * (1 - (dt - 60) / 30); c.fillRect(cxA - 50, yA - 6, 100, 6); c.globalAlpha = 1; }
-  // ions: slow drift back up to the mesh
+  const dt = (t - a) % 520;
+  const fe = Math.min(1, dt / 60), dF = fe * G;   // avalanche front depth below the mesh
+  // ions: one per ionisation, left at the birth point; they rise together at the
+  // drift velocity, then follow the field lines that end on the wires
   if (ions){
-    const fi = Math.max(0, Math.min(1, (dt - 20) / P.t_ion));
-    if (fi < 1) for (let i = 0; i < 60; i++){
-      const u = (i * 0.618) % 1, y0 = yA - 2 - 30 * u;
-      const yy = y0 - (y0 - yM - 8) * fi, sx = (u - 0.5) * 90 * (1 - fi * 0.6);
-      glowDot(c, cxA + sx, yy, 1.8, col.ion, 0.9);
+    const fi = Math.max(0, (dt - 60) / P.t_ion);
+    let left = 0;
+    for (const p of CLOUD){
+      if (p.d > dF) continue;                                     // not yet born
+      const hNow = p.h + Math.min(fi, 1.2) * G;                   // uniform field: rigid rise
+      let x = p.xb, y = Yh(Math.min(hNow, G + 30));
+      const near = Math.max(0, hNow - (G - 35)) / 35;            // last 35 µm: funnel onto a wire
+      if (!p.esc && hNow > G - 35){
+        const w = wires.reduce((b, w) => Math.abs(w - x) < Math.abs(b - x) ? w : b, wires[0]);
+        const k = Math.min(1, near) ** 1.5, tx = w + Math.sign(x - w || 1) * RW * 0.9, ty = G + RW;
+        x = x + (tx - x) * k; y = Yh(Math.min(hNow, G) * (1 - k) + ty * k);
+        if (near >= 1) continue;                                  // collected
+      } else if (p.esc && hNow > G - 35){
+        x = x * (1 - Math.min(1, near) * 0.8);                    // squeezed through the hole
+        if (hNow > G + 30) continue;
+      }
+      left++;
+      glowDot(c, X(x), y, 1.4, col.ion, p.esc ? 0.55 : 0.9);
     }
-    c.fillStyle = col.ion; c.fillText(fi < 1 ? `ions → mesh: ${Math.round(fi * P.t_ion)} / ${P.t_ion} ns` : 'ions collected', X0 + 8, Y0 + Hd - 8);
+    c.fillStyle = col.ion;
+    c.fillText(dt < 60 ? 'ions left at each ionisation' :
+               left ? `ions → mesh: ${Math.round(Math.min(fi, 1) * P.t_ion)} / ${P.t_ion} ns` : 'ions: 95 % on wires, 5 % escape', X0 + 8, Y0 + Hd - 8);
   } else { c.fillStyle = col.ion; c.fillText('ion signal switched off', X0 + 8, Y0 + Hd - 8); }
-  c.fillStyle = col.av; c.fillText(`gain ≈ ${P.gain.toLocaleString('en')} (sim)`, X0 + 8, Y0 + 20);
+  // electrons: the front crosses the gap in ~1 ns (shown slowed to 60 ns); the
+  // number of electrons grows like exp(alpha·depth), so only the last ~30 µm look full
+  if (fe < 1){
+    for (const p of CLOUD){
+      if (p.d > dF) continue;                                     // not yet born
+      const sF = 33 * Math.sqrt(dF / G), sB = 33 * Math.sqrt(p.d / G);
+      const x = p.xb + p.gx * Math.sqrt(Math.max(0, sF * sF - sB * sB));
+      const h = Math.max(0, G - dF + p.gz * 2.5);
+      glowDot(c, X(x), Yh(h), 1.3, col.av, 0.85);
+    }
+    glowDot(c, X(0), Yh(G - dF), 2.6, col.ele, 1);
+    c.fillStyle = col.av; c.fillText('n ∝ exp(α·depth), 1/α ≈ 14 µm', X0 + 8, Y0 + 31);
+  } else if (dt < 90){
+    c.fillStyle = col.av; c.globalAlpha = 0.5 * (1 - (dt - 60) / 30); c.fillRect(X(-66), yA - 4, 132 * PX, 4); c.globalAlpha = 1;
+  }
+  c.restore();
 }
 
 function revealFrac(){ if (!ev) return 0; const i = Math.min(ev.W.length - 1, Math.max(0, Math.floor(t / P.h_dt))); return Math.max(0, ev.W[i]) / ev.mx; }
