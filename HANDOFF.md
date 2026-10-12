@@ -24,6 +24,12 @@ contradiction of T14 is the problem being worked here.
   swept, and every data FEU in the cosmic, n_TOF and SPS runs is 180 ns. The 123 ns branch is
   closed.
 
+- Published the state of play to the site: 12-slide note
+  https://dylan-neff.web.cern.ch/notes/mx17-response-sim-status.html and an animated chain
+  walk-through https://dylan-neff.web.cern.ch/notes/mx17-response-chain.html (toy pulse vs the
+  real det3 average; the ion toggle shows the rise problem). It supersedes the August
+  `t14-sim-vs-data-waveforms` note.
+
 **In progress / where it stopped:** nothing half-done. The conclusion is that with the true
 180 ns shaper the inclined data needs the ion signal largely absent (f_eff ≈ 0.2). That is
 August's reading, and it still has **no mechanism**.
@@ -55,3 +61,7 @@ August's reading, and it still has **no mechanism**.
   `wf_*.py` scripts with both npz files in the cwd, using the nTof_x17 `.venv` python (needs
   pandas).
 - `python ~/PycharmProjects/nTof_x17_DAQ/dream_scripts/decode_dream_cfg.py [--sweep] <cfg|dir>`
+- `design/report/deck/make_sim_status_deck.py`, `make_chain_animation.py`: site generators. Run with
+  `--wf-dir <dir with both npz> --out <html>`, then publish with
+  `python3 ~/PycharmProjects/dylan-cern-site/scripts/add-note.py <html> --slug <slug> --force --deploy`.
+  Update the LEDGER in the deck script when FRESH_LOOK numbers change.
