@@ -614,6 +614,13 @@ scan1/scan2 gas drift. Figure: `figs/feedback_fit_2026-10-13.png`.
   fraction (`HANDOFF_hv_window.md`) is 11 % at 500 V, 18 % at 510, 26 % at
   515, 45 % at 520 and 54 % at 525; efficiency collapses from 505 V. Feedback
   runaway is a standard breakdown mechanism.
+- **Robust to the obvious choices.** The predicted gain factor at 490 V is:
+  - ×1.64–2.27 with each pass alone (scan1 or scan2, X/Y, p50/p10), so the
+    scan1/scan2 gas drift does not create it;
+  - ×1.67–2.74 with Garfield's own slight curvature (quadratic ln G) instead
+    of a straight line; the outlier is ×2.74, X p50 scan1 with only 7 points.
+
+  The central values are ×1.8–2.0 throughout.
 - **The quantile trend** (bG 0.52 at p50 down to 0.34–0.39 at p02) is not
   understood. It may be rail proximity, since the lower quantiles reach
   higher voltages, or a real event-to-event spread of feedback. Feedback beats
@@ -874,3 +881,44 @@ Both are untested. The T2b spread measurement put det3 at 1.42–2.56 MΩ/sq. Th
    - T10 step 5 (exact z-lift of the ion weighting; a few % and a few ns);
    - adopt G/(1 − bG) once item 1 confirms it;
    - optionally the woven-mesh map (−4 % transparency).
+
+### 10.4 One time scale in the data, but two mechanisms
+
+On vertical tracks (`scratchpad/2026-10-13/xtalk_fit.py`, event-aligned on the
+central strip's leading 50 %), the data are faster than the chain by the
+**same factor** in two quantities:
+
+| | data | chain | ratio |
+|---|---|---|---|
+| central peak time, X | 180 ns | 270 ns | 0.67 |
+| ±1 neighbour delay, X | +90 ns | +135 ns | 0.67 |
+| central peak time, Y | 165 ns | 240 ns | 0.69 |
+| ±1 neighbour delay, Y | +75 ns | +120 ns | 0.63 |
+
+- **It is not the sampling clock.** The FEU takes its clock from the trigger
+  interface (`Main_Conf_ClkSel TrgIfConClk`, WrClk_Div 6, so 60 ns only if
+  that clock is 100 MHz). A 0.67 compression would need ~90 ns samples. Two
+  independent anchors exclude that:
+  - the noise ACF (§10.2) gives shaper/period = 166/60, so ~65 ns at the
+    nominal 180 ns analog shaper;
+  - the drift-column time, 757.5 ns over det3's 27.9 mm gap, gives
+    36.8 µm/ns, matching wet Magboltz (36.6) only at 60 ns.
+- **It is not one physical cause either.** On the validated kernels
+  (`delay_vs_rho.py --ion`, ρ_s = 2 MΩ/sq), faster ions or a weaker ion signal
+  barely move the ±1 delay:
+  - σ_T = 200 µm: 79 / 81 / 83 ns for T_ion 340 / 200 / 140 ns, and 91 / 84
+    ns for f_ion 0.2 / 0;
+  - σ_T = 400 µm: 40–48 ns throughout.
+
+  Whatever fixes the central rise will not fix the neighbour delay, and ρ_s
+  cannot fix the neighbours alone (§10.3). **The rise and the neighbour rows
+  are separate open problems**, and the shared 0.67 is either a coincidence
+  or a third effect common to both.
+- **Crosstalk can't be told apart from extra prompt sharing here.** Fitting
+  the data's ±1 average as a·chain_nb + k·data_c + k′·d/dt data_c improves
+  the rms ×2–3 (X 0.038 → 0.012, Y 0.059 → 0.027). But it needs
+  k ≈ 0.165, a 16 % in-phase copy of the central strip. That is large for
+  electronics crosstalk and equivalent to simply more prompt charge sharing
+  (a wider effective cloud), so these averages cannot separate the two.
+  Pulsing one channel on the bench and recording its neighbours would.
+

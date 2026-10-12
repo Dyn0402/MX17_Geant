@@ -27,7 +27,7 @@ GAP, LZ, T_ION, F0 = 150.0, 14.8, 340.0, 0.901
 DT, TMAX = 1.0, 2500.0
 
 
-def ion_shape():
+def ion_shape(T_ION=T_ION):
     tg = np.arange(0, TMAX, DT)
     v = GAP / T_ION
     zc = np.clip(GAP - v * (tg + 0.5 * DT), 0, GAP)
@@ -35,7 +35,7 @@ def ion_shape():
     return cdf / cdf.sum()
 
 
-def run(npz, sigma_um=400.0, n_ev=200, seed=1):
+def run(npz, sigma_um=400.0, n_ev=200, seed=1, t_ion=T_ION, f_ion=F0):
     d = np.load(npz)
     t = d["t"]; x = d["x"]; yY = d["y_Y"]
     rho = float(__import__("json").loads(str(d["meta"]))["rho_s_ohm_sq"])
@@ -63,12 +63,12 @@ def run(npz, sigma_um=400.0, n_ev=200, seed=1):
         qi[0] = 0.0
         return (np.diff(qi, axis=0) / (DT * 1e-9)).reshape((len(tg),) + G.shape[1:])
     Ie, Io = to_current(Ge), to_current(Go)
-    ion = ion_shape()
+    ion = ion_shape(t_ion)
     def op(I):   # chain operator along time, for every (y, x)
         fl = I.reshape(len(tg), -1)
         n = 1 << int(np.ceil(np.log2(2 * len(tg))))
         conv = np.fft.irfft(np.fft.rfft(fl, n, axis=0) * np.fft.rfft(ion, n)[:, None], n, axis=0)[:len(tg)]
-        return ((1 - F0) * fl + F0 * conv).reshape(I.shape)
+        return ((1 - f_ion) * fl + f_ion * conv).reshape(I.shape)
     Ie, Io = op(Ie), op(Io)
     sh = DreamShaper(dt_ns=DT)
 
@@ -96,7 +96,19 @@ def run(npz, sigma_um=400.0, n_ev=200, seed=1):
     return rho, float(np.mean(delays)), float(np.median(delays)), len(delays)
 
 
+def main_ion():
+    """the same delay with faster ions / a weaker ion signal, at one rho_s"""
+    npz = sys.argv[2]
+    for sig in (200.0, 400.0):
+        for t_ion, f in ((340.0, F0), (200.0, F0), (140.0, F0), (340.0, 0.2), (340.0, 0.0)):
+            rho, m, med, n = run(npz, sigma_um=sig, t_ion=t_ion, f_ion=f)
+            print(f"rho_s {rho/1e6:3.1f}  sigma_T {sig:4.0f} um  T_ion {t_ion:4.0f} ns  f_ion {f:.2f}:  "
+                  f"+-1 delay mean {m:6.1f} ns, median {med:6.1f} ns ({n})", flush=True)
+
+
 def main():
+    if sys.argv[1] == "--ion":
+        return main_ion()
     for sig in (200.0, 400.0, 800.0):
         for npz in sys.argv[1:]:
             rho, m, med, n = run(npz, sigma_um=sig)
