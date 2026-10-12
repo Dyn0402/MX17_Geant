@@ -10,6 +10,10 @@
 
 ## 0a. STATE OF PLAY — read this first (updated 2026-08-10; earlier snapshots below are 2026-08-09, 2026-08-08 and 2026-08-07)
 
+### 2026-10-12 — restart point: read `design/report/FRESH_LOOK_2026-10-12.md` first
+
+The campaign was parked on 2026-08-11 (MPGD26). That note gives the current discrepancy table, what is excluded, what changed in nTof_x17 since (the data slope is confirmed at 0.42–0.43/10 V by three estimators; T14's `quality_ok` cut is amplitude-dependent and applied to legs that differ ×1.46), and a re-ordered plan that steps outside the chain decomposition.
+
 ### 2026-08-10 update — the ion term IS the rise discrepancy, the amplitude ledger closes to ONE candidate, and the ion contradiction is now structurally cornered
 
 Overnight worker, 2026-08-09 → 08-10. Full record `design/report/OVERNIGHT_2026-08-10.md`;
