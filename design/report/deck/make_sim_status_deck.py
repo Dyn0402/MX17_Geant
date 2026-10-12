@@ -365,7 +365,7 @@ def build(res, out_path):
                 sd.term('Mesh transparency', 'Fixed 2026-08-11, now counted once (×1.1455).')])),
                 sd.card('<p style="font-size:30px;font-weight:600;color:#c63d4f">Rise time</p>' + lst([
                     'Track inclination', 't0 and frame alignment', 'The rise estimator (fixed)',
-                    sd.term('Resistive-sheet screening', 'Retired twice by independent derivations: the sheet time response factorises out; ≤ 8 %.'),
+                    sd.term('Resistive-sheet screening', 'Retired twice by derivation, and on 2026-10-12 by a direct COMSOL time-domain solve: the true ion signal is 11–20 % larger than the chain, not smaller (FRESH_LOOK §8).'),
                     sd.term('Ion mobility ±30 %', 'Superseded 2026-10-12: a wrong ion species (×1.3–1.6) was not covered; at 180 ns it is not enough anyway.'),
                     sd.term('Shaper 123 ns', 'Closed 2026-10-12 by the register read-back: 180 ns (slide 10).'),
                     sd.term('A chain bug', 'Closed 2026-10-12 by the independent toy (slide 7).')])),
@@ -540,7 +540,8 @@ def build(res, out_path):
                 'Early foot before data pulses; −0.2 lobe on sim Y', '±1 neighbour delay ×2, Y/X 18 %'], DRED)),
                 sd.col(sd.p('Next', 30, DGREEN, 600), dl([
                     '<b>FEU pulser shot</b> through the test capacitor: the shaper\'s real response and the absolute ADC/fC scale',
-                    'Look for an ion-suppression mechanism specific to the <b>resistive</b> bulk Micromegas (only sheet screening, ≤ 8 %, sized so far)',
+                    '<b>T10 step 5</b>: exact z-lift of the ion weighting (COMSOL confirms the frozen 1−z/g is 11–20 % low on the central pad)',
+                    '<b>Validate the kernels G</b> with a full solver (3D COMSOL patch): neighbour delay, Y/X, Y lobe',
                     '<b>Garfield literature benchmark</b>: plain bulk MM in Ar/iso 95/5 vs published gain curves (does Magboltz under-slope?)',
                     'Template-to-template: wft calibrate on sim output vs data', 'Re-quote q_sum on the r06 bundle; redo Y/X without the cut'], DGREEN)),
                 sd.col(sd.p('Not ruled out', 30, DMUT, 600), dl([

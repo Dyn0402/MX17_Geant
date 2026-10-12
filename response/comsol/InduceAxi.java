@@ -26,6 +26,7 @@
  *   T_ION_NS  ion transit across the full gap      default 340
  *   T_END_NS  end of the solve                     default 3000
  *   VE_UM_NS  electron velocity [um/ns]            default 15 (real ~150; see below)
+ *   H_COL_UM, H_MAX_UM, RTOL, DT_MAX_NS            mesh / solver convergence knobs (2.5, 40, 1e-4, 1)
  *
  * Output: CSV lines on stdout prefixed "CSV,"; run_lxplus.sh writes them to $OUT.
  */
@@ -43,6 +44,9 @@ public class InduceAxi {
     double tIon = Double.parseDouble(env("T_ION_NS", "340"));
     double tEnd = Double.parseDouble(env("T_END_NS", "3000"));
     double ve = Double.parseDouble(env("VE_UM_NS", "15"));
+    double hCol = Double.parseDouble(env("H_COL_UM", "2.5"));     // convergence knobs
+    double hMax = Double.parseDouble(env("H_MAX_UM", "40"));
+    String rtol = env("RTOL", "1e-4"), dtMax = env("DT_MAX_NS", "1");
 
     // stack [um] -- response/common/constants.py, solver/v6_pad_gaps.py
     final double GAP = 150, T_ESL = 10, T_KAP = 50, T_GLUE = 18.76, T_CU = 26, T_FR4 = 264;
@@ -167,7 +171,7 @@ public class InduceAxi {
     MeshSequence ms = comp.mesh().create("mesh1");
     ms.create("sz", "Size");
     ms.feature("sz").set("custom", "on");
-    ms.feature("sz").set("hmax", "40[um]");
+    ms.feature("sz").set("hmax", hMax + "[um]");
     ms.feature("sz").set("hmaxactive", true);
     ms.feature("sz").set("hmin", "0.2[um]");
     ms.feature("sz").set("hminactive", true);
@@ -178,7 +182,7 @@ public class InduceAxi {
     ms.feature("ftri").feature("size1").selection().geom("geom1", 2);
     ms.feature("ftri").feature("size1").selection().named("s_col");
     ms.feature("ftri").feature("size1").set("custom", "on");
-    ms.feature("ftri").feature("size1").set("hmax", "2.5[um]");
+    ms.feature("ftri").feature("size1").set("hmax", hCol + "[um]");
     ms.feature("ftri").feature("size1").set("hmaxactive", true);
     ms.run();
     System.out.println("[induceaxi] mesh elements: " + comp.mesh("mesh1").getNumElem());
@@ -190,10 +194,10 @@ public class InduceAxi {
     SolverFeature td = m.sol("sol1").feature("t1");
     td.set("tstepsbdf", "free");
     td.set("maxstepconstraintbdf", "const");
-    td.set("maxstepbdf", "1[ns]");
+    td.set("maxstepbdf", dtMax + "[ns]");
     td.set("initialstepbdfactive", true);
     td.set("initialstepbdf", "1e-13");
-    td.set("rtol", "1e-4");
+    td.set("rtol", rtol);
     // V is O(0.1 V) for Q = 1 fC; automatic scaling from an all-zero initial state is degenerate
     m.sol("sol1").feature("v1").set("scalemethod", "manual");
     m.sol("sol1").feature("v1").set("scaleval", "1e-1");
@@ -208,7 +212,7 @@ public class InduceAxi {
     double[] tt = m.sol("sol1").getPVals();
     // COMSOL's file-system security preference refuses writes outside its own dirs, so the
     // CSV goes to stdout with a "CSV," prefix and run_lxplus.sh pulls it out of the log.
-    System.out.println("CSV,# currents in A for Q = 1e-15 C; InduceAxi rho_s=" + rhoS + " case=" + kase + " t_ion_ns=" + tIon + " ve_um_ns=" + ve
+    System.out.println("CSV,# currents in A for Q = 1e-15 C; InduceAxi rho_s=" + rhoS + " case=" + kase + " t_ion_ns=" + tIon + " ve_um_ns=" + ve + " h_col_um=" + hCol + " h_max_um=" + hMax + " rtol=" + rtol + " dt_max_ns=" + dtMax
                        + " elems=" + comp.mesh("mesh1").getNumElem());
     System.out.println("CSV,t_s," + String.join(",", tn));
     for (int k = 0; k < tt.length; k++) {

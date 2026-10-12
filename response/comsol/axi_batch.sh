@@ -1,6 +1,7 @@
 #!/bin/bash
 # InduceAxi batch on lxplus: two solves at a time, CSVs in ~/MX17_comsol.
 # Usage: axi_batch.sh "<RHO_S> <CASE> <VE_UM_NS> <tag>" ...
+# Extra env (H_COL_UM, H_MAX_UM, RTOL, DT_MAX_NS) passes through to every run.
 cd ~/MX17_comsol
 n=0
 for spec in "$@"; do

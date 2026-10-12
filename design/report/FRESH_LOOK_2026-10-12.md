@@ -37,7 +37,9 @@ Water and iso fraction (both make it worse). Primary ionisation (measured,
 
 **Rise:** track inclination; t0 and frame; the rise estimator (fixed);
 resistive-sheet screening, retired twice by independent derivations (the
-sheet's time response factorises out); ion mobility within ±30 %
+sheet's time response factorises out) and a third time by a direct COMSOL
+time-domain solve, which finds the ion signal 11–20 % *larger* than the chain
+assumes, not smaller (§8); ion mobility within ±30 %
 (Garfield-measured transit ~340 ns, a rectangle).
 
 **Self-inflicted defects found on the way.** These are the main lesson. The
@@ -448,3 +450,107 @@ vertical-track argument for it (§7.2) is withdrawn. What is left to test:
 - An ion-signal suppression mechanism specific to this **resistive** bulk
   Micromegas: the sheet-screening estimate (≤ 8 %) was the only one sized in
   August.
+
+## 8. Direct COMSOL solves: the induction stage and the true mesh (2026-10-12)
+
+COMSOL 6.4 runs in batch on lxplus (cvmfs, CERN licence). Everything below is
+in `response/comsol/` (README there has the full tables, commands and API
+notes). The raw outputs are on EOS under
+`/eos/experiment/ntof/data/x17/response_sim/comsol/`.
+
+### 8.1 What was tested
+
+The models use no weighting-field theorem. The avalanche is a prescribed
+convection current (electrons down onto the ESL, ions up to the mesh over
+340 ns). COMSOL solves charge conservation through the real stack: gas, ESL,
+50 µm kapton, glue, pads and FR4. The pads are Terminals held at 0 V, and their
+currents are the signals. Two cases are run with the same charge:
+
+- `deposit` gives the surface kernel G.
+- `pair` is the full truth, electrons plus ions.
+
+The chain's operator, `(1 − f)·G + f·(ion ⊗ G)` with f = ⟨1 − z/g⟩ = 0.901
+(`kernel_lut.apply_ion_transit`), is built from COMSOL's own G and compared
+with the pair solve after the DREAM shaper (`compare_induce2d.py`). The
+comparison therefore tests the operator, not the chain's kernels.
+
+### 8.2 Results
+
+| geometry | central pad: rise, pair / chain | peak, pair ÷ chain | fitted f_eff |
+|---|---|---|---|
+| 2D cut, ESL strips, 2 MΩ/sq | 227 / 228 ns | 1.03 | 0.88 |
+| axisymmetric, uniform sheet, 2 MΩ/sq | 146 / 151 ns | 1.11 | 0.89 |
+| axisymmetric, uniform sheet, 0.5 MΩ/sq | 129 / 129 ns | 1.20 | 0.93 |
+
+- **2D cut:** each strip is an infinite floating line, so charge cannot spread
+  or drain. The 3 % there sits at that model's numerical floor, which is the
+  mismatch of the final charge between the two cases.
+- **Axisymmetric:** charge really spreads off the pad. At 2 MΩ/sq only 7 % of
+  the deposited charge is still on the central pad at 340 ns; at 0.5 MΩ/sq,
+  1 %.
+
+### 8.3 Reading
+
+1. **The resistive layer does not suppress the ion signal.** This holds even
+   while the sheet drains the pad during the transit. It is the third
+   retirement of screening, now by a full solve and with a sign: the truth is
+   larger than the chain, which is the wrong direction for the data
+   (f_eff ≈ 0.17–0.31).
+2. **The excess is T10's known failure, seen by an independent solver.** The
+   fast path freezes the ion's weighting at the k → 0 continuation 1 − z/g.
+   The exact lift is sinh(k(g − z))/sinh(kg) (`solver/zextend.py`). At
+   pad-scale k it has a steeper gradient near the anode, so the true ion
+   current is front-loaded: more of it arrives early, onto the central pad,
+   before the sheet spreads.
+
+   August measured this as a 7.55 % shaped residual on W2
+   (`T10_SLOWPATH_2026-08-08.md`). It is "a redistribution in time",
+   confined to avalanche-sized deposits. The fix (plan §7 step 5, the LUT
+   from slow-path templates) was never done.
+
+   COMSOL matches every signature:
+   - **Sign:** the peak is higher and the rise faster.
+   - **ρ_s trend:** 1.11 → 1.20 as the sheet relaxes faster.
+   - **Neighbours:** p1/p2 come out 2–10 % lower relative to p0.
+   - **2D:** the effect disappears, because G is flat after landing.
+3. **Size of the rise-time effect:** the exact physics makes the rise 0–5 ns
+   faster, with the peak time within −8 / +4 ns, against the 64–68 ns the
+   data need. It is
+   in the right direction for the rise but adds ion amplitude. It is a
+   correction worth making (T10 step 5), not the missing mechanism.
+4. **Not caused by the 10× slowed electrons** of the default runs: G rebuilt
+   from real-velocity (150 µm/ns) electrons gives 1.11 / 1.20.
+
+### 8.4 The true woven mesh
+
+`WovenMesh.java` builds the real plain weave: sinusoidal wires over and under,
+9.5 µm radius, the same 1 µm kiss overlap. It is solved on a 67 µm cell whose
+walls are the weave's exact mirror planes, so it must be loaded with
+**mirror** periodicity. `woven_map.py` exports it on the production grid with
+the production flag semantics; all 1.79M flags are cross-checked in numpy,
+with zero disagreements. Through the same `gates_check.C` (new `mirror`
+argument), ROOT 6.40, 2000 electrons:
+
+| | straight wires (production) | true weave |
+|---|---|---|
+| amp field, z = −90 µm | 31 014 V/cm | 30 743 V/cm (−0.9 %) |
+| electron transparency | 0.960 ± 0.004 | **0.918 ± 0.006** |
+| funnel rms | 94.6 µm | 94.3 µm |
+
+The weave costs 4.2 ± 0.7 % of primaries. Adopting it would move the
+amplitude deficit from ×1.46 to about ×1.52, slightly worse. It does not touch
+the gain slope (the field-map shape is already excluded there, §2) or the
+ion question. The map is at `response/meshcell/meshfield_woven_production.txt`
+(gitignored) and has not been adopted.
+
+### 8.5 What this changes
+
+- **Induction-side ion suppression is now excluded by a direct solve.** The
+  ×3–5 suppression the 180 ns shaper demands (§7.6) cannot come from the
+  resistive layer, the dielectric stack or the pad geometry. The remaining
+  untested link in that chain is the shaper's *actual* response (the FEU
+  pulser).
+- **T10 step 5 should be done.** It is a known, now independently confirmed,
+  error in the chain. It makes the rise a few ns faster and the central-pad
+  ion signal larger.
+

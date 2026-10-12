@@ -96,8 +96,24 @@ on the central pad:
   1.11 / 1.20, so the excess is not an artefact of the slower electrons.
 
 **Conclusion:** sheet screening of the in-gas ion cannot produce the missing ion signal,
-in 2D or with radial spreading. The resistive layer, if anything, makes the ion signal
-slightly larger than the chain assumes.
+in 2D or with radial spreading.
+
+**What the excess is.** The chain freezes the ion's weighting at the k → 0 continuation
+1 − z/g. The exact lift is Ψ(k,0,t)·sinh(k(g − z))/sinh(kg) (`solver/zextend.py`). At
+pad-scale k that has a steeper gradient near the anode, so the true ion current is
+front-loaded onto the central pad before the sheet spreads it.
+
+This is the failure the chain's own slow path found in August: 7.55 % shaped residual
+on W2, `design/report/T10_SLOWPATH_2026-08-08.md`. Its fix, plan §7 step 5, was never
+done. COMSOL confirms it independently, and every signature matches:
+
+- **Sign:** the central-pad peak is higher.
+- **ρ_s trend:** the excess grows as the sheet relaxes faster.
+- **Neighbours:** p1/p2 come out lower relative to p0.
+- **2D:** the effect is absent, because G is flat after landing.
+
+The effect on the rise is 0–5 ns faster, against the 64–68 ns the data need. The full
+context is in `design/report/FRESH_LOOK_2026-10-12.md` §8.
 
 The remaining geometric caveat is the real ESL, which is strips (550 µm on an 800 µm
 pitch) and not a uniform sheet. Charge then spreads along one strip (1D), more slowly

@@ -123,6 +123,18 @@ always.
    that sets transparency and funnelling; a woven-geometry refinement would
    need per-wire sinusoidal sweeps in gmsh and breaks the mirror symmetry
    — do not attempt it casually).
+   **Update 2026-10-12: the true weave now exists**, built in COMSOL rather
+   than gmsh (`response/comsol/WovenMesh.java` + `woven_map.py`). It uses
+   the same grid and flag semantics as this map, and the same gates pass. It
+   must be loaded with **mirror** periodicity
+   (`gates_check(map, n, 333, true)`). The weave does *not* break the
+   mirror symmetry the note above feared. The planes through the wire
+   centres are still exact mirror planes; only the translation period
+   doubles to 2p. Its transparency is 0.918 ± 0.006,
+   against 0.960 ± 0.004 for this map through the same macro, so the
+   bi-planar stand-in overstates transparency by 4.2 %. The amp field is
+   0.9 % lower and the funnel rms the same. Not adopted yet: S3 gain and
+   ion endpoints have not been rerun in it. See `response/comsol/README.md`.
 
 ## The gates
 

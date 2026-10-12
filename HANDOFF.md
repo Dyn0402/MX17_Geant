@@ -2,7 +2,7 @@
 
 ## T14 fresh look (sim vs data waveforms) — updated 2026-10-12 (dylan-MS-7C84)
 
-**Resume:** shaper confirmed 180 ns, so the ion-suppression puzzle is back. Next: FEU pulser shot, or a resistive-MM ion mechanism.
+**Resume:** shaper confirmed 180 ns. COMSOL direct solves (§8) now exclude induction-side ion suppression. Next: FEU pulser shot; do T10 step 5; 3D kernel validation.
 
 **Goal:** find out why the end-to-end MX17 response simulation (Geant4 → Garfield → DREAM)
 gives slower and wider pulses than the det3 cosmic-bench data. The rise-time / f_ion
@@ -30,20 +30,48 @@ contradiction of T14 is the problem being worked here.
   real det3 average; the ion toggle shows the rise problem). It supersedes the August
   `t14-sim-vs-data-waveforms` note.
 
+- §8 (`response/comsol/`): **COMSOL direct time-domain solves on lxplus.**
+  - The chain's ion operator gets the pulse shape right, but the true ion
+    signal is 11–20 % *larger* (axisymmetric, sheet draining the pad). So
+    resistive-sheet screening is retired a third time, now by a full solve
+    and with a sign.
+  - The excess is T10's frozen-1−z/g failure (`T10_SLOWPATH_2026-08-08.md`),
+    now confirmed independently.
+  - True-weave mesh map: transparency 0.918 ± 0.006, against 0.960 ± 0.004
+    for the straight-wire production map through the same macro. Not adopted.
+
 **In progress / where it stopped:** nothing half-done. The conclusion is that with the true
 180 ns shaper the inclined data needs the ion signal largely absent (f_eff ≈ 0.2). That is
 August's reading, and it still has **no mechanism**.
 
 **Next steps:**
 1. Measure the shaper's *actual* response: fire the FEU pulser once through the test capacitor
-   (bench). Chip spread and PZC trim aren't in any register.
-2. Look for an ion-signal suppression mechanism specific to the **resistive** bulk Micromegas.
-   Sheet screening (≤ 8 %) is the only one sized so far.
-3. Still unexplained: the early "foot" before data pulses, and the −0.2 negative lobe on the
+   (bench). Chip spread and PZC trim aren't in any register. After §8 this is the only untested
+   link that could still give the ×3–5 ion suppression.
+2. **T10 step 5** (plan §7 step 5): build the LUT from the slow-path templates
+   (`solver/zextend.py`). This is a known error, now confirmed by COMSOL. It makes the rise a
+   few ns faster and the central-pad ion signal larger. Small, but the chain is wrong without it.
+3. **Validate the chain's kernels G with a full solver.** COMSOL so far tested the *operator*,
+   using its own G. The three induction-side discrepancies were only ever checked against the
+   chain's own solvers: neighbour delay ×2, X/Y 18 %, and the Y negative lobe. Two routes:
+   - **Cheap first:** compare the chain's uniform-sheet kernel with `InduceAxi` deposit runs.
+   - **Then:** a 3D COMSOL patch of the real checkerboard + ESL strips, or the COMSOL maps in
+     Garfield's `Examples/ResistiveMicromegas` (plan §4, never used).
+4. Woven mesh: rerun S3 gain and `funnel_ion_endpoints.py` in `meshfield_woven_production.txt`,
+   then decide whether to adopt it. Transparency −4.2 % makes the amplitude deficit about ×1.52.
+5. Still unexplained: the early "foot" before data pulses, and the −0.2 negative lobe on the
    sim's Y channels (§7.2).
-4. Amplitude (§6) and gain slope remain separate open threads (FRESH_LOOK §1, §4 step 3).
+6. Amplitude (§6) and gain slope remain separate open threads (FRESH_LOOK §1, §4 step 3).
 
 **Gotchas / decisions:**
+- **Garfield on the desktop is built against ROOT 6.40**, but `setup_garfield.sh` still selects
+  6.30, and libGarfield then fails to load (TGeo ABI mismatch). Source
+  `~/Software/root_6_40/bin/thisroot.sh` after it, and pass
+  `gSystem->AddIncludePath("-I$GARFIELD_INSTALL/include")` to ACLiC. The MX17 ComponentGrid
+  patch is in that build.
+- **COMSOL model code cannot read or write files.** Output goes to stdout as `CSV,` lines,
+  which `run_lxplus.sh` collects. See `response/comsol/README.md` for this and the other API
+  traps.
 - Don't use vertical tracks for the ion fraction. Use 10°/20°, matched by angle, with no
   quality cut.
 - Archived cfgs live at `<area>/Run|runs/<run>/<subrun>/raw_daq_data/*.cfg` on EOS
@@ -52,6 +80,8 @@ August's reading, and it still has **no mechanism**.
   answering on 2026-10-12.
 
 **Key files & commands:**
+- `response/comsol/` — COMSOL models, the comparison script and a README with all §8 numbers.
+  Outputs are on EOS: `/eos/experiment/ntof/data/x17/response_sim/comsol/`.
 - `design/report/FRESH_LOOK_2026-10-12.md` — the running write-up (§6–7.6).
 - `design/DREAM_SETTINGS.md`, `design/dream_cfg/` — DREAM settings record, per-run CSV,
   target cfg.
