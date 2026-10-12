@@ -1,0 +1,305 @@
+area,run,role,n_subruns,feus,samples,T_sample_ns,Peaking_time_ns,Integration_time_constant,Polarity,External_input,input_range_fC,Threshold_DAC,latency_samples
+cosmic_bench/june_tests/Run,mx17_det2_det3_overnight_6-22-26,Dat,19,3 4 6 8,32,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,45
+cosmic_bench/june_tests/Run,mx17_det2_det3_overnight_6-22-26,Trg,19,1,32,60.0,283,50 µs,negative (CSA current out),none,200.0,-127,45
+cosmic_bench/june_tests/Run,mx17_det3_day_6-25-26,Dat,1,3 4,32,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,45
+cosmic_bench/june_tests/Run,mx17_det3_day_6-25-26,Trg,1,1,32,60.0,283,50 µs,negative (CSA current out),none,200.0,-127,45
+cosmic_bench/june_tests/Run,mx17_det3_det4_overnight_6-23-26,Dat,16,3 4 6 8,32,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,45
+cosmic_bench/june_tests/Run,mx17_det3_det4_overnight_6-23-26,Trg,16,1,32,60.0,283,50 µs,negative (CSA current out),none,200.0,-127,45
+cosmic_bench/june_tests/Run,mx17_det3_long_run_6-25-26,Dat,1,3 4 6 8,32,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,45
+cosmic_bench/june_tests/Run,mx17_det3_long_run_6-25-26,Trg,1,1,32,60.0,283,50 µs,negative (CSA current out),none,200.0,-127,45
+cosmic_bench/june_tests/Run,mx17_det3_p2_det1_overnight_6-27-26,Dat,1,3 4 6 7 8,32,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,45
+cosmic_bench/june_tests/Run,mx17_det3_p2_det1_overnight_6-27-26,Trg,1,1,32,60.0,283,50 µs,negative (CSA current out),none,200.0,-127,45
+cosmic_bench/june_tests/Run,mx17_det3_quick_6-26-26,Dat,1,3 4,32,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,45
+cosmic_bench/june_tests/Run,mx17_det3_quick_6-26-26,Trg,1,1,32,60.0,283,50 µs,negative (CSA current out),none,200.0,-127,45
+cosmic_bench/june_tests/Run,mx17_det3_saturday_scan_6-27-26,Dat,25,7 8,32,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,45
+cosmic_bench/june_tests/Run,mx17_det3_saturday_scan_6-27-26,Trg,25,1,32,60.0,283,50 µs,negative (CSA current out),none,200.0,-127,45
+cosmic_bench/june_tests/Run,mx17_det4_day_6-24-26,Dat,2,3 4 6 8,32,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,45
+cosmic_bench/june_tests/Run,mx17_det4_day_6-24-26,Trg,2,1,32,60.0,283,50 µs,negative (CSA current out),none,200.0,-127,45
+cosmic_bench/june_tests/Run,mx17_det6_det7_hv_scan_6-26-26,Dat,21,3 4 6 8,32,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,45
+cosmic_bench/june_tests/Run,mx17_det6_det7_hv_scan_6-26-26,Trg,21,1,32,60.0,283,50 µs,negative (CSA current out),none,200.0,-127,45
+cosmic_bench/june_tests/Run,mx17_det6_det7_overnight_6-26-26,Dat,9,3 4 6 8,32,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,45
+cosmic_bench/june_tests/Run,mx17_det6_det7_overnight_6-26-26,Trg,9,1,32,60.0,283,50 µs,negative (CSA current out),none,200.0,-127,45
+july_beam/runs,adcdel,Dat,7,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,and_paced_10ms,Dat,2,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,5
+july_beam/runs,clk_ac,Dat,9,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,100/3/35
+july_beam/runs,clk_b,Dat,2,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,clk_d,Dat,2,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,clk_rate,Dat,8,1 2 3 4 5 6 7 8,32,20.0/40.0/60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,hwm_10g,Dat,7,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,hwm_beam,Dat,5,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,hwm_beam_p6,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,mesh_toggle_test,Dat,7,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,mesh_toggle_test2,Dat,9,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,raw_ipd_10g,Dat,7,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,raw_ipd_10g_low,Dat,6,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,raw_ipd_ladder,Dat,6,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,rddel,Dat,6,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_1,Dat,4,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,3
+july_beam/runs,run_2,Dat,3,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,3
+july_beam/runs,run_3,Dat,103,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,3
+july_beam/runs,run_4,Dat,4,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,3
+july_beam/runs,run_5,Dat,50,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,3
+july_beam/runs,run_6,Dat,32,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,3
+july_beam/runs,run_7,Dat,13,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,3
+july_beam/runs,run_8,Dat,4,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,3
+july_beam/runs,run_9,Dat,174,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,3
+july_beam/runs,run_10,Dat,23,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,3
+july_beam/runs,run_11,Dat,12,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,3
+july_beam/runs,run_12,Dat,66,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,3
+july_beam/runs,run_13,Trg,152,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-105/-127/-89,2
+july_beam/runs,run_14,Dat,26,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,3
+july_beam/runs,run_15,Dat,35,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,3
+july_beam/runs,run_16,Dat,4,1 2 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,2
+july_beam/runs,run_16,Trg,4,3 4,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,2
+july_beam/runs,run_17,Dat,19,1 2 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-105/-127,2
+july_beam/runs,run_17,Trg,19,3 4,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-105/-127,2
+july_beam/runs,run_18,Dat,20,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,3
+july_beam/runs,run_19,Dat,27,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,3
+july_beam/runs,run_20,Dat,10,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,3
+july_beam/runs,run_21,Dat,9,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,3
+july_beam/runs,run_22,Dat,9,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,3
+july_beam/runs,run_23,Dat,16,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,3
+july_beam/runs,run_24,Dat,4,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,3
+july_beam/runs,run_25,Dat,6,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,33
+july_beam/runs,run_26,Dat,4,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,33
+july_beam/runs,run_27,Dat,11,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,33
+july_beam/runs,run_28,Dat,2,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,60
+july_beam/runs,run_30,Dat,67,3 4 5 6 7 8,32,20.0/60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35/5/60
+july_beam/runs,run_31,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_32,Dat,67,1 2 3 4 5 6 7 8,32,20.0/60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35/5/60
+july_beam/runs,run_33,Dat,68,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35/5
+july_beam/runs,run_34,Dat,36,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,5
+july_beam/runs,run_35,Dat,11,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,5
+july_beam/runs,run_36,Dat,21,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_37,Dat,19,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_38,Dat,33,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,60
+july_beam/runs,run_39,Dat,10,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_40,Dat,2,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_41,Dat,33,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,60
+july_beam/runs,run_42,Dat,23,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,5
+july_beam/runs,run_43,Dat,8,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_44,Dat,21,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,60
+july_beam/runs,run_45,Dat,19,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,5
+july_beam/runs,run_46,Dat,19,1 2 3 4 5 6 7 8,32,20.0,180,50 µs,negative (CSA current out),none,600.0,-127,60
+july_beam/runs,run_47,Dat,19,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,5
+july_beam/runs,run_48,Dat,12,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_49,Dat,30,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_50,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_51,Dat,19,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_52,Dat,10,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,5
+july_beam/runs,run_53,Dat,61,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_54,Dat,4,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_55,Dat,27,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_56,Dat,27,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_57,Dat,31,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,5
+july_beam/runs,run_58,Dat,76,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,33
+july_beam/runs,run_59,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_60,Dat,5,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,33
+july_beam/runs,run_61,Dat,60,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,33
+july_beam/runs,run_62,Dat,13,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,33
+july_beam/runs,run_63,Dat,9,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,33
+july_beam/runs,run_64,Dat,55,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,33
+july_beam/runs,run_65,Dat,34,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,5
+july_beam/runs,run_66,Dat,5,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_67,Dat,65,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_67_recon,Dat,3,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_68,Dat,6,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_69,Dat,6,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_70,Dat,7,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_71,Dat,72,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_72,Dat,5,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_73,Dat,4,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_74,Dat,2,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_75,Dat,60,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_76,Dat,47,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_77,Dat,6,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,run_78,Dat,7,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,33/35/39/43/47/51
+july_beam/runs,run_79,Dat,16,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_80,Dat,5,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_81,Dat,2,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_82,Dat,8,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_83,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_84,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_85,Dat,2,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_86,Dat,9,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_87,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_88,Dat,5,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_89,Dat,22,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_90,Dat,13,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_91,Dat,2,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_92,Dat,8,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_93,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_94,Dat,6,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_95,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_96,Dat,5,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_97,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_98,Dat,2,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_99,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_100,Dat,15,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_101,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_102,Dat,4,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_103,Dat,20,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_104,Dat,17,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_105,Dat,4,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_106,Dat,11,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_107,Dat,2,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_108,Dat,6,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_109,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_110,Dat,4,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_111,Dat,3,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_112,Dat,3,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_113,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_114,Dat,4,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_115,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_116,Dat,29,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_117,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_118,Dat,21,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_119,Dat,9,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_120,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_121,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_122,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_123,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_124,Dat,18,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_125,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_126,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_127,Dat,3,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_128,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_129,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_130,Dat,5,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_131,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_132,Dat,11,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_133,Dat,24,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_134,Dat,11,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_135,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_136,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_137,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_138,Dat,6,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_139,Dat,11,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_140,Dat,3,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_141,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_142,Dat,7,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_143,Dat,2,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_144,Dat,2,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_145,Dat,4,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_146,Dat,2,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_147,Dat,21,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_148,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_149,Dat,87,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_150,Dat,4,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_151,Dat,7,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_152,Dat,6,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_153,Dat,3,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_154,Dat,8,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_155,Dat,2,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_156,Dat,24,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_157,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_158,Dat,6,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_159,Dat,6,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_160,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_161,Dat,25,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,run_162,Dat,14,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,27
+july_beam/runs,sparse_mp,Dat,8,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,verify_cfg,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,vetodiag_sipmfix_verify,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,vetodiag_veto_off,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,vetodiag_veto_on,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,win_sparse,Dat,4,1 2 3 4 5 6 7 8,32,20.0/60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,wm_pulser,Dat,4,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,wm_pulser_base4k,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,wm_pulser2,Dat,4,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,35
+july_beam/runs,zs_comb_study,Dat,6,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,34
+july_beam/runs,zs_control,Dat,6,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,34
+july_beam/runs,zs_doubles_ipdscan,Dat,7,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,34
+july_beam/runs,zs_flashoff_pulser,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,5
+july_beam/runs,zs_kladder,Dat,4,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,34
+july_beam/runs,zs_latch,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,34
+july_beam/runs,zs_latency,Dat,5,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,3/34/60
+july_beam/runs,zs_paced_1000hz,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,5
+july_beam/runs,zs_paced_100hz,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,5
+july_beam/runs,zs_paced_10khz,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,5
+july_beam/runs,zs_paced_200hz,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,5
+july_beam/runs,zs_paced_200khz,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,5
+july_beam/runs,zs_paced_2khz,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,5
+july_beam/runs,zs_paced_500hz,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,5
+july_beam/runs,zs_paced_50hz,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,5
+july_beam/runs,zs_paced_50khz,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,5
+july_beam/runs,zs_paced_resthz,Dat,1,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,5
+july_beam/runs,zs_pulser_test,Dat,3,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,5
+july_beam/runs,zs_readout,Dat,7,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,34
+july_beam/runs,zs_singles,Dat,3,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,34
+july_beam/runs,zs_sparserd,Dat,3,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,34
+july_beam/runs,zs_vetolen,Dat,5,1 2 3 4 5 6 7 8,32,60.0,180,50 µs,negative (CSA current out),none,600.0,-127,34
+p2_sps_july/runs,beam_commissioning_1,Dat,2,1 3 4 5,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,beam_nominal_meshscan_1,Dat,8,1 3 4 5,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,drift_mesh_2d_1,Dat,14,1 3 4 5,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,drift_mesh_2d_2,Dat,49,1 3 4 5,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,drift_mesh_scan_1,Dat,23,1 3 4 5,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,drift_scan_1,Dat,7,1 4 5,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,drift_scan_2,Dat,3,1 4 5,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,drift_scan_final,Dat,1,1 3 4 5,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,drift_transparency_1,Dat,6,1 4 5,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,eff_drift_ab_1,Dat,12,1 4 5,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,eff_nominal_1,Dat,17,1 3 4 5,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,env_test_1,Dat,1,1 3 4 5,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,highstat_eff_1,Dat,6,1 3 4 5,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,latency_scan_1,Dat,5,1 3 4 5,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,24/28/32/36/40
+p2_sps_july/runs,low_mesh_scan_1,Dat,13,1 4 5,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,mesh_drift_scan_up_1,Dat,37,1 3 4 5,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,meshscan_fine_1,Dat,13,1 4 5,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,p2_mesh_drift_2d_1,Dat,47,1 3 4 5,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,p2_mesh_drift_eff_1,Dat,30,1 3 4 5,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,p2in_check_1,Dat,1,1 3,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,p2in_hvrange_1,Dat,6,1 3 4 5,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,p2in_hvrange_2,Dat,11,1 3 4 5,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_1,Trg,12,3 4,32,50.0,180,5 µs,negative (CSA current out),none,200.0,-19/-22/-29/-60,40
+p2_sps_july/runs,run_21,Dat,1,1 3 4 5,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_22,Dat,1,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_24,Dat,8,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_25,Dat,15,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_26,Dat,7,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_27,Dat,1,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_28,Dat,1,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_29,Dat,1,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_30,Dat,1,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_31,Dat,2,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_32,Dat,8,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_33,Dat,8,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_34,Dat,1,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_35,Dat,3,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_36,Dat,3,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_37,Dat,1,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_38,Dat,1,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_39,Dat,1,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_40,Dat,1,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_41,Dat,1,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_42,Dat,1,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_43,Dat,1,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_44,Dat,1,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_45,Dat,1,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_46,Dat,1,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_47,Dat,1,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_48,Dat,1,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_49,Dat,1,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_50,Dat,1,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_51,Dat,1,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_52,Dat,1,1,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_53,Dat,1,1 3,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_54,Dat,1,1 3,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_55,Dat,4,1 3,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_56,Dat,6,1 3,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_57,Dat,9,1 3,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_58,Dat,3,1 3,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_59,Dat,2,1 3,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_60,Dat,24,1 3,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_61,Dat,11,1 3,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_62,Dat,2,1 3,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_63,Dat,5,1 3,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_64,Dat,1,1 3,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_65,Dat,1,1 3,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_66,Dat,1,1 3,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_67,Dat,1,1 3,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_68,Dat,1,1 3,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_69,Dat,1,1 3,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_70,Dat,1,1 3,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_71,Dat,1,1 3,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32
+p2_sps_july/runs,run_72,Dat,1,1 3,16,60.0,180,5 µs,negative (CSA current out),none,200.0,-127,32

@@ -19,3 +19,5 @@ Written up in `design/report/FRESH_LOOK_2026-10-12.md` §6–7.
   (shaper peaking time × ion fraction × transit against the inclined shapes).
 - `wf_ion_T_scan.py` — §7.5: ion transit T scan (= mobility scaling) at 123 and 180 ns,
   full ions, against the inclined shapes. Needs pandas (nTof_x17 `.venv`) and both npz files in the cwd.
+- `dream_settings_by_run.py` — per-run DREAM settings from all archived cfgs
+  (→ `design/dream_cfg/dream_settings_by_run.csv`; record in `design/DREAM_SETTINGS.md`).

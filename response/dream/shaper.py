@@ -111,7 +111,8 @@ OUTPUT_SWING_V = 2.0
 SK_ZETA = 0.75
 
 # Bench run config, CosmicTb_MX17.cfg. REG1 is state1<15:0>, REG1_HI is
-# state1<31:16> (word order pinned by the FEU 1 trigger-plane override).
+# state1<31:16>. Read back from the T14 target run's own archived cfg and
+# word order proven three ways on 2026-10-12: design/DREAM_SETTINGS.md.
 BENCH_REG1 = 0xD023
 BENCH_REG1_HI = 0x081F
 BENCH_REG6 = 0xAAAA

@@ -409,3 +409,42 @@ deciding measurement.** If the shaper is 180 ns, option 1 stands and the
 search for an ion-suppression mechanism reopens. If it is 123 ns, set the
 chain to code 1, swap the ion table for an isobutane-ion-in-Ar mobility
 (×1.3–1.5 bracket until measured), and rerun T14 at 0°/10°/20°.
+
+## 7.6 The shaper is 180 ns: read back from the target run's own cfg (2026-10-12)
+
+**Closed.** The degeneracy in §7.3/§7.5 resolves to the 180 ns side.
+
+- **The target run did archive its cfg.** August's audit said the Saturday
+  scan "archived no .cfg", but every subrun has one on EOS:
+  `cosmic_bench/june_tests/Run/mx17_det3_saturday_scan_6-27-26/<subrun>/raw_daq_data/CosmicTb_MX17.cfg`,
+  plus a copy under `dream_run/`. Of those 50 files, all have identical DREAM register
+  lines, including `long_run_resist_490V_drift_1000V` (the T14 data leg; its
+  file differs only in `DaqRun Time`).
+  Data FEUs 7 and 8: `Feu * Dream * 1 0x081F 0xD023`.
+- **Word order, proven from the register itself.** Read low word first
+  (0xD023081F), the same register would give 123 ns, but also: CSA
+  bypassed (external input = SK filter), positive input polarity with a
+  negative-polarity VICM, 5 % discriminator range, HIT off. The FEU 1
+  override `0x881F 0xD043` would then leave its peaking time unchanged, even
+  though bits 4–7 of the second word are exactly the nibble the cfg comments
+  and the commented-out variants edit. That is not a working front end. Read
+  high word first (0x081FD023), every field is coherent: negative polarity
+  with VICM 1.35 V, CSA in, 17.5 %, ThDAC −127, 5 µs CSA, **180 ns**
+  (FEU 1: 50 µs, 283 ns).
+- Full decode, sweep over all archived cfgs, and the decoder:
+  `design/DREAM_SETTINGS.md`.
+
+**Consequence for the ion question (§7.5 table).** With the 180 ns shaper
+the inclined shapes need an ion transit ≲ 110 ns (×3–4 Ar⁺ mobility),
+or the ion signal largely absent. No plausible ion species gives that. The
+August reading (ion component suppressed, f_eff ≈ 0.2) stands as the only
+fit at the true shaper setting. It is **still without a mechanism**, and the
+vertical-track argument for it (§7.2) is withdrawn. What is left to test:
+
+- The shaper's *actual* response may differ from its nominal Table 9 value
+  (chip spread, PZC trim). This is now the only unmeasured link, and one FEU
+  pulser shot through the test capacitor would measure it directly. That is
+  a different question from the register setting, which is settled.
+- An ion-signal suppression mechanism specific to this **resistive** bulk
+  Micromegas: the sheet-screening estimate (≤ 8 %) was the only one sized in
+  August.
