@@ -554,3 +554,131 @@ ion question. The map is at `response/meshcell/meshfield_woven_production.txt`
   error in the chain. It makes the rise a few ns faster and the central-pad
   ion signal larger.
 
+
+## 9. Amplitude and gain slope: one mechanism, avalanche feedback (2026-10-13, overnight)
+
+**Short version.** Garfield simulates a pure Townsend avalanche. If each
+avalanche can seed further full-gap avalanches, the gain becomes
+**G_eff = G/(1 − bG)**. This is the classic feedback form; photons from the
+avalanche freeing electrons at the mesh are the likely carrier. It multiplies
+the gain **and** the slope d ln G/dV by the **same** factor 1/(1 − bG).
+T14's two oldest open rows (§1) are:
+
+- amplitude: data ×1.77–1.82 above the sim at 490 V;
+- slope: data ×1.52 steeper.
+
+These are about equal, and the measured slope rises with voltage. Fitted to
+the *shape* of the bench gain ladder alone, with no ADC calibration used, the
+feedback model predicts the amplitude ratio T14 measured independently. It
+also puts the feedback runaway (bG → 1) where the bench starts to discharge.
+
+### 9.1 The fit
+
+The data are the det3 27 June mesh ladder from nTof_x17
+`mx17_sim_wft/hv_slope` (`HV_SLOPE_2026-08-09.md`): threshold-free
+peak-strip max, M3-selected muons, fixed fiducial, rail-safe points only. A
+copy is in `scratchpad/2026-10-13/`. The sim is
+`aval_calib_meshfield_hvscan.json`, dry 95/5, 460–530 V, with
+ln G = 10.093 + 0.3106 (V − 490)/10. Its local slope is flat; the quadratic
+term is +0.003 per (10 V)².
+
+`scratchpad/2026-10-13/feedback_fit.py` fits A(V) = c·G(V)/(1 − b·G(V)) with c
+and b free, per view and quantile. Errors are floored at 2 %, the
+scan1/scan2 gas drift. Figure: `figs/feedback_fit_2026-10-13.png`.
+
+| view, estimator | points | bG(490) | gain ×1/(1 − bG) at 490 V | χ² feedback / free exp / Garfield shape (ndf) |
+|---|---|---|---|---|
+| X p50 | 425–490 | 0.52 ± 0.01 | **×2.07** | 32 / 39 / 799 (9 / 9 / 10) |
+| X p25 | 425–495 | 0.46 | ×1.85 | 49 / 46 / 936 (10 / 10 / 11) |
+| X p10 | 425–500 | 0.44 | **×1.79** | 22 / 78 / 840 (11 / 11 / 12) |
+| X p02 | 425–505 | 0.39 | ×1.64 | 22 / 54 / 408 (12 / 12 / 13) |
+| Y p50 | 425–490 | 0.49 | ×1.98 | 19 / 41 / 700 (9 / 9 / 10) |
+| Y p10 | 425–500 | 0.42 | ×1.72 | 27 / 52 / 652 (11 / 11 / 12) |
+| Y p02 | 425–510 | 0.34 | ×1.52 | 31 / 55 / 418 (13 / 13 / 14) |
+
+- **Shape alone predicts ×1.5–2.1, centred near ×1.8. T14 measured ×1.77
+  (published) and ×1.82 (rail-bias corrected) on X.** The two numbers share no
+  input: one is the curvature of a relative ladder, the other is an absolute
+  sim/data ratio through the whole chain and the DREAM calibration.
+- **The data's ln A has positive curvature**, +0.011 to +0.014 per (10 V)²
+  in a free quadratic: the local slope climbs from ~0.35 at 430 V to ~0.5 at
+  485 V. Garfield's is flat.
+- **No α(E) can produce that curvature at the real gain.** A Townsend form
+  ln G = K·exp(−D/V) with a free scale (3 parameters) fits the curvature only
+  with D/V ≈ 4–5, which implies a gas gain of **130–290** at 490 V against the
+  detector's ~2–4·10⁴. Penning, gas tables, the iso fraction and the field
+  map are all α(E) or geometry changes; this generalises August's "Penning
+  gives the gain or the slope, never both" to every α(E).
+- **The runaway is where the bench breaks down.** With the fitted bG(490) and
+  the Garfield slope, bG reaches 1 at **511–520 V**. The bench discharge
+  fraction (`HANDOFF_hv_window.md`) is 11 % at 500 V, 18 % at 510, 26 % at
+  515, 45 % at 520 and 54 % at 525; efficiency collapses from 505 V. Feedback
+  runaway is a standard breakdown mechanism.
+- **The quantile trend** (bG 0.52 at p50 down to 0.34–0.39 at p02) is not
+  understood. It may be rail proximity, since the lower quantiles reach
+  higher voltages, or a real event-to-event spread of feedback. Feedback beats
+  a free exponential (same number of parameters) in 6 of 7 rows; a free
+  quadratic fits better still but has no physics and one more parameter.
+
+### 9.2 Which feedback
+
+- **Ion-impact emission at the mesh** (ions free electrons when they land) is
+  **excluded by the pulse shapes.** Its secondaries arrive one ion transit
+  (~300–340 ns) late, and bG ≈ 0.45 would put ~30 % of the charge in a delayed
+  second pulse. The data are *narrower* than the sim.
+- **Photon feedback onto the mesh** is prompt (~1 ns), so it leaves every
+  shape observable alone and gives each secondary the full gap gain, as the
+  G/(1 − bG) form assumes.
+
+  The magnitude is plausible. The fit needs b ≈ 0.45/24 000 ≈ 2·10⁻⁵
+  secondaries per avalanche electron. A rough chain gives ~10⁻⁵ to a few
+  10⁻⁵:
+  - Ar excitations per ionisation ~0.5;
+  - radiative fraction against Penning quenching ~0.1–0.5;
+  - transmission through ~135 µm of 5 % isobutane, with absorption length
+    ~100–300 µm, ~0.3–0.6;
+  - mesh optical coverage 0.49;
+  - stainless-steel photoemission yield at ~10 eV, 10⁻³–10⁻²;
+  - extraction in gas ~0.5.
+
+  Garfield cannot do this calculation out of the box. Its de-excitation model
+  covers Ar levels only, its optical data has n-butane but not isobutane, and
+  it does not emit electrons from electrodes.
+- **Literature:** over-exponential Micromegas gain curves at *low* isobutane
+  fractions, attributed to secondary avalanches from avalanche photons
+  ([EUDET memo 2006-10](https://www.eudet.org/e26/e28/e183/e262/eudet-memo-2006-10.pdf);
+  [LAPP Micromegas gain study](https://lappweb.in2p3.fr/~chefdevi/Publi/Cnrs/publication_1.pdf)).
+  Garfield++ gains below measured ones for MPGDs, with photon feedback named
+  as the likely missing process beyond Penning
+  ([arXiv:1606.04852](https://arxiv.org/pdf/1606.04852)).
+
+### 9.3 What it explains, and what it does not
+
+- **Explains, with one parameter:**
+  - the amplitude deficit (×1.8);
+  - the gain slope (×1.5 at 460–490 V; ×1.6 at the operating point, where
+    the data slope is ~0.5);
+  - its curvature;
+  - August's "matching on gain still leaves the slope 1.40× short" (a voltage
+    shift cannot do what a gain-dependent factor does);
+  - the discharge onset.
+- **Does not touch the rise time / ion question.** Secondaries are full,
+  normal avalanches with the same f_ion and shape. With §8 excluding
+  induction-side suppression, the ion puzzle stands alone.
+- **One cross-constraint on it:** the feedback factor reproduces the
+  amplitude ratio computed *with full ions* in the sim. If the data's ion
+  signal were really ×5 suppressed, the data's peak per unit charge would be
+  lower and the needed gain factor larger than the shape fit gives. That
+  argues mildly *against* real ion suppression. It is only as good as the
+  DREAM ADC/fC scale, which the FEU pulser would pin.
+
+### 9.4 Tests (cheapest first)
+
+1. **Bench ladder at two isobutane fractions** (mixer logged since
+   2026-07-07; HV_SLOPE §3 already asks for this). Photon feedback must fall
+   steeply with more quencher, so bG(490) shrinks and the 90/10 ladder bends
+   much less. A pure α(E) error would not care in this way.
+2. **The FEU pulser shot** also fixes the absolute ADC/fC scale, which turns
+   the ×1.8 match from "within calibration" into a measurement.
+3. **Chain:** adopt G_eff = G/(1 − bG) with b fitted once on the 95/5 ladder,
+   and rerun T14 amplitudes. This is a gain calibration, not a shape change.

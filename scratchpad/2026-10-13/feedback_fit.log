@@ -1,0 +1,19 @@
+sim: ln G = 10.0930 + 0.3106/10V (V-490);  G(490) = 24173; quadratic term +0.0027 per (10V)^2
+x p50: 11 pts 425-490 V | feedback bG(490) = 0.516 +- 0.013 -> gain x2.07, slope@490 0.642/10V | chi2: feedback   32.4 (ndf 9), free-exp   39.0 (ndf 9, slope 0.414), quad    6.9 (ndf 8, curv +0.0111), sim-shape   799.0 (ndf 10)
+x p25: 12 pts 425-495 V | feedback bG(490) = 0.459 +- 0.010 -> gain x1.85, slope@490 0.575/10V | chi2: feedback   48.5 (ndf 10), free-exp   45.5 (ndf 10, slope 0.409), quad    8.9 (ndf 9, curv +0.0097), sim-shape   935.7 (ndf 11)
+x p10: 13 pts 425-500 V | feedback bG(490) = 0.440 +- 0.010 -> gain x1.79, slope@490 0.555/10V | chi2: feedback   21.9 (ndf 11), free-exp   78.0 (ndf 11, slope 0.421), quad   13.7 (ndf 10, curv +0.0142), sim-shape   839.9 (ndf 12)
+x p02: 14 pts 425-505 V | feedback bG(490) = 0.392 +- 0.013 -> gain x1.64, slope@490 0.511/10V | chi2: feedback   22.0 (ndf 12), free-exp   53.5 (ndf 12, slope 0.407), quad   14.2 (ndf 11, curv +0.0134), sim-shape   408.4 (ndf 13)
+y p50: 11 pts 425-490 V | feedback bG(490) = 0.494 +- 0.013 -> gain x1.98, slope@490 0.614/10V | chi2: feedback   19.3 (ndf 9), free-exp   41.3 (ndf 9, slope 0.401), quad   10.9 (ndf 8, curv +0.0115), sim-shape   699.6 (ndf 10)
+y p25: 12 pts 425-495 V | feedback bG(490) = 0.450 +- 0.011 -> gain x1.82, slope@490 0.565/10V | chi2: feedback   28.9 (ndf 10), free-exp   47.8 (ndf 10, slope 0.411), quad    5.1 (ndf 9, curv +0.0114), sim-shape   814.6 (ndf 11)
+y p10: 13 pts 425-500 V | feedback bG(490) = 0.419 +- 0.011 -> gain x1.72, slope@490 0.535/10V | chi2: feedback   26.8 (ndf 11), free-exp   51.7 (ndf 11, slope 0.416), quad   11.1 (ndf 10, curv +0.0116), sim-shape   652.2 (ndf 12)
+y p02: 15 pts 425-510 V | feedback bG(490) = 0.343 +- 0.011 -> gain x1.52, slope@490 0.473/10V | chi2: feedback   30.6 (ndf 13), free-exp   55.3 (ndf 13, slope 0.405), quad   17.2 (ndf 12, curv +0.0130), sim-shape   417.5 (ndf 14)
+
+T14 measured amplitude deficit at 490 V (data/sim): X 1/0.565 = 1.77 (published), 1/0.549 = 1.82 (rail-bias corrected); views are identical unselected.
+
+Townsend-form control: ln A = c + K exp(-D/V)   [3 params]
+x p50: chi2    6.9 (ndf 8); D/V(490) = 4.18; implied ln G(490) = 5.7 (G = 288); sim ln G(490) = 10.09
+x p10: chi2   13.5 (ndf 10); D/V(490) = 4.91; implied ln G(490) = 5.0 (G = 146); sim ln G(490) = 10.09
+x p02: chi2   14.1 (ndf 11); D/V(490) = 4.81; implied ln G(490) = 4.9 (G = 137); sim ln G(490) = 10.09
+y p50: chi2   10.9 (ndf 8); D/V(490) = 4.34; implied ln G(490) = 5.4 (G = 217); sim ln G(490) = 10.09
+y p10: chi2   11.1 (ndf 10); D/V(490) = 4.36; implied ln G(490) = 5.4 (G = 214); sim ln G(490) = 10.09
+y p02: chi2   17.1 (ndf 12); D/V(490) = 4.77; implied ln G(490) = 4.8 (G = 126); sim ln G(490) = 10.09

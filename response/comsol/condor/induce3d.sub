@@ -1,0 +1,18 @@
+# HTCondor: Induce3D production runs. Submit from ~/MX17_comsol on lxplus:
+#   condor_submit condor/induce3d.sub
+executable            = condor/comsol_job.sh
+transfer_input_files  = run_lxplus.sh, Induce3D.java
+should_transfer_files = YES
+output                = condor/logs/$(tag).out
+error                 = condor/logs/$(tag).err
+log                   = condor/logs/induce3d.log
+request_cpus          = 8
+request_memory        = 24 GB
++JobFlavour           = "workday"
+arguments             = Induce3D.java 8 $(tag) $(vars)
+queue tag, vars from (
+  i3d_dep_2e6_o1, RHO_S=2e6 CASE=deposit VE_UM_NS=150 ORDER=1 H_FAR_UM=100 H_NEAR_UM=5 NZ_GAS=14
+  i3d_pair_2e6_o1, RHO_S=2e6 CASE=pair VE_UM_NS=15 ORDER=1 H_FAR_UM=100 H_NEAR_UM=5 NZ_GAS=14
+  i3d_dep_2e6_o2, RHO_S=2e6 CASE=deposit VE_UM_NS=150 ORDER=2 H_FAR_UM=150 H_NEAR_UM=8 NZ_GAS=10
+  i3d_pair_2e6_o2, RHO_S=2e6 CASE=pair VE_UM_NS=15 ORDER=2 H_FAR_UM=150 H_NEAR_UM=8 NZ_GAS=10
+)

@@ -20,7 +20,7 @@ part company, and the fitted f_eff on the central pad says by how much.
 
 Usage:  python3 -m response.comsol.compare_induce2d deposit.csv pair.csv [T_ion_ns]
 
-Works for both Induce2D and InduceAxi output (the central terminal is "p0").
+Works for Induce2D, InduceAxi (central terminal "p0") and Induce3D (central channel "Y0").
 """
 import sys
 import numpy as np
@@ -74,13 +74,14 @@ def main():
     q = 1e-12                                   # C/m, Induce2D's Q
     # Normalise both to the collected charge on the central pad at the end,
     # sign-fixed so the central pad's net charge is positive.
-    ic = cols.index("p0") - 1
+    centre = "p0" if "p0" in cols else "Y0"       # Induce2D/InduceAxi : Induce3D
+    ic = cols.index(centre) - 1
     # bins are averages (resample), so the charge is a plain sum; trapz would
     # halve the first bin, which holds the whole prompt spike
     QG = G[ic].sum() * dt * 1e-9
     QP = P[ic].sum() * dt * 1e-9
     print(f"# {hd}\n# {hp}")
-    print(f"net charge on p0 / Q:  deposit {QG / q:+.4f}   pair {QP / q:+.4f}")
+    print(f"net charge on {centre} / Q:  deposit {QG / q:+.4f}   pair {QP / q:+.4f}")
     for k, name in enumerate(cols[1:]):
         print(f"  {name:4s} deposit {G[k].sum()*dt*1e-9/q:+.4f}   pair {P[k].sum()*dt*1e-9/q:+.4f}")
 
@@ -109,9 +110,9 @@ def main():
     # deposit and pair carry the same Q, so G is already per unit avalanche charge and
     # the chain prediction is absolute: no rescaling (a final-charge rescale is
     # meaningless once the sheet drains the pad, as in the axisymmetric model)
-    print(f"\nchain p0 shaped peak, absolute (no free scale): pair/chain = {SP[ic].max() / chain[ic].max():.3f}")
+    print(f"\nchain {centre} shaped peak, absolute (no free scale): pair/chain = {SP[ic].max() / chain[ic].max():.3f}")
     print(f"\nf_ion (profile <1-z/g>) = {f0:.3f}")
-    print(f"fitted f_eff on p0      = {f_eff:.3f}   (data want 0.17-0.31; chain uses ~0.90)")
+    print(f"fitted f_eff on {centre}      = {f_eff:.3f}   (data want 0.17-0.31; chain uses ~0.90)")
     for k, name in enumerate(cols[1:]):
         def rise(y):
             m = y.max(); i10 = np.argmax(y >= 0.1 * m); i90 = np.argmax(y >= 0.9 * m)
