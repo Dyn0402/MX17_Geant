@@ -1,0 +1,35 @@
+# Both mechanisms in the chain: hydrocarbon ion speed + photon feedback. DIAGNOSIS, 2026-10-13.
+# --ion-speed-scale s (C8Hn+ 1.46 / C4Hn+ 1.75, Cortez et al. 2019) and --feedback-bg 0.45
+# (the June det3 ladder's bG(490 V), X p25-p50; FRESH_LOOK §9). Otherwise identical to
+# stageBC_w2_ionspeed.sub (cluster 4450898), which isolates the ion term.
+#
+# PRE-REGISTERED (2026-10-13, before submission), X view, against t14_angW (s = 1, no feedback):
+#   * peak-strip amplitude median, data/sim: from x2.5-3 (10-20 deg; ~x1.8 vertical at the
+#     frozen default) down by x1.6-1.9 (feedback mean x1.82 but median less, broader
+#     distribution) times x1.1-1.3 (ion speed): vertical lands at data/sim 0.9-1.2.
+#   * the rise and FWHM are those of the matching ionspeed run to within 5 ns (feedback is
+#     prompt and must not move the shape).
+#   * relative width of the peak-amplitude distribution grows vs the ionspeed run.
+# FALSIFIER: rise moves > 10 ns relative to the ionspeed twin -> the feedback implementation
+#   is not shape-neutral (bug); vertical amplitude data/sim outside 0.8-1.4 -> the two
+#   effects do not close the amplitude row at the datasheet ADC/fC scale.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w2.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+arguments               = "rho2M fullphys$(tag)_$(ang) /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07.json /afs/cern.ch/work/d/dneff/mx17_s1/clusters_ang/mx17_muons_3k_ang_$(ang)_t0.root '--ion-speed-scale $(s) --feedback-bg 0.45'"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_fullphys$(tag)_$(ang).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_fullphys$(tag)_$(ang).err
+queue tag, s, ang from (
+146, 1.46, th00
+146, 1.46, thx10
+146, 1.46, thx20
+175, 1.75, th00
+175, 1.75, thx10
+175, 1.75, thx20
+)
