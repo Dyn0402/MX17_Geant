@@ -234,7 +234,7 @@ class Digitizer:
                  # remains the production default and is unaffected.
                  with_ions=True, z_aval_um=13.84, mu_ion=ION.MU_ION_CM2_VS,
                  ion_model="measured", kernel_t_max_ns=None,
-                 y_window_mm=None):
+                 y_window_mm=None, ion_speed_scale=1.0):
         # kernel_t_max_ns exists so the LUT window can be varied without
         # editing the default — the A1 before/after (test_window) and any
         # SPS-config run (64 x 60 ns frame -> 4200) both need it.
@@ -301,7 +301,11 @@ class Digitizer:
         # checked against (see ions.py).
         self.with_ions = with_ions
         self.ion_model = ion_model
-        self.ion = ION.describe(C.AMP_GAP_M, mesh_v, mu_ion, z_aval_um * 1e-6)
+        # ion_speed_scale: DIAGNOSIS / physics switch for the drifting-ion
+        # species (FRESH_LOOK §13-14). It multiplies the ion mobility: the
+        # measured template is time-compressed, the analytic one gets mu * s.
+        self.ion_speed_scale = float(ion_speed_scale)
+        self.ion = ION.describe(C.AMP_GAP_M, mesh_v, mu_ion * self.ion_speed_scale, z_aval_um * 1e-6)
         self.ion_measured = None
         if with_ions and ion_model == "measured":
             # PRESENCE IS NOT VALIDITY. The shipped schema-1 calib carries
@@ -322,7 +326,8 @@ class Digitizer:
                     f"missing, all-zero or non-finite in {calib_path}. Use "
                     "--ion-model analytic, or point --calib at "
                     "aval_calib_v2.json.")
-            h, dt_h, self.ion_measured = ION.measured_longitudinal(self.calib)
+            h, dt_h, self.ion_measured = ION.measured_longitudinal(
+                self.calib, ion_speed_scale=self.ion_speed_scale)
             self.lut.apply_longitudinal(h, dt_h)
         elif with_ions:
             self.lut.apply_ion_transit(self.ion["f_electron"],

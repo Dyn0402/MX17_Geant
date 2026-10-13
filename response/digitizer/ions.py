@@ -153,7 +153,22 @@ def describe(gap_m, v_mesh, mu_cm2_vs=MU_ION_CM2_VS, z_aval_m=5e-6):
     }
 
 
-def measured_longitudinal(pt):
+def speed_scaled(ii, s):
+    """Ion current template for ions s times faster: i(t) -> s * i(s t) on the
+    same grid (charge conserved, transit / s). Exact for S3's AvalancheMC ions,
+    which drift along fixed field lines without diffusion, so a uniform scale of
+    K(E) is a pure time rescale (FRESH_LOOK §7.5). Used to put a hydrocarbon ion
+    (K0 1.7-2.1 at 95 % Ar, Cortez et al. 2019) in place of the Ar+ table the
+    S3 emitter hardcodes (FRESH_LOOK §13-14)."""
+    if s == 1.0:
+        return ii
+    k = np.arange(len(ii), dtype=np.float64)
+    out = s * np.interp(s * k, k, ii, left=0.0, right=0.0)
+    tot = ii.sum()
+    return out * (tot / out.sum()) if out.sum() != 0 else out
+
+
+def measured_longitudinal(pt, ion_speed_scale=1.0):
     """
     The MEASURED longitudinal current profile h(t) of one unit of avalanche
     charge, from an S3 v2 calibration point. Returns (h, dt_s, info).
@@ -172,7 +187,7 @@ def measured_longitudinal(pt):
     """
     dt = pt["signal_dt_ns"] * 1e-9
     ie = np.asarray(pt["i_elec"], dtype=np.float64)
-    ii = np.asarray(pt["i_ion"], dtype=np.float64)
+    ii = speed_scaled(np.asarray(pt["i_ion"], dtype=np.float64), float(ion_speed_scale))
     tot = ie + ii
     area = tot.sum() * dt
     h = tot / area
@@ -190,6 +205,7 @@ def measured_longitudinal(pt):
 
     return h, dt, {
         "source": "S3 v2 measured (i_elec + i_ion)",
+        "ion_speed_scale": float(ion_speed_scale),
         "f_ion": float(qi / (qe + qi)),
         "f_electron": float(qe / (qe + qi)),
         "t_ion_50pct_ns": float(np.interp(0.50, c, t)),

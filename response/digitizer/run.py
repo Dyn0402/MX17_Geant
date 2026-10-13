@@ -221,6 +221,12 @@ def main():
                          "f_ion = 0.9077; any other value is a DIAGNOSIS probe "
                          "of a charge split the detector does not have, not a "
                          "configuration. Physical range is [0, 150].")
+    ap.add_argument("--ion-speed-scale", type=float, default=1.0,
+                    help="multiply the drifting ion's mobility by this factor "
+                         "(measured template time-compressed, transit / s). "
+                         "1.0 = the S3 Ar+ table. Hydrocarbon ions in 95 %% Ar "
+                         "(Cortez et al. 2019, K0 1.74 C8 / 2.08 C4 vs Ar+ "
+                         "1.21 at 124 Td) give 1.44-1.72; FRESH_LOOK §13-14.")
     ap.add_argument("--seed", type=int, default=5)
     ap.add_argument("--fixed-position", action="store_true",
                     help="do NOT randomise the impact point (see below)")
@@ -315,6 +321,7 @@ def main():
     cf = ClusterFile(a.clusters)
     dig = Digitizer(a.kernel, os.path.expanduser(a.calib), seed=a.seed,
                     with_ions=not a.no_ions, ion_model=a.ion_model,
+                    ion_speed_scale=a.ion_speed_scale,
                     z_aval_um=a.z_aval_um,
                     kernel_t_max_ns=a.kernel_t_max,
                     n_chan_side=a.n_side, y_window_mm=a.y_window)
