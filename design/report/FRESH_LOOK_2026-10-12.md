@@ -1240,6 +1240,34 @@ That is plausible but unverified. The Coimbra Ar–iC₄H₁₀ measurements are
 [Cortez, RD51](https://indico.global/event/6159/contributions/50740/attachments/25481/43821/RD51_Presentation_-_Ion_mobility.pdf));
 at high E/N they note declustering.
 
+> **Correction (2026-10-13, night): the template fit above overclaims.**
+>
+> **det0's gap.** det0 has a **6 mm drift gap**: Feb logbook runs 69+, "new 6mm drift
+> mounted", never changed after. That explains the short column, and at 800 V the drift
+> field is ~1.33 kV/cm.
+>
+> **He is not a point response.** Magboltz (`magboltz/*.json`, run on lxplus) gives He/C₂H₆
+> only ~15 µm/ns there, a 400 ns column, against Ar/iso's ~27.5 µm/ns, a 218 ns column. He
+> looks point-like only because it is sparse: ~7 clusters/cm, so ~4 clusters in 6 mm.
+>
+> **The proper test.** `det0_toy.py` / `det0_toy_scan.py` → `det0_toy_scan.log` model both
+> gases: clusters, drift, diffusion, gain spread, strips, sampling, the same selection and
+> alignment. The shaper scale is fitted on He, then Ar's (f, T) is scanned:
+> - **He calibrates the shaper at tp ≈ 130–150 ns** (best rms 0.028 at tp 130 for 15 µm/ns,
+>   0.027 at 140 for 20 µm/ns). That is faster than the nominal 180 ns and than the 166 ns
+>   from the noise ACF (§10.2). It is a new tension and unresolved; it could also mean the He
+>   column or He ion is mis-modelled.
+> - **At tp 130–150, full Ar⁺ ions (f 0.9, T 340 ns) are excluded**: rms 0.17–0.19 against a
+>   best of 0.029–0.034.
+> - **The best region is T ≈ 140–220 ns with f ≥ 0.5.**
+> - **Suppressed slow ions (f 0.2, T 340) are disfavoured but not excluded:** rms
+>   0.049–0.059.
+> - At tp 150, f 0.2 with T 140–220 fits almost as well as full ions (0.031–0.036).
+>
+> **So det0 robustly excludes the chain's slow Ar⁺ ion signal, but does not by itself fix
+> f.** The f–T degeneracy of §7.5 is only partly broken. "Full but fast" is preferred, not
+> proven. The ×1.08–1.31 peak gain below assumes f ≈ 0.9.
+
 **Other gases.** Old det3's Ar/CF₄ inclined rises are 154/149 ns, faster than its Ar/iso
 180/165 ns. That is consistent with a fast, non-resonant ion (CF₃⁺) plus a faster drift. It
 is not yet fitted, since the Magboltz Ar/CF₄ drift table is running on lxplus.
@@ -1265,9 +1293,10 @@ instead of 340 ns raises the peak by ×1.08 (vertical), ×1.23–1.26 (10.7°) a
 Two separate, gas-ordered effects explain T14's oldest rows. Each now rests on more than one
 chamber and more than one gas.
 
-1. **The ion signal is full but ~2.4× faster than the chain's Ar⁺ (T ≈ 140 ns).**
-   - Shown shaper-free on det0 against an empirical He response, and by the rise on June det3
-     and old det3.
+1. **The ion signal is ~2× faster than the chain's Ar⁺ (T ≈ 140–220 ns), probably full.**
+   - det0 (6 mm gap, two gases, see the correction in 13.3) excludes slow Ar⁺ at any shaper
+     scale He allows and prefers f ≥ 0.5.
+   - June det3 needs T ≈ 140 ns at 166 ns shaping, and old det3 has identical rises.
    - It fixes the rise and FWHM rows.
    - It raises the peak per unit charge by ×1.1–1.3.
    - It retires August's "ion signal largely absent" (f_eff ≈ 0.2) reading.
@@ -1309,3 +1338,84 @@ remains a Stage B question.
 5. **Ion mobility of iso fragments in Ar at ~120 Td:** literature or Coimbra contact, to turn
    the ×2.4 into an input rather than a fit.
 6. Question for Dylan: why does det0 collect only a few mm of drift column?
+
+## 14. Literature check on both mechanisms (2026-10-13, night)
+
+Slides: https://dylan-neff.web.cern.ch/notes/mx17-feedback-and-ions.html (generator
+`scratchpad/2026-10-13c/make_lit_deck.py`). Primary texts were read locally; the pdftotext
+excerpts are in the job tmp, not kept.
+
+### 14.1 Photon feedback
+
+Neither the mechanism nor the fit form is new.
+
+- **Iguaz et al., microbulk Micromegas, Ar/iC₄H₁₀ 1–35 %, 50 µm gap**
+  (arXiv:1110.2641, 1201.3012):
+  - "the gain curves for low quantities of isobutane show a deviation from the Rose and
+    Korff gain model at high amplification fields. This over-exponential behaviour is due
+    to the low quencher concentrations, which cannot avoid the production of secondary
+    avalanches by the UV photons generated in the primary avalanche."
+  - Below 5 % iso the resolution worsens "as not all the UV photons … are absorbed".
+- **Şahin, Kowalski, Veenhof**, JINST 11 P01003 (2016); also NIM A 768 (2014) for Ar–CO₂
+  and NIM A 718 (2013) on secondary avalanches:
+  - G_T = G/(1 − βG), fitted on top of Magboltz + Penning gains.
+  - β falls with quencher fraction and pressure, and is linked to the quencher's
+    photo-absorption cross section.
+  - **Our model is their standard treatment.**
+- **Peskov & Fonte review** (arXiv:0911.0463):
+  - "Detectors the cathode of which are not geometrically shielded from the avalanche
+    emission, for example MICROMEGAS … can operate at high gains only in quenched gases."
+  - Feedback shows as a "gain curve deviation from linear behaviour in log scale" because
+    the feedback pulses are prompt (τ ≪ shaping time). That is our "shape untouched,
+    charge up".
+  - The photocathode quantum efficiency rises steeply with photon energy. This is the
+    likely reason He/C₂H₆ (16–20 eV photons) feeds back more than Ar (~10 eV), and why my
+    §12.5 prediction failed.
+- **Garfield++ MPGD gain shortfalls** (arXiv:1606.04852; MPGD WG4; arXiv:2505.03454) are
+  common. Penning fixes much of the gap for THGEMs. Photon feedback is named as a missing
+  process: Garfield does not emit electrons from electrodes.
+
+**Not in the literature:**
+- a measured β for Ar/iso 95/5 in a 128 µm bulk Micromegas;
+- any first-principles β.
+
+What is ours is the size of the effect at 5 % iso (βG ≈ 0.3–0.5 at G ≈ 2·10⁴) and the
+same-chamber gas ordering.
+
+### 14.2 Drifting-ion species
+
+The ion that drifts is a hydrocarbon, and its measured mobility predicts the transit.
+
+- **Cortez et al., JINST 14 P04010 (2019)**, Coimbra; Ar–iC₄H₁₀ at 8 Torr, 10–45 Td:
+  - Ar⁺ charge-transfers to isobutane. The rate is taken from n-butane,
+    1.4×10⁻⁹ cm³/s, i.e. ~1 ns at 1 atm with 5 % iso.
+  - The drifting ions are C₄Hₙ⁺, then C₈Hₙ⁺.
+  - **K₀ at 95 % Ar: 2.08 (C₄Hₙ⁺), 1.74 (C₈Hₙ⁺)** cm²/V·s, at 15 Td.
+- **Garfield `IonMobility_Ar+_Ar.txt`** (what the chain and `funnel_ion_endpoints.py` use)
+  gives K₀ = 1.21 at 124 Td. Resonant charge exchange slows Ar⁺ in its parent gas.
+- **The chain's 352 ns is Ar⁺ with the 150 µm gap.** T = g²/(KV) at 490 V:
+
+  | ion | 150 µm gap | 128 µm gap |
+  |---|---|---|
+  | Ar⁺ | 352 ns | 266 ns |
+  | C₈Hₙ⁺ | 241 ns | 176 ns |
+  | C₄Hₙ⁺ | 201 ns | 147 ns |
+
+  The data band is 140–220 ns.
+- **Giomataris (ICFA 1999)**, Ar + 10 % iC₄H₁₀, 100 µm gap: "the electron signal and the
+  ion tail are developed within 5 ns and 80 ns"; the ion drift takes place "typically
+  within 100 ns". Scaled to 128 µm and 490 V that is ~120–150 ns.
+- **Not settled:**
+  - hydrocarbon-ion mobility at 130–160 Td;
+  - C₄ against C₈ at 1 atm (C₈ is more likely);
+  - the true det3 gap (128 against 150 µm), which is worth ×0.73 in T.
+
+### 14.3 det0 gap (Feb/May logbooks)
+
+- The Feb logbook records "new 6mm drift mounted" on the Feb detector (det0) from run 69
+  on. Dylan says the drift was not changed after the tests.
+- The May logbook: "detector 3" had a 30 mm drift at the start of the May test (one later
+  entry says 16 mm), and det 4 had 3.6 mm.
+- The old det3's 480 ns vertical pulses fit 30 mm.
+- The Feb test also ran Ar/CO₂ 70/30 and He/C₂H₆ resist scans on det0 with the 6 mm gap,
+  under n_TOF beam. They are more gas points, but beam-environment data.
