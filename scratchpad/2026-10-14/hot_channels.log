@@ -1,0 +1,8 @@
+th00 7 events 600 n_samples (512, 32) noise pctl [ 5.93  6.67  8.52  9.64 24.46] top far channels [(478, 308), (481, 307), (480, 306), (483, 301), (352, 295), (27, 273), (93, 262), (100, 262)] distinct 210
+   median over events of max/σ per channel, percentiles over channels: [0.02 1.41 1.81 2.5  4.85]
+th00 8 events 600 n_samples (512, 32) noise pctl [ 5.93  6.67  8.9  10.38 40.73] top far channels [(352, 314), (480, 300), (478, 295), (481, 295), (483, 295), (27, 268), (100, 266), (93, 265)] distinct 113
+   median over events of max/σ per channel, percentiles over channels: [-0.16  1.41  1.8   2.5   4.87]
+data_leg_satdet3 7 events 600 n_samples (512, 32) noise pctl [6.67 7.04 7.41 7.41 7.41] top far channels [(307, 32), (63, 23), (319, 18), (53, 17), (382, 17), (55, 16), (381, 16), (58, 15)] distinct 510
+   median over events of max/σ per channel, percentiles over channels: [1.69 1.75 1.82 1.95 2.02]
+data_leg_satdet3 8 events 600 n_samples (512, 32) noise pctl [6.71 7.41 7.41 7.41 8.15] top far channels [(63, 33), (45, 32), (54, 32), (56, 32), (57, 32), (52, 31), (60, 31), (46, 30)] distinct 512
+   median over events of max/σ per channel, percentiles over channels: [1.69 1.75 1.82 1.89 2.02]

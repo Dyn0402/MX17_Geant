@@ -1,0 +1,6 @@
+x  0deg  TRUE-angle n   854: rise   297 (raw   268)  fwhm   505  peak  2932 sat 0.379  |  T14 data leg n  2500: rise   286  fwhm   524  peak  2536 sat 0.263
+x 10deg  TRUE-angle n  1202: rise   187 (raw   179)  fwhm   321  peak  2387 sat 0.303  |  T14 data leg n  2500: rise   176  fwhm   325  peak  2328 sat 0.241
+x 20deg  TRUE-angle n    70: rise   169 (raw   166)  fwhm   295  peak  2065 sat 0.229  |  T14 data leg n   814: rise   162  fwhm   302  peak  2122 sat 0.241
+y  0deg  TRUE-angle n   879: rise   282 (raw   250)  fwhm   412  peak  2670 sat 0.334  |  T14 data leg n  1864: rise   287  fwhm   436  peak  1930 sat 0.040
+y 10deg  TRUE-angle n   782: rise   188 (raw   179)  fwhm   310  peak  2593 sat 0.331  |  T14 data leg n  2500: rise   180  fwhm   303  peak  2115 sat 0.156
+y 20deg  TRUE-angle n    33: rise   160 (raw   157)  fwhm   286  peak  2097 sat 0.273  |  T14 data leg n   435: rise   160  fwhm   284  peak  1872 sat 0.147

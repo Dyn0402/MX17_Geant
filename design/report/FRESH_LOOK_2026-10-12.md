@@ -1578,3 +1578,94 @@ the inclined det3 X average shapes. Data: rise 166 / 181 ns (20° / 10°), **und
 shapes. The fast-pulse puzzle stays as in §16 (hydrocarbon ion speed plus a shaper at the
 noise-ACF value). The network could still matter for amplitudes (X/Y, absolute ADC/fC), so the
 component values are worth getting.
+
+## 18. The T14 amplitude ledger is biased by its data-side selection; redone with M3 angles (2026-10-14, night)
+
+Scripts and logs: `scratchpad/2026-10-14/` (README inside). Everything runs on yoga, read-only on
+nTof_x17.
+
+### 18.1 Why T14's amplitudes cannot be used to fit bG
+
+T14 (`t14_compare.py`) selects the **data** leg with the det3 reco: quality cut
+(χ²/dof < 300, ∝ amplitude²; §6) **and** a ±3° window on the reconstructed angle. The **sim** leg gets
+the quality cut only. Both cuts depend on amplitude in the data:
+
+- **Reco angle.** Below |θ| ≈ 4° the reco slope is flagged unreliable, and in **both** legs the reco
+  |θ| grows with amplitude: the sim (true θ = 0) reconstructs its brightest events at 4–6°
+  (`peak_vs_theta.log`: Y peak median 2266 at reco 0–0.25° vs 2884–3018 at 4–6°). A window on
+  the data only, therefore, keeps the data's dim events and drops its bright ones. With the
+  window applied to both legs (`t14_symwin.log`), Y moves by +5–10 %, X by ≤ 5 %.
+- **Quality cut.** It still removes 21 % (X) / 32 % (Y) of data tracks against 4–7 % of sim. On
+  the Y vertical data leg it removes almost every saturated event: **4 % saturated in the T14 data
+  leg against 33 % in an unbiased sample**. The §16.2 "Y: 20–28 % saturated in the sim vs 4 % in
+  the data" was this cut.
+
+### 18.2 An unbiased ledger: the data by its true (M3) angle
+
+`m3_slopes_longrun.py` adds the M3 reference-track slopes to `hv_slope/peaks_longrun.parquet`
+(target run, 490 V, threshold-free peak strip, M3-good rays: 8479 events). The view angle is
++atan(tan_y) for X and −atan(tan_x) for Y (correlation with the det3 reco +0.73 / −0.71).
+A fiducial box (ref_x −200…120, |ref_y| < 170 mm) removes rays that miss det3 (beyond ref_x 125,
+90 % have peak < 150 ADC). Data = |view angle − a| < 3°, |other projection| < 6°, no det3 reco, no
+quality cut. Sim = every simulated event (its true angle is fixed), no cut (`ledger_m3.py`).
+
+Data peak-strip median, true angle vs the T14 selection (`peak_vs_m3.log`, `rise_vs_m3.log`):
+
+| | X 0° | X 10° | X 20° | Y 0° | Y 10° | Y 20° |
+|---|---|---|---|---|---|---|
+| true angle (M3) | 2932 | 2387 | 2065 (n 70) | 2670 | 2593 | 2097 (n 33) |
+| T14-like (reco window + quality) | 2566 | 2221 | 2110 | 1946 | 2154 | 1780 |
+| factor | ×1.14 | ×1.07 | ×0.98 | **×1.37** | ×1.20 | ×1.18 |
+| saturated, true / T14 leg | 0.38 / 0.26 | 0.30 / 0.24 | 0.23 / 0.24 | 0.33 / **0.04** | 0.33 / 0.16 | 0.27 / 0.15 |
+
+**Data/sim with the unbiased ledger** (`ledger_m3.log`; p50 | p25; sat fraction data/sim):
+
+| sim | X 0° | X 10° | X 20° | Y 0° |
+|---|---|---|---|---|
+| s=1, no fb | 2.07 \| 1.84 | 2.26 \| 2.05 | 2.58 \| 2.14 | 2.43 \| 2.22 |
+| s=1.46, no fb | 1.69 \| 1.51 | 1.72 \| 1.54 | 1.90 \| 1.58 | 1.94 \| 1.79 |
+| s=1.75, no fb | 1.66 \| 1.48 | 1.65 \| 1.47 | 1.80 \| 1.50 | 1.90 \| 1.76 |
+| **s=1.46, bG 0.45** | **0.91 \| 0.82**; sat .38/.39 | **0.91 \| 0.82**; .30/.25 | **0.98 \| 0.82**; .23/.19 | **1.04 \| 0.95**; .33/.24 |
+| s=1.75, bG 0.45 | 0.90 \| 0.80; .38/.41 | 0.87 \| 0.79; .30/.28 | 0.94 \| 0.78; .23/.21 | 1.01 \| 0.93; .33/.26 |
+
+(s=1 inclined Y: 2.77 | 2.37 at 10°, 2.99 | 2.80 at 20°.)
+
+### 18.3 What changes
+
+- **The angle-dependent amplitude gap was mostly the selection.** With hydrocarbon ions, the X p25
+  ratio is flat with angle (s=1.46 + fb: 0.82 / 0.82 / 0.82; no fb: 1.51 / 1.54 / 1.58). The median
+  keeps a small rise at 20°, where the data have only 70 events.
+- **bG ≈ 0.45 stands; the "Y overshoot" of §16.2 reverses.** At s=1.46, bG 0.45, the medians are
+  X 0.91–0.98 and Y 1.04, and the saturated fractions match within 0.01–0.05 in X. Without
+  feedback the chain needs ×1.66–1.94, i.e. 1/(1−bG) → bG ≈ 0.40–0.48. The p25 ratios (0.82 X)
+  say the sim distribution is **broader** than the data's on the low side. Feedback broadens it,
+  so the width is the handle that can split bG from an overall gain factor. The bG scan (§18.5)
+  tests this.
+- **X/Y: the sim's Y/X is ~15 % too low**, the same at every angle: Y/X data/sim 1.14 (fb, p50),
+  1.16 (p25), 1.17 (s=1). This is the August charge-partition item (OVERNIGHT §10: sim puts
+  ~10 % less charge in Y). It is the opposite sign from §16.2, which was the selection. Charge
+  division in the protected FEU input (§17) is still a candidate. It needs C_c vs the X and Y
+  strip capacitances.
+- **Rise by true angle** (T14 extractor on the M3-selected events): X 10° 187 ns, 20° 169;
+  Y 10° 188, 20° 160. The T14 data legs give 176 / 162 / 180 / 160. So the inclined data is
+  **7–11 ns slower** than T14 said, and the s=1.46 + fb gap at 10° X shrinks 36 → 28 ns.
+
+### 18.4 The sim's multiplicity excess is a noise-model artefact
+
+T14's "strips ≥ 5σ" is 12 (X) / 13 (Y) in the sim against 6 / 8 in the data. Within ±30 strips of
+the peak it is 5 / 8 in both legs. About 10 sim channels (478, 480, 481, 483, 352, 27, 93, 100, …,
+the **same numbers on both FEUs**) cross 5σ in ~50 % of events, far from any track
+(`hot_channels.log`). The single `noise_det3_satscan_feu07.json` spec is applied to both FEUs, and
+those channels' generated noise exceeds the σ stored in the decoded file. Effect: n_over and
+q_event in the sim are inflated by ~6 strips × 5σ. The peak amplitude is not affected (signals
+are hundreds of ADC). T13 seeding may be affected. **Not fixed.**
+
+The real profile difference is small. X matches. Y in the sim is wider at ±2–3 strips (0.25 / 0.087
+of peak vs data 0.165 / 0.048), which is the August "extra spreading" term.
+
+### 18.5 Scan in flight
+
+Condor 4451431 (`stageBC_w2_bgtp.sub`: s 1.46/1.75 × bG 0.25/0.35/0.45 × th00/thx10/thx20, all at
+the new `--shaper-tp-ns 166`) and 4451432 (`stageBC_w2_bgtp_thy.sub`: the same at thy10/thy20,
+added after §18.1). Both have predictions registered in the submit files. T14 and the ledger run
+on yoga as the jobs land (`orchestrate_bgtp.sh`).
