@@ -1,19 +1,21 @@
 # Handoff
 
-## T14 fresh look (sim vs data waveforms) — updated 2026-10-13 late (dylan-MS-7C84)
+## T14 fresh look (sim vs data waveforms) — updated 2026-10-13 afternoon (dylan-MS-7C84)
 
-**Resume:** read FRESH_LOOK §13 (then §12, §11). **The detectors are gone: archive + simulation only.**
-§13 worked through every chamber x gas in the archive: det0 He/C2H6 vs Ar/iso, old det3 Ar/iso vs Ar/CF4, June det3, SPS det4.
-Two gas-ordered effects now explain T14's oldest rows:
- 1. **The Ar/iso ion signal is full but fast, T_ion ≈ 140 ns, not Ar+'s 340 ns.** Shown shaper-free on det0
-    (Ar/iso pulse = He pulse ⊗ ion kernel: f 0.8–0.96, T 120–150 ns; Ar+ excluded ×7 in rms). The same T as June
-    det3 (§10.2) and old det3. It fixes the rise, FWHM and central peak time, and gives +8–31 % peak per charge.
- 2. **Gain-dependent extra multiplication G/(1−bG)**: slope ×1.3–1.5 Garfield on all three Ar/iso chambers,
-    ×3 in Ar/CF4 and ×3–7 in He/C2H6, with curvature everywhere and broadening only near the runaway.
-    Photon feedback is the leading candidate (α(E) and gap sag are excluded by curvature and width).
-Next (§13.6): rerun the T14 shapes with T_ion = 140 ns (an exact time rescale), adopt G/(1−bG), fit the Ar/CF4
-shapes once the lxplus Magboltz tables (`~/work/mx17_gas_oct13/`) finish. **Question for Dylan:** why does det0
-collect only a few mm of drift column?
+**Resume:** FRESH_LOOK §13–15 (then §12, §11). Detectors are gone: archive and simulation only.
+Slides (literature + archive evidence): https://dylan-neff.web.cern.ch/notes/mx17-feedback-and-ions.html
+- **Gain side:** photon feedback G/(1−βG) on every chamber/gas (Ar/iso slope ×1.3–1.5 on 3 chambers; ×3 Ar/CF4; ×3–7 He/C2H6),
+  broadening near runaway; this is the field's standard model (Şahin–Kowalski–Veenhof; Iguaz microbulk; Peskov–Fonte).
+- **Signal side:** the drifting ion is a hydrocarbon (Cortez 2019: C4/C8Hn+ K0 2.08/1.74 at 95 % Ar), not the Ar+ the
+  chain uses: T ≈ 200–240 ns over the 150 µm gap vs the chain's 352. det0 (6 mm gap, He-calibrated) and old det3 (Ar/iso
+  and Ar/CF4; CF3+ ~160 ns) both exclude Ar+. Shaper from noise ACF: 158 ns (FEU 3), 166 ns (FEU 7/8).
+- **Chain:** new digitizer options `--ion-speed-scale` and `--feedback-bg` (committed, synced to lxplus src).
+  Condor 4450898 (ion speed 1.46/1.75/2.45) and 4450899 (+ bG 0.45) on the angled ladder; laptop T13/T14 via
+  `scratchpad/2026-10-13c/orchestrate_t14.sh` (relays lxplus → desktop → laptop; laptop has no AFS token).
+  Results: `ssh yoga python3 ~/t14_ionspeed_table.py`. Pre-registered predictions are in the two .sub files.
+- **Next:** read the table against the predictions; write FRESH_LOOK §16; if fullphys closes rise + amplitude, freeze a
+  new default (s = 1.46 or 1.75, bG from the June ladder) and rerun T14 properly; Ar/CF4 chain point (needs an Ar/CF4
+  avalanche calib) is the cross-gas test.
 
 **Goal:** find out why the end-to-end MX17 response simulation (Geant4 → Garfield → DREAM)
 gives slower and wider pulses than the det3 cosmic-bench data. The rise-time / f_ion

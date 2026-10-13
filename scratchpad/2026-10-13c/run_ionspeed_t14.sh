@@ -8,7 +8,7 @@ SB=~/x17/response_sim/stageB_w2
 NT=~/PycharmProjects/nTof_x17
 D=$SB/w2_rho2M_${KIND}$TAG/$ANG
 mkdir -p $D/decoded_root
-rsync -a "lxplus:/afs/cern.ch/work/d/dneff/mx17_s1/stageBC/${KIND}${TAG}_${ANG}/sim_decoded_w2_rho2M_${KIND}${TAG}_${ANG}*.root" $D/decoded_root/
+test -n "$(ls $D/decoded_root/*_08.root 2>/dev/null)" || { echo "no decoded files staged"; exit 1; }
 cd $NT
 ./.venv/bin/python mx17_sim_wft/t13_reco.py --decoded-dir $D \
     --bundle $SB/data_leg_satdet3/calib_bundle --out $D/events_${KIND}${TAG}_${ANG}.parquet --jobs 6
