@@ -1,8 +1,14 @@
 # Handoff
 
-## T14 fresh look (sim vs data waveforms) — updated 2026-10-13 (dylan-MS-7C84)
+## T14 fresh look (sim vs data waveforms) — updated 2026-10-13 evening (dylan-MS-7C84)
 
-**Resume:** read FRESH_LOOK §11 (scoreboard). Overnight 2026-10-13: photon feedback G/(1−bG) explains amplitude AND slope (§9); COMSOL 3D validates the chain's kernels (§10.1); the shaper is ~166 ns from the run's own noise (§10.2). The rise/ion puzzle remains: full ions need T_ion ≈ 140 ns. Next: a bench ladder at a second iso fraction, then the FEU pulser.
+**Resume:** read FRESH_LOOK §12, then §11. **The detectors are gone (2026-10-13): no more bench tests.**
+Every bench item below (iso ladder, FEU pulser, ohmmeter, crosstalk pulse) is dropped; only archive and simulation remain.
+§12: moisture explains nothing open (rise moves 1–7 ns, gain −23 % makes the amplitude ledger harder; the bench has no O₂,
+June's attachment was a stacking artefact per nTof_x17 cloud_basics). Archive found: same-chamber Ar/iso → **Ar/CF₄ 90/10**
+ladders (old det3, May) and det0 He/ethane vs Ar/iso (April). Ar/CF₄ shows the feedback signature 4–5× stronger
+(runaway 640 V where the gain flattens and the dark current takes off). Next: §12.5 (det0 He/ethane ladder on lxplus,
+Garfield Ar/CF₄ through meshfield, Ar/CF₄ pulse shapes as an ion-species test of the rise).
 
 **Goal:** find out why the end-to-end MX17 response simulation (Geant4 → Garfield → DREAM)
 gives slower and wider pulses than the det3 cosmic-bench data. The rise-time / f_ion

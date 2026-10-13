@@ -922,3 +922,180 @@ central strip's leading 50 %), the data are faster than the chain by the
   (a wider effective cloud), so these averages cannot separate the two.
   Pulsing one channel on the bench and recording its neighbours would.
 
+
+## 12. No more bench time; moisture, and a second gas found in the archive (2026-10-13)
+
+**Constraint from now on (Dylan, 2026-10-13): the detectors are no longer
+available.** Every bench item in §9.4, §11 and the HANDOFF (second-iso
+ladder, FEU pulser, ohmmeter ρ_s, single-channel crosstalk pulse) can no longer
+be done. Only archived data and simulation remain.
+
+### 12.1 What the gas actually was (latest analyses, not the June ones)
+
+The June reading "det3 = ~1 % H₂O + ~1 % air, attachment λ ≈ 16–18 mm"
+(`mx_june_cosmic_qa/DET3_WEEKEND_ANALYSIS.md` §4, `RESPONSE_SIM_PLAN.md` §0a
+"prefers O₂-like attachment") is **superseded**. nTof_x17
+`sps_beam_test_26/analysis/cloud_basics/FINDINGS.md` (2026-10-09/11, on the
+`worktree-sps-attachment-transfer` branch, not yet on main) shows that the
+June decay came from normalised, threshold-aligned stacking (§10). On
+unbiased, trigger-aligned stacks:
+
+| setup | water | O₂ | evidence |
+|---|---|---|---|
+| bench det3, 27 June (the T14 run) | **0.95 %** | **≲ 2–10 ppm (none)** | 6-field drift scan 35–382 V/cm, plateau flat ±2 % to 2 µs (§21, §25) |
+| bench det2/4/7 | 0.6–0.95 % | ≤ 0.005–0.025 % air | single-field fits (§22, §25) |
+| SPS det4, Ar/CF₄/iso 88/10/2 | 1.5–1.6 % | **150–230 ppm**, varies over hours | beam-gas fits at 3 fields (§14, §18, §25) |
+| SPS det4, Ar/CO₂/iso | ~1.6 % | 270–385 ppm | run_56 (§18) |
+
+Open in that study: the bench widths look *dry* (fitted D_T 463–507 µm/√cm,
+matching dry Magboltz), while v(E) says ~1 % water (D_T should then be
+~250–300 µm/√cm) (§10, §27).
+
+### 12.2 What moisture does to the chain (T14 ran dry, no attachment)
+
+| stage | effect of ~1 % H₂O (bench) | effect on T14 rows |
+|---|---|---|
+| drift v | 39.1 → 35.9 µm/ns at 358 V/cm (matches the data's ~35–37) | negligible for shapes; see below |
+| D_T, D_L | D_T ×0.63 (Magboltz); data widths look dry | see the toy below |
+| attachment | none on the bench (12.1) | none; T14's η = 0 was right for the bench |
+| gas gain | ×0.77 at 1 % (wet bracket, cluster 16705137; electron cooling, survival 1.0) | **amplitude deficit grows ×1.8 → ×2.3**; slope untouched at one voltage |
+| ion species | H₂O's IP 12.6 eV is above iso's 10.6 eV and its proton affinity below isobutene's, so the drifting ion stays an iso fragment; any water clustering would *slow* it | wrong direction for the rise |
+| photon feedback (§9) | VUV absorption length of 1 % H₂O ≈ 4–8 mm and of 150–230 ppm O₂ ≳ 10 cm, against ~0.1–0.3 mm for 5 % iso; under ~5 % change in transmission over the gap | contaminants neither create nor suppress feedback; they cannot be the test |
+
+**The inclined-track rise, with wet transport** (`scratchpad/2026-10-13b/wf_wet_scan.py`,
+the §10.2 toy and fit with v, D_T, D_L as parameters, 166 ns shaper; the dry
+arm reproduces §10.2 exactly):
+
+| gas arm | full ions, T 340 ns: rise 20° / 10° | T 140 ns | f_ion 0.2 |
+|---|---|---|---|
+| dry | 248 / 263 | 164 / 187 | 143 / 173 |
+| wet 1 % (v and D) | 247 / 258 | 162 / 183 | 140 / 166 |
+| wet v only | 249 / 265 | 166 / 190 | 145 / 176 |
+| wet D_T only | 246 / 256 | 160 / 179 | 138 / 162 |
+| **data** | **166 / 181** | | |
+
+**Moisture moves the rise by 1–7 ns against an 80 ns gap.** It does not
+change §10.2's conclusion: full ions still need T_ion ≈ 140 ns. On vertical
+tracks the slower wet drift lengthens the pulse, the wrong way for the
+common 0.67 factor of §10.4. Bench attachment, the one contaminant effect
+that would have pulled vertical peaks earlier, is absent.
+
+**Net:** moisture explains nothing open. It makes the amplitude ledger
+~25 % harder (×2.3 needed against §9's shape-predicted ×1.5–2.1). That still
+sits inside the DREAM ADC/fC uncertainty, but the pulser shot that would have
+pinned it is gone. The SPS O₂ is real but confined to det4 at H4; §27 there
+shows it barely moves the sharing constants (≤ 7 % except the unused
+prompt/delayed split).
+
+### 12.3 Archaeology: the bench ran other gases in April and May
+
+From `Cosmic_Bench_DAQ_Control` git history; data on EOS
+`/eos/experiment/ntof/data/x17/cosmic_bench/det_{0,1,3,4}_old/`; det_3_old is
+also on the desktop at `~/x17/cosmic_bench/det_3_old/`. **These are the
+pre-June chambers.** The May "det3" (`mx17_1` in its config, "Bulked 5-5-26,
+strip resist vertical, ESL no silver paste") is **not** the June det3 of T14
+(bulked by Stephan on 15 June).
+
+| run | chamber | gas | ladder | size | analysed before? |
+|---|---|---|---|---|---|
+| `mx17_det0_He_HV_Scan_4-1-26`, `_4-2-26` | det0 | **He/C₂H₆ 96.5/3.5** | 420–525 V, drift 800 | 65 + 223 GB | efficiency only |
+| `mx17_det0_He_stats_4-6-26` | det0 | He/C₂H₆ | overnight | 45 GB | no |
+| `mx17_det0_Ar_Iso_HV_Scan_4-7-26` | det0 | Ar/iso 95/5 | 410–520 V, drift 800 | 48 GB | no |
+| `mx17_det1_Ar_CF4_HV_Scan_4-25-26` | det1 | Ar/CF₄ (config mislabelled Ar/Iso) | 530, 550 V only | 4.5 GB | no |
+| `mx17_det3_HV_Scan_5-5-26` | old det3 | Ar/iso 95/5 | 460–530 V, drift 900 | 37 GB | efficiency only |
+| `mx17_det3_ArCF4_HV_Scan_5-6-26` | old det3 | **Ar/CF₄ 90/10** | 530–670 V, drift 900 | 49 GB | efficiency only |
+| `mx17_det4_ArIso_HV_Scan_5-7-26` | old det4 | Ar/iso 95/5 | 440–530 V | 51 GB | efficiency only |
+
+Two **same-chamber, two-gas** pairs exist: old det3 (Ar/iso → Ar/CF₄, one day
+apart) and det0 (He/ethane → Ar/iso). Neither replaces the second-iso ladder
+exactly, but both change the quencher.
+
+### 12.4 First look: old det3, Ar/iso vs Ar/CF₄ — the feedback signature is much stronger without isobutane
+
+`scratchpad/2026-10-13b/`: `extract_may.py` reuses hv_slope's `view_rows()`
+unchanged (threshold-free peak-strip max, M3-good rays, so the population is
+the same at every voltage). The fiducial was chosen once from both gases'
+top-voltage efficiency maps (x −200…100, y −200…50 mm). `ladder_may.py`,
+`fit_may.py` (log `fit_may.log`), figure `figs/may_two_gas_ladder_2026-10-13.png`.
+
+Checks first:
+- The scans ran top-down in voltage. The Ar/CF₄ 650 V point came 7.5 h
+  after the gas change, ran 2 h and is stable (p25 by quarter
+  1492/1494/1438/1460), so the gas had settled.
+- The Ar/iso 510 V point, the first run after install, drifts +25 % within
+  itself and is excluded.
+- Points within ~4× of the noise-max floor (~35–40 ADC) are excluded, as
+  are railing quantiles (> 0.7 × rail).
+
+| gas, view, median | range | local slopes per 10 V | curvature per (10 V)² | χ² exp / quad / feedback (free slope) | bG at ref | runaway V* |
+|---|---|---|---|---|---|---|
+| Ar/iso, X | 460–490 | 0.41 0.46 0.47 | +0.016 | 1.5 / 0.13 / 0.25 | 0.26 (490 V) | 526 V |
+| Ar/iso, Y | 460–490 | 0.40 0.46 0.48 | +0.021 | 2.4 / 0.10 / 0.25 | 0.32 | 522 V |
+| **Ar/CF₄, X** | 590–630 | **0.46 0.48 0.65 0.82** | **+0.063** | **56 / 2.8 / 1.1** | 0.31 (610 V) | **641 V** |
+| **Ar/CF₄, Y** | 590–630 | **0.38 0.47 0.65 0.81** | **+0.074** | **84 / 0.6 / 3.8** | 0.38 | **640 V** |
+
+- **Garfield has no curvature in either gas.** Uniform 150 µm gap
+  (`garfield_sim/results/*_Saclay_160m.json`): Ar/CF₄ 0.19–0.25 per 10 V,
+  flat over 400–530 V; Ar/iso 0.30–0.33 per 10 V. The data slope is ×1.3–1.5
+  Garfield's in Ar/iso (as on June det3) and **×2–3.5 in Ar/CF₄**.
+  Ar/CF₄'s curvature is 4–5× Ar/iso's on the same chamber.
+- **Same chamber, same electronics, only the gas changed:**
+  - Ar/iso median 1019 ADC at 470 V, where Garfield gives 24 500;
+  - Ar/CF₄ median 811 ADC at 620 V, where Garfield extrapolated (flat
+    slope) gives ~1 650.
+
+  Relative to Ar/iso, Ar/CF₄ is ~×12 above Garfield. Primary ionisation
+  (~+15 %) and drift attachment (survival 0.93–0.97) do not come close.
+- **The runaway lands where the chamber stops behaving.**
+  - Ar/CF₄ (V* = 640 V): every quantile flattens above 640 V (p25 1273 → 1466
+    → 1514 → 1763 over 640–670), and the mesh current leaves its 0.011 µA
+    baseline: 0.035 / 0.064 / 0.11 / 0.18 / 0.32 / 0.50 µA at
+    610 / 620 / 630 / 640 / 650 / 670 V.
+  - Ar/iso (V* ≈ 520–550 V): the current jumps 0.071 → 0.14 µA between 500
+    and 510 V.
+
+  Cosmic avalanches give ~10⁻⁵ µA, so these are self-sustained currents, the
+  usual companion of a feedback runaway.
+- **The α(E) exclusion of §9.1 holds more strongly here.** For a Townsend
+  form, curvature ≤ (s/V)(sV/ln G − 2). With s = 0.065/V at 620 V and gain
+  ~10⁴, that gives ≤ 0.025 per (10 V)², against the measured 0.063–0.074.
+  CF₄ attachment raises gα above ln G and lowers that bound further.
+- **The spread between quantiles grows with voltage in Ar/CF₄.** The p10 slope
+  *falls* (0.53 → 0.39 over 610–640 V) while the median's climbs. That is the
+  same quantile pattern as June det3 (§9.1, bG 0.52 at p50 against 0.34–0.39
+  at p02). A Poisson number of secondaries per avalanche does this: the low
+  tail is avalanches without a secondary. It now has a candidate reading.
+
+**Reading.** Isobutane is the gas's UV absorber (absorption length ~0.1–0.3
+mm). Ar/CF₄ has none: CF₄ is transparent down to ~120 nm and scintillates
+itself. Photon feedback must therefore be much stronger in Ar/CF₄, with an
+earlier, sharper runaway. That is what the same chamber shows. Relative to Garfield, Ar/CF₄ is ×2–3.5 in
+slope against Ar/iso's ×1.3–1.5. Its curvature is ×4–5 Ar/iso's, and its
+amplitude is ~×12 further above Garfield. A gas-table (α(E)) error would
+have no reason to scale with the UV absorber. This is the qualitative two-quencher test §9.4 asked
+for, found in the archive. **Caveats:**
+- it is a different chamber from T14's;
+- the Garfield runs are uniform-field (the field-map factor ~1.9 is assumed
+  common to both gases);
+- the Ar/CF₄ Garfield is extrapolated 100 V past its range on a flat slope;
+- it is one ladder per gas.
+
+### 12.5 Next (archive and simulation only)
+
+1. **det0 He/ethane vs Ar/iso** (EOS only, ~300 GB; extraction on lxplus with
+   the same `extract_may.py`). Ethane absorbs the He excimer UV well, so the
+   prediction is **weaker** curvature than Ar/iso. Together with Ar/CF₄
+   (stronger), that brackets the quencher dependence from both sides.
+2. **Garfield Ar/CF₄ 90/10 at 560–660 V** through the meshfield maps, so that
+   12.4's ×12 is a like-for-like number rather than an extrapolation (condor,
+   hours).
+3. **old det4 Ar/iso 5-7** (51 GB on EOS): a second chamber's Ar/iso curvature,
+   to compare with old and June det3.
+4. **Pulse shapes in Ar/CF₄** from the same files. The drifting ion is CF₃⁺ in
+   Ar rather than an iso fragment, with a different mobility, and the drift
+   is ~×2–3 faster. The shaper and board are unchanged, so the inclined-track
+   rise in Ar/CF₄ against the toy is a second, independent handle on the
+   T_ion ≈ 140 ns puzzle (§10.2). This is the most direct archive test left for
+   the rise.
+5. Dropped (no detector): every bench item in §11 "Next" 1–3. The DREAM ADC/fC
+   scale stays a datasheet chain.
