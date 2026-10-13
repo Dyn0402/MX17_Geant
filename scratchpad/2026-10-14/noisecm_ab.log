@@ -1,0 +1,26 @@
+/home/dylan/x17/response_sim/stageB_w2/w2_rho2M_noisecm146/th00/decoded_root:
+sim_decoded_w2_rho2M_noisecm146_th00_datrun_w2rho2Mnoisecm146_th00_000_07.root
+sim_decoded_w2_rho2M_noisecm146_th00_datrun_w2rho2Mnoisecm146_th00_000_08.root
+
+/home/dylan/x17/response_sim/stageB_w2/w2_rho2M_noisecm146/thx10/decoded_root:
+sim_decoded_w2_rho2M_noisecm146_thx10_datrun_w2rho2Mnoisecm146_thx10_000_07.root
+sim_decoded_w2_rho2M_noisecm146_thx10_datrun_w2rho2Mnoisecm146_thx10_000_08.root
+
+/home/dylan/x17/response_sim/stageB_w2/w2_rho2M_noisecm146/thx20/decoded_root:
+sim_decoded_w2_rho2M_noisecm146_thx20_datrun_w2rho2Mnoisecm146_thx20_000_07.root
+noisecm146/th00              x      0   854/3000     0.902    0.812  0.379/0.429
+noisecm146/th00              y      0   879/3000     1.024    0.940  0.334/0.270
+noisecm146/thx10             x     10  1202/3000     0.906    0.811  0.303/0.278
+noisecm146/thx10             y      0   879/3000     1.004    0.928  0.334/0.267
+noisecm146/thx20             x     20    70/3000     0.972    0.806  0.229/0.215
+noisecm146/thx20             y      0   879/3000     0.968    0.895  0.334/0.302
+noisecm146       x 10  rise   218 ( +31)  fwhm   359 ( +38)  sat 0.28
+noisecm146       x 20  rise   197 ( +28)  fwhm   331 ( +36)  sat 0.21
+fullphys146      x 10  rise   215 ( +28)  fwhm   357 ( +36)  sat 0.25
+fullphys146      x 20  rise   194 ( +25)  fwhm   329 ( +34)  sat 0.19
+th00 7 events 600 n_samples (512, 32) noise pctl [6.67 7.41 7.41 7.41 8.9 ] top far channels [(184, 2), (185, 2), (186, 2), (187, 2), (188, 2), (192, 2), (193, 2), (194, 2)] distinct 190
+   median over events of max/σ per channel, percentiles over channels: [1.57 1.85 1.89 1.95 2.02]
+th00 8 events 600 n_samples (512, 32) noise pctl [ 6.67  7.41  7.41  7.41 11.12] top far channels [(235, 2), (236, 2), (237, 2), (238, 2), (239, 2), (240, 2), (241, 2), (242, 2)] distinct 92
+   median over events of max/σ per channel, percentiles over channels: [1.31 1.87 1.89 1.95 2.02]
+fullphys146 zero frac 0.1136 rail frac 0.0002
+noisecm146 zero frac 0.0003 rail frac 0.0002

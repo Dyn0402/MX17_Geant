@@ -1685,6 +1685,15 @@ and is probably inflated too. Not rechecked.
 **A/B, condor 4451433** (`stageBC_w2_noisecm.sub`): fullphys s=1.46 / bG 0.45 at th00/thx10/thx20
 with only the noise spec changed, paired with 4450899. Pre-registered: amplitude moves < 3 %,
 inclined shape < 5 ns, n_over drops to the data's.
+**Result (`scratchpad/2026-10-14/noisecm_ab.log`): all within the pre-registration.**
+- Zero samples 11.4 % → 0.03 %. Hot channels gone: no channel fires far from the track more
+  than 2 times in 600 events. FeuReader noise 7.41 ADC, same as the data.
+- Ledger p50 moves −1 % (X 0.912 → 0.902, Y 1.038 → 1.024). The X saturated fraction rises
+  +0.04 (0.39 → 0.43; data 0.38).
+- Inclined rise +3 ns, FWHM +2 ns.
+
+**So the bug inflated multiplicity and q_event (and possibly T13 seeding) but did not bias the
+amplitude or shape conclusions above.**
 
 ### 18.6 X/Y: it is the Y lateral sharing
 
