@@ -1663,7 +1663,39 @@ are hundreds of ADC). T13 seeding may be affected. **Not fixed.**
 The real profile difference is small. X matches. Y in the sim is wider at ±2–3 strips (0.25 / 0.087
 of peak vs data 0.165 / 0.048), which is the August "extra spreading" term.
 
-### 18.5 Scan in flight
+### 18.5 The cause: the common-mode noise is ~50× too large in the sim (fixed)
+
+The hot channels are the **lowest-pedestal** channels (238–262 ADC against a median of 315).
+`noise_det3_satscan_feu07.json` has σ_cm = **271 ADC**. That figure is the std (and the
+mean-square spectrum) over all events, and ~1 % of target-run events rail whole blocks
+(|cm| ≈ 3800). The robust value is 4.5 ADC (MAD), or **5.7 ADC** over the 90 % of events within
+10× of that. In the data, the per-block common mode has a 25–75 % range of −4…+3 ADC.
+
+The model then drew a 271 ADC Gaussian common mode on every sim event:
+- **11 % of all sim ADC samples sit at 0** (data 0.2 %). Clipped low-pedestal channels become
+  fake hits after CNS.
+- The rail moves event by event (4095 − ped − cm, i.e. ~3300–3800 after CNS).
+- The FeuReader noise reads 8.5–8.9 ADC in the sim against 7.41 in the data.
+
+Fix: `response/dream/noise.py` now takes the common-mode spectrum from quiet events. New specs are
+in `design/noise_specs/` and on AFS `calib/*_cmq.json` (σ_cm 5.70 / 4.85 for FEU 07 / 08, and
+selftest passes). The older `noise_det3.json` (May run, σ_cm 83) was built by the same estimator
+and is probably inflated too. Not rechecked.
+
+**A/B, condor 4451433** (`stageBC_w2_noisecm.sub`): fullphys s=1.46 / bG 0.45 at th00/thx10/thx20
+with only the noise spec changed, paired with 4450899. Pre-registered: amplitude moves < 3 %,
+inclined shape < 5 ns, n_over drops to the data's.
+
+### 18.6 X/Y: it is the Y lateral sharing
+
+The chain splits the charge evenly (`x_fraction` 0.502), but the Y peak strip holds 0.19 of the
+view's charge against 0.46 for X (`share_Y` / `share_X` in `stageBC_rho2M.json`). The sim's Y
+profile is wider than the data's: mean amp/peak at ±1/±2/±3 is 0.60/0.30/0.11 in the sim against
+0.56/0.23/0.09 in the data. X matches. That is a ~10 % lower Y peak, most of the ~15 % Y/X offset
+of §18.3. It is the same Y-kernel family as the Y negative lobe and the ±1 rows (§7.2, §10.3–10.4),
+and §10.1's COMSOL check did not cover the Y wings. Open.
+
+### 18.7 Scan in flight
 
 Condor 4451431 (`stageBC_w2_bgtp.sub`: s 1.46/1.75 × bG 0.25/0.35/0.45 × th00/thx10/thx20, all at
 the new `--shaper-tp-ns 166`) and 4451432 (`stageBC_w2_bgtp_thy.sub`: the same at thy10/thy20,
