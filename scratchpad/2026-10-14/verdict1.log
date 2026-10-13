@@ -1,0 +1,19 @@
+pulled verdict1_thx20
+pulled verdict1_thy10
+pulled verdict1_thy20
+verdict1/th00                x      0   854/3000     0.930    0.840  0.379/0.407
+verdict1/th00                y      0   879/3000     1.038    0.960  0.334/0.262
+verdict1/thx10               x     10  1202/3000     0.891    0.800  0.303/0.288
+verdict1/thx10               y      0   879/3000     1.022    0.949  0.334/0.265
+verdict1/thx20               x     20    70/3000     0.945    0.782  0.229/0.229
+verdict1/thx20               y      0   879/3000     0.979    0.913  0.334/0.297
+verdict1/thy10               x      0   854/3000     0.887    0.806  0.379/0.449
+verdict1/thy10               y     10   782/3000     1.064    0.916  0.331/0.232
+verdict1/thy20               x      0   854/3000     0.863    0.784  0.379/0.472
+verdict1/thy20               y     20    33/3000     1.068    1.017  0.273/0.174
+verdict1         x 10  rise   197 ( +10)  fwhm   325 (  +4)  sat 0.29
+verdict1         x 20  rise   177 (  +8)  fwhm   297 (  +2)  sat 0.23
+verdict1         y 10  rise   197 (  +9)  fwhm   317 (  +7)  sat 0.23
+verdict1         y 20  rise   176 ( +16)  fwhm   292 (  +6)  sat 0.17
+
+[exited with code 0]

@@ -1742,7 +1742,37 @@ Shape (`shape_all.py`: the T14 extractor on **all** sim events, against the data
 **→ Verdict 1** (condor 4451436, `stageBC_w2_verdict1.sub`): s 1.75, bG 0.45, tp 166, fixed noise
 spec, all five angles. Predictions are in the submit file.
 
-### 18.8 Scan bookkeeping
+### 18.8 Verdict 1 (condor 4451436): s 1.75, bG 0.45, tp 166 ns, fixed noise — passes
+
+`scratchpad/2026-10-14/verdict1.log`. Data by true M3 angle, sim all events.
+
+| | 0° | 10° | 20° | pre-registered |
+|---|---|---|---|---|
+| X peak p50 data/sim | 0.93 | **0.89** | 0.95 | 0.90–1.02 (falsifier 0.85–1.10) |
+| Y peak p50 data/sim | 1.04 | 1.06 | 1.07 | 1.02–1.15 |
+| X saturated, data / sim | 0.38 / 0.41 | 0.30 / 0.29 | 0.23 / 0.23 | within 0.05 |
+| rise sim − data [ns] | – | X +10, Y +9 | X +8, Y +16 | +2..+12; Y20 +5..+18 |
+| FWHM sim − data [ns] | – | X +4, Y +7 | X +2, Y +6 | ±8 |
+
+- Every prediction holds except X 10° amplitude, which is 0.01 under its band (well inside
+  the falsifier).
+- **The sim is now ~7 % brighter than the data in X and ~5 % dimmer in Y.** That is the Y-sharing
+  offset (§18.6). The overall gain is right to a few %, with no free gain factor: bG came from
+  the June ladder shape, before any amplitude fit.
+- **Inclined pulses are 8–16 ns slower than data, against 60–70 ns at the August default.** The
+  residual is about the size of the ±1 neighbour-delay physics still open (§10.3).
+- The full T14 pass (biased selection, kept for continuity) and its n_over check are queued on yoga
+  (`~/queue_t14.sh`).
+
+**What this configuration is.** Three physical changes to the chain: the drifting ion is a
+hydrocarbon (C₄Hₙ⁺, ×1.75 Ar⁺ mobility), there is photon feedback at bG 0.45, and the shaper
+runs at the noise-measured 166 ns. Plus one bug fix (the common-mode noise). The October fresh
+look's question, "why are sim pulses slower and wider and the amplitude ×2 low?", is answered
+at the 10 % level on the target run. The ion-speed choice within 1.46–1.75 and the shaper value
+are both read from this same run, so the cross-gas test (Ar/CF₄, §16.3 item 4) is the real
+out-of-sample check.
+
+### 18.9 Scan bookkeeping
 
 Condor 4451431 (`stageBC_w2_bgtp.sub`: s 1.46/1.75 × bG 0.25/0.35/0.45 × th00/thx10/thx20, all at
 the new `--shaper-tp-ns 166`) and 4451432 (`stageBC_w2_bgtp_thy.sub`: the same at thy10/thy20,
