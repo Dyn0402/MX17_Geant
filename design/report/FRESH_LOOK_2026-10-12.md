@@ -1523,3 +1523,58 @@ Y rise: 13–37 ns too fast for every s ≥ 1.46, with or without feedback.
     observable, §7.2, but Y is fast at 10°/20° too);
   - (c) whether to adopt shaper 158–166 ns as the default, then run one verdict T14 with
     s = 1.46–1.75, bG fitted to X+Y, and that shaper.
+
+## 17. The FEUs were the *protected* variant: what that can and cannot do (2026-10-13, night)
+
+New information from Dylan: the cosmic-bench FEUs were the spark-**protected** variant.
+
+### 17.1 What the documentation says
+
+- `221217_FeuUsersManual.pdf` (Mandjavidze, Dec 2022):
+  - §2, p. 9: the inputs reach the DREAMs "through optional protection circuits". FEUs for
+    resistive Micromegas are built without them; FEUs for standard (sparking) Micromegas get
+    them at production.
+  - No schematic or component values are given.
+  - Power register 0x200000, bits 19:4 `ProtFlt` (p. 18): the protection is floating (0) or
+    grounded (1), per 32 channels. The target run's cfg sets `Feu_Pwr_PrtFlt 0xFFFF`, so it was
+    grounded on every channel (`design/dream_cfg/satdet3_long_run_…cfg:177`).
+- The DREAM manual covers only the chip's internal ESD diodes (§8.2).
+  - The internal test capacitor (500 fF functional, 4 values in test mode) injects at the CSA
+    input. It most likely **bypasses** the board protection, so a pulser shot through it would
+    not see the protection network.
+- Online sources (CLAS12 MVT papers, DREAM papers, the classic Micromegas reviews) give no
+  values either. **Values are being requested from Irakli Mandjavidze.**
+
+### 17.2 Quick test: the network as a filter in front of the shaper
+
+`scratchpad/2026-10-13d/protection_rc_scan.py` → `.log`. This is the §10.2 toy: manual SK
+shaper at 166 and 180 ns, full ions (f 0.908), T_ion 340 (Ar⁺) and 233 (C₈Hₙ⁺). It is fitted to
+the inclined det3 X average shapes. Data: rise 166 / 181 ns (20° / 10°), **undershoot −0.022 /
+−0.023** of peak.
+
+| network | effect on 20° rise (tp 166, T 233; no network: 202 ns) | undershoot | shape rms |
+|---|---|---|---|
+| high-pass τ = 3 µs | 199 | −0.11 | 0.069 (none: 0.064) |
+| high-pass τ = 1 µs | 194 | −0.26 | 0.155 |
+| high-pass τ = 200 ns | 176 | −0.61 | 0.363 |
+| high-pass τ = 100 ns | 162 | −0.73 | 0.425 |
+| low-pass τ = 5–20 ns | 202–204 | −0.009 | 0.065–0.069 |
+| low-pass τ = 40 ns | 209 | −0.007 | 0.082 |
+
+- **A high-pass (series C into R to ground) is excluded as the missing mechanism.**
+  - A first-order high-pass doesn't remove the ion charge. It adds a negative lobe that
+    integrates it away, so speeding the rise costs a large undershoot.
+  - Reaching the data's rise needs τ ≈ 100–200 ns and a 60–90 % undershoot. The data has 2 %.
+  - Extrapolating the undershoot (≈ 1/τ), the data bounds τ_hp ≳ 15 µs, where the rise moves
+    by ~1 ns.
+  - The same bound applies to the DREAM's own CSA feedback (R_f C_f = 5 or 50 µs) and to
+    anything else that differentiates.
+- **A low-pass (series R into strip C)** only slows the pulse. It is harmless for R_s C ≤ 20 ns.
+- **Charge division** (C_c in series with C_strip, which differs between X and Y) leaves the
+  shape unchanged. It stays open as a candidate for the §16.2 X/Y amplitude disagreement and
+  for part of the absolute gain, both at the ~C_strip/C_c level. It needs the values.
+
+**Verdict:** the protection network cannot be what removes the ion signal from the inclined
+shapes. The fast-pulse puzzle stays as in §16 (hydrocarbon ion speed plus a shaper at the
+noise-ACF value). The network could still matter for amplitudes (X/Y, absolute ADC/fC), so the
+component values are worth getting.
