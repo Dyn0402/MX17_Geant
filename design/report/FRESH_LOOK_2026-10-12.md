@@ -1761,8 +1761,10 @@ spec, all five angles. Predictions are in the submit file.
   the June ladder shape, before any amplitude fit.
 - **Inclined pulses are 8–16 ns slower than data, against 60–70 ns at the August default.** The
   residual is about the size of the ±1 neighbour-delay physics still open (§10.3).
-- The full T14 pass (biased selection, kept for continuity) and its n_over check are queued on yoga
-  (`~/queue_t14.sh`).
+- Noise check (full T14 pass at th00): sim noise is 7.41 ADC, as in the data, and n_over is X 5 vs 6,
+  Y 10 vs 8. Both are inside the pre-registered ±2 (Y at the edge, where the sharing is wide).
+  Before the fix they were 12 and 13. The remaining T14 passes run on yoga (`~/queue_t14.sh`) for
+  continuity.
 
 **What this configuration is.** Three physical changes to the chain: the drifting ion is a
 hydrocarbon (C₄Hₙ⁺, ×1.75 Ar⁺ mobility), there is photon feedback at bG 0.45, and the shaper
