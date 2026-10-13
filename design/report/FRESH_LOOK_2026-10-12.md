@@ -1422,3 +1422,45 @@ The ion that drifts is a hydrocarbon, and its measured mobility predicts the tra
 - The old det3's 480 ns vertical pulses fit 30 mm.
 - The Feb test also ran Ar/CO₂ 70/30 and He/C₂H₆ resist scans on det0 with the 6 mm gap,
   under n_TOF beam. They are more gas points, but beam-environment data.
+
+## 15. Second ion species, and both mechanisms in the chain (2026-10-13, late)
+
+### 15.1 Old det3: Ar/iso and Ar/CF₄ on one chamber
+
+`scratchpad/2026-10-13c/det3o_toy.py` → `det3o_toy.log`, `det3o_toy.csv`. This is the det0 toy
+generalised to a 30 mm gap and inclined tracks.
+- **Free per gas:** drift velocity v and ion transit T.
+- **Shared:** the shaper scale tp.
+- **Fitted:** the mean X peak-strip pulse of vertical, ~10° and ~20° tracks (f_ion 0.9).
+
+| gas | best fits (rms over 3 bins) | Ar⁺, T 352 ns | literature T over 150 µm |
+|---|---|---|---|
+| Ar/iC₄H₁₀ 95/5 (460–490 V) | tp 150–166: T 140–200 ns. Inclined bins alone at tp 166, T 140: 0.016 / 0.019 | 0.14–0.17, excluded | C₄Hₙ⁺ ~207 / C₈Hₙ⁺ ~250 ns at 475 V |
+| Ar/CF₄ 90/10 (600–630 V) | tp 166, T 140: 0.027; tp 180, T 80: 0.029; tp 150, T 200: 0.032 | 0.13–0.15, excluded | **CF₃⁺ ~160 ns** (K₀ ≈ 2.11 in 90 % Ar, Cortez et al., LCTPC Nov 2017) |
+
+- **A second ion species, on the same chamber, behaves as its literature mobility
+  predicts.** Neither gas is consistent with Ar⁺. Old det3's inclined Ar/iso fits agree with
+  June det3's T ≈ 140 ns at tp 166.
+- **Caveat on the vertical bin.** The vertical Ar/iso pulses fit poorly (rms 0.09–0.12), with
+  v pinned at the grid edge (40 µm/ns). The May logbook calls det 3 "16mm drift" at one
+  point (30 mm at another). A shorter gap would explain it. The inclined bins carry the T
+  inference; the per-strip time spread there is pitch/(tan·v) and does not depend on the gap.
+
+### 15.2 The chain with both mechanisms
+
+New digitizer options (commits c19081d and the one after):
+- `--ion-speed-scale s` time-compresses the measured S3 ion template, i(t) → s·i(st). This
+  is exact (§7.5). f_ion is unchanged, and t₉₀ goes 310 → 212 / 177 / 127 ns for
+  s = 1.46 / 1.75 / 2.45.
+- `--feedback-bg bG` makes each avalanche spawn Poisson(bG·g/Ḡ) secondary Pólya avalanches,
+  recursively. The mean is ×1/(1 − bG), verified to 0.3 % at bG 0.3–0.8. The relative
+  spread grows 0.82 → 1.43 at bG 0.45.
+
+Condor runs on the W2 ρ₂M angled ladder (th00 / thx10 / thx20), each with a prediction and a
+falsifier recorded in the submit file before it ran:
+- **cluster 4450898** (`stageBC_w2_ionspeed.sub`): s = 1.46 / 1.75 / 2.45;
+- **cluster 4450899** (`stageBC_w2_fullphys.sub`): s = 1.46 / 1.75 with bG 0.45.
+
+The laptop T13/T14 pass is `run_ionspeed_t14.sh`, driven by `orchestrate_t14.sh`, with the
+same arguments as `t14_angW_*`. Its s = 1 baseline was reproduced at 20°: sim rise 232 ns
+against data 166 ns, peak data/sim ×2.6.
