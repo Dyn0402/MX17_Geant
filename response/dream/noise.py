@@ -77,7 +77,7 @@ def _cns(sub):
     return sub - np.repeat(cms, CNS_BLOCK, axis=2), cms
 
 
-def characterise(path, n_events=1500, quiet_k=3.0):
+def characterise(path, n_events=1500, quiet_k=3.0, cm_k=10.0):
     """
     Measure the noise structure of a dense decoded run.
 
@@ -107,8 +107,19 @@ def characterise(path, n_events=1500, quiet_k=3.0):
     q = res.transpose(0, 2, 1)[quiet]              # (n_quiet, n_sample)
     amp_chan = np.sqrt((np.abs(np.fft.rfft(q, axis=1)) ** 2).mean(axis=0))
 
-    # --- common-mode spectrum ----------------------------------------------
-    c = cms.transpose(0, 2, 1).reshape(-1, ns)
+    # --- common-mode spectrum, quiet EVENTS only ------------------------------
+    # (fix 2026-10-14, FRESH_LOOK §18.4) The spectrum is a mean square, so it is
+    # owned by its outliers. On the target run ~1 % of events rail whole blocks
+    # (|cm| ~ 3800 ADC, sparks / showers): over all events sigma_cm came out
+    # 271 ADC against a MAD of 4.5, and the model then drew a Gaussian common
+    # mode of 271 ADC on every event -- clipping 11 % of all samples at ADC 0
+    # and turning the lowest-pedestal channels into fake 5-sigma hits after
+    # CNS. Keep events whose largest block excursion is below cm_k robust
+    # sigmas (10: keeps ~90 %, the rest carry real signal or rails).
+    s_cm = 1.4826 * np.median(np.abs(cms - np.median(cms)))
+    cm_quiet = np.abs(cms).max(axis=(1, 2)) < cm_k * s_cm
+    cms_q = cms[cm_quiet]
+    c = cms_q.transpose(0, 2, 1).reshape(-1, ns)
     amp_cm = np.sqrt((np.abs(np.fft.rfft(c, axis=1)) ** 2).mean(axis=0))
 
     # Autocorrelation is a SHAPE, so it is reported per-trace mean-subtracted;
@@ -125,7 +136,10 @@ def characterise(path, n_events=1500, quiet_k=3.0):
         "sigma_chan_median_adc": float(np.median(sig)),
         "sigma_chan_spread_adc": float(sig.std()),
         "sigma_chan": sig.astype(float).tolist(),
-        "sigma_cm_adc": float(cms.std()),
+        "sigma_cm_adc": float(cms_q.std()),
+        "sigma_cm_mad_adc": float(s_cm),
+        "cm_quiet_event_fraction": float(cm_quiet.mean()),
+        "sigma_cm_all_events_adc": float(cms.std()),
         "amp_spectrum_chan": amp_chan.astype(float).tolist(),
         "amp_spectrum_cm": amp_cm.astype(float).tolist(),
         "autocorr_lag": lag,

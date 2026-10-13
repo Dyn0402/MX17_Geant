@@ -1,0 +1,32 @@
+# A/B: the common-mode noise fix alone. DIAGNOSIS, 2026-10-14 (FRESH_LOOK §18.4).
+# noise_det3_satscan_feu07.json had sigma_cm 271 ADC (std over all events, owned by ~1 % railed
+# events); robust value 5.7 ADC. The model drew a 271 ADC Gaussian common mode on every event:
+# 11 % of sim samples clipped at ADC 0, hot low-pedestal channels after CNS, and an
+# event-dependent rail (4095 - ped - cm). Fixed spec: noise_det3_satscan_feu07_cmq.json
+# (response/dream/noise.py, quiet-event CM). Otherwise identical to stageBC_w2_fullphys.sub
+# s=1.46 (cluster 4450899, same seed) -> paired.
+#
+# PRE-REGISTERED (2026-10-14, before submission):
+#   * sim median noise (FeuReader) 8.5-8.9 -> 7.3-7.6 ADC (data 7.41); zero samples 11 % -> < 0.5 %.
+#   * T14 n_over at th00 drops from 12/13 to within +-2 of the data's 6/8.
+#   * peak-strip median moves < 3 %; saturated fraction (>= 3500) moves by < 0.05;
+#     inclined rise/FWHM move < 5 ns.
+# FALSIFIER: peak median moves > 5 % or the inclined rise > 10 ns -> the CM bug was biasing the
+#   amplitude/shape observables of every run since the satscan noise spec was adopted.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w2.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+arguments               = "rho2M noisecm146_$(ang) /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07_cmq.json /afs/cern.ch/work/d/dneff/mx17_s1/clusters_ang/mx17_muons_3k_ang_$(ang)_t0.root '--ion-speed-scale 1.46 --feedback-bg 0.45'"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_noisecm146_$(ang).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_noisecm146_$(ang).err
+queue ang from (
+th00
+thx10
+thx20
+)
