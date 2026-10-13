@@ -1,14 +1,19 @@
 # Handoff
 
-## T14 fresh look (sim vs data waveforms) — updated 2026-10-13 evening (dylan-MS-7C84)
+## T14 fresh look (sim vs data waveforms) — updated 2026-10-13 late (dylan-MS-7C84)
 
-**Resume:** read FRESH_LOOK §12, then §11. **The detectors are gone (2026-10-13): no more bench tests.**
-Every bench item below (iso ladder, FEU pulser, ohmmeter, crosstalk pulse) is dropped; only archive and simulation remain.
-§12: moisture explains nothing open (rise moves 1–7 ns, gain −23 % makes the amplitude ledger harder; the bench has no O₂,
-June's attachment was a stacking artefact per nTof_x17 cloud_basics). Archive found: same-chamber Ar/iso → **Ar/CF₄ 90/10**
-ladders (old det3, May) and det0 He/ethane vs Ar/iso (April). Ar/CF₄ shows the feedback signature 4–5× stronger
-(runaway 640 V where the gain flattens and the dark current takes off). Next: §12.5 (det0 He/ethane ladder on lxplus,
-Garfield Ar/CF₄ through meshfield, Ar/CF₄ pulse shapes as an ion-species test of the rise).
+**Resume:** read FRESH_LOOK §13 (then §12, §11). **The detectors are gone: archive + simulation only.**
+§13 worked through every chamber x gas in the archive: det0 He/C2H6 vs Ar/iso, old det3 Ar/iso vs Ar/CF4, June det3, SPS det4.
+Two gas-ordered effects now explain T14's oldest rows:
+ 1. **The Ar/iso ion signal is full but fast, T_ion ≈ 140 ns, not Ar+'s 340 ns.** Shown shaper-free on det0
+    (Ar/iso pulse = He pulse ⊗ ion kernel: f 0.8–0.96, T 120–150 ns; Ar+ excluded ×7 in rms). The same T as June
+    det3 (§10.2) and old det3. It fixes the rise, FWHM and central peak time, and gives +8–31 % peak per charge.
+ 2. **Gain-dependent extra multiplication G/(1−bG)**: slope ×1.3–1.5 Garfield on all three Ar/iso chambers,
+    ×3 in Ar/CF4 and ×3–7 in He/C2H6, with curvature everywhere and broadening only near the runaway.
+    Photon feedback is the leading candidate (α(E) and gap sag are excluded by curvature and width).
+Next (§13.6): rerun the T14 shapes with T_ion = 140 ns (an exact time rescale), adopt G/(1−bG), fit the Ar/CF4
+shapes once the lxplus Magboltz tables (`~/work/mx17_gas_oct13/`) finish. **Question for Dylan:** why does det0
+collect only a few mm of drift column?
 
 **Goal:** find out why the end-to-end MX17 response simulation (Geant4 → Garfield → DREAM)
 gives slower and wider pulses than the det3 cosmic-bench data. The rise-time / f_ion

@@ -1099,3 +1099,213 @@ for, found in the archive. **Caveats:**
    the rise.
 5. Dropped (no detector): every bench item in §11 "Next" 1–3. The DREAM ADC/fC
    scale stays a datasheet chain.
+
+## 13. Systematic workup: every chamber × gas in the archive (2026-10-13, evening)
+
+Dylan asked for a full workup of det0 (He/ethane against Ar/iso), with the SPS gases as
+extra points, to build one consistent story. Scripts, logs and the README are in
+`scratchpad/2026-10-13c/`. Figure: `figs/s13_ladders_and_ion_2026-10-13.png`.
+
+### 13.1 Data and method
+
+| set | chamber | gas | scan | notes |
+|---|---|---|---|---|
+| det3 (June) | det3, bulked 15 June: **the T14 chamber** | Ar/iso 95/5 | 425–510 V, two passes | hv_slope mesh_ladder.csv, as in §9 |
+| det3o | old det3, bulked 5 May | Ar/iso 95/5, then **Ar/CF₄ 90/10** a day later | 460–530 / 530–670 V, drift 900 | §12.4 |
+| det0 | det0, April | **He/C₂H₆ 96.5/3.5** (4-2 scan; 4-1 repeat), then Ar/iso 95/5 (4-7) | 420–525 / 410–520 V, drift 800 | pulled to the desktop `/home/dylan/det0_old/` (45 GB); NVMe, since the data drive is full |
+| det4 at SPS | det4 | Ar/CO₂/iso 95/3/2, Ar/CF₄/iso 88/10/2 | — | 13.5 |
+
+- **Electronics are identical everywhere.** All April/May cfgs (`decode_dream_cfg --sweep`)
+  read 180 ns peaking, 60 ns sampling and 200 fC range on data FEUs 3/4, as in June.
+- **One extractor for every bench chamber:** `extract_bench.py`.
+  - It reads `decoded_root` and `filtered_root`. The latter are uint16[512][32]
+    channel-major, verified identical to `decoded_root` transposed.
+  - Same observable as hv_slope: the threshold-free peak-strip maximum on M3-good rays.
+    Bit-identical to §12.4 on old det3.
+  - It also stores the ±2-strip waveforms and the M3 slopes for the shape studies.
+- **det0 needs a track window.** Its X FEU has hot channels (ch 50 was the "peak" in 85 % of
+  410 V events). With the window (±10 mm + |tan|·30 mm around the M3 prediction,
+  alignment fitted from the data) and a noisy-channel mask, the noise floor is ~22–25 ADC.
+- **det0's gain varies across the chamber** (its efficiency map follows the gain).
+  - Both gases use the same best region: ref_x 50–150, ref_y −200…150.
+  - Threshold-free quantiles stay unbiased when the population is the same at every
+    voltage.
+  - Clean points only: quantile ≥ 5× the noise floor and ≤ 0.7 × rail.
+- **Time order is checked for every scan; all scans ran top-down in voltage.**
+  - Excluded:
+    - det0 Ar/iso 490 V: +40 % within its own 3 h, first point after the He → Ar/iso
+      change.
+    - det3o Ar/iso 510 V.
+    - det0 He 505 V: taken ~6 h out of sequence.
+    - Ar/CF₄ above 630 V: the saturation regime.
+  - det0's gain also **rose during** its scans: He final 505 V, 24 h after the scan, is
+    ×2–5 above the first 505 V. A gain that rises while the voltage steps down **flattens**
+    the measured slope, so det0's slopes are lower bounds. A drift linear in time adds no
+    curvature.
+  - The He 4-1 repeat started at 525 V minutes after the gas change, so it is qualitative
+    only.
+
+### 13.2 Gain ladders: one pattern, ordered by gas
+
+`ladders_all.py` → `fits_all.csv` / `fits_all.log`; `width_vs_v.py` → `width_vs_v.log`.
+
+The exponential slope is quoted as a ratio to Garfield's slope for the same gas
+(nTof_x17 `garfield_sim/results/*_Saclay_160m.json`, uniform 150 µm gap).
+"gfb" is A = c·G/(1 − bG) with Garfield's own slope, two parameters. V* is its runaway.
+
+| chamber, gas | Garfield slope /10 V (no curvature in any gas) | data slope ÷ Garfield | curvature /(10 V)² | gfb χ² vs exp χ² | bG at ref | V* (runaway) | width ln(hi/lo) vs V |
+|---|---|---|---|---|---|---|---|
+| det3 June, Ar/iso | 0.318 | **×1.26–1.32** | +0.010–0.014 | 9–23 vs 23–56 | 0.32–0.49 (490 V) | 512–526 V | 0.88 → 1.07, mild |
+| det3o, Ar/iso | 0.318 | **×1.30–1.45** | ~+0.01 | ~equal (4–5 pts) | 0.18–0.31 (480 V) | 516–533 V | flat |
+| det0, Ar/iso | 0.318 | **×1.42–1.51** (lower bound) | +0.02 | 1–6 vs 0.2–16 | 0.35–0.70 (470 V) | 481–503 V | flat |
+| det3o, **Ar/CF₄** | 0.208 | **×3.1** | **+0.085** | 13–15 vs 30 | 0.56 (610 V) | **638 V** | **1.40 → 1.76** (X), 1.77 → 2.14 (Y) |
+| det0, **He/C₂H₆** | 0.190 | **×2.9–7.2** (lower bound) | **+0.07 to +0.58** | **0.8–4.7 vs 1.3–35** | 0.60–0.83 (500 V) | **510–527 V** | **1.08 → 1.58** (p75/p50) |
+
+- **Every Ar/iso chamber agrees.** Three chambers, bulked in April, May and June, give the
+  same ×1.3–1.5 slope excess and mild curvature. The excess is not a property of T14's
+  chamber; it is the gas.
+- **The excess scales with the gas, not the chamber.** Old det3 gets ×1.4 in Ar/iso and ×3.1
+  in Ar/CF₄ a day later. det0 gets ×1.5 in Ar/iso and ×3–7 in He/C₂H₆. Garfield
+  (Magboltz, Penning as configured) has *no* curvature in any of these gases.
+- **The width signature, which separates mechanisms.** The relative width of the amplitude
+  distribution:
+  - is flat where bG ≲ 0.5 (all Ar/iso);
+  - grows in the last 10–20 V before V* in Ar/CF₄ and He/C₂H₆;
+  - shows the same in 50 mm cells, so spatial gain spread does not cause it;
+  - is noise-floor subtracted.
+
+  A process that multiplies every avalanche by the same factor cannot do this: an α(E)
+  error, gap sag under electrostatic pressure, a field-map shape. Space charge would narrow
+  the distribution. A branching process does it: a random number of secondaries per
+  avalanche, with mean bG → 1. Higher quantiles also run away first: He V* is 510 V on p90,
+  515 V on p75 and 525 V on p50, and June det3 had bG higher on p50 than on p02.
+- **The runaway is where each chamber stops behaving.**
+  - Ar/CF₄: V* = 638 V, plateau from 640 V, dark current 0.11 → 0.50 µA.
+  - He 4-2: V* 510–527 V, with the X median at 2589 ADC by 525 V.
+  - He 4-1: V* ~500 V, with a plateau above it as in Ar/CF₄. That scan's gas was still
+    changing.
+  - Ar/iso: V* ~512–533 V, where the June bench starts to discharge (§9).
+  - det0's own mesh current is dominated by a ~2–5 µA ohmic leak, so it is no help here.
+- **My §12.5 prediction for He/ethane was wrong.** I expected weaker feedback because ethane
+  absorbs the He VUV. It is stronger. He₂* emits at 16–20 eV, so the photons that reach the
+  mesh carry a photoemission yield ~10× that at Ar's 9.8 eV, and they also photoionise
+  ethane in the gas. The ordering found (Ar/iso < Ar/CF₄ ≈ He/C₂H₆) is consistent with
+  photon feedback, but this ordering was not predicted in advance.
+
+### 13.3 Pulse shapes: the Ar/iso ion signal is full but fast
+
+`rise_all.py` → `rise_all.log`; `point_rise.py`; `he_template_fit.py` → `he_template_fit.log`.
+
+**det0 sees almost no drift column.** In both gases:
+- the ±2-strip / peak ratio barely grows with track slope (Ar/iso 0.05 → 0.15, He 0.04 → 0.07,
+  against old det3's 0.12 → 0.29);
+- vertical-track pulses stay above half maximum for only ~300 ns (old det3 Ar/iso: 480 ns).
+
+Its charge comes from a few mm above the mesh, so its pulses are close to the **point
+response of shaper ⊗ ion signal**. Why det0 behaves this way (drift gap? cathode?) is
+unknown and is a question for Dylan. It makes det0 an unusually clean ion probe.
+
+**The shaper-free test.** He ions are ~5–10× faster than any ion in Ar (Langevin:
+K ∝ 1/√(αμ)). So det0's He/C₂H₆ mean pulse is an *empirical* point response: same chamber,
+same electronics, same short column. The Ar/iso mean pulse was fitted as the He pulse ⊗
+[(1 − f)δ + f·rect(0, T)/T] ⊗ a free Gaussian smear:
+
+| det0, Ar/iso fit to He template | f_ion | T_ion | extra smear | rms |
+|---|---|---|---|---|
+| vertical tracks, free | **0.96** | **150 ns** | 1 ns | **0.031** (He alone 0.051) |
+| ~10° tracks, free | 0.76 | 120 ns | 1 ns | 0.022 |
+| fixed f 0.9, T 140 | | | 1–11 ns | 0.023–0.031 |
+| fixed f 0.9, **T 340 (Ar⁺, the chain)** | | | | **0.20–0.21** |
+| fixed f 0.2, T 340 (suppressed ions, August's reading) | | | | 0.059–0.067 |
+
+**The data prefer a full ion signal with T ≈ 120–150 ns.** Full Ar⁺ ions are excluded ×7
+in rms. Suppressed slow ions are 2–3× worse than fast ones. This breaks the f–T degeneracy
+that §7.5 and §10.2 could not break with rise times alone.
+
+Independent agreement:
+- the toy point-response rise needs T ≈ 130–150 ns for det0's 168–175 ns (`point_rise.log`);
+- §10.2 needed T ≈ 140 ns at the in-situ shaper on June det3;
+- old det3 and June det3 have the same inclined Ar/iso rises: 180/165 ns against 181/166 ns
+  at 10°/20°.
+
+Three chambers and two methods give **one ion transit of ~140 ns in Ar/iso 95/5**.
+
+**What that means physically.** The chain uses Ar⁺ in Ar. A 340 ns transit over 128 µm at
+490 V needs K ≈ 1.0 cm²/V·s, Ar⁺'s high-field value, which resonant charge exchange holds
+down. After ~1 ns the drifting ion in Ar/iso is an isobutane fragment. It has no resonant
+channel in Ar, and T ≈ 140 ns needs K ≈ 2.3 cm²/V·s.
+
+That is plausible but unverified. The Coimbra Ar–iC₄H₁₀ measurements are at low E/N
+([LCTPC slides](https://indico.cern.ch/event/709670/contributions/3019642/attachments/1670094/2678865/Ion_Mobility_studies_in_Ar-CF4-iC4H10_mixtures_for_the_LCTPC_Collaboration.pdf),
+[Cortez, RD51](https://indico.global/event/6159/contributions/50740/attachments/25481/43821/RD51_Presentation_-_Ion_mobility.pdf));
+at high E/N they note declustering.
+
+**Other gases.** Old det3's Ar/CF₄ inclined rises are 154/149 ns, faster than its Ar/iso
+180/165 ns. That is consistent with a fast, non-resonant ion (CF₃⁺) plus a faster drift. It
+is not yet fitted, since the Magboltz Ar/CF₄ drift table is running on lxplus.
+
+**Consequence for amplitude** (`peak_vs_tion.py`): at f = 0.91 and fixed charge, T = 140 ns
+instead of 340 ns raises the peak by ×1.08 (vertical), ×1.23–1.26 (10.7°) and ×1.27–1.31
+(20°), at either shaper. Part of T14's amplitude deficit is the ion speed, not the gain.
+
+### 13.4 What SPS det4 can and cannot add
+
+- **Its gain ladders cannot be used.** det4 is the chamber where 62 % of the area does not
+  amplify, in fixed stripes. Its run_66 Ar/CF₄/iso resist scan moves the leading-strip
+  amplitude only ×1.2 over 780 → 580 V (EXTRACTION_2026-08-05b §11a), and every amplitude is
+  ZS-censored. No slope or curvature can be read from it.
+- **Its shapes are consistent with 13.3.** In both H4 gases the drifting ion is not Ar⁺:
+  Ar/CO₂/iso → iso fragments, Ar/CF₄/iso → CF₃⁺. Both give the same core rise
+  (176–179 / 170 ns at matched censoring, TWOGAS §5) and the same +60 ns ±1 delay. Neither
+  contradicts fast non-Ar⁺ ions. Neither measures T on its own, because of ZS censoring.
+- The SPS O₂ (150–230 ppm) does not move the sharing constants (§12.1).
+
+### 13.5 The story so far
+
+Two separate, gas-ordered effects explain T14's oldest rows. Each now rests on more than one
+chamber and more than one gas.
+
+1. **The ion signal is full but ~2.4× faster than the chain's Ar⁺ (T ≈ 140 ns).**
+   - Shown shaper-free on det0 against an empirical He response, and by the rise on June det3
+     and old det3.
+   - It fixes the rise and FWHM rows.
+   - It raises the peak per unit charge by ×1.1–1.3.
+   - It retires August's "ion signal largely absent" (f_eff ≈ 0.2) reading.
+2. **Gain-dependent extra multiplication, G_eff = G/(1 − bG).**
+   - Seen on all three Ar/iso chambers (slope ×1.3–1.5) and much stronger in Ar/CF₄ and
+     He/C₂H₆ (×3–7).
+   - It shows curvature in every case and broadening only near runaway.
+   - V* lands where each chamber stops behaving.
+   - It explains the slope row, the curvature and the rest of the amplitude.
+   - Photon feedback is the leading candidate. α(E) errors and gap sag are excluded by
+     curvature and width.
+
+**The amplitude ledger closes within errors.** T14's ×1.8 (X, at 490 V) ≈ ×1.15–1.25 (ion
+speed, mixed angles) × ×1.5 (feedback; the §9 shape fit allows ×1.5–2.1). Wet gas
+(×0.77 gain, §12.2) would raise the need to ~×2.0, still inside the feedback band. The
+DREAM ADC/fC scale is still a datasheet chain.
+
+**Still open:** the ±1 neighbour delay and Y lobe (§10.3–10.4). The 0.67 common time factor
+of §10.4 now has one half explained. In the toy (vertical tracks, f 0.91), going from T = 340
+to 140 ns shortens the peak delay after the 10 % onset by 96 ns at 166 ns shaping
+(453 → 357 ns) and by 84 ns at 180 ns. That is the size of §10.4's central gap (chain 270 ns
+against data 180 ns). The neighbour delay was shown in §10.4 not to depend on T_ion, so it
+remains a Stage B question.
+
+### 13.6 Next (simulation and archive only)
+
+1. **Chain: replace the Ar⁺ ion mobility with T ≈ 140 ns** (an iso-ion mobility, ×2.4) and
+   rerun T14's shapes on the frozen default.
+   - Prediction: rise, FWHM and the central peak time move onto the data.
+   - Mobility is an exact time rescale (§7.5), so the decoded sim can be re-shaped without
+     rerunning Garfield.
+2. **Chain: adopt G/(1 − bG)** with b from the June ladder, and re-quote amplitude together
+   with item 1.
+3. **Old det3 Ar/CF₄ shapes** with the Magboltz Ar/CF₄ drift table (running on lxplus,
+   `~/work/mx17_gas_oct13/`). This gives T_ion for CF₃⁺ as a second ion species.
+4. **Feedback magnitude per gas from first principles:** a small MC of photon yield ×
+   transmission × photoemission (no Garfield support), to see whether Ar/iso < Ar/CF₄ ≈
+   He/C₂H₆ comes out unaided.
+5. **Ion mobility of iso fragments in Ar at ~120 Td:** literature or Coimbra contact, to turn
+   the ×2.4 into an input rather than a fit.
+6. Question for Dylan: why does det0 collect only a few mm of drift column?

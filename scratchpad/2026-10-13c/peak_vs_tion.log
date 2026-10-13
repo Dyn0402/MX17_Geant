@@ -1,0 +1,6 @@
+shaper 166 ns, theta  0.0: peak(T140)/peak(T340) = 1.093,  peak(T200)/peak(T340) = 1.069
+shaper 166 ns, theta 10.7: peak(T140)/peak(T340) = 1.259,  peak(T200)/peak(T340) = 1.198
+shaper 166 ns, theta 20.0: peak(T140)/peak(T340) = 1.310,  peak(T200)/peak(T340) = 1.230
+shaper 180 ns, theta  0.0: peak(T140)/peak(T340) = 1.081,  peak(T200)/peak(T340) = 1.059
+shaper 180 ns, theta 10.7: peak(T140)/peak(T340) = 1.230,  peak(T200)/peak(T340) = 1.176
+shaper 180 ns, theta 20.0: peak(T140)/peak(T340) = 1.268,  peak(T200)/peak(T340) = 1.201

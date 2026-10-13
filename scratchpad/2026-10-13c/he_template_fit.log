@@ -1,0 +1,20 @@
+== vertical: He n=1472, Ar n=874  (fit window -150..700 ns from the 50 % edge)
+   t[ns]    -150   -90   -30    30    90   150   210   270   330   390   450   510   570   630   690
+   He       0.03  0.05  0.26  0.70  0.97  0.96  0.77  0.54  0.34  0.19  0.09  0.03 -0.01 -0.04 -0.05
+   Ar/iso   0.01  0.08  0.31  0.66  0.93  1.00  0.87  0.65  0.41  0.22  0.08 -0.00 -0.05 -0.08 -0.08
+   best: f_ion 0.96  T_ion 150 ns  extra smear 1 ns   rms 0.0312   (He alone rms 0.0505)
+   fixed f 0.9 T 340: smear   6 ns  rms 0.2035
+   fixed f 0.9 T 200: smear   0 ns  rms 0.0524
+   fixed f 0.9 T 140: smear  11 ns  rms 0.0312
+   fixed f 0.2 T 340: smear   8 ns  rms 0.0671
+   fixed f 0.5 T 340: smear   4 ns  rms 0.1854
+== ~10 deg: He n=1740, Ar n=1017  (fit window -150..700 ns from the 50 % edge)
+   t[ns]    -150   -90   -30    30    90   150   210   270   330   390   450   510   570   630   690
+   He       0.02  0.05  0.26  0.70  0.98  0.97  0.77  0.53  0.32  0.16  0.06 -0.00 -0.03 -0.05 -0.06
+   Ar/iso   0.01  0.06  0.30  0.67  0.96  1.00  0.84  0.60  0.37  0.19  0.06 -0.01 -0.05 -0.07 -0.08
+   best: f_ion 0.76  T_ion 120 ns  extra smear 1 ns   rms 0.0215   (He alone rms 0.0380)
+   fixed f 0.9 T 340: smear   0 ns  rms 0.2074
+   fixed f 0.9 T 200: smear   7 ns  rms 0.0541
+   fixed f 0.9 T 140: smear   1 ns  rms 0.0228
+   fixed f 0.2 T 340: smear   3 ns  rms 0.0588
+   fixed f 0.5 T 340: smear   0 ns  rms 0.1831
