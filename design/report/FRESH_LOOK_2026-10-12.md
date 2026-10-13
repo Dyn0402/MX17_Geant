@@ -1637,10 +1637,10 @@ Data peak-strip median, true angle vs the T14 selection (`peak_vs_m3.log`, `rise
   keeps a small rise at 20°, where the data have only 70 events.
 - **bG ≈ 0.45 stands; the "Y overshoot" of §16.2 reverses.** At s=1.46, bG 0.45, the medians are
   X 0.91–0.98 and Y 1.04, and the saturated fractions match within 0.01–0.05 in X. Without
-  feedback the chain needs ×1.66–1.94, i.e. 1/(1−bG) → bG ≈ 0.40–0.48. The p25 ratios (0.82 X)
-  say the sim distribution is **broader** than the data's on the low side. Feedback broadens it,
-  so the width is the handle that can split bG from an overall gain factor. The bG scan (§18.5)
-  tests this.
+  feedback the chain needs ×1.66–1.94, i.e. 1/(1−bG) → bG ≈ 0.40–0.48. The p25 ratio being lower
+  than the p50 ratio (0.82 vs 0.91 in X) means the **data** distribution is broader on the low side.
+  bG hardly changes that (§18.7), so the width cannot split bG from an overall gain factor.
+  Gain non-uniformity over the fiducial area is the obvious data-only source.
 - **X/Y: the sim's Y/X is ~15 % too low**, the same at every angle: Y/X data/sim 1.14 (fb, p50),
   1.16 (p25), 1.17 (s=1). This is the August charge-partition item (OVERNIGHT §10: sim puts
   ~10 % less charge in Y). It is the opposite sign from §16.2, which was the selection. Charge
@@ -1695,7 +1695,45 @@ profile is wider than the data's: mean amp/peak at ±1/±2/±3 is 0.60/0.30/0.11
 of §18.3. It is the same Y-kernel family as the Y negative lobe and the ±1 rows (§7.2, §10.3–10.4),
 and §10.1's COMSOL check did not cover the Y wings. Open.
 
-### 18.7 Scan in flight
+### 18.7 bG × shaper scan: results (condor 4451431 / 4451432, tp 166 ns, old noise spec)
+
+Amplitude (`ledger_m3`, p50 data/sim, X 0/10/20° | Y 0/10/20°; geometric mean over all six):
+
+| | X | Y | geo-mean p50 / p25 |
+|---|---|---|---|
+| s 1.46, bG 0.25 | 1.32 1.32 1.42 | 1.51 1.59 1.64 | 1.46 / 1.31 |
+| s 1.46, bG 0.35 | 1.14 1.12 1.22 | 1.29 – 1.41 | 1.23 / 1.11 |
+| s 1.46, bG 0.45 | 0.96 0.94 1.01 | 1.09 1.13 1.15 | 1.04 / 0.93 |
+| s 1.75, bG 0.25 | 1.28 1.26 1.33 | 1.46 1.51 1.54 | 1.39 / 1.26 |
+| s 1.75, bG 0.35 | 1.11 1.07 1.15 | 1.25 1.28 1.33 | 1.19 / 1.07 |
+| s 1.75, bG 0.45 | 0.94 0.90 0.95 | 1.05 – 1.08 | 0.98 / 0.89 |
+
+- **bG from X and Y together: 0.43–0.46** (p50, log-interpolated). X alone gives ~0.44 and Y alone
+  ~0.49. The §16.2 "Y wants 0.25" is gone: that came from the selection bias.
+- The saturated fraction in X matches at bG 0.45 (sim 0.35–0.37 vs data 0.38 at 0°). Y stays low
+  (0.22 vs 0.33), which is the Y-sharing offset again.
+- **The 166 ns shaper lowers the sim peaks by ~8 %** (bG 0.45 twins: geo-mean 0.959 → 1.043 at
+  s=1.46). The prediction was 2–6 %, so this is a little outside.
+
+Shape (`shape_all.py`: the T14 extractor on **all** sim events, against the data by true angle; rise | FWHM, sim − data, ns):
+
+| | X 10° | X 20° | Y 10° | Y 20° |
+|---|---|---|---|---|
+| s 1.46, tp 180 (fullphys, T14 sim leg) | +28 \| +36 | +25 \| +34 | – | – |
+| s 1.46, tp 166, bG 0.25 / 0.35 / 0.45 | +21..+22 \| +18..+20 | +19..+20 \| +17..+18 | +18..+19 \| +19..+21 | +28 \| +20..+21 |
+| **s 1.75, tp 166, bG 0.25 / 0.35 / 0.45** | **+7..+9 \| +2..+4** | **+5..+6 \| −2..0** | **+5 \| +4** | **+13 \| +3..+4** |
+
+- **Feedback is shape-neutral:** rise and FWHM move ≤ 2 ns across bG at fixed s and tp, as
+  pre-registered.
+- **Shaper 180 → 166 ns:** −5 to −7 ns rise, −16 ns FWHM (predicted −6..−12 and −10..−20).
+- **At s = 1.75 and tp 166 the inclined shapes close to +5..+13 ns in both views.** The §16 "Y
+  rise too fast" was the Y vertical point and the selection. At matched inclination Y behaves
+  like X.
+
+**→ Verdict 1** (condor 4451436, `stageBC_w2_verdict1.sub`): s 1.75, bG 0.45, tp 166, fixed noise
+spec, all five angles. Predictions are in the submit file.
+
+### 18.8 Scan bookkeeping
 
 Condor 4451431 (`stageBC_w2_bgtp.sub`: s 1.46/1.75 × bG 0.25/0.35/0.45 × th00/thx10/thx20, all at
 the new `--shaper-tp-ns 166`) and 4451432 (`stageBC_w2_bgtp_thy.sub`: the same at thy10/thy20,
