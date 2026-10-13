@@ -1464,3 +1464,62 @@ falsifier recorded in the submit file before it ran:
 The laptop T13/T14 pass is `run_ionspeed_t14.sh`, driven by `orchestrate_t14.sh`, with the
 same arguments as `t14_angW_*`. Its s = 1 baseline was reproduced at 20°: sim rise 232 ns
 against data 166 ns, peak data/sim ×2.6.
+
+## 16. Chain results: ion speed and photon feedback against the det3 data (2026-10-13, evening)
+
+All 15 T14 points are done: clusters 4450898 and 4450899, laptop T13/T14 pass with the
+`t14_angW_*` arguments. Results are in `yoga:~/x17/response_sim/stageB_w2/t14_{ionspeed,fullphys}<s>_<ang>/`;
+the table comes from `scratchpad/2026-10-13c/t14_ionspeed_table.py`.
+
+**X view, sim/data** (rise median ns | FWHM median ns | peak-amplitude median, data/sim):
+
+| | vertical | 10° | 20° |
+|---|---|---|---|
+| s=1 (Ar⁺), no fb | 326/286 · 638/524 · ×1.81 | 251/176 · 411/325 · ×2.24 | 231/162 · 392/302 · ×2.65 |
+| s=1.46, no fb | 293/301 · 625/531 · ×1.49 | 213/179 · 353/317 · ×1.68 | 193/166 · 326/297 · ×1.94 |
+| s=1.75, no fb | 283/301 · 617/531 · ×1.47 | 199/179 · 338/317 · ×1.62 | 179/165 · 309/296 · ×1.87 |
+| s=2.45, no fb | 274/301 · 601/531 · ×1.43 | **183/179 · 322/317** · ×1.55 | **157/166 · 292/296** · ×1.76 |
+| s=1.46, bG 0.45 | 304/301 · 647/531 · **×0.81** | 215/179 · 357/317 · **×0.90** | 194/166 · 329/297 · **×1.03** |
+| s=1.75, bG 0.45 | 295/301 · 640/532 · **×0.80** | 201/179 · 342/317 · **×0.87** | 180/166 · 312/297 · **×0.98** |
+
+**Y view** peak data/sim: ×1.65–1.77 (s=1) → ×1.25–1.41 (ion speed) → **×0.69–0.76** (with bG 0.45).
+Y rise: 13–37 ns too fast for every s ≥ 1.46, with or without feedback.
+
+### 16.1 Ion speed (cluster 4450898)
+
+- At s = 2.45, the inclined X shapes close: rise and FWHM are both within 5 ns at 10° and
+  20°. This meets the prediction pre-registered in `stageBC_w2_ionspeed.sub`.
+- At the literature hydrocarbon speeds (s = 1.46 / 1.75), inclined X stays 14–34 ns slow.
+  A shaper ~8–12 % faster than nominal would cover that (noise ACF: 158 ns on FEU 3, 166 ns
+  on FEU 7/8; §10.2).
+- Ion speed alone moves the amplitude only ×1.1–1.35.
+
+### 16.2 Both mechanisms (cluster 4450899), checked against the pre-registration
+
+- **Amplitude: closes.** At s = 1.46–1.75, X data/sim is 0.80–0.81 vertical and 0.87–1.03
+  inclined. The prediction was 0.9–1.2 for vertical. The falsifier band (0.8–1.4) holds,
+  narrowly. With feedback, the 3× angle-dependent amplitude gap of the s=1 chain is gone.
+- **Shape: feedback is neutral, as required.** Inclined X moves +1–2 ns against the ion-speed
+  twin. The censored vertical rise moves +11–12 ns, which looks like the >10 ns falsifier. It is
+  the saturation censoring (§T14 deep-dive): feedback raises the sim's fraction above 3500 ADC
+  from 8 % to 35–37 % (data: 26 %). On the **uncensored** rise median, fullphys sits within
+  6 ns of its ion-speed twin in every view and angle (X vertical 284 vs 289 at s=1.46 and 273
+  vs 279 at s=1.75; Y within 4 ns). So this is a metric artefact, not a bug.
+- **New tension: X and Y disagree on the gain.** With bG 0.45, which was fitted to the X
+  p25–p50 ladder, Y overshoots: amplitude ×0.69–0.76, saturated fraction 20–28 % in the sim
+  against 4 % in the data. Without feedback, Y was already ~15–20 % closer to the data than
+  X. Either the X/Y charge split in the chain is off by that much (Stage B/C sharing, cf. the
+  X≈Y-at-5M nugget), or bG should be fitted to X and Y together, which brings it down to about
+  0.35–0.4.
+
+### 16.3 What this leaves
+
+- **Inclined X: a working description.** Hydrocarbon ion speed plus bG ≈ 0.45 matches the
+  amplitude to ~10 % and the shape to 14–34 ns. The remaining shape gap matches a shaper at
+  the noise-ACF value.
+- **Open:**
+  - (a) the X/Y amplitude ratio;
+  - (b) the Y rise, which is too fast once ions speed up (vertical tracks are a weak rise
+    observable, §7.2, but Y is fast at 10°/20° too);
+  - (c) whether to adopt shaper 158–166 ns as the default, then run one verdict T14 with
+    s = 1.46–1.75, bG fitted to X+Y, and that shaper.
