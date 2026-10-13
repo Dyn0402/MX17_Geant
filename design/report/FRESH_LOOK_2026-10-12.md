@@ -1509,8 +1509,8 @@ Y rise: 13–37 ns too fast for every s ≥ 1.46, with or without feedback.
   p25–p50 ladder, Y overshoots: amplitude ×0.69–0.76, saturated fraction 20–28 % in the sim
   against 4 % in the data. Without feedback, Y was already ~15–20 % closer to the data than
   X. Either the X/Y charge split in the chain is off by that much (Stage B/C sharing, cf. the
-  X≈Y-at-5M nugget), or bG should be fitted to X and Y together, which brings it down to about
-  0.35–0.4.
+  X≈Y-at-5M nugget), or bG should be fitted to X and Y together. A rough estimate from the mean scaling
+  1/(1 − bG) (not a fit): Y alone wants bG ≈ 0.25, a joint X+Y fit roughly 0.35.
 
 ### 16.3 What this leaves
 
