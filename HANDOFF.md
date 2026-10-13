@@ -1,6 +1,47 @@
 # Handoff
 
-## T14 fresh look — updated 2026-10-13 ~21:00 (dylan-Yoga)
+## T14 fresh look — updated 2026-10-14 ~02:00 (desktop, overnight session)
+
+**Resume:** FRESH_LOOK §18 (all of tonight). Detectors are gone: archive + simulation only.
+
+**Result: verdict 1 passes (§18.8).** Configuration: s = 1.75 (C₄Hₙ⁺), photon feedback bG 0.45, shaper
+166 ns (`--shaper-tp-ns`, new), and the fixed noise spec `noise_det3_satscan_feu07_cmq.json`.
+- Amplitude p50 data/sim: X 0.93 / 0.89 / 0.95 and Y 1.04 / 1.06 / 1.07 at 0/10/20°. X saturated fraction
+  matches to 0.03.
+- Inclined shapes: rise +8..+16 ns, FWHM +2..+7 ns (August default: +60..+70 / +90).
+
+**Found tonight:**
+1. **T14's amplitude rows are biased by the data-side selection** (§18.1). The quality cut and the
+   reco-angle window are applied to the data only, and both correlate with amplitude; Y vertical
+   is ×1.37 low. Use `scratchpad/2026-10-14/ledger_m3.py` instead: the data binned by the **true M3
+   angle**, no reco and no quality cut, against all sim events. It reverses §16.2: there is no
+   "Y overshoot", and bG fits X+Y jointly at 0.43–0.46.
+2. **Sim noise bug, fixed** (§18.5). The common mode was 271 ADC instead of ~5, because the estimator
+   was owned by railed events. It clipped 11 % of samples at 0 and created hot channels (the sim's
+   2× strip multiplicity). The fix is in `response/dream/noise.py`. The A/B run (4451433) shows
+   amplitude −1 % and shape +3 ns, so the earlier conclusions are unaffected.
+3. **The remaining X/Y offset (~15 %) is the Y lateral sharing in the chain** (§18.6): the Y profile is too
+   wide at ±1..3 strips, and X matches. Same family as the Y lobe and the ±1 delay. Open.
+4. The bG × shaper scan (4451431/2): feedback is shape-neutral (≤ 2 ns), and 180 → 166 ns gives
+   −5..−7 ns rise, −16 ns FWHM and −8 % sim amplitude (§18.7).
+
+**Still running on yoga** (`~/queue_t14.sh`, log `~/queue_t14.log`): the full T14 harness on noisecm →
+verdict1 → the bgtp points, for continuity only (~3–4 h). Nothing is left on condor. AFS work is
+fine; home quota is untouched.
+
+**Next:**
+1. Y lateral sharing (§18.6): compare the chain's Y kernel wings with COMSOL 3D
+   (`/eos/.../comsol/condor/i3d_*_o2.csv`, which has the Y channels), and check the routing traces.
+2. Irakli's protection values: still wanted for the absolute ADC/fC scale and as a possible X/Y
+   charge-division term.
+3. Out-of-sample test: Ar/CF₄ (old det3, §15) with the same three changes. It needs an Ar/CF₄
+   avalanche calibration, and the CF₃⁺ ion speed instead of C₄Hₙ⁺.
+4. Decide whether `t14_compare.py` (nTof_x17) should get a true-angle data selection. It is a different
+   repo, so it was not touched tonight.
+5. The old `noise_det3.json` (May run, σ_cm 83) was built by the same flawed estimator: regenerate it if
+   anything still uses it.
+
+## Previous: T14 fresh look — 2026-10-13 ~21:00 (dylan-Yoga)
 
 **Resume:** FRESH_LOOK §16–17 → get the protected-FEU values from Irakli, then decide new defaults + one verdict T14.
 Detectors are gone: archive + simulation only. Slides: https://dylan-neff.web.cern.ch/notes/mx17-feedback-and-ions.html
