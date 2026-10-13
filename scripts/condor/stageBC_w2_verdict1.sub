@@ -1,0 +1,37 @@
+# VERDICT 1 (2026-10-14): the configuration the October fresh look arrived at, one run, all 5 angles.
+#   --ion-speed-scale 1.75  drifting ion = C4Hn+ in Ar/iso 95/5 (Cortez et al. 2019; FRESH_LOOK §13-15).
+#                           Literature range 1.46-1.75; the bgtp scan's inclined shapes prefer 1.75.
+#   --feedback-bg 0.45      photon feedback, from the June ladder shape (§9); the unbiased ledger
+#                           (§18, condor 4451431/2) fits bG 0.43-0.46 jointly over X and Y.
+#   --shaper-tp-ns 166      the target run's noise ACF on FEU 7/8 (§10.2); the cfg code says 180.
+#   noise spec _cmq         common mode from quiet events (sigma_cm 5.7, not 271; §18.5).
+# Evaluate with scratchpad/2026-10-14/ledger_m3.py + shape_all.py (data by TRUE M3 angle, sim all
+# events), NOT the raw T14 amplitude rows (data-side selection bias, §18.1). T14 is run as well.
+#
+# PRE-REGISTERED (2026-10-14 ~01:30, before submission):
+#   * amplitude, peak-strip p50 data/sim: X 0.90-1.02 at 0/10/20 deg; Y 1.02-1.15 at 0/10/20
+#     (Y high by the open Y-sharing term, §18.6); saturated fraction X within 0.05 of the data.
+#   * shape, inclined (censored rise / FWHM medians, sim - data): X10/X20/Y10 rise +2..+12 ns,
+#     Y20 rise +5..+18 ns; FWHM within +-8 ns everywhere.
+#   * noise: FeuReader median noise 7.3-7.6 ADC; T14 n_over at th00 within +-2 of the data (6 X / 8 Y).
+# FALSIFIER: any inclined rise outside -5..+20 ns, or X p50 outside 0.85-1.10 -> the combination
+#   does not describe the target run, and the scan points were not representative.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w2.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+arguments               = "rho2M verdict1_$(ang) /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07_cmq.json /afs/cern.ch/work/d/dneff/mx17_s1/clusters_ang/mx17_muons_3k_ang_$(ang)_t0.root '--ion-speed-scale 1.75 --feedback-bg 0.45 --shaper-tp-ns 166'"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_verdict1_$(ang).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_verdict1_$(ang).err
+queue ang from (
+th00
+thx10
+thx20
+thy10
+thy20
+)

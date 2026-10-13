@@ -43,4 +43,7 @@ for d in dirs:
         rows.append(dict(kind=kind, ang=ang, view=view, a=a, n_d=len(x), n_s=len(s), r50=r50, r25=r25,
                          sat_d=(x >= 3500).mean(), sat_s=(s >= 3500).mean(), p50_s=np.median(s), p50_d=np.median(x)))
         print(f'{kind + "/" + ang:28s} {view:4s} {a:3d} {len(x):5d}/{len(s):<5d} {r50:8.3f} {r25:8.3f} {(x >= 3500).mean():6.3f}/{(s >= 3500).mean():5.3f}', flush=True)
-pd.DataFrame(rows).to_csv(os.path.expanduser('~/ledger_m3.csv'), index=False)
+out = os.path.expanduser('~/ledger_m3.csv')       # merge: a partial glob must not clobber earlier rows
+new = pd.DataFrame(rows)
+if os.path.exists(out): new = pd.concat([pd.read_csv(out), new]).drop_duplicates(['kind', 'ang', 'view'], keep='last')
+new.to_csv(out, index=False)
