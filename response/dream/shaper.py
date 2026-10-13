@@ -200,9 +200,13 @@ class DreamShaper:
 
     def __init__(self, reg1=BENCH_REG1, reg6=BENCH_REG6, reg1_hi=BENCH_REG1_HI,
                  filter_model="sk", pzc_residual=0.75, n=2, dt_ns=1.0,
-                 t_max_ns=None):
+                 t_max_ns=None, t_peak_ns=None):
         self.code = peaking_code(reg1)
-        self.t_peak_ns = float(PEAKING_TIME_NS[self.code])
+        # t_peak_ns overrides Table 9 for DIAGNOSIS only: the target run's
+        # noise autocorrelation says ~158-166 ns for the 180 ns code
+        # (FRESH_LOOK §10.2), i.e. the silicon may sit below the datasheet.
+        self.t_peak_ns = float(PEAKING_TIME_NS[self.code] if t_peak_ns is None
+                               else t_peak_ns)
         self.filter_model = filter_model
         self.n = n
         self.gain_code = gain_code(reg6)

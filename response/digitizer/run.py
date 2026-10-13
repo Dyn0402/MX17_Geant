@@ -202,6 +202,10 @@ def main():
     ap.add_argument("--filter-model", choices=("sk", "crrc2"), default="sk",
                     help="sk = manual topology (PZC pole + zeta=0.75 "
                          "Sallen-Key); crrc2 = legacy stand-in for A/B")
+    ap.add_argument("--shaper-tp-ns", type=float, default=None,
+                    help="DIAGNOSIS: override the 5->100 %% peaking time of "
+                         "the cfg's code (180 ns). The target run's noise "
+                         "ACF gives 158-166 ns (FRESH_LOOK §10.2)")
     ap.add_argument("--no-ions", action="store_true",
                     help="electrons only (the pre-2026-08-07 behaviour)")
     ap.add_argument("--ion-model", choices=("measured", "analytic"),
@@ -333,7 +337,8 @@ def main():
                     kernel_t_max_ns=a.kernel_t_max,
                     n_chan_side=a.n_side, y_window_mm=a.y_window)
     shaper = None if a.no_shaper else DreamShaper(
-        filter_model=a.filter_model, pzc_residual=a.pzc_residual)
+        filter_model=a.filter_model, pzc_residual=a.pzc_residual,
+        t_peak_ns=a.shaper_tp_ns)
     info = dig.describe()
 
     print("Stage B over a real ClusterTree\n")
