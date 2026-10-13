@@ -50,12 +50,12 @@ def K0_ar(g_um, V=490.):
     td = V / (g_um * 1e-4) / NTd * 1e17
     return float(np.interp(td, gar[:, 0], gar[:, 1])), td
 PRED = []
-for g in (150, 128):
+for g in (150,):
     k, td = K0_ar(g)
     PRED.append((f'Ar⁺ (Garfield), {g} µm', T_ion(g, k), sd.RED,
                  f'K0 = {k:.2f} cm²/V·s at {td:.0f} Td (Garfield IonMobility_Ar+_Ar.txt)\ngap {g} µm, 490 V'))
 for name, k in (('C₈Hₙ⁺', 1.742), ('C₄Hₙ⁺', 2.084)):
-    for g in (150, 128):
+    for g in (150,):
         PRED.append((f'{name}, {g} µm', T_ion(g, k), sd.GREEN,
                      f'K0 = {k} cm²/V·s: Cortez et al. 2019, Table 5, 95 % Ar, 15 Td, 8 Torr (low field)\n'
                      f'gap {g} µm, 490 V. High-field value not measured.'))
@@ -78,7 +78,7 @@ cover = (sd.kicker('MX17 response simulation · T14 · 13 Oct 2026') +
                 sd.bignum('G/(1−βG)', 'fits every ladder', sd.DGREEN,
                           'the photon-feedback form of Şahin, Kowalski & Veenhof (2016)'),
                 sd.bignum(f'{chain_T:.0f} → 140–220 ns', 'ion transit, chain → data', sd.DRED,
-                          'Cortez et al. 2019 hydrocarbon-ion mobilities give 150–240 ns'), gap=64))
+                          'Cortez et al. 2019 hydrocarbon-ion mobilities give 200–240 ns'), gap=64))
 D.slide('cover', cover, dark=True, short='Summary', notes='''
 <p>Two separate effects, each now constrained by more than one chamber and more than one gas, account for T14's oldest rows: the gain slope and amplitude, and the rise time / ion signal. Neither is a new idea. Both have a literature, summarised on slides 5 and 8.</p>
 <p>Source of every number: <code>MX17_Geant/design/report/FRESH_LOOK_2026-10-12.md</code> §12–13; scripts and logs in <code>MX17_Geant/scratchpad/2026-10-13c/</code>.</p>''')
@@ -98,7 +98,7 @@ steps2 = [dict(label='Ar⁺ made in avalanche', sub='Garfield/chain drifts it as
                tip='Cortez et al. 2019 (rate assumed equal to n-butane, Jiao et al. 2007)'),
           dict(label='Hydrocarbon ion drifts', sub='C₄Hₙ⁺ / C₈Hₙ⁺, no resonant charge exchange', color=sd.GREEN,
                tip='K0 1.7–2.1 at 95 % Ar vs Ar⁺ 1.2 at high field'),
-          dict(label='Faster ion tail', sub='T 150–240 ns: rise, FWHM, peak time, +8–31 % peak', color=sd.GREEN)]
+          dict(label='Faster ion tail', sub='T 200–240 ns: rise, FWHM, peak time, +8–31 % peak', color=sd.GREEN)]
 setup = (sd.title('What the chain leaves out: two links, one on each side of the avalanche',
                   'Top: the gain side (slope, curvature, amplitude). Bottom: the signal side (rise, FWHM, peak time).') +
          sd.p('1 · Gain: photon feedback', 30, sd.INK, 600) + sd.flow(steps1, size=24) +
@@ -248,12 +248,12 @@ D.slide('det0', sd.title('det0: the Ar/iso pulse rules out the chain’s slow Ar
 
 # ------------------------------------------------------------------ 7 ion literature + prediction
 bars = [(lab, v, c, tp) for lab, v, c, tp in PRED]
-P5 = sd.Plot(1000, 600, x=(0, 7, 'lin'), y=(0, 400, 'lin'), ylabel='ion transit T at 490 V [ns]')
+P5 = sd.Plot(1000, 600, x=(0, 3.4, 'lin'), y=(0, 400, 'lin'), ylabel='ion transit T at 490 V [ns]')
 P5.yticks([(v, str(v)) for v in range(0, 401, 100)])
-P5.band([0, 7], [140, 140], [220, 220], sd.GREEN, 0.12, tip='data: det0 toy fit 140–220 ns; June det3 rise needs ~140 ns at 166 ns shaping')
-P5.text(6.95, 232, 'data band (det0 + June det3)', 21, sd.GREEN, 'end')
+P5.band([0, 3.4], [140, 140], [220, 220], sd.GREEN, 0.12, tip='data: det0 toy fit 140–220 ns; June det3 rise needs ~140 ns at 166 ns shaping')
+P5.text(3.35, 232, 'data band (det0 + June det3)', 21, sd.GREEN, 'end')
 for i, (lab, v, c, tp) in enumerate(bars):
-    P5.vbar(i + 0.6, v, 70, c, tip=f'{lab}: T = {v:.0f} ns\n{tp}', label=f'{v:.0f}')
+    P5.vbar(i + 0.6, v, 110, c, tip=f'{lab}: T = {v:.0f} ns\n{tp}', label=f'{v:.0f}')
     P5.text(i + 0.6, -14, lab.split(',')[0], 19, sd.INK, 'middle')
     P5.text(i + 0.6, -38, lab.split(',')[1].strip(), 19, sd.MUT, 'middle')
 refs2 = sd.col(
@@ -262,13 +262,13 @@ refs2 = sd.col(
     sd.callout(f'<b>Garfield</b> Ar⁺ in Ar: K₀ 1.2 at our E/N (resonant charge exchange slows it). With the chain’s 150 µm gap this is its {chain_T:.0f} ns.', sd.RED, 22),
     w=600, gap=18)
 D.slide('ions', sd.title('Literature: the drifting ion is a hydrocarbon, and its mobility predicts the measured transit',
-                         'T = g²/(K·V) at 490 V, for the chain’s Ar⁺ and for the measured hydrocarbon-ion mobilities, two gap values') +
+                         'T = g²/(K·V) at 490 V over the MX17 150 µm gap (pillar gerber), for the chain’s Ar⁺ and the measured hydrocarbon-ion mobilities') +
         sd.row(P5.svg('ion transit predictions'), refs2, gap=48),
         foot='K = K₀·N₀/N at 745.8 Torr, 293 K. Hydrocarbon K₀ are low-field (15 Td, 8 Torr); their high-field values are not measured.',
         short='Lit: ions', notes='''
 <p><b>Ion identity.</b> Cortez et al. assume the Ar⁺ → iC₄H₁₀ charge-transfer rate equals Ar⁺ → n-butane (1.4×10⁻⁹ cm³/s, Jiao et al. 2007), giving C₂–C₃ fragments that react on to C₄Hₙ⁺ and then C₈Hₙ⁺. At 1 atm with 5 % isobutane (n ≈ 1.2×10¹⁸ cm⁻³) the transfer takes ~1 ns, so essentially the whole transit is by hydrocarbon ions. At 8 Torr they see C₄Hₙ⁺ survive only above 80 % Ar; at 1 atm the C₄ → C₈ step is likely complete, so C₈Hₙ⁺ (K₀ 1.74) is the more probable carrier.</p>
-<p><b>Gap.</b> The chain uses 150 µm (the effective-gap choice that closes part of the gain); a standard bulk Micromegas has 128 µm. T ∝ g², so the gap is worth ×0.73.</p>
-<p><b>Not settled.</b> No measured high-field (~130–160 Td) mobility for these ions; non-resonant ions keep their mobility better than Ar⁺ at high E/N, but by how much is a guess. Giomataris’ 80–100 ns is a 100 µm gap at an unspecified voltage; scaled to 128 µm and 490 V it is ~120–150 ns.</p>
+<p><b>Gap.</b> MX17's amplification gap is 150 µm, confirmed from the pillar gerber (T14 campaign), and the chain uses it. A 128 µm standard bulk would give ×0.73 shorter transits; that does not apply here.</p>
+<p><b>Not settled.</b> No measured high-field (~130–160 Td) mobility for these ions; non-resonant ions keep their mobility better than Ar⁺ at high E/N, but by how much is a guess. Giomataris’ 80–100 ns is a 100 µm gap at an unspecified voltage; scaled as g² to 150 µm (same field order) it is ~180–225 ns, consistent with the hydrocarbon prediction.</p>
 <p>Links: <a href="https://iopscience.iop.org/article/10.1088/1748-0221/14/04/P04010">Cortez 2019</a>, <a href="https://www.slac.stanford.edu/pubs/icfa/fall99/paper1/paper1.pdf">Giomataris 1999</a>, <a href="https://indico.cern.ch/event/709670/contributions/3019642/attachments/1670094/2678865/Ion_Mobility_studies_in_Ar-CF4-iC4H10_mixtures_for_the_LCTPC_Collaboration.pdf">Coimbra LCTPC slides</a>, <a href="https://arxiv.org/pdf/1603.07638">ion mobility in Ar/Ne mixtures</a>, <a href="https://www.nist.gov/publications/resonant-charge-exchange-and-transport-ions-high-electric-field-gas-density-ratios-en">Rao et al. (Ar⁺ at high E/N)</a>.</p>''')
 
 # ------------------------------------------------------------------ 8 ledger

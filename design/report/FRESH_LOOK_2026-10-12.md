@@ -1407,8 +1407,11 @@ The ion that drifts is a hydrocarbon, and its measured mobility predicts the tra
   within 100 ns". Scaled to 128 µm and 490 V that is ~120–150 ns.
 - **Not settled:**
   - hydrocarbon-ion mobility at 130–160 Td;
-  - C₄ against C₈ at 1 atm (C₈ is more likely);
-  - the true det3 gap (128 against 150 µm), which is worth ×0.73 in T.
+  - C₄ against C₈ at 1 atm (C₈ is more likely).
+- **Gap correction (later the same night):** the MX17 gap is **150 µm, confirmed from the
+  pillar gerber** (T14_CAMPAIGN_2026-08-09). So the predictions that apply are the 150 µm
+  column: C₄Hₙ⁺ 201 ns (inside the data band), C₈Hₙ⁺ 241 ns (just above it). Giomataris'
+  80–100 ns over 100 µm scales as g² to ~180–225 ns.
 
 ### 14.3 det0 gap (Feb/May logbooks)
 
