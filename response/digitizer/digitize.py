@@ -234,7 +234,7 @@ class Digitizer:
                  # remains the production default and is unaffected.
                  with_ions=True, z_aval_um=13.84, mu_ion=ION.MU_ION_CM2_VS,
                  ion_model="measured", kernel_t_max_ns=None,
-                 y_window_mm=None, ion_speed_scale=1.0):
+                 y_window_mm=None, ion_speed_scale=1.0, feedback_bg=0.0):
         # kernel_t_max_ns exists so the LUT window can be varied without
         # editing the default — the A1 before/after (test_window) and any
         # SPS-config run (64 x 60 ns frame -> 4200) both need it.
@@ -305,6 +305,11 @@ class Digitizer:
         # species (FRESH_LOOK §13-14). It multiplies the ion mobility: the
         # measured template is time-compressed, the analytic one gets mu * s.
         self.ion_speed_scale = float(ion_speed_scale)
+        # bG at the operating voltage for photon feedback (0 = off, the
+        # Garfield-only avalanche); see add_feedback.
+        self.feedback_bg = float(feedback_bg)
+        if not 0.0 <= self.feedback_bg < 1.0:
+            raise ValueError(f"feedback bG must be in [0, 1), got {feedback_bg}")
         self.ion = ION.describe(C.AMP_GAP_M, mesh_v, mu_ion * self.ion_speed_scale, z_aval_um * 1e-6)
         self.ion_measured = None
         if with_ions and ion_model == "measured":
@@ -465,7 +470,35 @@ class Digitizer:
         # bit-identical. A shorter avalanche is really somewhat broader in
         # relative terms — fewer generations — which this does not model; at
         # 0.4 % of the electrons that is far below anything observable.
-        return x, y, t, gain * gain_frac
+        gain = gain * gain_frac
+        if self.feedback_bg > 0:
+            gain = self.add_feedback(gain)
+        return x, y, t, gain
+
+    def add_feedback(self, gain):
+        """Photon-feedback secondaries as a branching process (FRESH_LOOK §9, §13-14).
+
+        Each avalanche of size g frees Poisson(beta*g) photoelectrons at the
+        mesh / in the gas, beta = bG/gbar, each of which makes a full Polya
+        avalanche that branches in turn. Mean gain becomes gbar/(1 - bG) (the
+        G/(1 - beta G) form of Sahin, Kowalski & Veenhof, JINST 11 P01003) and
+        the distribution broadens as bG -> 1, as the bench ladders show. The
+        secondaries are prompt (~ns) and land where the primary did, so they
+        add charge without changing the pulse shape (Peskov & Fonte)."""
+        beta = self.feedback_bg / self.gbar
+        total = gain.copy()
+        pending = gain.copy()
+        for _ in range(200):
+            n = self.rng.poisson(beta * pending)
+            if not n.any():
+                break
+            new = np.zeros_like(pending)
+            k = n > 0
+            new[k] = self.rng.gamma(shape=n[k] * (1.0 + self.theta),
+                                    scale=self.gbar / (1.0 + self.theta))
+            total += new
+            pending = new
+        return total
 
     def induce(self, x, y, t, q, n_samp):
         """
@@ -588,6 +621,9 @@ class Digitizer:
             "mesh_transparency": self.transparency,
             "transparency_source": self.transparency_source,
             "gain_mean": self.gbar, "polya_theta": self.theta,
+            "feedback_bG": self.feedback_bg,
+            "gain_mean_with_feedback": self.gbar / (1.0 - self.feedback_bg),
+            "ion_speed_scale": self.ion_speed_scale,
             "aval_survival": self.aval_survival,
             "aval_survival_source": (
                 "1.0: meshfield calib `survival` is the mesh term, reported "

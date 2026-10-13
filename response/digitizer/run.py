@@ -227,6 +227,12 @@ def main():
                          "1.0 = the S3 Ar+ table. Hydrocarbon ions in 95 %% Ar "
                          "(Cortez et al. 2019, K0 1.74 C8 / 2.08 C4 vs Ar+ "
                          "1.21 at 124 Td) give 1.44-1.72; FRESH_LOOK §13-14.")
+    ap.add_argument("--feedback-bg", type=float, default=0.0,
+                    help="photon-feedback strength bG at the operating voltage: "
+                         "each avalanche spawns Poisson(bG*g/gbar) secondary "
+                         "full avalanches, recursively (mean gain x 1/(1-bG)). "
+                         "0 = off. The det3 27 June ladder shape gives bG(490 V) "
+                         "0.37-0.49 (FRESH_LOOK §9).")
     ap.add_argument("--seed", type=int, default=5)
     ap.add_argument("--fixed-position", action="store_true",
                     help="do NOT randomise the impact point (see below)")
@@ -322,6 +328,7 @@ def main():
     dig = Digitizer(a.kernel, os.path.expanduser(a.calib), seed=a.seed,
                     with_ions=not a.no_ions, ion_model=a.ion_model,
                     ion_speed_scale=a.ion_speed_scale,
+                    feedback_bg=a.feedback_bg,
                     z_aval_um=a.z_aval_um,
                     kernel_t_max_ns=a.kernel_t_max,
                     n_chan_side=a.n_side, y_window_mm=a.y_window)
