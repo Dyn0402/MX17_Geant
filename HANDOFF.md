@@ -1,21 +1,48 @@
 # Handoff
 
-## T14 fresh look (sim vs data waveforms) — updated 2026-10-13 afternoon (dylan-MS-7C84)
+## T14 fresh look — updated 2026-10-13 ~13:30 (dylan-MS-7C84), stopped for usage
 
-**Resume:** FRESH_LOOK §13–15 (then §12, §11). Detectors are gone: archive and simulation only.
-Slides (literature + archive evidence): https://dylan-neff.web.cern.ch/notes/mx17-feedback-and-ions.html
-- **Gain side:** photon feedback G/(1−βG) on every chamber/gas (Ar/iso slope ×1.3–1.5 on 3 chambers; ×3 Ar/CF4; ×3–7 He/C2H6),
-  broadening near runaway; this is the field's standard model (Şahin–Kowalski–Veenhof; Iguaz microbulk; Peskov–Fonte).
-- **Signal side:** the drifting ion is a hydrocarbon (Cortez 2019: C4/C8Hn+ K0 2.08/1.74 at 95 % Ar), not the Ar+ the
-  chain uses: T ≈ 200–240 ns over the 150 µm gap vs the chain's 352. det0 (6 mm gap, He-calibrated) and old det3 (Ar/iso
-  and Ar/CF4; CF3+ ~160 ns) both exclude Ar+. Shaper from noise ACF: 158 ns (FEU 3), 166 ns (FEU 7/8).
-- **Chain:** new digitizer options `--ion-speed-scale` and `--feedback-bg` (committed, synced to lxplus src).
-  Condor 4450898 (ion speed 1.46/1.75/2.45) and 4450899 (+ bG 0.45) on the angled ladder; laptop T13/T14 via
-  `scratchpad/2026-10-13c/orchestrate_t14.sh` (relays lxplus → desktop → laptop; laptop has no AFS token).
-  Results: `ssh yoga python3 ~/t14_ionspeed_table.py`. Pre-registered predictions are in the two .sub files.
-- **Next:** read the table against the predictions; write FRESH_LOOK §16; if fullphys closes rise + amplitude, freeze a
-  new default (s = 1.46 or 1.75, bG from the June ladder) and rerun T14 properly; Ar/CF4 chain point (needs an Ar/CF4
-  avalanche calib) is the cross-gas test.
+**Resume:** FRESH_LOOK §13–15, then this block. Detectors are gone: archive + simulation only.
+Slides: https://dylan-neff.web.cern.ch/notes/mx17-feedback-and-ions.html
+
+**Where it stopped.** Chain scans with the two new digitizer options (`--ion-speed-scale`, `--feedback-bg`) all
+FINISHED on condor (4450898 ionspeed s=1.46/1.75/2.45; 4450899 fullphys s=1.46/1.75 + bG 0.45; th00/thx10/thx20).
+The laptop (yoga) does T13 reco + T14 compare; it went offline at ~13:05, so:
+- ionspeed: all 9 T14 comparisons DONE (`yoga:~/x17/response_sim/stageB_w2/t14_ionspeed*`).
+- fullphys: all 6 T14 comparisons NOT done (decoded files on AFS `mx17_s1/stageBC/fullphys*`, and a copy on the
+  desktop in the job tmp, which may be gone).
+
+**What the laptop was doing:** for each point, `~/run_ionspeed_t14.sh <tag> <ang> <kind>`: t13_reco.py on the sim
+decoded_root (bundle `data_leg_satdet3/calib_bundle`), then t14_compare.py vs `data_leg_satdet3` (--data-n-total
+47452 --theta-halfwidth 3.0). Nothing half-written matters: each point is rerun from scratch.
+
+**To finish (laptop must be on):**
+```
+cd ~/CLionProjects/MX17_Geant/scratchpad/2026-10-13c && bash orchestrate_t14.sh   # skips done points; relays lxplus->desktop->laptop
+ssh yoga python3 ~/t14_ionspeed_table.py                                          # the results table
+```
+(orchestrate needs the desktop because the laptop has no AFS token. `fullphys_vs_ionspeed.py` was NOT written — the
+paired desktop check was cancelled.)
+
+**Ion-speed result (X view, sim/data, T14 harness):**
+
+| | 10° rise | 10° FWHM | 10° data/sim peak | 20° rise | 20° FWHM | 20° data/sim peak |
+|---|---|---|---|---|---|---|
+| s=1 (Ar⁺, chain) | 251/176 | 411/325 | ×2.24 | 231/162 | 392/302 | ×2.65 |
+| s=1.46 (C₈Hₙ⁺) | 213/179 | 353/317 | ×1.68 | 193/166 | 326/297 | ×1.94 |
+| s=1.75 (C₄Hₙ⁺) | 199/179 | 338/317 | ×1.62 | 179/165 | 309/296 | ×1.87 |
+| s=2.45 | **183/179** | **322/317** | ×1.55 | **157/166** | **292/296** | ×1.76 |
+
+s=2.45 closes the inclined shapes (meets the pre-registered prediction in `scripts/condor/stageBC_w2_ionspeed.sub`);
+the literature hydrocarbon speeds leave +14–34 ns, plausibly the shaper being ~8–12 % faster than nominal (noise ACF:
+158 ns on FEU 3 for det0/old det3, 166 ns on FEU 7/8). Vertical X ~ matches at all s; Y vertical goes 13–37 ns too
+FAST for s ≥ 1.46 (§7.2: vertical rise is a weak observable — still worth a look).
+
+**Next:** (1) finish the fullphys T14 points and check them against the prediction in
+`scripts/condor/stageBC_w2_fullphys.sub` (amplitude data/sim should reach ~0.9–1.2; rise unchanged vs ionspeed twin);
+(2) write FRESH_LOOK §16 with the table; (3) decide a new default (ion speed, bG, maybe shaper 158–166 ns) and rerun
+T14 as a verdict; (4) Ar/CF₄ chain point as the cross-gas test (needs an Ar/CF₄ avalanche calib).
+Uncommitted: nothing (the cancelled script was never written).
 
 **Goal:** find out why the end-to-end MX17 response simulation (Geant4 → Garfield → DREAM)
 gives slower and wider pulses than the det3 cosmic-bench data. The rise-time / f_ion
