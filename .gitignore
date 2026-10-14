@@ -23,3 +23,7 @@ __pycache__/
 response/meshcell/neBEMOut/
 response/meshcell/meshfield_*.txt
 response/meshcell/*.msh
+
+# Local virtualenv
+venv/
+.venv/
