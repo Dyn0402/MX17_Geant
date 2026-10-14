@@ -1,5 +1,25 @@
 # Handoff
 
+## Mesh comparison with P2 (Alexandra) — updated 2026-10-14 (dylan-MS-7C84)
+
+**Resume:** rerun G7 / transparency_curve / one S3 HV point with `NULLCOLL=1` (null-collision steps), then fix the 0.955.
+
+**Goal:** compare our mesh/field modelling with github.com/akallitss/P2_Geant_Garfield and her `MeshUnitCellIon_PressureStudy.mph`.
+
+**Done:**
+- Note `design/report/MESH_COMPARISON_P2_GEANT_GARFIELD_2026-10-14.md` (side-by-side, what to borrow both ways).
+- Test: null-collision steps give G7 = 0.988 ± 0.002 on both woven and straight maps (default stepping 0.928 / 0.947). `gates_check.C` has a `NULLCOLL` env switch. Pushed (`d435c10`).
+
+**Next steps:**
+1. G7 at 10k electrons with status breakdown; rerun `transparency_curve.csv` with `NULLCOLL=1`.
+2. One avalanche HV point of `mx17_aval_calib.py` with null-collision steps (gain/survival may move).
+3. Try COMSOL export nodes without a coordinate file for `WovenMesh.java` -> `ComponentComsol`.
+4. Ask Alexandra about mesh calendering; send her the surface-charge top BC.
+
+**Gotchas:**
+- One seed per run, preliminary. Only the `.mph` arrived in ~/Downloads (the second file did not).
+- Her repo clone and unzipped XML were in the job tmp dir (gone after the session); re-clone if needed.
+
 ## T14 fresh look — updated 2026-10-14 ~02:00 (desktop, overnight session)
 
 **Resume:** FRESH_LOOK §18 (all of tonight). Detectors are gone: archive + simulation only.
