@@ -1805,3 +1805,30 @@ on yoga as the jobs land (`orchestrate_bgtp.sh`).
   observable is per strip rather than per kernel channel. A higher ρ_s also lowers X0 (−7 % at
   2.5 MΩ/sq), so bG would be refitted. **Test:** a chain point at ρ_s = 5 MΩ/sq (the kernels exist)
   next to verdict 1, which brackets 2.5. Read the Y profile ±1..3 and Y/X from the M3 ledger.
+
+## 19. Irakli's DREAM bench measurements (NSW AC-coupled, TPOT DC-coupled) (2026-10-14, morning)
+
+Irakli Mandjavidze sent two old Saclay bench measurements (to Alexandra, for P2). The files are
+Saclay-internal, so they are **not in this public repo**. Originals, text dumps and the fit script are in
+`~/x17/irakli_dream_tests_2026-10-14/` on the desktop (dylan-MS-7C84).
+
+- **Protected or not: not stated in either file.** TPOT (resistive MM, "DC-coupled", on-board pulser) is
+  almost certainly the unprotected FEU. For NSW, "AC" is more likely an external coupling C than the FEU
+  protection. It is still the closest analogue to our protected FEUs: a series C between strip and DREAM.
+  He needed an external pulser there because the on-board pulser injects at the DREAM input, after the
+  coupling C. This agrees with §17.1: the on-board pulser cannot see our protection network.
+- **TPOT, DC, 100 fC range, 180 ns:** gain 18.05 mV/fC at 0 pF (nominal 20, so −10 %), 17.5 at 220 pF,
+  16.7 at 470 pF, 14.7 at 1000 pF. ENC ≈ 810 e⁻ + ~10–11 e⁻/pF. Lab conditions with CM removed; his slide
+  says not to infer detector capacitance from the noise.
+- **NSW, AC, external pulser (6.8 fC/mV, 281–1128 pF total):** gain 16.2 ADC/fC at 281 pF and
+  6.7–7.0 at 1104–1128 pF (100 fC range), against 30–35 ADC/fC DC (TPOT). The ratio to DC fits
+  k·C_c/(C_c + C_strip) to ±0.01 with **C_c ≈ 510 pF, k ≈ 0.70** (correlated, rough).
+  The M1/M2/M4 sheets are NSW strip crosstalk with multiplexing (8–15 % per neighbour at M1) and do not transfer.
+- **For MX17:**
+  1. The 20.48 ADC/fC datasheet chain is likely ≥ 10 % high at 180 ns before any strip-C or protection
+     loss. This assumes the 200 fC range behaves like the 100 fC range, which nobody measured.
+  2. If the protection acts like C_c of a few hundred pF, Y/X scales by (C_c + C_Y)/(C_c + C_X).
+     The §18.3 15 % Y/X deficit would need C_Y ≈ 75–100 pF below C_X. MX17 X/Y strip capacitances are unknown.
+  3. Charge division does not change pulse shape (§17.2 stands).
+- **Ask Irakli:** were the NSW numbers from protected FEUs or an external C? Ask for the protection
+  schematic/BOM. A P2 repeat should use an external pulser on the detector side of a *protected* FEU.

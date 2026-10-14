@@ -1,5 +1,25 @@
 # Handoff
 
+## Irakli DREAM bench data — updated 2026-10-14 (dylan-MS-7C84)
+
+**Resume:** FRESH_LOOK §19: reply to Irakli (protected or external C for NSW? protection BOM?), then get MX17 X/Y strip C.
+
+**Goal:** use Irakli's NSW (AC) and TPOT (DC) DREAM measurements to pin the absolute ADC/fC and a possible X/Y charge-division term.
+
+**Done:**
+- Read both attachments. Summary and numbers in FRESH_LOOK §19. TPOT DC gain is 18.05 mV/fC at 0 pF (−10 % vs nominal).
+  NSW AC gain fits charge division, C_c ≈ 510 pF, k ≈ 0.70.
+
+**Next steps:**
+1. Ask Irakli: NSW "AC" = protected FEU or external coupling C? Protection schematic/BOM?
+2. Find MX17 X and Y strip capacitances (fab drawing or a C meter on a spare board), then test the §18.3 Y/X deficit.
+3. Lower the sim's ADC/fC by ~10 % (TPOT 0 pF) as a candidate default; check what it does to bG.
+
+**Gotchas / decisions:**
+- The files are Saclay-internal and this repo is public, so the raw data stays out of git:
+  `~/x17/irakli_dream_tests_2026-10-14/` (desktop only: pptx, xlsx, dumps, `nsw_charge_division_fit.py`).
+- The 200 fC range was not measured in the TPOT slides. The NSW sheets have both ranges, about ×1.95 apart.
+
 ## Mesh comparison with P2 (Alexandra) — updated 2026-10-14 (dylan-MS-7C84)
 
 **Resume:** rerun G7 / transparency_curve / one S3 HV point with `NULLCOLL=1` (null-collision steps), then fix the 0.955.
