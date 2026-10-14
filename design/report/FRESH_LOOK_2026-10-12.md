@@ -1780,3 +1780,28 @@ Condor 4451431 (`stageBC_w2_bgtp.sub`: s 1.46/1.75 × bG 0.25/0.35/0.45 × th00/
 the new `--shaper-tp-ns 166`) and 4451432 (`stageBC_w2_bgtp_thy.sub`: the same at thy10/thy20,
 added after §18.1). Both have predictions registered in the submit files. T14 and the ledger run
 on yoga as the jobs land (`orchestrate_bgtp.sh`).
+
+### 18.10 Y wings: the kernels are right; ρ_s is the lever (2026-10-14, morning)
+
+- **The Y wings pass COMSOL 3D.** `compare_kernels3d.py` on `i3d_dep_2e6_o2` (ρ_s = 2 MΩ/sq), now read on
+  all channels Y0..Y5. The shaped peak ratios COMSOL/chain are Y0 0.954, Y1 0.931, Y2 0.945, Y3 0.923
+  and Y4 0.950, so the wings sit at the same ~5 % as the centre. Peak times are within 6–38 ns, even at
+  1.2 µs. At a given ρ_s the chain's Y lateral sharing is the field solution, and the §18.6 excess is not
+  a solver error (`scratchpad/2026-10-14/kernels3d_ywings.log`).
+- **ρ_s moves both §18.6 symptoms the same way** (`rho_wings.py`, a shaped point source, no cloud):
+
+| ρ_s [MΩ/sq] | 0.5 | 1 | 2 | 5 |
+|---|---|---|---|---|
+| Y2/Y0 (next Y channel) | 0.259 | 0.163 | 0.091 | 0.036 |
+| Y0/X0 | 0.85 | 1.14 | 1.57 | 2.63 |
+| X1/X0 | 0.015 | 0.017 | 0.020 | 0.030 |
+
+  Log-interpolating, ρ_s ≈ 2.5 MΩ/sq raises Y/X by the ~15 % the ledger is missing (§18.3, §18.6). At the
+  same point, the next-Y-channel wing drops by ~22 %, against the data's ±2 wing being 23 % below the sim
+  (0.23 vs 0.30). X1/X0 hardly moves, which fits X matching already. 2.5 MΩ/sq is at the top edge of
+  the T2b band (1.42–2.56). It pulls against §10.3's ±1-delay hint (~1.1 MΩ/sq), which is a
+  cloud-size observable and only a hint.
+- **Caveats:** this is a point source, so the cloud and track extent are not included, and the profile
+  observable is per strip rather than per kernel channel. A higher ρ_s also lowers X0 (−7 % at
+  2.5 MΩ/sq), so bG would be refitted. **Test:** a chain point at ρ_s = 5 MΩ/sq (the kernels exist)
+  next to verdict 1, which brackets 2.5. Read the Y profile ±1..3 and Y/X from the M3 ledger.

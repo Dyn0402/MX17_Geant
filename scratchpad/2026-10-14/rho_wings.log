@@ -1,0 +1,4 @@
+rho 0.5M  X0 0.407 Y0 0.345 | Y2/Y0 0.259 (t 300) Y4/Y0 0.075 | X1/X0 0.015  Y share of view? Y0/(X0+Y0) 0.459
+rho 1M    X0 0.394 Y0 0.448 | Y2/Y0 0.163 (t 383) Y4/Y0 0.035 | X1/X0 0.017  Y share of view? Y0/(X0+Y0) 0.532
+rho 2M    X0 0.357 Y0 0.560 | Y2/Y0 0.091 (t 508) Y4/Y0 0.014 | X1/X0 0.020  Y share of view? Y0/(X0+Y0) 0.610
+rho 5M    X0 0.266 Y0 0.699 | Y2/Y0 0.036 (t 813) Y4/Y0 0.004 | X1/X0 0.030  Y share of view? Y0/(X0+Y0) 0.724

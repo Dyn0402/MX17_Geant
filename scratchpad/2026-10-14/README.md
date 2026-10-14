@@ -16,3 +16,8 @@ imported read-only; copy them to `~` there first (they use absolute ~ paths).
 - `ledger_m3.py [glob]` -> `ledger_m3.log/.csv` — the unbiased data/sim ledger (sim peaks cached as
   `peak_all_<feu>.npy` in each decoded dir).
 - `orchestrate_bgtp.sh` — laptop driver for condor 4451431/4451432 (env CL, ANGS).
+
+## Morning 2026-10-14 (desktop)
+- `verdict_harness_table.py` (run on yoga): T14 harness table for fullphys175 / noisecm146 / verdict1. Harness amplitudes still carry the §18.1 data-selection bias.
+- `kernels3d_ywings.log`: compare_kernels3d on i3d_dep_2e6_o2 (rho 2M), all Y0..Y5 channels: wings agree with the chain.
+- `rho_wings.py` / `.log`: shaped point-source Y2/Y0, Y4/Y0, Y0/X0 vs rho_s (0.5/1/2/5 M) from the W2 kernels (§18.10).
