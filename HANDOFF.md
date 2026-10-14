@@ -116,6 +116,10 @@ contradiction of T14 is the problem being worked here.
     now confirmed independently.
   - True-weave mesh map: transparency 0.918 ± 0.006, against 0.960 ± 0.004
     for the straight-wire production map through the same macro. Not adopted.
+  - **Superseded 2026-10-14** (`design/report/MESH_COMPARISON_P2_GEANT_GARFIELD_2026-10-14.md`):
+    with `EnableNullCollisionSteps` (`NULLCOLL=1 gates_check`) both maps give G7 = 0.988 ± 0.002,
+    against 0.928 / 0.947 with default stepping. The 4.2 % weave deficit and the 0.955 used for
+    `DEFAULT_TRANSPARENCY` are stepping artefacts (one seed each; avalanche campaign not rerun).
 
 - **Overnight 2026-10-13 (FRESH_LOOK §9–11):**
   - §9: **avalanche (photon) feedback**, G_eff = G/(1 − bG). Fitted to the *shape* of the det3
@@ -149,7 +153,7 @@ August's reading, and it still has **no mechanism**.
    strips and comb agrees on timing (0–7 ns) and to ~5 % in amplitude. The Y negative lobe
    (item 5) was not in that comparison's window; it is the next thing to read from the 3D runs
    (`/eos/.../response_sim/comsol/condor/i3d_*_o2.csv`).
-4. Woven mesh: rerun S3 gain and `funnel_ion_endpoints.py` in `meshfield_woven_production.txt`,
+4. Rerun G7, `transparency_curve.csv` and one S3 HV point with null-collision steps (see above). Woven mesh: rerun S3 gain and `funnel_ion_endpoints.py` in `meshfield_woven_production.txt`,
    then decide whether to adopt it. Its −4.2 % transparency is absorbed into the feedback fit's
    scale if §9 is adopted.
 5. Still unexplained: the early "foot" before data pulses, and the −0.2 negative lobe on the

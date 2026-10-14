@@ -38,6 +38,7 @@
 #include <iostream>
 #include <string>
 
+#include <cstdlib>
 #include "Garfield/AvalancheMicroscopic.hh"
 #include "Garfield/ComponentGrid.hh"
 #include "Garfield/MediumMagboltz.hh"
@@ -148,6 +149,11 @@ int gates_check(const char* mapfile = "meshfield_production.txt",
     AvalancheMicroscopic aval;
     aval.SetSensor(&sensor);
     aval.SetTimeWindow(0., 1000.);
+    // NULLCOLL=1: re-read the field at every null collision. By default a free
+    // flight uses the field at its start, wrong near the wires for hot electrons
+    // (Ar/iC4H10 95/5: G7 0.95 -> 0.99). See design/report/MESH_COMPARISON_P2_GEANT_GARFIELD_2026-10-14.md.
+    const bool nullColl = std::getenv("NULLCOLL") != nullptr;
+    if (nullColl) aval.EnableNullCollisionSteps(true);
     aval.EnableAvalancheSizeLimit(50);
     int through = 0;
     double sum2 = 0.;
@@ -174,7 +180,7 @@ int gates_check(const char* mapfile = "meshfield_production.txt",
     // was dropped (electrons sail through wires), ~0 means a sign/BC error.
     // The production value from this 3D map is the T6 DELIVERABLE and
     // supersedes the 1D-model 0.873 (DEFAULT_TRANSPARENCY) on acceptance.
-    const bool ok = eps > 0.55 && eps < 0.98;
+    const bool ok = eps > 0.55 && eps < (nullColl ? 0.995 : 0.98);
     pass &= ok;
     std::printf("\rG7 transparency: %.3f +- %.3f (1D-model reference 0.873; "
                 "3D value is the deliverable), funnel rms %.1f um -> %s\n",
