@@ -47,7 +47,7 @@ def payload(wf_dir):
 
 PAGE = r'''<!--note
 title: MX17 response simulation, animated
-summary: One muon through the whole simulation chain (Geant4 → Magboltz drift → Garfield avalanche and ions → resistive induction → DREAM → FEU → wft), which code does each part, and how its pulse compares with the real det3 average. Toggle the ion signal to see the T14 rise-time problem.
+summary: One muon through the whole simulation chain (Geant4 → Magboltz drift → Garfield avalanche and ions → resistive induction → DREAM → FEU → wft), which code does each part, and how its pulse compares with the real det3 average. Toggle the ion signal to see the T14 rise-time problem. Also: what runs per event (Geant4 + sampling) versus what Garfield/Magboltz computed once.
 tags: MX17,simulation,animation
 date: 2026-10-12
 -->
@@ -113,6 +113,24 @@ canvas{display:block;width:100%;border-radius:5px;background:#0b0e14}
 .tile b{font:500 19px var(--f-mono);font-variant-numeric:tabular-nums}
 .verdict{font-size:14px;color:var(--soft);min-height:2.6em}
 .verdict strong{color:var(--ink)}
+.card .modes{display:grid;gap:4px;margin-top:2px}
+.card .modes div{font-size:13px;color:var(--soft);display:grid;grid-template-columns:78px 1fr;gap:8px}
+.card .modes span{font:500 10.5px var(--f-mono);text-transform:uppercase;letter-spacing:.06em;padding-top:2px}
+.m-ev{color:var(--ele)}.m-pre{color:var(--aval)}
+.tiers p{margin:0;color:var(--soft);max-width:110ch}
+.tiergrid{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:stretch}
+@media (max-width:760px){.tiergrid{grid-template-columns:minmax(0,1fr)}.tiergrid .arr{transform:rotate(90deg);justify-self:center}}
+.tier{background:var(--panel2);border-radius:8px;padding:10px 14px;border-top:3px solid var(--muted)}
+.tier.pre{border-top-color:var(--aval)}.tier.ev{border-top-color:var(--ele)}
+.tier h4{margin:0 0 6px;font:700 14px var(--f-body)}
+.tier h4 small{display:block;font:400 11.5px var(--f-mono);color:var(--muted)}
+.tier ol,.tier ul{margin:0;padding-left:18px;display:grid;gap:3px;font-size:13.5px;color:var(--soft)}
+.tier code,.why code{font:400 12px var(--f-mono);color:var(--muted)}
+.arr{align-self:center;font:500 12px var(--f-mono);color:var(--muted);text-align:center;white-space:nowrap}
+.why{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:900px){.why{grid-template-columns:minmax(0,1fr)}}
+.why div{background:var(--panel2);border-radius:8px;padding:10px 14px;font-size:13.5px;color:var(--soft)}
+.why h4{margin:0 0 4px;font:700 14px var(--f-body);color:var(--ink)}
 .foot{font:400 12px var(--f-mono);color:var(--muted)}
 .foot a{color:var(--ele)}
 </style>
@@ -125,7 +143,9 @@ canvas{display:block;width:100%;border-radius:5px;background:#0b0e14}
     <h1>One muon through the whole simulation chain</h1>
     <p class="lede">A cosmic muon crosses the 30 mm drift gap. Each stage of the chain is a separate code, and the list on the right
       says which one and how far it is trusted. At the end, the simulated peak-strip pulse is laid over the <em>real</em> average det3 pulse
-      at the same angle. Switch the ion signal off to see what the data look like.</p>
+      at the same angle. Switch the ion signal off to see what the data look like.
+      Only Geant4 simulates this muon from first principles: the later stages draw random numbers from tables that
+      Magboltz and Garfield++ computed once beforehand (<a href="#tiers" style="color:var(--ele)">what runs per event</a>).</p>
   </header>
 
   <div class="bar" role="toolbar" aria-label="Animation controls">
@@ -166,6 +186,40 @@ canvas{display:block;width:100%;border-radius:5px;background:#0b0e14}
       </div>
     </div>
   </div>
+  <section class="panel tiers" id="tiers">
+    <div class="ph"><h2>What runs per event, and what ran once</h2><span class="note">Garfield never sees this muon</span></div>
+    <p>The Geant4 primary electrons are <strong>not</strong> handed to Garfield++/Magboltz to drift and avalanche. Garfield and Magboltz
+      ran beforehand on <em>single</em> electrons, once per gas and HV point, and measured a handful of numbers. Each event then
+      moves every primary electron on its own, but by drawing random numbers from those results. Alexandra's
+      <code>P2_Geant_Garfield</code> works the same way (her Stage B is thinner: transparency fixed at 1, gain and induction still placeholders).</p>
+    <div class="tiergrid">
+      <div class="tier pre"><h4>Ran once, offline<small>per gas / HV point · hours on condor or the desktop</small></h4><ul>
+        <li><b>Magboltz</b> gas table → drift speed v<sub>d</sub>, diffusion σ<sub>T</sub>, σ<sub>L</sub> vs E <code>design/gas/</code></li>
+        <li><b>Garfield++ S2</b>: single electrons through the woven-mesh field map → transparency ε <code>response/meshcell/</code></li>
+        <li><b>Garfield++ S3</b> microscopic avalanches, 10³–10⁴ seed electrons per point → Polya ḡ, θ, landing spread σ₀, ion fraction f and transit <code>response/avalanche/ → aval_calib.json</code></li>
+        <li><b>S1/W2 solver + COMSOL</b>: time-dependent weighting potentials of the resistive strips → current kernels <code>response/solver/</code></li>
+        <li>DREAM shaper model; noise measured from data</li></ul></div>
+      <div class="arr">files<br>→</div>
+      <div class="tier ev"><h4>Every event<small>Geant4 run + <code>response/digitizer/digitize.py</code> · fast</small></h4><ol>
+        <li><b>Geant4</b> tracks the muon → clusters, each with nPrimary electrons (W and Fano already applied)</li>
+        <li>each electron: drift time z/v<sub>d</sub>, plus Gaussian σ<sub>L</sub>, σ<sub>T</sub> smearing</li>
+        <li>survives the mesh with probability ε (one coin flip)</li>
+        <li>gain drawn from Polya(ḡ, θ), landing smeared by σ₀ ≈ 33 µm</li>
+        <li>charge × kernel lookup → current on each nearby strip, with the ion tail</li>
+        <li>DREAM shaper → 60 ns samples + noise → the same wft reconstruction as data</li></ol></div>
+    </div>
+    <div class="why">
+      <div><h4>Why not Garfield per event</h4>Microscopic tracking follows every collision of every electron. A muon leaves ~270 primaries in 30 mm,
+        and each one becomes ~24 000 electrons in the gap: ~6 million avalanche electrons per event, plus up to 30 mm of drift each.
+        One S3 gain bracket of single electrons alone took 42 CPU-hours. Thousands of events that way is not feasible.</div>
+      <div><h4>What it assumes</h4>Electrons in one event don't affect each other (no space charge or charging-up within an event),
+        so each one can be sampled independently from single-electron statistics. That is the standard approach for MPGDs at these rates.
+        Electrons are moved one by one, not as a packet per cluster, because diffusion (826 µm) is what sets the strip sharing.</div>
+      <div><h4>What we lose</h4>Correlations and shapes the simple model drops: ε and the gain don't depend on where the electron hits the mesh cell,
+        and diffusion is Gaussian. Any error in an offline number goes into every event. Example: ε = 0.955 now looks like a Garfield
+        stepping artefact; with null-collision steps S2 gives 0.988 (2026-10-14, one seed, not yet propagated).</div>
+    </div>
+  </section>
   <p class="foot">Physics in the page: the independent toy model (<code>MX17_Geant/scratchpad/2026-10-12/toy_pulse.py</code>): Magboltz v = 39.1 µm/ns and diffusion,
     91 e⁻/cm in 3.8-e⁻ clusters, mesh transparency 0.955, parallel-plate ion current (f = 0.91, T = 340 ns, Ar⁺), DREAM PZC + Sallen-Key shaper at 180 ns.
     The resistive spreading is drawn but not computed. Real and chain averages: peak strip, unsaturated, no quality cut, aligned at the leading 50 %.
@@ -174,31 +228,31 @@ canvas{display:block;width:100%;border-radius:5px;background:#0b0e14}
 <script>
 const P = __PAYLOAD__;
 const STAGES = [
-  {id:'g4', name:'Geant4', sub:'primary ionisation', st:'ok', code:'MX17_Geant mm_sim (Geant4, PAI) → ClusterTree',
+  {id:'g4', ev:'Full Geant4 tracking of this muon. The only stage simulated from first principles per event.', pre:'—', name:'Geant4', sub:'primary ionisation', st:'ok', code:'MX17_Geant mm_sim (Geant4, PAI) → ClusterTree',
    text:'The muon is tracked through the gas and the energy it loses is split into primary ionisation clusters (on average 3.8 electrons each).',
    check:'Checked: 91 e⁻/cm, the measured value.'},
-  {id:'drift', name:'Drift', sub:'Magboltz gas table', st:'warn', code:'response/digitizer/gas.py · design/gas/ (Magboltz, dry 95/5)',
+  {id:'drift', ev:'Each electron moved on its own: t = z/v<sub>d</sub>, plus Gaussian σ<sub>L</sub>, σ<sub>T</sub>. No collisions are tracked.', pre:'Magboltz built the gas table (v<sub>d</sub>, σ<sub>T</sub>, σ<sub>L</sub> vs E).', name:'Drift', sub:'Magboltz gas table', st:'warn', code:'response/digitizer/gas.py · design/gas/ (Magboltz, dry 95/5)',
    text:'Each electron drifts 0–30 mm down to the mesh at 39 µm/ns (333 V/cm), spreading sideways and along the drift by diffusion.',
    check:'Nominal: the data-fitted drift speed is 36.6 µm/ns (6.9 % lower). Humidity was never measured on any run.'},
-  {id:'mesh', name:'Mesh', sub:'transparency', st:'ok', code:'response/meshcell/ (Garfield++ field map of the woven mesh)',
+  {id:'mesh', ev:'A coin flip per electron: kept with probability ε = 0.955. No trajectory near the wires.', pre:'Garfield++ drifted single electrons through the woven-mesh field map to measure ε.', name:'Mesh', sub:'transparency', st:'warn', code:'response/meshcell/ (Garfield++ field map of the woven mesh)',
    text:'At the mesh the field jumps ~100×. Most electrons are funnelled through the holes; a few end on the wires.',
-   check:'Checked: transparency 0.955 at 333 V/cm, now counted once (double count fixed 2026-08-11).'},
-  {id:'aval', name:'Avalanche', sub:'Garfield++ S3', st:'bad', code:'response/avalanche/mx17_aval_calib.py (Garfield++ microscopic, condor)',
+   check:'0.955 at 333 V/cm, counted once since 2026-08-11. In question since 2026-10-14: with null-collision stepping Garfield gives 0.988 ± 0.002, so 0.955 looks like a stepping artefact (one seed, not yet propagated).'},
+  {id:'aval', ev:'Gain drawn from Polya(ḡ ≈ 24 000, θ), landing smeared by σ₀ ≈ 33 µm. The zoom on the left shows what Garfield computed, not what runs.', pre:'Garfield++ AvalancheMicroscopic + Magboltz, 10³–10⁴ single seed electrons per gas/HV point on condor → aval_calib.json.', name:'Avalanche', sub:'Garfield++ S3', st:'bad', code:'response/avalanche/mx17_aval_calib.py (Garfield++ microscopic, condor)',
    text:'In the 150 µm amplification gap each electron multiplies into an avalanche of ~24 000 electrons in about a nanosecond.',
    check:'Mismatch: data need ≈ 1.6× more charge (X), and the gain grows 1.4–1.6× faster with voltage than Garfield predicts. Penning, gap, water and field shape are excluded.'},
-  {id:'ion', name:'Ions', sub:'drift back to the mesh', st:'bad', code:'Garfield++ AvalancheMC, Ar⁺-in-Ar mobility · response/digitizer/ions.py',
+  {id:'ion', ev:'Each avalanche adds a fixed current shape: prompt electron part plus f = 0.91 of the charge spread over ~340 ns.', pre:'Ion drift (AvalancheMC) in the same S3 campaign measured f = 0.908 and the 340 ns transit.', name:'Ions', sub:'drift back to the mesh', st:'bad', code:'Garfield++ AvalancheMC, Ar⁺-in-Ar mobility · response/digitizer/ions.py',
    text:'The avalanche ions crawl 150 µm back to the mesh in ~340 ns. In a parallel-plate gap they induce ~91 % of the signal, slowly.',
    check:'Mismatch: at 10° and 20° the real pulses are as narrow as if the ion signal were almost absent (f ≈ 0.2). No mechanism found.'},
-  {id:'ind', name:'Induction', sub:'resistive strips → readout', st:'warn', code:'response/solver/ (S1/W2 semi-spectral weighting potentials) · digitizer/kernel_lut.py',
+  {id:'ind', ev:'Look up the precomputed current kernel for each strip near the landing point, scale by the charge.', pre:'S1/W2 solver (and COMSOL 3D) for the resistive-strip weighting potentials; kernel_lut.py packs them.', name:'Induction', sub:'resistive strips → readout', st:'warn', code:'response/solver/ (S1/W2 semi-spectral weighting potentials) · digitizer/kernel_lut.py',
    text:'The moving charges induce current through the resistive ESL strips and the kapton onto the X and Y readout strips; the resistive layer spreads it to neighbours over hundreds of ns.',
    check:'Partly off: Y/X ratio 18 % low, ±1-neighbour delay about twice the data. Spreading is drawn here but not computed.'},
-  {id:'dream', name:'DREAM', sub:'CSA + 180 ns shaper', st:'warn', code:'response/dream/shaper.py (PZC + Sallen-Key, code 2)',
+  {id:'dream', ev:'The current on each strip is convolved with the shaper response.', pre:'Shaper model from the DREAM design and the config of the run.', name:'DREAM', sub:'CSA + 180 ns shaper', st:'warn', code:'response/dream/shaper.py (PZC + Sallen-Key, code 2)',
    text:'The front-end chip integrates the current and shapes it with a 180 ns peaking time.',
    check:'Setting confirmed from the run\'s own config (2026-10-12). The actual analog response has never been measured: one FEU pulser shot would.'},
-  {id:'feu', name:'FEU', sub:'60 ns samples, ADC, noise', st:'ok', code:'response/dream/daq.py, noise.py → sim_decoded_*.root',
+  {id:'feu', ev:'Sampled every 60 ns, measured noise added, digitised.', pre:'Pedestal noise spectra measured on data.', name:'FEU', sub:'60 ns samples, ADC, noise', st:'ok', code:'response/dream/daq.py, noise.py → sim_decoded_*.root',
    text:'The FEU samples each strip every 60 ns (32 samples), adds the measured pedestal noise and digitises.',
    check:'Checked: ADC scale end to end within 1.2 % of the datasheet chain; noise round-trip 0.2 %.'},
-  {id:'wft', name:'wft', sub:'same reco as data', st:'ok', code:'nTof_x17 wft (FeuReader, t13_reco) · mx17_sim_wft/t14_compare.py',
+  {id:'wft', ev:'Read and reconstructed exactly as data.', pre:'—', name:'wft', sub:'same reco as data', st:'ok', code:'nTof_x17 wft (FeuReader, t13_reco) · mx17_sim_wft/t14_compare.py',
    text:'The simulated file is read and reconstructed by exactly the code used on data, and compared waveform by waveform.',
    check:'Both legs identical. Compare the green pulse with the white data average below.'},
 ];
@@ -303,7 +357,8 @@ function showStage(i){
   const s = STAGES[i], card = document.getElementById('card');
   card.style.borderLeftColor = STC[s.st];
   card.innerHTML = `<div class="eyebrow">Stage ${i + 1} of 9${pinned !== null ? ' · pinned (click again to follow the muon)' : ''}</div><h3>${s.name}</h3>
-    <div class="code">${s.code}</div><p>${s.text}</p><p class="st" style="color:${STC[s.st]}">${STL[s.st]}</p><p>${s.check}</p>`;
+    <div class="code">${s.code}</div><p>${s.text}</p><p class="st" style="color:${STC[s.st]}">${STL[s.st]}</p><p>${s.check}</p>
+    <div class="modes"><div><span class="m-ev">per event</span>${s.ev}</div><div><span class="m-pre">ran once</span>${s.pre}</div></div>`;
 }
 
 // ------------------------------------------------------------------ drawing
@@ -403,7 +458,7 @@ function drawInset(c, stage, col){
   c.save();
   c.fillStyle = '#121722'; c.fillRect(X0, Y0, Wd, Hd); c.strokeStyle = '#283044'; c.strokeRect(X0, Y0, Wd, Hd);
   c.fillStyle = css('--muted'); c.font = '12px IBM Plex Mono, monospace';
-  c.fillText('zoom: one hole of the mesh (to scale)', X0 + 8, Y0 - 10);
+  c.fillText('zoom: Garfield S3 (offline), to scale', X0 + 8, Y0 - 10);
   c.beginPath(); c.rect(X0, Y0, Wd, Hd); c.clip();
   const yA = Y0 + Hd - 44, yTop = yA - G * PX, yW = yTop - RW * PX, cxA = X0 + Wd / 2;
   const X = um => cxA + um * PX, Yh = h => yA - h * PX;          // h = height above the anode [µm]
