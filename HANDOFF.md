@@ -20,7 +20,26 @@
 - One seed per run, preliminary. Only the `.mph` arrived in ~/Downloads (the second file did not).
 - Her repo clone and unzipped XML were in the job tmp dir (gone after the session); re-clone if needed.
 
-## T14 fresh look — updated 2026-10-14 ~02:00 (desktop, overnight session)
+## T14 fresh look — updated 2026-10-14 (dylan-MS-7C84)
+
+**Resume:** FRESH_LOOK §18.10: ρ_s ≈ 2.5 MΩ/sq may close Y width + Y/X; next, a chain point at ρ_s 5M (ask Dylan before submitting).
+
+**Morning 2026-10-14 (desktop):**
+- The yoga queue finished at 05:00: 34/34 points DONE, no failures, nothing on condor. The harness table
+  (`scratchpad/2026-10-14/verdict_harness_table.py`, run on yoga) for verdict 1 gives inclined rise
+  +11..+18 ns and FWHM +1..+18 ns. The harness amplitudes (`ratio` = sim/data) are X 0.95–1.13 and
+  Y 1.12–1.20. The Y excess there is the §18.1 selection bias; the M3 ledger is the reference.
+- **§18.10:** the Y wings pass COMSOL 3D at 2 MΩ/sq (Y0..Y4 peak ratios 0.92–0.95, the same as the
+  centre), so the kernels are not the cause of §18.6. ρ_s is the lever. Interpolating from the point
+  source, ρ_s ≈ 2.5 MΩ/sq raises Y/X by ~15 % and cuts the next-Y wing by ~22 %, which matches both
+  §18.6 gaps, while X1/X0 is ~unchanged. 2.5 is at the top of the T2b band (1.42–2.56). It conflicts
+  with §10.3's ~1.1 hint (weak). X0 drops ~7 %, so bG would need a refit.
+- **Next 1 replaced:** run one chain point at ρ_s = 5 MΩ/sq (kernels in
+  `/media/ucla/x17_resp/s1_w2_ny512/`, and on EOS) with the verdict-1 settings, pre-registered,
+  using the `stageBC_w2_*.sub` pattern. Read the Y profile ±1..3 and Y/X from `ledger_m3.py`.
+  Dylan has not yet said go.
+
+**Overnight (02:00) state below.**
 
 **Resume:** FRESH_LOOK §18 (all of tonight). Detectors are gone: archive + simulation only.
 
