@@ -29,12 +29,14 @@
 **Done:**
 - Note `design/report/MESH_COMPARISON_P2_GEANT_GARFIELD_2026-10-14.md` (side-by-side, what to borrow both ways).
 - Test: null-collision steps give G7 = 0.988 ± 0.002 on both woven and straight maps (default stepping 0.928 / 0.947). `gates_check.C` has a `NULLCOLL` env switch. Pushed (`d435c10`).
+- Site animation (dylan-neff.web.cern.ch/notes/mx17-response-chain.html) now explains per-event vs ran-once: Geant4 nPrimary → per-electron sampling from Magboltz/Garfield calibrations; Garfield never runs per event (same as P2). Its Mesh stage is amber, citing 0.955 vs 0.988. Source: `design/report/deck/make_chain_animation.py` (`b510371`).
 
 **Next steps:**
 1. G7 at 10k electrons with status breakdown; rerun `transparency_curve.csv` with `NULLCOLL=1`.
 2. One avalanche HV point of `mx17_aval_calib.py` with null-collision steps (gain/survival may move).
 3. Try COMSOL export nodes without a coordinate file for `WovenMesh.java` -> `ComponentComsol`.
 4. Ask Alexandra about mesh calendering; send her the surface-charge top BC.
+5. Once ε is settled, update the Mesh card in `make_chain_animation.py` (STAGES `mesh`: st/check text, and `EPS_MESH`), regenerate, then `add-note.py ... --slug mx17-response-chain --force --deploy` (command in the script docstring).
 
 **Gotchas:**
 - One seed per run, preliminary. Only the `.mph` arrived in ~/Downloads (the second file did not).
