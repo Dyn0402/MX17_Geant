@@ -1,5 +1,34 @@
 # Handoff
 
+## Penning / ion-species review — updated 2026-10-15 (dylan-MS-7C84)
+
+**Resume:** Ion-tail physics review done. Next: explain the T6 map's 31.0 vs 38.3 kV/cm mid-gap field, then swap in a hydrocarbon-ion mobility table.
+
+**Goal:** Work out which ion actually drifts in Ar/iC4H10 95/5, and what r_P and ion mobility the response chain should use. Also find out how far the species alone explains the fast (~140 ns) ion tail in the waveform fits.
+
+**Done:**
+- Literature review: `reports/Simulating Penning and ion transport.md`, with notes in `research_notes/Simulating Penning and ion transport/` (commit 5bb6ac2).
+- Animated explainer on the notes site, with two tabs (mechanisms / simulating it): https://dylan-neff.web.cern.ch/notes/ion-species-vs-penning.html. Source is `dylan-cern-site/pages/notes/ion-species-vs-penning.html`.
+- Told the capsule-alignment session that MX17_Full_Geant (main and ear2-beam @19a6a71) still has the pre-e17c72c ArIso bug. Its gas density is ~7 % high and 95/5 is used as mass fractions, so energy deposited in the gas comes out ~7-11 % high.
+
+**Findings (numbers in the report):**
+- Ar+ converts to a hydrocarbon ion (t-C4H9+-like) in ~0.6 ns, a Langevin estimate. `IonMobility_Ar+_Ar` is the wrong species.
+- Coimbra measured K0 = 2.26 (98/2) and 2.16 (Ar/CF4/iso 95/3/2) at <= 45 Td. Nothing has been measured at gap fields; working value K0 ~2.05 (1.8-2.25).
+- The species switch speeds the transit up by about 1.5-1.85x (340 -> ~185-225 ns). The fits want 140 ns, which is 2.4x.
+- The T6 map's mid-gap E_z is 31.0 kV/cm, versus V/d = 38.3 kV/cm (`response/meshcell/ion_template_check.py`). At 31.0 kV/cm, 140 ns needs K0 ~2.75, above every Langevin limit. At 38.3 kV/cm it needs ~2.23, exactly at the ceiling.
+- r_P: Garfield hard-codes 0.40 for Ar/iso, taken from a single 10 % / 1 atm point. Use 0.40 dry and ~0.36-0.40 wet, via `EnablePenningTransfer(r, 0, "ar")`. Fit it jointly with feedback beta.
+
+**Next steps:**
+1. Find out why the T6 field map's mid-gap field is ~19 % below V/d (map voltage, gap, mesh-plane definition). This decides whether the species alone closes the ion tail.
+2. Replace `IonMobility_Ar+_Ar.txt` with a custom flat table at K0 ~2.05, with 1.8 and 2.25 as the systematic, in `response/avalanche/mx17_aval_calib.py` and in the S3 chain.
+3. Retract "Blanc gives K0 ~1.16" in `design/report/S3_ION_CLOSEOUT_2026-08-09.md`. It used Ar+'s charge-exchange-limited K. Done correctly, Blanc's law gives ~2.1.
+4. Fix the backwards comment at `response/avalanche/mx17_aval_calib.py:174` ("Ar+ dominant ... the faster ion").
+5. (Separate repo) Port the GasProperties/PAI fix from e17c72c into MX17_Full_Geant.
+
+**Gotchas / decisions:**
+- 153 Td (uniform V/d) and 123.8 Td (field map) are both in circulation. The gas density is fine (1 atm / 293 K); the difference is entirely the field.
+- The high-field hydrocarbon-ion mobility is a 3x extrapolation in E/N. Label it as one.
+
 ## Primary ionization vs Heed (Stage A fix) — updated 2026-10-15 (dylan-MS-7C84)
 
 **Resume:** Stage A primaries fixed (e17c72c, -11 %); next: regenerate T14 Stage A products, get Alexandra's confirmation.
