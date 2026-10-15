@@ -1,8 +1,14 @@
 // slab.cc -- Geant4 primary ionization in a bare gas slab (no upstream material),
 // to compare with Garfield/Heed heed_mip.cc on identical geometry.
-//   slab <gas> <gap_mm> <n> <out> <physics: opt4|pai|paiphot> [seed]
-// Vacuum world, gas slab 10x10 cm x gap at 0<z<gap, 100 MeV e- entering at z=0 along +z.
+//   slab <gas> <gap_mm> <n> <out> <physics: opt4|pai|paiphot> [seed] [E_MeV] [mu]
+// Vacuum world, gas slab 10x10 cm x gap at 0<z<gap, 100 MeV e- (or mu- with "mu")
+// entering at z=0 along +z. <gas>_mx17 = the gas as MX17 built it before 2026-10-15.
 // Output per event: edep_eV  n_W (edep/W per step, floor+Bernoulli as mm_sim)
+// Env: SLAB_STEP=<um> adds a step limit in the gas; SLAB_WORLD=<NIST material>
+// replaces the vacuum world; SLAB_SHARED_CUTS=1 leaves the gas region on the
+// default cuts object, which reproduces the Geant4 trap in README.md:
+//   SLAB_WORLD=G4_STAINLESS-STEEL slab ArIso 3.964 200 z pai 1 0.001
+// then every 1 keV electron in the steel runs to the 1e5-step kill.
 #include <cmath>
 #include <fstream>
 #include <map>
@@ -21,6 +27,12 @@
 #include "G4PAIModel.hh"
 #include "G4PAIPhotModel.hh"
 #include "G4Positron.hh"
+#include "G4MuonMinus.hh"
+#include "G4UserLimits.hh"
+#include "G4StepLimiterPhysics.hh"
+#include <cstdlib>
+#include "G4MuonPlus.hh"
+static bool gMu = false;
 static std::string gPhys;
 #include "G4DecayPhysics.hh"
 #include "G4EmParameters.hh"
@@ -30,6 +42,7 @@ static std::string gPhys;
 #include "G4LogicalVolume.hh"
 #include "G4PVPlacement.hh"
 #include "G4Region.hh"
+#include "G4RegionStore.hh"
 #include "G4ProductionCuts.hh"
 #include "G4ParticleGun.hh"
 #include "G4Electron.hh"
@@ -39,7 +52,7 @@ static std::string gPhys;
 #include "Randomize.hh"
 
 static std::string gGas; static double gGap, gW, gE = 100; static double gEdep; static long gN;
-static std::ofstream gOut;
+static std::ofstream gOut; static long gSteps = 0, gMaxSteps = 0, gTrackSteps = 0;
 
 struct Comp { const char* el; std::vector<std::pair<const char*,int>> atoms; double M, W; };
 static const std::map<std::string, Comp> kComp = {
@@ -78,18 +91,19 @@ class Det : public G4VUserDetectorConstruction {
       wsum += f*cc.W;                          // linear volume-weighted W (as P2 GasMixtures)
     }
     gW = mx ? wmx.at(base) : wsum;
-    auto* vac = nist->FindOrBuildMaterial("G4_Galactic");
+    auto* vac = nist->FindOrBuildMaterial(std::getenv("SLAB_WORLD") ? std::getenv("SLAB_WORLD") : "G4_Galactic");
     auto* lw = new G4LogicalVolume(new G4Box("w", 1*m, 1*m, 1*m), vac, "World");
     auto* pw = new G4PVPlacement(nullptr, {}, lw, "World", nullptr, false, 0);
     auto* ls = new G4LogicalVolume(new G4Box("s", 5*cm, 5*cm, 0.5*gGap*mm), gas, "DriftGas");
     new G4PVPlacement(nullptr, {0,0,0.5*gGap*mm}, ls, "DriftGas", lw, false, 0);
+    if (std::getenv("SLAB_STEP")) ls->SetUserLimits(new G4UserLimits(std::atof(std::getenv("SLAB_STEP"))*um));
     auto* reg = new G4Region("GasRegion"); reg->AddRootLogicalVolume(ls);
     return pw;
   }
 };
 class Phys : public G4VModularPhysicsList {
  public:
-  Phys(){ if (gPhys.rfind("opt0",0)==0) RegisterPhysics(new G4EmStandardPhysics(0)); else RegisterPhysics(new G4EmStandardPhysics_option4(0)); RegisterPhysics(new G4DecayPhysics(0));
+  Phys(){ if (gPhys.rfind("opt0",0)==0) RegisterPhysics(new G4EmStandardPhysics(0)); else RegisterPhysics(new G4EmStandardPhysics_option4(0)); RegisterPhysics(new G4DecayPhysics(0)); RegisterPhysics(new G4StepLimiterPhysics());
     auto* p = G4EmParameters::Instance(); p->SetFluo(true); p->SetAuger(true); p->SetDeexcitationIgnoreCut(true); }
   void ConstructProcess() override {
     G4VModularPhysicsList::ConstructProcess();
@@ -101,20 +115,35 @@ class Phys : public G4VModularPhysicsList {
       else { auto* x = new G4PAIModel(p, "PAI"); m = x; f = x; }
       conf->SetExtraEmModel(p->GetParticleName(), "eIoni", m, "GasRegion", 0.11*keV, 100*TeV, f);
     }
+    for (G4ParticleDefinition* p : std::vector<G4ParticleDefinition*>{G4MuonMinus::Definition(), G4MuonPlus::Definition()}) {
+      auto* x = new G4PAIModel(p, "PAI");
+      conf->SetExtraEmModel(p->GetParticleName(), "muIoni", x, "GasRegion", 5*keV, 100*TeV, x);
+    }
   }
   void SetCuts() override {   // as mm_sim (MX17 + P2): e+- 10 um, gamma 0.1 mm
-    SetCutValue(10*um,"e-"); SetCutValue(10*um,"e+"); SetCutValue(0.1*mm,"gamma"); SetCutValue(1*mm,"proton"); }
+    SetCutValue(10*um,"e-"); SetCutValue(10*um,"e+"); SetCutValue(0.1*mm,"gamma"); SetCutValue(1*mm,"proton");
+    // The gas region needs its OWN cuts object: G4EmModelManager maps couples to
+    // regions by cuts pointer, so sharing the default one gives every couple the PAI set.
+    if (!std::getenv("SLAB_SHARED_CUTS"))
+      if (auto* r = G4RegionStore::GetInstance()->GetRegion("GasRegion", false)) {
+        auto* c = new G4ProductionCuts();
+        c->SetProductionCut(10*um, "e-"); c->SetProductionCut(10*um, "e+");
+        c->SetProductionCut(0.1*mm, "gamma"); c->SetProductionCut(1*mm, "proton");
+        r->SetProductionCuts(c);
+      } }
 };
 class Gun : public G4VUserPrimaryGeneratorAction {
   G4ParticleGun g{1};
  public:
-  Gun(){ g.SetParticleDefinition(G4Electron::Definition()); g.SetParticleEnergy(gE*MeV);
+  Gun(){ g.SetParticleDefinition(gMu ? (G4ParticleDefinition*)G4MuonMinus::Definition() : (G4ParticleDefinition*)G4Electron::Definition()); g.SetParticleEnergy(gE*MeV);
          g.SetParticlePosition({0,0,-1*mm}); g.SetParticleMomentumDirection({0,0,1}); }
   void GeneratePrimaries(G4Event* e) override { g.GeneratePrimaryVertex(e); }
 };
 class Step : public G4UserSteppingAction {
  public:
   void UserSteppingAction(const G4Step* s) override {
+    ++gSteps; if (s->GetTrack()->GetCurrentStepNumber() > gMaxSteps) gMaxSteps = s->GetTrack()->GetCurrentStepNumber();
+    if (s->GetTrack()->GetCurrentStepNumber() > 100000) s->GetTrack()->SetTrackStatus(fStopAndKill);
     double ed = s->GetTotalEnergyDeposit(); if (ed <= 0) return;
     auto* pv = s->GetPreStepPoint()->GetPhysicalVolume();
     if (!pv || pv->GetName() != "DriftGas") return;
@@ -130,7 +159,7 @@ class Evt : public G4UserEventAction {
 
 int main(int argc, char** argv) {
   gGas = argv[1]; gGap = std::atof(argv[2]); int n = std::atoi(argv[3]); std::string out = argv[4];
-  std::string phys = argv[5]; gPhys = phys; long seed = argc > 6 ? std::atol(argv[6]) : 1; if (argc > 7) gE = std::atof(argv[7]);
+  std::string phys = argv[5]; gPhys = phys; long seed = argc > 6 ? std::atol(argv[6]) : 1; if (argc > 7) gE = std::atof(argv[7]); if (argc > 8) gMu = std::string(argv[8]) == "mu";
   G4Random::setTheSeed(seed);
   auto* rm = G4RunManagerFactory::CreateRunManager(G4RunManagerType::Serial);
   rm->SetUserInitialization(new Det); rm->SetUserInitialization(new Phys);
@@ -139,5 +168,6 @@ int main(int argc, char** argv) {
   rm->Initialize();
   gOut << "# gas=" << gGas << " gap_mm=" << gGap << " phys=" << phys << " W=" << gW << "\n";
   rm->BeamOn(n);
+  G4cout << "STEPS total " << gSteps << " max per track " << gMaxSteps << G4endl;
   delete rm; return 0;
 }

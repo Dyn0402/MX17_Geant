@@ -16,6 +16,11 @@ model and how much is the material around the gas.
 - PAI: in Geant4 11.3 `G4EmParameters::AddPAIModel` is silently a no-op here (the activator checks
   `IsIonisationProcess()` before PreparePhysicsTable sets it), so `slab.cc` adds PAI through
   `G4EmConfigurator::SetExtraEmModel` on eIoni in the gas region.
+- **The gas region must have its own `G4ProductionCuts` object.** G4EmModelManager maps each
+  material-cuts couple to a region by cuts *pointer* (G4EmModelManager.cc:490), so a region left
+  on the default cuts gives its PAI-only model set to every couple in the world. Sub-keV electrons
+  in steel, copper or air then lose almost no energy and run for >1e5 steps. In `mm_sim` this
+  slowed runs ~10x; in the vacuum-world slab it is invisible. Repro: see the header of `slab.cc`.
 - `compare.py <heed dir> <slab dir>`: the table below.
 
 Build: Garfield (ROOT 6.40) for heed_mip, Geant4 11.3.2 for slab; both with a 3-line CMakeLists.
@@ -37,3 +42,19 @@ brings it to 362 eV.
 
 Heed's "W_eff" (sum cluster energy / sum electrons) is 29 eV at 4 mm but 27.6 eV at 30 mm: cluster
 energy includes delta-electron energy that leaves the slab, so it is not a W to copy.
+
+## Fix in mm_sim (2026-10-15)
+
+`include/GasProperties.hh` (one gas table: ideal-gas density, mass fractions, Garfield W/Fano),
+`GasRegion` + PAI for e±/mu±/p/pi± in `PhysicsList`, with the region's own cuts. MX17 module in
+vacuum, Ar/iso, 6 x 5000 events, events with drift primaries:
+
+| beam | old mean / median | new mean / median | new / old |
+|---|---|---|---|
+| 100 MeV e- | 382.8 / 306 | 341.8 / 273 | 0.893 / 0.892 |
+| 150 GeV mu- | 402.1 / 325 | 365.3 / 294 | 0.908 / 0.905 |
+
+The bare-slab prediction for the combined change at 30 mm was 1/1.126 = 0.888. CPU per event is
+unchanged (5000 e- events: 7.15 s new vs 7.13 s old).
+
+`HANDOFF_ALEXANDRA.md`: the claims for the P2 repo to confirm.

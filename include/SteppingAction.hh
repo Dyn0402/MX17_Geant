@@ -21,13 +21,8 @@ public:
     void UserSteppingAction(const G4Step* step) override;
 
 private:
-    // W-value (mean energy per ion pair) for each gas [eV]
-    // These are well-measured values from literature
-    double GetWValue(const std::string& gas) const;
-
     const SimConfig& fConfig;
     EventAction*     fEventAction;
 
-    // W-value lookup
-    static const std::map<std::string, double> kWValues;
+    double           fW;   // eV per ion pair of the configured gas
 };

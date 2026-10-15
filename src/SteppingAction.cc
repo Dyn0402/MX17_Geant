@@ -17,22 +17,22 @@
 #include "G4ParticleDefinition.hh"
 #include "G4Electron.hh"
 #include "Randomize.hh"
+#include "GasProperties.hh"
 
 #include <cmath>
 #include <cstdlib>
 
 // Fano factor for the edep -> ion-pair conversion (plan §7 step 1, audit C8).
-// 0.2 is the standard value for argon-based counting gases; it is a property
-// of the gas, so if the gas ever becomes a scan axis this belongs beside
-// kWValues rather than here.
+// Taken per gas from GasProperties (Garfield's values, mole-fraction weighted:
+// 0.175 for Ar/iso 95/5) since 2026-10-15; it was a flat 0.2 before.
 // Overridable with MX17_FANO so the with/without comparison can be run at the
 // SAME seed — the only way to see the effect, since the per-event electron
 // count is dominated by delta rays and varies >100 % event to event. Setting
 // MX17_FANO=0 reproduces the pre-2026-08-08 floor+Bernoulli behaviour exactly.
-static double FanoFactor() {
-    static const double f = [] {
+static double FanoFactor(const std::string& gasName) {
+    static const double f = [&gasName] {
         const char* s = std::getenv("MX17_FANO");
-        return s ? std::atof(s) : 0.2;
+        return s ? std::atof(s) : gas::MixtureFano(gasName);
     }();
     return f;
 }
@@ -42,31 +42,12 @@ static double FanoFactor() {
 // 1 pair at nbar = 5, which is where the two descriptions meet.
 static const double kFanoMinNbar = 5.0;
 
-const std::map<std::string, double> SteppingAction::kWValues = {
-    {"ArCF4",    34.0},
-    {"HeEth",    27.0},
-    {"ArCO2",    27.0},
-    {"ArCF4Iso", 33.0},
-    {"NeIso",    27.0},
-    {"NeCF4",    30.0},
-    {"ArCF4CO2", 34.0},
-    {"ArIso",    26.0},
-    {"PureCF4",  34.0},
-    {"PureAr",   26.4},
-    {"PureHe",   41.3},
-    {"PureNe",   36.4},
-    {"PureEthane",26.0},
-    {"PureIso",  26.0},
-    {"PureCO2",  33.0},
-};
-
 SteppingAction::SteppingAction(const SimConfig& cfg, EventAction* eventAction)
-    : G4UserSteppingAction(), fConfig(cfg), fEventAction(eventAction) {}
-
-double SteppingAction::GetWValue(const std::string& gas) const {
-    auto it = kWValues.find(gas);
-    return (it != kWValues.end()) ? it->second : 26.4;
-}
+    : G4UserSteppingAction(), fConfig(cfg), fEventAction(eventAction),
+      // W from GasProperties since 2026-10-15 (was a hand-written per-mixture
+      // table: NeIso 27 eV where its components give 35, ArCF4Iso 33 where
+      // they give 27). Throws on an unknown gas instead of defaulting to Ar.
+      fW(gas::MixtureW(cfg.gas) * eV) {}
 
 void SteppingAction::UserSteppingAction(const G4Step* step) {
     G4double edep = step->GetTotalEnergyDeposit();
@@ -114,10 +95,10 @@ void SteppingAction::UserSteppingAction(const G4Step* step) {
         // variance F*nbar is the standard representation and is what §7 asks
         // for; it is only meaningful once nbar is not tiny, hence the guard
         // below.
-        double W = GetWValue(fConfig.gas) * eV;
+        const double W = fW;
         double nbar = edep / W;
         int nPrimary;
-        const double fano = FanoFactor();
+        const double fano = FanoFactor(fConfig.gas);
         if (fano <= 0.0 || nbar < kFanoMinNbar) {
             // Too few pairs for a Gaussian to mean anything: keep the exact
             // floor + Bernoulli remainder, which conserves <n> = nbar and is

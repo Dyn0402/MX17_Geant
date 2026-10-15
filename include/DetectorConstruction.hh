@@ -10,6 +10,9 @@
 
 class G4Material;
 
+// Region holding the drift and amplification gas (PAI ionisation, PhysicsList).
+inline constexpr const char* kGasRegionName = "GasRegion";
+
 class DetectorConstruction : public G4VUserDetectorConstruction {
 public:
     explicit DetectorConstruction(const SimConfig& cfg);
@@ -23,6 +26,7 @@ public:
     G4double         GetHe3GasCenterZ() const { return fHe3GasCenterZ; }
 
 private:
+    G4VPhysicalVolume* ConstructWorld();
     void DefineMaterials();
     G4Material* GetGasMixture(const std::string& name);
 
