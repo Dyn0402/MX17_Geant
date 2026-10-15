@@ -1,5 +1,32 @@
 # Handoff
 
+## Primary ionization vs Heed (Stage A fix) — updated 2026-10-15 (dylan-MS-7C84)
+
+**Resume:** Stage A primaries fixed (e17c72c, -11 %); next: regenerate T14 Stage A products, get Alexandra's confirmation.
+
+**Goal:** check Alexandra's finding that Geant4 overpredicts drift-gas primaries versus Heed, and make Stage A as accurate as possible.
+
+**Done:**
+- Reproduced her Heed numbers. On a bare slab, option4 is +3.5 % on the mean and +10 % on the median (4 mm Ar/iso); PAI matches Heed to <1 % (e- and mu). About 30 % of her +35 % comes from material around the gas, not from the ionization model. `response/validation/heed_vs_g4/README.md`.
+- e17c72c: `GasProperties` (ideal-gas density at 20 C, proper mass fractions, Garfield W/Fano), PAI for e±/mu±/p/pi± in `GasRegion`, fluo+Auger+ignore-cut. mm_sim new/old primaries: 0.893 (100 MeV e-), 0.908 (150 GeV mu-). CPU per event unchanged.
+- `response/validation/heed_vs_g4/HANDOFF_ALEXANDRA.md`: claims C1-C6 for her repo's Claude to confirm.
+
+**Next steps:**
+1. Regenerate the Stage A products that feed T14 (EOS response_sim, yoga stageB). Until then, they are ~11 % high in primaries (scale by ~0.89 if needed).
+2. Send Alexandra the handoff link and collect her confirmation, in particular whether her full-stack ratio falls to ~1.30 with PAI.
+3. Optional data check of the absolute primary count, e.g. the most likely cluster charge on MIP tracks.
+
+**Gotchas / decisions:**
+- `G4EmParameters::AddPAIModel` is a silent no-op in Geant4 11.3, so PAI goes in via `G4EmConfigurator` in `PhysicsList::ConstructProcess`.
+- GasRegion MUST have its own `G4ProductionCuts` (`PhysicsList::SetCuts`). Couples map to regions by cuts pointer; with shared cuts, sub-keV electrons stall in solids and runs are ~10x slower. Repro: `slab.cc` header.
+- PAI in the kapton pillars (AmpGas daughters) costs only ~5 %. Early on I wrongly blamed them for the slowdown.
+- Heed's sum(E)/sum(n) is not a W (escaping deltas). Neither Heed nor G4 includes the Penning/Jesse effect on W.
+- Already on main before this work: the no-ROOT build fails (`RunAction.cc` is missing `<fstream>`), and MT + ROOT output crashes. Use `-t 1` jobs.
+
+**Key files & commands:**
+- `include/GasProperties.hh`, `src/PhysicsList.cc`, `src/DetectorConstruction.cc::Construct`, `src/SteppingAction.cc`
+- `response/validation/heed_vs_g4/{slab.cc,heed_mip.cc,compare.py}`. Build: Geant4 11.3.2 at `~/Software/geant4/install`, Garfield at `~/Software/garfield` (ROOT 6.40); build mm_sim with `-DROOT_DIR=~/Software/root_6_40/cmake`.
+
 ## Irakli DREAM bench data — updated 2026-10-14 (dylan-MS-7C84)
 
 **Resume:** FRESH_LOOK §19: reply to Irakli (protected or external C for NSW? protection BOM?), then get MX17 X/Y strip C.
