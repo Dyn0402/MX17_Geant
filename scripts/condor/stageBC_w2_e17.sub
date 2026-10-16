@@ -1,0 +1,45 @@
+# STAGE A e17c72c (2026-10-16): verdict 1 on the regenerated angled clusters (clusters_ang_e17/,
+# also on EOS response_sim/clusters/*_e17_t0.root). Same recipe as Aug 9 (4 GeV mu-, ArIso, 3000 ev,
+# 31.2 mm spread, src 100 mm), new seeds, built at e17c72c+ (PAI in the gas, ideal-gas density,
+# proper mass fractions). nPrimDrift medians 0.898-0.915 of the old files (all 5 angles).
+# bG 0.45 is the clean A/B against verdict 1; 0.50 / 0.55 refit the feedback for the lower
+# primary count. s 1.75, tp 166, noise _cmq, rho2M as verdict 1.
+#
+# PRE-REGISTERED (2026-10-16, before submission), ledger_m3 p50 data/sim vs verdict 1
+# (X 0.93/0.89/0.95, Y 1.04/1.06/1.07):
+#   * bG 0.45: every p50 data/sim up by 7-12 % (primaries -9 %; the avalanche and shaper are
+#     linear below the rail, saturation pulls the vertical X point to the low end). X sat fraction
+#     falls by 0.03-0.08. Inclined rise / FWHM within +-4 ns of verdict 1 (shape does not see gain).
+#   * bG 0.50 / 0.55: p50 data/sim falls back by 6-9 % / 13-18 % relative to bG 0.45; the joint
+#     X+Y p50 optimum moves to bG 0.49-0.53.
+# FALSIFIER: bG 0.45 p50 data/sim moves < 4 % or > 15 % anywhere -> the primaries do not feed the
+#   amplitude linearly (check Stage B's nPrimary handling), or the new seeds matter more than the fix.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w2.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+arguments               = "rho2M e17b$(bgt)_$(ang) /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07_cmq.json /afs/cern.ch/work/d/dneff/mx17_s1/clusters_ang_e17/mx17_muons_3k_ang_$(ang)_e17_t0.root '--ion-speed-scale 1.75 --feedback-bg $(bg) --shaper-tp-ns 166'"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_e17b$(bgt)_$(ang).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_e17b$(bgt)_$(ang).err
+queue bgt, bg, ang from (
+45, 0.45, th00
+45, 0.45, thx10
+45, 0.45, thx20
+45, 0.45, thy10
+45, 0.45, thy20
+50, 0.50, th00
+50, 0.50, thx10
+50, 0.50, thx20
+50, 0.50, thy10
+50, 0.50, thy20
+55, 0.55, th00
+55, 0.55, thx10
+55, 0.55, thx20
+55, 0.55, thy10
+55, 0.55, thy20
+)

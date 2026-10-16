@@ -39,6 +39,7 @@
 #include <string>
 
 #include <cstdlib>
+#include <map>
 #include "Garfield/AvalancheMicroscopic.hh"
 #include "Garfield/ComponentGrid.hh"
 #include "Garfield/MediumMagboltz.hh"
@@ -157,11 +158,15 @@ int gates_check(const char* mapfile = "meshfield_production.txt",
     aval.EnableAvalancheSizeLimit(50);
     int through = 0;
     double sum2 = 0.;
+    // Endpoint status of the electrons that did NOT pass (Garfield StatusXxx:
+    // -1 left the drift area, -5 left the drift medium = hit a wire, -17 time window).
+    std::map<int, int> stopped;
+    int noEndpoint = 0;
     for (int i = 0; i < nev; ++i) {
       const double x0 = (RndmUniform() - 0.5) * kPitch;
       const double y0 = (RndmUniform() - 0.5) * kPitch;
       aval.AvalancheElectron(x0, y0, 180.0e-4, 0., 0.1, 0., 0., 0.);
-      if (aval.GetNumberOfElectronEndpoints() == 0) continue;
+      if (aval.GetNumberOfElectronEndpoints() == 0) { ++noEndpoint; continue; }
       double xs, ys, zs, ts, es, xe, ye, ze, te, ee;
       int status;
       aval.GetElectronEndpoint(0, xs, ys, zs, ts, es,
@@ -169,6 +174,8 @@ int gates_check(const char* mapfile = "meshfield_production.txt",
       if (ze < -(kZOff + kWireR + 10.0e-4)) {
         ++through;
         sum2 += (xe - x0) * (xe - x0) + (ye - y0) * (ye - y0);
+      } else {
+        ++stopped[status];
       }
       if ((i + 1) % 200 == 0)
         std::printf("\r  transparency: %d / %d e-", i + 1, nev);
@@ -185,6 +192,10 @@ int gates_check(const char* mapfile = "meshfield_production.txt",
     std::printf("\rG7 transparency: %.3f +- %.3f (1D-model reference 0.873; "
                 "3D value is the deliverable), funnel rms %.1f um -> %s\n",
                 eps, err, rms, ok ? "PASS" : "FAIL");
+    std::printf("G7 stopped by status (%s steps):", nullColl ? "null-collision" : "default");
+    for (const auto& kv : stopped)
+      std::printf("  %d: %d (%.2f%%)", kv.first, kv.second, 100. * kv.second / nev);
+    std::printf("  no endpoint: %d\n", noEndpoint);
   }
 
   std::cout << (pass ? "\nALL GARFIELD GATES PASS for " :

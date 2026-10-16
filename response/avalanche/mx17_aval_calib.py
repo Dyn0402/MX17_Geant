@@ -115,6 +115,12 @@ def parse_args():
                         "— this only bounds the size of the raw per-electron "
                         "arrays (a 56-slice campaign's raw JSONs ran to 19 GB "
                         "unbounded; see design/report/DESKTOP_RUNS_2026-08-07.md).")
+    p.add_argument("--null-collision", action="store_true",
+                   help="AvalancheMicroscopic::EnableNullCollisionSteps: re-read "
+                        "the field at every null collision instead of once per "
+                        "free flight. Matters near the mesh wires for hot "
+                        "electrons (G7 0.95 -> 0.99, design/report/"
+                        "MESH_COMPARISON_P2_GEANT_GARFIELD_2026-10-14.md).")
     p.add_argument("--field-map", default=None,
                    help="Path to a meshfield_<tag>.txt map from "
                         "solve_fieldmap.py (T6, FIELD_MAP_RUNBOOK.md). When "
@@ -318,6 +324,8 @@ def main():
     aval = G.AvalancheMicroscopic()
     aval.SetSensor(sensor)
     aval.EnableSignalCalculation()
+    if args.null_collision:
+        aval.EnableNullCollisionSteps(True)
     if args.max_avalanche > 0:
         aval.EnableAvalancheSizeLimit(args.max_avalanche)
 
@@ -431,6 +439,7 @@ def main():
             "host": os.uname().nodename,
             "runtime_s": time.time() - t_start,
             "campaign_label": args.campaign_label,
+            "null_collision_steps": bool(args.null_collision),
         },
         "config": {
             "gas_file": os.path.basename(args.gas_file),
