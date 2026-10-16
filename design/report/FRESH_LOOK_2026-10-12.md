@@ -1832,3 +1832,89 @@ Saclay-internal, so they are **not in this public repo**. Originals, text dumps 
   3. Charge division does not change pulse shape (§17.2 stands).
 - **Ask Irakli:** were the NSW numbers from protected FEUs or an external C? Ask for the protection
   schematic/BOM. A P2 repeat should use an external pulser on the detector side of a *protected* FEU.
+
+## 20. Three one-variable tests against verdict 1: ion mobility, ρ_s 5 MΩ/sq, corrected primaries (2026-10-16)
+
+Condor 4472241 (`stageBC_w2_ionK.sub`), 4472242 (`stageBC_w2_rho5M.sub`) and 4472245 (`stageBC_w2_e17.sub`),
+evaluated on yoga with `ledger_m3.py`, `shape_all.py` and `profile_tails.py` (`~/ledger_1016_{v1,ionK,r5,e17}.log`,
+`~/shape_1016.log`, `~/profile_1016_*.log` on yoga). Predictions were registered in each .sub header before
+submission. Ledger values are p50 data/sim, data by true M3 angle. Shape values are sim − data.
+
+### 20.1 Ion mobility (`--ion-model reconstructed --ion-mobility K0=…`): passes; K0 2.05 ≈ verdict 1
+
+| K0 | inclined rise vs verdict 1 [ns] | FWHM vs verdict 1 [ns] | p50 data/sim vs verdict 1 | pre-registered rise / p50 |
+|---|---|---|---|---|
+| 1.80 | +15..+16 | +18..+20 | +2.9..+7.0 % | +10..+20 / +4..+9 % |
+| **2.05** | **+5..+6** | +4..+6 | **+0.9..+2.2 %** | +2..+8 / 0..+4 % |
+| 2.25 | −1 | −2..−1 | −0.6..−0.2 % | −6..0 / −3..0 % |
+
+- Falsifier (K0 2.05 > 10 ns or > 6 % from verdict 1) **not triggered**. The X saturated fraction moves
+  ≤ 0.03 at every K0. FWHM at K0 2.05 is 1 ns over its 0..+5 band in three of four views. K0 1.80's
+  0° p50 (+2.9 %) is just under its band. Everything else lands inside.
+- So the reconstructed hydrocarbon ion and the time-compressed Ar⁺ template are equivalent, and
+  verdict 1's s = 1.75 reads as **K0 ≈ 2.2** (the 2.25 point reproduces verdict 1 to 1 ns and 0.6 %).
+  K0 2.05, the working literature value, is 5–6 ns slower on the inclined rise, which is already
+  +8..+16 ns over the data.
+- **Proposed default:** `--ion-model reconstructed --ion-mobility K0=2.05`, with 1.80/2.25 as the
+  systematic (rise +10 / −6 ns, amplitude ±3–5 %). Not switched yet: it costs 5 ns of inclined-rise
+  agreement for a physical parameter, and that trade is Dylan's call.
+
+### 20.2 ρ_s = 5 MΩ/sq: the Y wings close, Y/X does not; **falsifier triggered**
+
+| | verdict 1 (2 MΩ/sq) | ρ_s 5 MΩ/sq | data | pre-registered |
+|---|---|---|---|---|
+| Y p50 data/sim, 0° | 1.04 | 0.92 | – | 0.75–0.90 |
+| X p50 data/sim, 0° | 0.93 | 0.88 | – | 1.00–1.15 |
+| sim Y/X change | – | +1.3..+7.2 % | – | +20..+50 % |
+| Y ±2 wing (amp/pk, 0°) | 0.244 | 0.172 | 0.165 | 0.4–0.7 × verdict 1 |
+| Y ±3 wing (amp/pk, 0°) | 0.089 | 0.040 | 0.049 | |
+| X ±1 (amp/pk, 0°) | 0.46 | 0.41 | 0.56 / 0.42 | change < 15 % |
+| X 10° rise vs data [ns] | +10 | +9 | | change ≤ 6 ns |
+
+- **The Y wings match the data near 4–5.6 MΩ/sq** (log-interpolating ±3 and ±2), not at the 2.5 MΩ/sq the
+  point source suggested (§18.10). At 5 MΩ/sq the ±2 wing is 0.70 × verdict 1, at the top of its predicted
+  0.4–0.7 band and within 4 % of the data.
+- **Y/X barely moves.** The sim's Y amplitude goes up, but so does X's (X data/sim falls 5–9 % instead
+  of rising 7–20 %), so the sim's Y/X rises only 1–7 %. Matching the data's Y/X by ρ_s alone would need
+  ~8.5 MΩ/sq at 0° and ≫ 10 MΩ/sq at the inclined angles. The two interpolations disagree by far more
+  than the factor 1.5 the falsifier allowed, and Y/X moved < 10 % at three of four angles.
+- **Reading:** ρ_s sets the Y lateral spread and the data prefer ~4–5 MΩ/sq for it, but the ~12–20 %
+  Y/X amplitude offset is a separate effect. The pre-registered alternative is the next suspect:
+  charge division by the protection network and the X/Y strip capacitance (§19, item 2). The X-peak
+  prediction failed in sign, so the point-source kernel picture of how X0 responds to ρ_s (§18.10:
+  −7 % at 2.5 MΩ/sq) is wrong once the cloud is included.
+- The thx20 point is missing from the r5 ledger (`ledger_1016_r5.log` has eight rows); nothing
+  above depends on it.
+
+### 20.3 Stage A with the e17c72c primaries: amplitude passes, joint bG lands at 0.47
+
+| bG | X p50 data/sim (mean of 5 angles) | Y | joint (geo. mean) |
+|---|---|---|---|
+| verdict 1 (old primaries, 0.45) | 0.90 | 1.03 | 0.96 |
+| 0.45 | 0.97 | 1.12 | 1.04 |
+| 0.50 | 0.87 | 1.01 | 0.94 |
+| 0.55 | 0.79 | 0.89 | 0.83 |
+
+- **bG 0.45 vs verdict 1:** p50 data/sim up **+5.2..+10.3 %** (predicted +7..+12 %; falsifier < 4 % or
+  > 15 % **not triggered**; the 0° X/Y and X 20° points are 1–2 % under the band). The X saturated
+  fraction falls 0.025–0.075 (predicted 0.03–0.08). Rise and FWHM are within 1 ns of verdict 1
+  (predicted ±4). The primaries feed the amplitude linearly.
+- **The amplitude falls faster with bG than predicted:** −8..−11 % at 0.50 and −16..−22 % at 0.55,
+  against −6..−9 % and −13..−18 %. So the joint optimum is **bG ≈ 0.47**, below the pre-registered
+  0.49–0.53 (prediction missed). X alone wants ~0.44, Y alone ~0.50. That 15 % split is the §20.2 Y/X
+  offset, still present with the corrected primaries.
+- With the corrected primaries, verdict 1's bG barely moves (0.45 → 0.47) and the photon-feedback
+  picture survives. Refit bG properly once the Y/X offset has a cause, since a joint fit now averages over it.
+
+### 20.4 What changes
+
+1. Ion: the K0 2.05 reconstruction is a drop-in for s = 1.75. Default switch pending (20.1).
+2. ρ_s: the Y-wing preference moves from 2.5 to ~4–5 MΩ/sq. That is above the T2b band (1.42–2.56),
+   so check the T2b measurement's geometry against what the wing sees. Y/X is **not** ρ_s: next is
+   the strip-C / protection charge division (§19), which needs the MX17 X/Y strip capacitances.
+3. Primaries: use the e17 clusters from now on, with bG ≈ 0.47 as the interim value.
+4. Separately (2026-10-16, night): every PyROOT Garfield run on lxplus/condor used the LCG_109 view's
+   Garfield headers against our 927e5c21 library. Class layouts differ (ComponentGrid 688 vs 720 bytes,
+   AvalancheMicroscopic 616 vs 680, MediumMagboltz, …), which overruns the heap. All 56 nc1 slices
+   died or hung in the guard. Fixed in nTof_x17 `setup_garfield.sh` (faefdac, ROOT_INCLUDE_PATH order).
+   An A/B audit of the old setup against the fixed one, same seed, is in the HANDOFF.
