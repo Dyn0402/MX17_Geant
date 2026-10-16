@@ -171,10 +171,14 @@ def main():
         penning_applied = bool(
             gas.EnablePenningTransfer(args.penning_rp, 0., args.penning_gas))
 
-    # Ion mobility: needed for the ion tail. Ar+ in Ar is the dominant ion in
-    # Ar/iso after charge transfer to isobutane; the iC4H10 file is the other
-    # bracket. Using Ar+ is the conservative (faster ion) choice and the plan
-    # already flags ion mobility as the softest parameter (±30 % systematic).
+    # Ion mobility: needed for the ion tail. NOTE this is the wrong species.
+    # In Ar/iso the Ar+ hands its charge to isobutane within ~1 ns, and the
+    # ion that drifts is a hydrocarbon (t-C4H9+-like, K0 ~2.05, 1.8-2.25).
+    # Ar+ is the *slower* ion (charge exchange; K0 1.21 at 124 Td), so this
+    # table makes the ion tail ~1.5-1.85x too slow. Keep it here for the
+    # calib's ion charge and birth heights, and set the mobility downstream:
+    # `--ion-model reconstructed --ion-mobility K0=2.05` in the digitizer.
+    # See reports/Simulating Penning and ion transport.md.
     data_dir = os.path.join(os.environ.get("GARFIELD_INSTALL", ""),
                             "share", "Garfield", "Data")
     ion_file = os.path.join(data_dir, "IonMobility_Ar+_Ar.txt")

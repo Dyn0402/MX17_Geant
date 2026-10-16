@@ -1,0 +1,36 @@
+# RHO_S 5 MOhm/sq (2026-10-16): verdict 1 at rho_s 5M instead of 2M, nothing else changed
+# (s 1.75, bG 0.45, tp 166, noise _cmq, same clusters and seed). FRESH_LOOK §18.10: the Y wings pass
+# COMSOL 3D, so the remaining ~15 % X/Y offset and the too-wide Y profile (§18.6) point at rho_s;
+# the point source puts the match near 2.5 MOhm/sq. 5M brackets it with verdict 1 (2M).
+# Evaluate with ledger_m3.py (Y/X, p50 data/sim) + the Y profile at +-1..3 strips (profile_tails.py),
+# against verdict 1 and the data.
+#
+# PRE-REGISTERED (2026-10-16, before submission), relative to verdict 1 (point source, §18.10:
+# 2M -> 5M gives Y0/X0 x1.68, Y2/Y0 x0.40, X1/X0 x1.5; the cloud dilutes this):
+#   * Y/X amplitude (sim) rises 20-50 %: Y p50 data/sim falls from ~1.05 to 0.75-0.90 (overshoot);
+#     the X peak strip loses 7-20 %, so X p50 data/sim rises from ~0.93 to 1.00-1.15.
+#   * Y profile: next-strip wings (+-2..3) drop to 0.4-0.7 of verdict 1, i.e. below the data.
+#   * X profile (+-1..3) changes < 15 %; inclined rise changes <= 6 ns in X.
+#   * Log-interpolating Y/X and the Y wing between 2M and 5M, each lands at rho_s 2.2-3.2 MOhm/sq.
+# FALSIFIER: the Y/X interpolation and the Y-wing interpolation disagree by more than a factor 1.5
+#   in rho_s, or Y/X moves < 10 % -> rho_s is not the single lever behind §18.6 (look at charge
+#   division / strip C, FRESH_LOOK §19).
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w2.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+arguments               = "rho5M r5verdict1_$(ang) /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07_cmq.json /afs/cern.ch/work/d/dneff/mx17_s1/clusters_ang/mx17_muons_3k_ang_$(ang)_t0.root '--ion-speed-scale 1.75 --feedback-bg 0.45 --shaper-tp-ns 166'"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_r5verdict1_$(ang).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_r5verdict1_$(ang).err
+queue ang from (
+th00
+thx10
+thx20
+thy10
+thy20
+)

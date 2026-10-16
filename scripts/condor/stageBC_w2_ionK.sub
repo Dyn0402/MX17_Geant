@@ -1,0 +1,51 @@
+# ION MOBILITY, physical (2026-10-16): verdict 1 with the ion rebuilt for a hydrocarbon mobility
+# instead of the time-compressed Ar+ template (--ion-speed-scale 1.75).
+#   --ion-model reconstructed --ion-mobility K0=<x>   ions.reconstructed_longitudinal: the calib's
+#       electron spike, ion charge and birth heights, the ion path rebuilt in the T6 map's E_z/psi.
+#   K0 2.05 working value, 1.8 / 2.25 the bracket (reports/Simulating Penning and ion transport.md).
+#   Everything else as verdict 1: bG 0.45, tp 166, noise _cmq, rho2M, same clusters and seed.
+#   Clusters are the pre-e17c72c Stage A (primaries ~11 % high), the same as verdict 1, on purpose:
+#   one variable at a time.
+# Evaluate with ledger_m3.py + shape_all.py on yoga (data by TRUE M3 angle), as verdict 1.
+#
+# PRE-REGISTERED (2026-10-16, before submission). In the 31.0 kV/cm bulk Ar+ has K0 1.212, and
+# the reconstruction runs 2.8 % slow against the measured template (test_ion_reconstructed), so
+# K0 1.8 / 2.05 / 2.25 act like s ~1.44 / 1.65 / 1.81. From the bgtp scan (§18.7: rise ~ -48 ns
+# per unit s, amplitude data/sim ~ -0.2 per unit s), relative to verdict 1:
+#   * K0 2.05: inclined rise +2..+8 ns, FWHM +0..+5 ns; p50 data/sim up 0..+4 %. Still inside
+#     verdict 1's pre-registered bands (rise +2..+12, Y20 +5..+18; X p50 0.90-1.02).
+#   * K0 1.80: rise +10..+20 ns (like s 1.46: X10 rise ~+20 ns over data), p50 data/sim +4..+9 %.
+#   * K0 2.25: rise -6..0 ns, p50 data/sim -3..0 %.
+#   * saturated fraction X within 0.05 of verdict 1 at every K0; noise unchanged.
+# FALSIFIER: K0 2.05 differs from verdict 1 by > 10 ns in any inclined rise or > 6 % in any p50 ->
+#   the reconstruction is not equivalent to the scaled template (field/psi profile or birth-height
+#   handling matters), and verdict 1's s=1.75 cannot be read as K0 ~2.1.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w2.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+arguments               = "rho2M ionK$(tag)_$(ang) /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07_cmq.json /afs/cern.ch/work/d/dneff/mx17_s1/clusters_ang/mx17_muons_3k_ang_$(ang)_t0.root '--ion-model reconstructed --ion-mobility K0=$(k0) --feedback-bg 0.45 --shaper-tp-ns 166'"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_ionK$(tag)_$(ang).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_ionK$(tag)_$(ang).err
+queue tag, k0, ang from (
+180, 1.80, th00
+180, 1.80, thx10
+180, 1.80, thx20
+180, 1.80, thy10
+180, 1.80, thy20
+205, 2.05, th00
+205, 2.05, thx10
+205, 2.05, thx20
+205, 2.05, thy10
+205, 2.05, thy20
+225, 2.25, th00
+225, 2.25, thx10
+225, 2.25, thx20
+225, 2.25, thy10
+225, 2.25, thy20
+)

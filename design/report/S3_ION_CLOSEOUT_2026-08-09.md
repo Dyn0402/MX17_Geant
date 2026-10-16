@@ -87,13 +87,22 @@ law puts it at K₀ ≈ 1.16 against Ar⁺'s 1.21 — **4 % slower, not 2× fast
 Flagged to the avalanche session: harmless here, materially wrong for a future
 CF₄-bearing gas, and it is a per-gas property carried as a universal constant.
 
+> **Retracted 2026-10-16.** The 1.16 is wrong. It plugged Ar⁺'s
+> charge-exchange-limited mobility in as the Ar-component mobility of a
+> hydrocarbon ion, which does not transfer between species. Done correctly
+> (from Coimbra's measured K₀ = 2.26 in 98/2), Blanc's law gives K₀ ≈ 2.10–2.16
+> at low field; the working value at gap fields is **K₀ ≈ 2.05 (1.8–2.25)**,
+> i.e. the hydrocarbon ion is **1.5–1.85× faster** than Ar⁺, the opposite
+> direction. Species is a real lever, not an eliminated one. See
+> `reports/Simulating Penning and ion transport.md` and `HANDOFF.md`.
+
 ## What was eliminated, and how
 
 | Candidate | Leverage | Verdict |
 |---|---|---|
 | f_ion (charge split) | — | **0.9056**, +0.5 % and the wrong way |
 | i_ion template shape | 13 ns (median) | Validated to 3.8 %; not load-bearing |
-| Ion species / mobility | −4 % | Wrong direction |
+| Ion species / mobility | ~~−4 %~~ **+50–85 % faster** | ~~Wrong direction~~ **Retracted 2026-10-16: right direction, partial lever** |
 | T10 / lateral factorisation | **3.7 ns** | Dead. Ion image ≤ its own height (149 µm) vs an 800 µm channel pitch; central share falls 1.0000 → 0.977 at worst |
 | β / PZC residual | 4 ns over its whole range | Already scanned; too weak |
 | Peaking-time register | 50–65 ns per code — enough | **Code 2**, 44/44 archived configs |

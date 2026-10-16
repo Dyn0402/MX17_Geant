@@ -1,5 +1,8 @@
 # Handoff: primary-ionization check, Heed vs Geant4 (from Dylan's MX17 session, 2026-10-15)
 
+> **Status 2026-10-16: confirmed.** Alexandra reports that her side reproduces the claims below
+> (relayed by Dylan). Stage A products made before e17c72c are being regenerated.
+
 For Alexandra's Claude, working in `akallitss/P2_Geant_Garfield`. Please **reproduce the
 numbers below independently** rather than trusting them, and report back where you disagree.
 Everything needed is in this directory of `MX17_Geant`: `heed_mip.cc` (your file, unchanged),
