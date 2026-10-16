@@ -1,0 +1,32 @@
+# mx17_aval_nc1.sub — the 56-slice T7 meshfield campaign with null-collision steps, on condor.
+#
+# Same grid and seeds as the 2026-08-08 production pool (mx17_aval_points.txt; every slice runs at the
+# map's 490 V, whatever its VOLT label says), plus --null-collision. Results go to EOS
+# response_sim/avalanche/raw_meshfield_nc1_20261016/; see mx17_aval_nc1_wrap.sh.
+#
+# Garfield: garfield-927e5c21p.tar.gz = pin 927e5c21 + the ComponentGrid patch (the old lxplus tarball
+# lacked it; check_grid_active.py stops a job on such a build).
+#
+# Prediction (scratchpad/2026-10-16/aval_nullcoll_490_result.md), against aval_calib_meshfield_pooled.json:
+# survival 0.990-0.997 (was 0.9559), gain|surv within +-3 % of 24 094, theta within +-0.1,
+# sigma0 and t_arrival within 3 %. Falsifier: gain|surv shifts >5 %, or survival < 0.985.
+#
+#     condor_submit mx17_aval_nc1.sub
+
+OUTSUB                  = raw_meshfield_nc1_20261016
+universe                = vanilla
+executable              = mx17_aval_nc1_wrap.sh
+arguments               = $(GASFILE) $(VOLT) $(NEV) $(SEED) $(TAG) $(OUTSUB)
+transfer_input_files    = mx17_aval_calib.py, setup_garfield.sh, check_grid_active.py, /afs/cern.ch/user/d/dneff/work/git/nTof_x17/garfield_sim/gas_tables/$(GASFILE), /afs/cern.ch/user/d/dneff/work/garfield_install/garfield-927e5c21p.tar.gz
+should_transfer_files   = YES
+when_to_transfer_output = ON_EXIT
+transfer_output_files   = done_$(TAG).txt
+output                  = logs_nc1/$(TAG).out
+error                   = logs_nc1/$(TAG).err
+log                     = logs_nc1/aval_nc1.clog
+request_cpus            = 1
+request_memory          = 6 GB
+request_disk            = 3 GB
++MaxRuntime             = 86400
+max_retries             = 2
+queue GASFILE,VOLT,NEV,SEED,TAG from mx17_aval_points.txt
