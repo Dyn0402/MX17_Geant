@@ -1,8 +1,8 @@
 # Handoff
 
-## Sim to-do sweep: ion K0, rho_s 5M, Stage A e17, mesh G7 — updated 2026-10-16 (dylan-MS-7C84)
+## Sim to-do sweep: ion K0, rho_s 5M, Stage A e17, mesh G7 — updated 2026-10-17 (dylan-Yoga)
 
-**Resume:** check condor 4474686/4474488 (nc1 avalanche, EOS) and the desktop relay log, then pool nc1 + read yoga ledgers.
+**Resume:** all results are in and written up (FRESH_LOOK §20). Next: Dylan decides the ion default (§20.1); chase Y/X via strip C / protection (§19), not rho_s.
 
 **Goal:** work through the outstanding sim list: physical ion mobility, the rho_s lever for Y sharing,
 Stage A products with the e17c72c primary fix, mesh transparency with null-collision steps.
@@ -31,6 +31,36 @@ Stage A products with the e17c72c primary fix, mesh transparency with null-colli
 - **lxplus Garfield was unpatched**: the old `garfield-927e5c21.tar.gz` ignores the map's inactive regions (0 % vs 1.64 % on the
   desktop, so electrons cross the wires). Rebuilt as `~/work/garfield_install/lcg109-927e5c21p` + `garfield-927e5c21p.tar.gz`
   (`scratchpad/2026-10-16/build_garfield_927e5c21p_lxplus.sh`). `response/avalanche/check_grid_active.py` now guards each job.
+
+**2026-10-17 session (yoga): results read, nc1 campaign rescued**
+- **Relay results → FRESH_LOOK §20** (commit 4d03edf):
+  - ionK: passes. K0 2.05 is +5–6 ns rise and +1–2 % p50 vs verdict 1. s = 1.75 corresponds to K0 ≈ 2.2 (2.25 reproduces it to 1 ns).
+    **Default NOT switched.** Dylan's call: physical K0 2.05 vs 5 ns of inclined-rise agreement.
+  - rho5M: **falsifier triggered.** The Y wings match the data at ~4–5.6 MΩ/sq (not 2.5), but sim Y/X moves only 1–7 %
+    (X brightens too). Y/X is not rho_s, so the next suspect is strip C / protection charge division (§19). The thx20 point is missing from r5.
+  - e17: passes (+5..+10 % p50 at bG 0.45). The amplitude falls faster with bG than predicted, so the joint optimum is **bG ≈ 0.47**
+    (pre-registered 0.49–0.53: missed). X alone wants 0.44, Y alone 0.50.
+- **lxplus/condor Garfield was broken by header order** (nTof_x17 faefdac): the LCG_109 view ships Garfield 78fe1bd3 headers
+  on ROOT_INCLUDE_PATH, so cling laid out our 927e5c21 classes wrong (ComponentGrid 688 vs 720 B, AvalancheMicroscopic,
+  MediumMagboltz…). That causes a heap overrun: all 56 nc1 jobs died (malloc assert) or hung (25 s CPU in 4.5 h) in the grid guard.
+  The fix puts `$GARFIELD_INSTALL/include` first in `setup_garfield.sh`. It is deployed to `~/work/mx17_response/{avalanche,avalanche_nc1}` on AFS.
+  The AFS clone `~/work/git/nTof_x17` has someone's uncommitted edits, so it was NOT pulled and still has the old script.
+  `mx17_response/gas/setup_garfield.sh` is the old version too.
+  - **Audit (condor 4474927, §20.4):** the August script and tarball with fixed headers give 45.0k vs August's 42.8k/46.4k at 490 V
+    uniform field, which is not significant. Old calibs look OK. Field-map lxplus runs were not audited separately.
+  - `mx17_aval_calib.py` is **not reproducible per seed** (two same-seed runs differ), so only statistical A/Bs work.
+- **nc1 campaign done** (condor 4474926, 56/56): pooled at EOS `response_sim/avalanche/aval_calib_meshfield_nc1_pooled.json`
+  (`scratchpad/2026-10-16/pool_nc1.py`). ε 0.956 → **0.993**, gain|surv ×**0.970**, **ε×gain ×1.007**, so **no bG refit needed**.
+  The chain still uses the nc0 file. The Mesh card text on the site is updated (dylan-cern-site 415417e). FRESH_LOOK §20.5.
+- The desktop is booted into Windows. Its relay finished before that (ledgers on yoga `~/ledger_1016_*.log`).
+
+**Next steps:**
+1. Dylan: switch the ion default to `--ion-model reconstructed --ion-mobility K0=2.05`? (§20.1)
+2. Y/X: get the MX17 X/Y strip capacitances and send Irakli the questions (`scratchpad/2026-10-16/irakli_questions.md`, Dylan by email).
+3. At the next full chain pass: e17 clusters, bG ≈ 0.47, the nc1 calib file, and rho_s ~4–5 MΩ/sq for the Y wings (check it against the T2b band 1.42–2.56).
+4. Still open: the Ar/CF4 out-of-sample test; the true-angle selection in nTof_x17 `t14_compare.py`; ADC/fC −10 %.
+
+<details><summary>2026-10-16 state (superseded)</summary>
 
 **Running (left going at wrap-up, 2026-10-16 ~18:00):**
 - **nc1 avalanche campaign on condor** (the 56 slices of `mx17_aval_points.txt`, `--null-collision`, patched Garfield):
@@ -65,6 +95,8 @@ Stage A products with the e17c72c primary fix, mesh transparency with null-colli
    (`design/report/deck/make_chain_animation.py`, `EPS_MESH`). Held jobs: `condor_q -hold`.
 3. Send Irakli the questions in `scratchpad/2026-10-16/irakli_questions.md` (Dylan, by email).
 4. Still open: the Ar/CF4 out-of-sample test; the true-angle selection in nTof_x17 `t14_compare.py`; ADC/fC −10 %.
+
+</details>
 
 **Gotchas / decisions:**
 - **/media/ucla is failing (2026-10-16)**; Dylan copied it to EOS for recovery. Don't write there. The desktop root and

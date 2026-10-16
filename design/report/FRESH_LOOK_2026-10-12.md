@@ -1919,7 +1919,11 @@ submission. Ledger values are p50 data/sim, data by true M3 angle. Shape values 
    died or hung in the guard. Fixed in nTof_x17 `setup_garfield.sh` (faefdac, ROOT_INCLUDE_PATH order).
    The avalanche script is not reproducible per seed (two same-seed runs differ event by event), so the
    audit is statistical: condor 4474927, the August script (baf2873) and tarball with the fixed headers,
-   8 × 140 ev at 490 V uniform, against `results_v2` (42.7k, 1120 ev).
+   8 × 140 ev at 490 V uniform, against `results_v2` (42.7k, 1120 ev). **Result:** gain 45.0k (θ 1.97,
+   σ₀ 33.6 µm) vs 42.8k (θ 1.57, σ₀ 33.7 µm), +5.3 ± 2.6 %. August's own same-setup repro gave 46.4k
+   (280 ev), so against the pooled August value (43.5k) it is +3.5 % (~1.4σ). No significant bias: the
+   mismatch did not visibly distort the August uniform-field calibration (< ~5 % on gain, σ₀ unchanged).
+   Field-map runs were not audited separately.
 
 ### 20.5 Null-collision avalanche campaign (condor 4474926): ε × gain moves only +0.7 %
 
