@@ -25,8 +25,11 @@ source "$(dirname "${BASH_SOURCE[0]}")/setup_garfield.sh"
 xrdcp -f "$EOS/fieldmaps/meshfield_production.txt" meshfield_production.txt
 xrdcp -f "$EOS/fieldmaps/meshfield_production.json" meshfield_production.json
 # The unpatched Garfield silently treats the whole map as gas (no wires): stop rather than simulate that.
-python3 check_grid_active.py meshfield_production.txt 2>&1 | grep check_grid_active
-[ "${PIPESTATUS[0]}" = 0 ] || { echo "[wrap] FATAL: Garfield build ignores inactive regions" >&2; exit 4; }
+# (No pipe here: under set -e a failed grep exited the job silently, 2026-10-16.)
+rc=0; python3 -u check_grid_active.py meshfield_production.txt > grid_check.log 2>&1 || rc=$?
+grep check_grid_active grid_check.log || tail -5 grid_check.log
+[ "$rc" = 0 ] || { echo "[wrap] FATAL: active-region check failed (rc=$rc)" >&2; tail -20 grid_check.log >&2; exit 4; }
+rm -f grid_check.log
 
 python3 -u mx17_aval_calib.py \
     --gas-file "$1" \

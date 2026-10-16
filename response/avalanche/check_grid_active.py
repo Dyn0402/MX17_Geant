@@ -11,6 +11,7 @@ bounding box as inactive (wires + below the anode); the unpatched one sees 0 (20
 """
 import ctypes
 import itertools
+import os
 import sys
 
 import ROOT
@@ -29,5 +30,6 @@ inactive = sum(
     not grid.GetMedium(*[box[a] + (box[a + 3] - box[a]) * (c + .5) / N for a, c in enumerate(ijk)])
     for ijk in itertools.product(range(N), repeat=3))
 frac = inactive / N ** 3
-print(f"[check_grid_active] inactive fraction {frac:.4f}")
-sys.exit(0 if frac > 0.005 else 1)
+print(f"[check_grid_active] inactive fraction {frac:.4f}", flush=True)
+# os._exit skips the ROOT/Garfield teardown, which sometimes segfaults after the answer is known.
+os._exit(0 if frac > 0.005 else 1)

@@ -2,7 +2,7 @@
 
 ## Sim to-do sweep: ion K0, rho_s 5M, Stage A e17, mesh G7 — updated 2026-10-16 (dylan-MS-7C84)
 
-**Resume:** jobs left running; once `~/x17/relay_1016.log` says RELAY DONE, read the yoga ledgers vs the predictions in the .sub files.
+**Resume:** check condor 4474686/4474488 (nc1 avalanche, EOS) and the desktop relay log, then pool nc1 + read yoga ledgers.
 
 **Goal:** work through the outstanding sim list: physical ion mobility, the rho_s lever for Y sharing,
 Stage A products with the e17c72c primary fix, mesh transparency with null-collision steps.
@@ -25,7 +25,21 @@ Stage A products with the e17c72c primary fix, mesh transparency with null-colli
 - MX17_Full_Geant gas port: already done by another session (81f619b, merged).
 - Old `noise_det3.json`: nothing uses it, apart from the fallback defaults (`run_stageBC_w2.sh:79`, `run.py --noise`). Not regenerated.
 
-**Running (left going at wrap-up, ~14:05):**
+- **Avalanche nc0 vs nc1** (490 V, 4×140 ev, desktop): survival 0.950 → **0.995**, gain|surv ratio **0.998 ± 0.040**
+  (`scratchpad/2026-10-16/aval_nullcoll_490_result.md`; raw `~/x17/aval_nullcoll_2026-10-16/`). So the production calib's 0.9559
+  survival is a stepping artefact and the chain's mesh transparency is ~4 % low.
+- **lxplus Garfield was unpatched**: the old `garfield-927e5c21.tar.gz` ignores the map's inactive regions (0 % vs 1.64 % on the
+  desktop, so electrons cross the wires). Rebuilt as `~/work/garfield_install/lcg109-927e5c21p` + `garfield-927e5c21p.tar.gz`
+  (`scratchpad/2026-10-16/build_garfield_927e5c21p_lxplus.sh`). `response/avalanche/check_grid_active.py` now guards each job.
+
+**Running (left going at wrap-up, 2026-10-16 ~18:00):**
+- **nc1 avalanche campaign on condor** (the 56 slices of `mx17_aval_points.txt`, `--null-collision`, patched Garfield):
+  - 4474488: 6 jobs running since 17:02 (470V_s6, 490V_s5, 500V_s2, 500V_s8, 520V_s1, 520V_s8).
+  - 4474686: the other 50, resubmitted ~17:55 (`mx17_aval_points_nc1_resub1.txt`) after the first try held: a `| grep` under
+    `set -e` made the guard exit silently (fixed), and 520V_s4 went over 6 GB (12.3 GB; request now 10 GB).
+  - Job dir `lxplus:~/work/mx17_response/avalanche_nc1`; output `/eos/experiment/ntof/data/x17/response_sim/avalanche/raw_meshfield_nc1_20261016/`
+    (expect 56 `aval_meshfield_*.json`, ~55 MB each). The wrapper skips slices already on EOS, so a resubmit is safe.
+  - Prediction (pre-registered in `mx17_aval_nc1.sub`): survival 0.990–0.997, gain|surv within ±3 % of 24 094.
 - Condor **all finished, exit 0** (outputs on AFS `mx17_s1/stageBC/<name>/`, and on EOS `response_sim/stageB_w2/<name>/`):
   - 4472241 `stageBC_w2_ionK.sub`: verdict 1 with `--ion-model reconstructed --ion-mobility K0=1.80/2.05/2.25` → ionK180/205/225_<ang>
   - 4472242 `stageBC_w2_rho5M.sub`: verdict 1 at rho_s 5M → r5verdict1_<ang>
@@ -46,13 +60,17 @@ Stage A products with the e17c72c primary fix, mesh transparency with null-colli
    - r5verdict1: Y/X and the Y wings (profile logs), then log-interpolate the rho_s that matches each. Do they agree near 2.5?
    - e17b: the bG that best fits X+Y jointly on the corrected primaries (prediction 0.49–0.53).
    - Write the results up as FRESH_LOOK §20.
-2. **Done 16:17:** avalanche nc0 vs nc1 gives survival 0.950 → 0.995, gain|surv ratio 0.998 ± 0.040 (`scratchpad/2026-10-16/aval_nullcoll_490_result.md`). The 56-slice `NULLCOLL=1` campaign was launched at 16:18 → `/media/ucla/mx17_response_sim/avalanche/results_meshfield_nc1_20261016/` (its prediction is in the note). **/media/ucla is failing (2026-10-16 ~16:50):** the desktop campaign was stopped before any slice finished. It moved to condor: `response/avalanche/mx17_aval_nc1.sub` + `mx17_aval_nc1_wrap.sh`, job dir `lxplus:~/work/mx17_response/avalanche_nc1`, outputs on EOS `response_sim/avalanche/raw_meshfield_nc1_20261016/`, field map on EOS `response_sim/avalanche/fieldmaps/`. **The old lxplus Garfield tarball lacks the ComponentGrid patch** (0 % of the map inactive vs 1.64 % on the desktop, so electrons pass through the wires). It was rebuilt as `~/work/garfield_install/lcg109-927e5c21p` + `garfield-927e5c21p.tar.gz` (`scratchpad/2026-10-16/build_garfield_927e5c21p_lxplus.sh`). Every job now runs `check_grid_active.py` first and stops on an unpatched build. **Submitted 17:02 as condor cluster 4474488** (56 jobs, smoke test passed: inactive 0.0164, no ion-velocity errors). When it finishes: `ls /eos/experiment/ntof/data/x17/response_sim/avalanche/raw_meshfield_nc1_20261016/ | wc -l` should give 56. Every earlier lxplus/condor field-map run (if any) would have the same problem. Next: pool it the way `aval_calib_meshfield_pooled.json` was pooled, refit bG, and update the Mesh card. Original plan: if survival goes 0.955 → ~0.99 and the gain holds, the chain's transparency is ~3.7 % low. Then rerun
-   the full pooled calib with `--null-collision` (56 slices, `run_meshfield_campaign.sh` + the flag), refit bG, and update the
-   Mesh card (`design/report/deck/make_chain_animation.py`, `EPS_MESH`).
+2. nc1 campaign: once 56 JSONs are on EOS, pool them like `aval_calib_meshfield_pooled.json` (one 490 V point; its note says
+   how; `collect.py` merges per-voltage, which is wrong here), check the prediction, refit bG, update the Mesh card
+   (`design/report/deck/make_chain_animation.py`, `EPS_MESH`). Held jobs: `condor_q -hold`.
 3. Send Irakli the questions in `scratchpad/2026-10-16/irakli_questions.md` (Dylan, by email).
 4. Still open: the Ar/CF4 out-of-sample test; the true-angle selection in nTof_x17 `t14_compare.py`; ADC/fC −10 %.
 
 **Gotchas / decisions:**
+- **/media/ucla is failing (2026-10-16)**; Dylan copied it to EOS for recovery. Don't write there. The desktop root and
+  `/media/dylan/data` are both <4 GB free; yoga has ~43 GB on `/` and ~68 GB on `/media/dylan/data`.
+- Field-map avalanche runs are ~18 s/event per core, so the 56-slice campaign is ~2.7 h on 12 desktop cores: run it on condor.
+- Any earlier lxplus/condor run with a field map used the unpatched Garfield; not audited.
 - **yoga → lxplus has no AFS token** ("Permission denied" on work/). That is why the yoga-only orchestrators reported every point
   "MISSING". The relay runs on the desktop for that reason. The desktop has only ~4 GB free, so it relays one point at a time.
 - `~/PycharmProjects/nTof_x17/garfield_sim/setup_garfield.sh` is broken on the desktop (ROOT 6.30, no Garfield headers,
