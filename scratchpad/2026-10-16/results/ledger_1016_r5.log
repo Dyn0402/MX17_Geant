@@ -1,0 +1,9 @@
+sim point                    view ang      n d/s  p50 d/s  p25 d/s    sat d / s
+w2_rho5M_r5verdict1/th00     x      0   854/3000     0.880    0.808  0.379/0.453
+w2_rho5M_r5verdict1/th00     y      0   879/3000     0.916    0.843  0.334/0.344
+w2_rho5M_r5verdict1/thx10    x     10  1202/3000     0.810    0.735  0.303/0.351
+w2_rho5M_r5verdict1/thx10    y      0   879/3000     0.899    0.824  0.334/0.353
+w2_rho5M_r5verdict1/thy10    x      0   854/3000     0.847    0.774  0.379/0.489
+w2_rho5M_r5verdict1/thy10    y     10   782/3000     0.994    0.856  0.331/0.270
+w2_rho5M_r5verdict1/thy20    x      0   854/3000     0.823    0.757  0.379/0.518
+w2_rho5M_r5verdict1/thy20    y     20    33/3000     1.005    0.955  0.273/0.197

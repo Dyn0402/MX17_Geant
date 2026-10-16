@@ -1,0 +1,58 @@
+verdict1         x 10  rise   197 ( +10)  fwhm   325 (  +4)  sat 0.29
+verdict1         x 20  rise   177 (  +8)  fwhm   297 (  +2)  sat 0.23
+verdict1         y 10  rise   197 (  +9)  fwhm   317 (  +7)  sat 0.23
+verdict1         y 20  rise   176 ( +16)  fwhm   292 (  +6)  sat 0.17
+  [w2_rho5M_r5verdict1/thx10/x] sim_decoded_w2_rho5M_r5verdict1_thx10_datrun_w2rho5Mr5verdict1_thx10_000_07.root: 3000 events so far
+w2_rho5M_r5verdict1 x 10  rise   196 (  +9)  fwhm   316 (  -5)  sat 0.35
+  [w2_rho5M_r5verdict1/thy10/y] sim_decoded_w2_rho5M_r5verdict1_thy10_datrun_w2rho5Mr5verdict1_thy10_000_08.root: 3000 events so far
+w2_rho5M_r5verdict1 y 10  rise   196 (  +8)  fwhm   321 ( +11)  sat 0.27
+  [w2_rho5M_r5verdict1/thy20/y] sim_decoded_w2_rho5M_r5verdict1_thy20_datrun_w2rho5Mr5verdict1_thy20_000_08.root: 3000 events so far
+w2_rho5M_r5verdict1 y 20  rise   177 ( +17)  fwhm   296 ( +10)  sat 0.20
+  [ionK180/thx10/x] sim_decoded_w2_rho2M_ionK180_thx10_datrun_w2rho2MionK180_thx10_000_07.root: 3000 events so far
+ionK180          x 10  rise   213 ( +26)  fwhm   344 ( +23)  sat 0.26
+  [ionK180/thx20/x] sim_decoded_w2_rho2M_ionK180_thx20_datrun_w2rho2MionK180_thx20_000_07.root: 3000 events so far
+ionK180          x 20  rise   193 ( +24)  fwhm   318 ( +23)  sat 0.20
+  [ionK180/thy10/y] sim_decoded_w2_rho2M_ionK180_thy10_datrun_w2rho2MionK180_thy10_000_08.root: 3000 events so far
+ionK180          y 10  rise   212 ( +24)  fwhm   334 ( +24)  sat 0.20
+  [ionK180/thy20/y] sim_decoded_w2_rho2M_ionK180_thy20_datrun_w2rho2MionK180_thy20_000_08.root: 3000 events so far
+ionK180          y 20  rise   192 ( +32)  fwhm   311 ( +25)  sat 0.16
+  [ionK205/thx10/x] sim_decoded_w2_rho2M_ionK205_thx10_datrun_w2rho2MionK205_thx10_000_07.root: 3000 events so far
+ionK205          x 10  rise   202 ( +15)  fwhm   331 ( +10)  sat 0.28
+  [ionK205/thx20/x] sim_decoded_w2_rho2M_ionK205_thx20_datrun_w2rho2MionK205_thx20_000_07.root: 3000 events so far
+ionK205          x 20  rise   183 ( +14)  fwhm   303 (  +8)  sat 0.22
+  [ionK205/thy10/y] sim_decoded_w2_rho2M_ionK205_thy10_datrun_w2rho2MionK205_thy10_000_08.root: 3000 events so far
+ionK205          y 10  rise   202 ( +14)  fwhm   322 ( +12)  sat 0.22
+  [ionK205/thy20/y] sim_decoded_w2_rho2M_ionK205_thy20_datrun_w2rho2MionK205_thy20_000_08.root: 3000 events so far
+ionK205          y 20  rise   182 ( +22)  fwhm   298 ( +12)  sat 0.17
+  [ionK225/thx10/x] sim_decoded_w2_rho2M_ionK225_thx10_datrun_w2rho2MionK225_thx10_000_07.root: 3000 events so far
+ionK225          x 10  rise   196 (  +9)  fwhm   324 (  +3)  sat 0.29
+  [ionK225/thx20/x] sim_decoded_w2_rho2M_ionK225_thx20_datrun_w2rho2MionK225_thx20_000_07.root: 3000 events so far
+ionK225          x 20  rise   176 (  +7)  fwhm   295 (  +0)  sat 0.23
+  [ionK225/thy10/y] sim_decoded_w2_rho2M_ionK225_thy10_datrun_w2rho2MionK225_thy10_000_08.root: 3000 events so far
+ionK225          y 10  rise   196 (  +8)  fwhm   315 (  +5)  sat 0.24
+  [ionK225/thy20/y] sim_decoded_w2_rho2M_ionK225_thy20_datrun_w2rho2MionK225_thy20_000_08.root: 3000 events so far
+ionK225          y 20  rise   175 ( +15)  fwhm   290 (  +4)  sat 0.18
+  [e17b45/thx10/x] sim_decoded_w2_rho2M_e17b45_thx10_datrun_w2rho2Me17b45_thx10_000_07.root: 3000 events so far
+e17b45           x 10  rise   197 ( +10)  fwhm   324 (  +3)  sat 0.25
+  [e17b45/thx20/x] sim_decoded_w2_rho2M_e17b45_thx20_datrun_w2rho2Me17b45_thx20_000_07.root: 3000 events so far
+e17b45           x 20  rise   176 (  +7)  fwhm   296 (  +1)  sat 0.20
+  [e17b45/thy10/y] sim_decoded_w2_rho2M_e17b45_thy10_datrun_w2rho2Me17b45_thy10_000_08.root: 3000 events so far
+e17b45           y 10  rise   196 (  +8)  fwhm   316 (  +6)  sat 0.21
+  [e17b45/thy20/y] sim_decoded_w2_rho2M_e17b45_thy20_datrun_w2rho2Me17b45_thy20_000_08.root: 3000 events so far
+e17b45           y 20  rise   176 ( +16)  fwhm   291 (  +5)  sat 0.16
+  [e17b50/thx10/x] sim_decoded_w2_rho2M_e17b50_thx10_datrun_w2rho2Me17b50_thx10_000_07.root: 3000 events so far
+e17b50           x 10  rise   197 ( +10)  fwhm   326 (  +5)  sat 0.32
+  [e17b50/thx20/x] sim_decoded_w2_rho2M_e17b50_thx20_datrun_w2rho2Me17b50_thx20_000_07.root: 3000 events so far
+e17b50           x 20  rise   176 (  +7)  fwhm   296 (  +1)  sat 0.26
+  [e17b50/thy10/y] sim_decoded_w2_rho2M_e17b50_thy10_datrun_w2rho2Me17b50_thy10_000_08.root: 3000 events so far
+e17b50           y 10  rise   197 (  +9)  fwhm   316 (  +6)  sat 0.26
+  [e17b50/thy20/y] sim_decoded_w2_rho2M_e17b50_thy20_datrun_w2rho2Me17b50_thy20_000_08.root: 3000 events so far
+e17b50           y 20  rise   176 ( +16)  fwhm   291 (  +5)  sat 0.19
+  [e17b55/thx10/x] sim_decoded_w2_rho2M_e17b55_thx10_datrun_w2rho2Me17b55_thx10_000_07.root: 3000 events so far
+e17b55           x 10  rise   197 ( +10)  fwhm   326 (  +5)  sat 0.40
+  [e17b55/thx20/x] sim_decoded_w2_rho2M_e17b55_thx20_datrun_w2rho2Me17b55_thx20_000_07.root: 3000 events so far
+e17b55           x 20  rise   176 (  +7)  fwhm   296 (  +1)  sat 0.30
+  [e17b55/thy10/y] sim_decoded_w2_rho2M_e17b55_thy10_datrun_w2rho2Me17b55_thy10_000_08.root: 3000 events so far
+e17b55           y 10  rise   197 (  +9)  fwhm   315 (  +5)  sat 0.33
+  [e17b55/thy20/y] sim_decoded_w2_rho2M_e17b55_thy20_datrun_w2rho2Me17b55_thy20_000_08.root: 3000 events so far
+e17b55           y 20  rise   176 ( +16)  fwhm   291 (  +5)  sat 0.24
