@@ -1917,4 +1917,26 @@ submission. Ledger values are p50 data/sim, data by true M3 angle. Shape values 
    Garfield headers against our 927e5c21 library. Class layouts differ (ComponentGrid 688 vs 720 bytes,
    AvalancheMicroscopic 616 vs 680, MediumMagboltz, …), which overruns the heap. All 56 nc1 slices
    died or hung in the guard. Fixed in nTof_x17 `setup_garfield.sh` (faefdac, ROOT_INCLUDE_PATH order).
-   An A/B audit of the old setup against the fixed one, same seed, is in the HANDOFF.
+   The avalanche script is not reproducible per seed (two same-seed runs differ event by event), so the
+   audit is statistical: condor 4474927, the August script (baf2873) and tarball with the fixed headers,
+   8 × 140 ev at 490 V uniform, against `results_v2` (42.7k, 1120 ev).
+
+### 20.5 Null-collision avalanche campaign (condor 4474926): ε × gain moves only +0.7 %
+
+56 slices, `--null-collision`, patched Garfield with the header fix, one 490 V map, pooled as the nc0 file
+(`scratchpad/2026-10-16/pool_nc1.py` → EOS `response_sim/avalanche/aval_calib_meshfield_nc1_pooled.json`).
+
+| | nc0 (production) | nc1 | nc1/nc0 | pre-registered |
+|---|---|---|---|---|
+| survival (= ε_mesh) | 0.9559 ± 0.0026 | **0.9928 ± 0.0011** | ×1.039 | 0.990–0.997 ✓ |
+| gain \| survived | 24 094 | **23 368** | ×0.970 (±1.2 % stat) | within ±3 % (edge) |
+| θ (Polya) | 1.14 | 1.15 | | |
+| σ₀ / t_arrival | 94.6 µm / 6.66 ns | 94.3 µm / 6.59 ns | | |
+| **ε × gain (charge per drifted e⁻)** | | | **×1.007** | |
+
+- The electrons that null-collision steps rescue from the wires mostly come with a smaller avalanche,
+  so the conditional gain drops ~3 % (2.5σ). The 4-slice desktop test (0.998 ± 0.040) could not see that.
+- The chain thins by ε and then draws from the Polya at gain|surv, so its amplitude moves by the product:
+  +0.7 %. **No bG refit is needed.** The "mesh transparency ~4 % low" is real, but nearly all of it cancels.
+- The chain default is still the nc0 file. Switching to nc1 is a +0.7 % change, worth doing for honesty
+  at the next full chain pass. The Mesh card on the site says this (`make_chain_animation.py`, 2026-10-17).
