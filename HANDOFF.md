@@ -1,5 +1,66 @@
 # Handoff
 
+## Sim to-do sweep: ion K0, rho_s 5M, Stage A e17, mesh G7 — updated 2026-10-16 (dylan-MS-7C84)
+
+**Resume:** jobs left running; once `~/x17/relay_1016.log` says RELAY DONE, read the yoga ledgers vs the predictions in the .sub files.
+
+**Goal:** work through the outstanding sim list: physical ion mobility, the rho_s lever for Y sharing,
+Stage A products with the e17c72c primary fix, mesh transparency with null-collision steps.
+
+**Done:**
+- Alexandra **confirmed** the Heed vs Geant4 claims (`HANDOFF_ALEXANDRA.md` marked). Mesh calendering: **unknown**,
+  so the uncalendered 37 µm weave stays, and calendering is a +1–2 % field systematic.
+- Retracted S3 "K0 ≈ 1.16" (`design/report/S3_ION_CLOSEOUT_2026-08-09.md`); fixed the Ar+ comment in
+  `response/avalanche/mx17_aval_calib.py`.
+- Synced the tracked `response/` + `shared/` files to the AFS src (`/afs/cern.ch/work/d/dneff/mx17_s1/src`). A smoke run of
+  `--ion-model reconstructed --ion-mobility K0=2.05` on lxplus works (90 % of ion charge by 191 ns).
+- **Stage A regenerated** at e17c72c+: `clusters_ang_e17/mx17_muons_3k_ang_<ang>_e17_t0.root` on AFS, the same files on EOS
+  `response_sim/clusters/`. Recipe: `mm_sim -g ArIso -p muon -e 4000 -n 3000 --beam-spread 31.2 --theta-x/-y <a>
+  -s 10160<i> -t 1` (the Aug 9 recipe, read back from the old files; the original seeds weren't recorded). nPrimDrift medians are 0.898–0.915 of the old files.
+  The non-angled `mx17_muons_3k_spread_t0.root` was NOT regenerated (th00_e17 is its replacement).
+- **Mesh G7 at 10k e-** (`scratchpad/2026-10-16/g7_*.log`): straight map 0.951 → **0.990**, woven 0.928 → **0.990**
+  with `NULLCOLL=1`. Every loss is status −5 (on a wire). `gates_check.C` now prints that breakdown. The E_drift curve
+  with null-collision steps is in `response/meshcell/transparency_curve_nullcoll.csv`. At 50–200 V/cm the gate's 0.995 ceiling
+  "FAILs" on physical ~0.998 values; that is the catastrophe band, not a problem.
+- MX17_Full_Geant gas port: already done by another session (81f619b, merged).
+- Old `noise_det3.json`: nothing uses it, apart from the fallback defaults (`run_stageBC_w2.sh:79`, `run.py --noise`). Not regenerated.
+
+**Running (left going at wrap-up, ~14:05):**
+- Condor **all finished, exit 0** (outputs on AFS `mx17_s1/stageBC/<name>/`, and on EOS `response_sim/stageB_w2/<name>/`):
+  - 4472241 `stageBC_w2_ionK.sub`: verdict 1 with `--ion-model reconstructed --ion-mobility K0=1.80/2.05/2.25` → ionK180/205/225_<ang>
+  - 4472242 `stageBC_w2_rho5M.sub`: verdict 1 at rho_s 5M → r5verdict1_<ang>
+  - 4472245 `stageBC_w2_e17.sub`: verdict 1 on the e17 clusters, bG 0.45/0.50/0.55 → e17b45/50/55_<ang>
+  - Pre-registered predictions + falsifiers are in each .sub header. **Read those before looking at the numbers.**
+- **Desktop relay** `~/x17/relay_1016.sh` (copy at `scratchpad/2026-10-16/relay_1016.sh`), log `~/x17/relay_1016.log`.
+  It pulls each point from AFS, pushes it to yoga, runs T13/T14 there, and finally runs on yoga: `~/ledger_1016_{v1,r5,ionK,e17}.log`,
+  `~/shape_1016.log` and `~/profile_1016_{rho2M_verdict1,rho5M_r5verdict1}_{th00,thy10}.log`. The relay skips finished points,
+  so if it dies, rerun `setsid nohup bash ~/x17/relay_1016.sh > ~/x17/relay_1016.log 2>&1 < /dev/null &`.
+- **Desktop avalanche slices** `~/x17/aval_nullcoll_2026-10-16/` (`run.sh`, a copy at `scratchpad/2026-10-16/aval_nullcoll_490.sh`):
+  490 V meshfield (straight map), seeds 49001–4, 140 ev, default (`_nc0`) vs `--null-collision` (`_nc1`), local
+  Garfield (ROOT 6.40). Expect ~30–60 min. Compare `survival` and gain nc1 vs nc0.
+
+**Next steps:**
+1. When the relay finishes, compare against verdict 1 (`ledger_1016_v1.log`):
+   - ionK: does K0 2.05 ≈ verdict 1 (rise within 10 ns, p50 within 6 %)? If yes, replace `--ion-speed-scale 1.75` with
+     `--ion-model reconstructed --ion-mobility K0=2.05` in the default and quote 1.8/2.25 as the systematic.
+   - r5verdict1: Y/X and the Y wings (profile logs), then log-interpolate the rho_s that matches each. Do they agree near 2.5?
+   - e17b: the bG that best fits X+Y jointly on the corrected primaries (prediction 0.49–0.53).
+   - Write the results up as FRESH_LOOK §20.
+2. Avalanche nc0 vs nc1: if survival goes 0.955 → ~0.99 and the gain holds, the chain's transparency is ~3.7 % low. Then rerun
+   the full pooled calib with `--null-collision` (56 slices, `run_meshfield_campaign.sh` + the flag), refit bG, and update the
+   Mesh card (`design/report/deck/make_chain_animation.py`, `EPS_MESH`).
+3. Send Irakli the questions in `scratchpad/2026-10-16/irakli_questions.md` (Dylan, by email).
+4. Still open: the Ar/CF4 out-of-sample test; the true-angle selection in nTof_x17 `t14_compare.py`; ADC/fC −10 %.
+
+**Gotchas / decisions:**
+- **yoga → lxplus has no AFS token** ("Permission denied" on work/). That is why the yoga-only orchestrators reported every point
+  "MISSING". The relay runs on the desktop for that reason. The desktop has only ~4 GB free, so it relays one point at a time.
+- `~/PycharmProjects/nTof_x17/garfield_sim/setup_garfield.sh` is broken on the desktop (ROOT 6.30, no Garfield headers,
+  no PyROOT). Use `source ~/Software/root_6_40/bin/thisroot.sh; source ~/Software/garfield/install/share/Garfield/setupGarfield.sh`.
+- lxplus (LCG_105) has no Garfield Data, so pass `--ion-mobility K0=...`; a bare table name fails there.
+- The ionK/rho5M points use the OLD clusters on purpose (one variable at a time against verdict 1).
+- Yoga copies of `orchestrate_v4.sh` / `run_ionspeed_t14.sh` take `RHO=` (default rho2M).
+
 ## Ion birth heights, reconstructed ion model, field map explained — updated 2026-10-16 (dylan-MS-7C84)
 
 **Resume:** run a T14 chain point with `--ion-model reconstructed --ion-mobility K0=2.05` (vs verdict 1's `--ion-speed-scale 1.75`).
