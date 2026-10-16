@@ -46,7 +46,7 @@ Stage A products with the e17c72c primary fix, mesh transparency with null-colli
    - r5verdict1: Y/X and the Y wings (profile logs), then log-interpolate the rho_s that matches each. Do they agree near 2.5?
    - e17b: the bG that best fits X+Y jointly on the corrected primaries (prediction 0.49–0.53).
    - Write the results up as FRESH_LOOK §20.
-2. Avalanche nc0 vs nc1: if survival goes 0.955 → ~0.99 and the gain holds, the chain's transparency is ~3.7 % low. Then rerun
+2. **Done 16:17:** avalanche nc0 vs nc1 gives survival 0.950 → 0.995, gain|surv ratio 0.998 ± 0.040 (`scratchpad/2026-10-16/aval_nullcoll_490_result.md`). The 56-slice `NULLCOLL=1` campaign was launched at 16:18 → `/media/ucla/mx17_response_sim/avalanche/results_meshfield_nc1_20261016/` (its prediction is in the note). Next: pool it the way `aval_calib_meshfield_pooled.json` was pooled, refit bG, and update the Mesh card. Original plan: if survival goes 0.955 → ~0.99 and the gain holds, the chain's transparency is ~3.7 % low. Then rerun
    the full pooled calib with `--null-collision` (56 slices, `run_meshfield_campaign.sh` + the flag), refit bG, and update the
    Mesh card (`design/report/deck/make_chain_animation.py`, `EPS_MESH`).
 3. Send Irakli the questions in `scratchpad/2026-10-16/irakli_questions.md` (Dylan, by email).
