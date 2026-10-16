@@ -2,7 +2,7 @@
 
 ## Sim to-do sweep: ion K0, rho_s 5M, Stage A e17, mesh G7 — updated 2026-10-17 (dylan-Yoga)
 
-**Resume:** all results are in and written up (FRESH_LOOK §20). Next: Dylan decides the ion default (§20.1); chase Y/X via strip C / protection (§19), not rho_s.
+**Resume:** results in FRESH_LOOK §20 + slide note mx17-response-sim-state. Next: Dylan's ion-default call; Y/X via strip C (§19).
 
 **Goal:** work through the outstanding sim list: physical ion mobility, the rho_s lever for Y sharing,
 Stage A products with the e17c72c primary fix, mesh transparency with null-collision steps.
@@ -32,7 +32,12 @@ Stage A products with the e17c72c primary fix, mesh transparency with null-colli
   desktop, so electrons cross the wires). Rebuilt as `~/work/garfield_install/lcg109-927e5c21p` + `garfield-927e5c21p.tar.gz`
   (`scratchpad/2026-10-16/build_garfield_927e5c21p_lxplus.sh`). `response/avalanche/check_grid_active.py` now guards each job.
 
-**2026-10-17 session (yoga): results read, nc1 campaign rescued**
+**2026-10-17 session (yoga): results read, nc1 campaign rescued, state-of-play deck**
+- **Slide note** https://dylan-neff.web.cern.ch/notes/mx17-response-sim-state.html (13 slides: scorecard, amplitude journey,
+  bG split, rise vs K0, Y profile, rho_s vs Y/X, mesh, fixes, open rows, ideas). Generator
+  `design/report/deck/make_sim_state_deck.py` reads `scratchpad/2026-10-16/results/` (copies of the yoga ledgers/profiles
+  and the nc0/nc1 pooled calibs). Rebuild: `python3 make_sim_state_deck.py --out note.html` then
+  `add-note.py note.html --slug mx17-response-sim-state --force --deploy`. Its "Ideas" slide is the ranked to-do list.
 - **Relay results → FRESH_LOOK §20** (commit 4d03edf):
   - ionK: passes. K0 2.05 is +5–6 ns rise and +1–2 % p50 vs verdict 1. s = 1.75 corresponds to K0 ≈ 2.2 (2.25 reproduces it to 1 ns).
     **Default NOT switched.** Dylan's call: physical K0 2.05 vs 5 ns of inclined-rise agreement.
