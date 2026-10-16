@@ -1230,7 +1230,7 @@ Independent agreement:
 
 Three chambers and two methods give **one ion transit of ~140 ns in Ar/iso 95/5**.
 
-**What that means physically.** The chain uses Ar⁺ in Ar. A 340 ns transit over 128 µm at
+**What that means physically.** (Correction 2026-10-16: MX17's gap is 150 µm, and the ions see the T6 map's 31.0 kV/cm; the K values in this paragraph assume 128 µm. In the real geometry ×2.4 over Ar⁺ needs K₀ ≈ 2.9; see `reports/Simulating Penning and ion transport.md`, field reconciliation.) The chain uses Ar⁺ in Ar. A 340 ns transit over 128 µm at
 490 V needs K ≈ 1.0 cm²/V·s, Ar⁺'s high-field value, which resonant charge exchange holds
 down. After ~1 ns the drifting ion in Ar/iso is an isobutane fragment. It has no resonant
 channel in Ar, and T ≈ 140 ns needs K ≈ 2.3 cm²/V·s.

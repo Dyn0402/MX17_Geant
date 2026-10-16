@@ -1,6 +1,8 @@
 # Quantitative inputs for an MX17 Micromegas simulation in Ar/iC4H10 95/5 (dry and wet): Penning transfer and ion transport
 
-Scope: resistive bulk Micromegas, 128 µm gap, ~490 V on the mesh, Ar/iC4H10 95/5 at about 1 atm and room temperature, with and without a few hundred to a few thousand ppm H2O. Researched 2026-10-15.
+> **Correction 2026-10-16:** MX17's amplification gap is **150 µm** (ESL to mesh underside), not the generic 128 µm assumed in these notes, and the field the ions see is the T6 map's 31.0 kV/cm = 124 Td (effective gap 158 µm, because the woven mesh's equivalent plane sits ~8 µm inside the weave; `response/meshcell/mesh_plane_check.py`). The 38.3 kV/cm / 153 Td figures and the transit tables below that use d = 128 µm do not apply to MX17; the speed ratios relative to Ar⁺ still do. Corrected numbers: `reports/Simulating Penning and ion transport.md`, field reconciliation.
+
+Scope: resistive bulk Micromegas, 128 µm gap (WRONG for MX17, see above), ~490 V on the mesh, Ar/iC4H10 95/5 at about 1 atm and room temperature, with and without a few hundred to a few thousand ppm H2O. Researched 2026-10-15.
 
 Conventions used below:
 - N(293.15 K, 1 atm) = p/(k_B T) = 2.503e19 cm^-3.

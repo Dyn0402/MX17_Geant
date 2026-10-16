@@ -208,10 +208,19 @@ def main():
                          "ACF gives 158-166 ns (FRESH_LOOK §10.2)")
     ap.add_argument("--no-ions", action="store_true",
                     help="electrons only (the pre-2026-08-07 behaviour)")
-    ap.add_argument("--ion-model", choices=("measured", "analytic"),
+    ap.add_argument("--ion-model", choices=("measured", "analytic",
+                                            "reconstructed"),
                     default="measured",
                     help="measured = the S3 v2 i_elec+i_ion template (needs a "
-                         "v2 calib); analytic = the delta + rectangle model")
+                         "v2 calib); analytic = the delta + rectangle model; "
+                         "reconstructed = the measured electron spike and ion "
+                         "birth heights, with the ion current rebuilt for "
+                         "--ion-mobility in the T6 map's E_z and psi")
+    ap.add_argument("--ion-mobility", default="IonMobility_Ar+_Ar.txt",
+                    help="--ion-model reconstructed only: the drifting ion's "
+                         "K0(E/N), as a Garfield-format table (path or bare "
+                         "name in the Garfield Data dir) or 'K0=<value>' for a "
+                         "flat mobility [cm2/V/s]")
     ap.add_argument("--z-aval-um", type=float, default=13.84,
                     help="mean ion BIRTH HEIGHT above the ESL [um]. Consumed "
                          "ONLY by --ion-model analytic, where it sets the "
@@ -332,6 +341,7 @@ def main():
     dig = Digitizer(a.kernel, os.path.expanduser(a.calib), seed=a.seed,
                     with_ions=not a.no_ions, ion_model=a.ion_model,
                     ion_speed_scale=a.ion_speed_scale,
+                    ion_mobility=a.ion_mobility,
                     feedback_bg=a.feedback_bg,
                     z_aval_um=a.z_aval_um,
                     kernel_t_max_ns=a.kernel_t_max,
@@ -355,13 +365,16 @@ def main():
     if info["with_ions"] and info.get("ion_measured"):
         im = info["ion_measured"]
         io = info["ion"]
+        tag = ("S3 v2 MEASURED" if "mobility" not in im
+               else f"RECONSTRUCTED, {os.path.basename(im['mobility'])}")
         print(f"  ions      {im['f_ion']*100:.1f}% of the induced charge "
-              f"[S3 v2 MEASURED], 50/90/99% of the ion charge by "
+              f"[{tag}], 50/90/99% of the ion charge by "
               f"{im['t_ion_50pct_ns']:.0f}/{im['t_ion_90pct_ns']:.0f}/"
               f"{im['t_ion_99pct_ns']:.0f} ns")
-        print(f"            born at <z>={im['z_birth_mean_um']:.1f} µm; "
-              f"f_ion cross-check from z-hist {im['f_ion_from_z_hist']:.4f} "
-              f"vs {im['f_ion']:.4f} from the currents")
+        if im.get("f_ion_from_z_hist") is not None:
+            print(f"            born at <z>={im['z_birth_mean_um']:.1f} µm; "
+                  f"f_ion cross-check from z-hist {im['f_ion_from_z_hist']:.4f} "
+                  f"vs {im['f_ion']:.4f} from the currents")
         print(f"            analytic model predicted f_ion="
               f"{io['f_ion']:.3f}, {io['t_ion_transit_ns']:.0f} ns "
               f"({io['t_ion_transit_ns_lo']:.0f}-"

@@ -234,7 +234,10 @@ class Digitizer:
                  # remains the production default and is unaffected.
                  with_ions=True, z_aval_um=13.84, mu_ion=ION.MU_ION_CM2_VS,
                  ion_model="measured", kernel_t_max_ns=None,
-                 y_window_mm=None, ion_speed_scale=1.0, feedback_bg=0.0):
+                 y_window_mm=None, ion_speed_scale=1.0, feedback_bg=0.0,
+                 # --ion-model reconstructed only: the drifting ion's K0(E/N),
+                 # a Garfield-format table or "K0=<flat value>".
+                 ion_mobility="IonMobility_Ar+_Ar.txt"):
         # kernel_t_max_ns exists so the LUT window can be varied without
         # editing the default — the A1 before/after (test_window) and any
         # SPS-config run (64 x 60 ns frame -> 4200) both need it.
@@ -312,7 +315,8 @@ class Digitizer:
             raise ValueError(f"feedback bG must be in [0, 1), got {feedback_bg}")
         self.ion = ION.describe(C.AMP_GAP_M, mesh_v, mu_ion * self.ion_speed_scale, z_aval_um * 1e-6)
         self.ion_measured = None
-        if with_ions and ion_model == "measured":
+        self.ion_mobility = ion_mobility
+        if with_ions and ion_model in ("measured", "reconstructed"):
             # PRESENCE IS NOT VALIDITY. The shipped schema-1 calib carries
             # `i_elec` / `i_ion` keys whose arrays are 2000 zeros, so a
             # key-existence check passes, `measured_longitudinal` divides by a
@@ -331,9 +335,21 @@ class Digitizer:
                     f"missing, all-zero or non-finite in {calib_path}. Use "
                     "--ion-model analytic, or point --calib at "
                     "aval_calib_v2.json.")
-            h, dt_h, self.ion_measured = ION.measured_longitudinal(
-                self.calib, ion_speed_scale=self.ion_speed_scale)
+            if ion_model == "measured":
+                h, dt_h, self.ion_measured = ION.measured_longitudinal(
+                    self.calib, ion_speed_scale=self.ion_speed_scale)
+            else:
+                # Same electron spike, ion charge and birth heights as the
+                # measured template; the ion's path is rebuilt for this
+                # mobility (ions.reconstructed_longitudinal).
+                if not self.calib.get("alpha_z_hist"):
+                    raise SystemExit("--ion-model reconstructed needs a calib "
+                                     "with alpha_z_hist (S3 v2 or meshfield)")
+                h, dt_h, self.ion_measured = ION.reconstructed_longitudinal(
+                    self.calib, ion_mobility, mesh_v=mesh_v,
+                    ion_speed_scale=self.ion_speed_scale)
             self.lut.apply_longitudinal(h, dt_h)
+            self.lut.longitudinal_model = self.ion_measured["source"]
         elif with_ions:
             self.lut.apply_ion_transit(self.ion["f_electron"],
                                        self.ion["t_ion_transit_ns"])

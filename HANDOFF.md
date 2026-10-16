@@ -1,5 +1,26 @@
 # Handoff
 
+## Ion birth heights, reconstructed ion model, field map explained — updated 2026-10-16 (dylan-MS-7C84)
+
+**Resume:** run a T14 chain point with `--ion-model reconstructed --ion-mobility K0=2.05` (vs verdict 1's `--ion-speed-scale 1.75`).
+
+**Goal:** check whether the ion birth distribution is modelled, add a way to use any ion mobility, and explain the T6 map's "low" field.
+
+**Done:**
+- Birth heights were already simulated: `alpha_z_hist` in every S3/meshfield calib. They are roughly exponential, with a decay length of 14.7 µm; 90 % of ions are born below 34 µm. The measured template carries the full distribution. It moves ion timing by ≤10 %, so it is not a lever (`scratchpad/2026-10-16/ion_birth_sensitivity.py`).
+- New `--ion-model reconstructed --ion-mobility <Garfield table | K0=x>` (`ions.reconstructed_longitudinal`). It keeps the calib's electron spike, ion charge, birth heights and avalanche offset, and rebuilds the ion path in the map's E_z and psi (packed into `response/meshcell/ion_path_profile.json` by `build_ion_path_profile.py`). With the Ar+ table it matches the measured template to 2.8–3.8 %. Test: `python -m response.digitizer.test_ion_reconstructed`.
+- **Field map explained, no bug.** "38.3 kV/cm" was 490 V / **128 µm**, a gap MX17 doesn't have; MX17's is 150 µm. The map's 31.0 kV/cm is 5 % under 490/150 because the woven mesh's equivalent plane sits ~8 µm inside the weave (effective gap 158 µm). `response/meshcell/mesh_plane_check.py`. Corrected in the review report, `mx17_inputs.md` and FRESH_LOOK §13.
+- In the real geometry, the full ×2.4 over Ar+ would need K0 ≈ 2.9, above Langevin. Hydrocarbon K0 1.8–2.25 gives 1.5–1.85×. Verdict 1 already passes at ×1.75 with feedback and the 166 ns shaper.
+
+**Next steps:**
+1. T14 chain point with `--ion-model reconstructed --ion-mobility K0=2.05`, and 1.8 / 2.25 as the systematic. It should land close to verdict 1, since the field is uniform where the ions drift.
+2. On lxplus, check that the Garfield Ar+ table resolves (`$GARFIELD_INSTALL/share/Garfield/Data`) before using the default `--ion-mobility`; `K0=` needs no file.
+3. Still open from below: retract the S3 "K0 ~1.16" claim and fix the `mx17_aval_calib.py:174` comment.
+
+**Gotchas / decisions:**
+- If the real MX17 mesh is calendered (thinner weave), the equivalent plane moves down a few µm and the field goes up ~1–2 %. The map assumes an uncalendered 37 µm weave.
+- The reconstruction uses plane-averaged E_z and psi. That is fine in the bulk, where ions spend >90 % of their time, and approximate in the last ~15 µm.
+
 ## Penning / ion-species review — updated 2026-10-15 (dylan-MS-7C84)
 
 **Resume:** Ion-tail physics review done. Next: explain the T6 map's 31.0 vs 38.3 kV/cm mid-gap field, then swap in a hydrocarbon-ion mobility table.
@@ -19,7 +40,7 @@
 - r_P: Garfield hard-codes 0.40 for Ar/iso, taken from a single 10 % / 1 atm point. Use 0.40 dry and ~0.36-0.40 wet, via `EnablePenningTransfer(r, 0, "ar")`. Fit it jointly with feedback beta.
 
 **Next steps:**
-1. Find out why the T6 field map's mid-gap field is ~19 % below V/d (map voltage, gap, mesh-plane definition). This decides whether the species alone closes the ion tail.
+1. ~~Find out why the T6 field map's mid-gap field is ~19 % below V/d.~~ Done 2026-10-16: it was a 128 vs 150 µm gap mix-up, and the map is right (see the section above).
 2. Replace `IonMobility_Ar+_Ar.txt` with a custom flat table at K0 ~2.05, with 1.8 and 2.25 as the systematic, in `response/avalanche/mx17_aval_calib.py` and in the S3 chain.
 3. Retract "Blanc gives K0 ~1.16" in `design/report/S3_ION_CLOSEOUT_2026-08-09.md`. It used Ar+'s charge-exchange-limited K. Done correctly, Blanc's law gives ~2.1.
 4. Fix the backwards comment at `response/avalanche/mx17_aval_calib.py:174` ("Ar+ dominant ... the faster ion").

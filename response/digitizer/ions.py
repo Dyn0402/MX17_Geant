@@ -70,6 +70,9 @@ at +-30 %. It is an explicit argument here and is recorded per run.
 
 from __future__ import annotations
 
+import json
+import os
+
 import numpy as np
 
 # Reduced mobility of Ar+ in argon at STP [cm^2 / (V s)]. Ar/iC4H10 95/5 is
@@ -218,6 +221,144 @@ def measured_longitudinal(pt, ion_speed_scale=1.0):
                               else float(1.0 - z_mean_um / 150.0)),
         "n_samples": int(len(h)),
         "span_ns": float(len(h) * pt["signal_dt_ns"]),
+        "lateral_model": "surface kernel frozen at creation point "
+                         "(UNDER-estimates ion lateral sharing; T10 replaces)",
+    }
+
+
+# ── reconstructed ion current: any mobility, the measured birth heights ──────
+
+ION_PATH_PROFILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "..", "meshcell", "ion_path_profile.json")
+# Bench gas state, the reference the mobility tables' K0 is reduced to.
+N_LOSCHMIDT_CM3 = 2.6868e19
+N_GAS_CM3 = 101325.0 / (1.380649e-23 * 293.0) / 1e6
+
+
+def load_mobility(spec):
+    """
+    A mobility spec -> (K0(E/N [Td]) callable, label).
+
+    "K0=2.05"            flat reduced mobility [cm^2/V/s] at every field
+    path or bare name    a Garfield-format table (E/N [Td], K0) — a bare name
+                         such as "IonMobility_Ar+_Ar.txt" is looked up in the
+                         Garfield Data directories.
+    """
+    spec = str(spec)
+    if spec.upper().startswith("K0="):
+        k0 = float(spec.split("=", 1)[1])
+        return (lambda td: np.full_like(np.asarray(td, float), k0)), spec
+    cands = [os.path.expanduser(spec)]
+    for env, sub in (("GARFIELD_INSTALL", "share/Garfield/Data"),
+                     ("GARFIELD_HOME", "Data")):
+        if os.environ.get(env):
+            cands.append(os.path.join(os.environ[env], sub, spec))
+    cands += [os.path.expanduser(f"~/Software/garfield/Data/{spec}"),
+              os.path.expanduser(f"~/garfield/Data/{spec}")]
+    for p in cands:
+        if os.path.isfile(p):
+            tab = np.loadtxt(p, comments="#", usecols=(0, 1))
+            return (lambda td: np.interp(td, tab[:, 0], tab[:, 1])), p
+    raise FileNotFoundError(f"ion mobility table {spec!r} not found in {cands}")
+
+
+def reconstructed_longitudinal(pt, mobility="IonMobility_Ar+_Ar.txt", *,
+                               mesh_v=None, ion_speed_scale=1.0,
+                               profile=ION_PATH_PROFILE):
+    """
+    Like measured_longitudinal, but the ION part is rebuilt from first
+    principles instead of read off the Garfield run, so the drifting ion's
+    mobility can be anything — including a field-dependent table, which
+    speed_scaled() cannot do exactly (it is a pure time rescale, right only
+    for a uniform scale of K(E)). Returns (h, dt_s, info).
+
+    What is kept from the calib point: the electron spike (i_elec), the ion
+    CHARGE (so f_ion is unchanged), the birth-height distribution
+    (alpha_z_hist) and the avalanche development time (t_arrival_mean_ns,
+    which starts every ion's clock late by the time the avalanche took to
+    reach it). What is rebuilt: each ion's path from its birth height to its
+    absorption height, at speed K(E/N) E in the map's plane-averaged E_z(h)
+    (rescaled by mesh_v / 490), inducing -dpsi through the true woven-mesh
+    weighting potential. Every (birth bin, absorption percentile) pair is one
+    path, weighted by its birth probability. The mesh is static here — the
+    space-charge-free, diffusion-free picture S3's AvalancheMC ions also use.
+
+    With mobility = the Ar+ table this must reproduce the measured template
+    (ion_template_check.py: 3.8 % at every quantile); test_ion_reconstructed
+    pins that.
+    """
+    prof = json.load(open(profile))
+    h = np.asarray(prof["h_um"], dtype=np.float64)
+    v_ref = float(prof["v_mesh_ref"])
+    vm = float(mesh_v if mesh_v is not None else pt.get("voltage_V") or v_ref)
+    ez = np.maximum(np.asarray(prof["ez_vcm"], dtype=np.float64) * vm / v_ref, 1.0)
+    psi = np.asarray(prof["psi"], dtype=np.float64)
+    h_end = np.asarray(prof["h_end_pctl_um"], dtype=np.float64)
+
+    k0, mob_label = load_mobility(mobility)
+    td = ez / N_GAS_CM3 / 1e-17
+    k = k0(td) * (N_LOSCHMIDT_CM3 / N_GAS_CM3) * float(ion_speed_scale)
+    v_um_ns = k * ez * 1e-5                       # cm^2/V/s * V/cm -> um/ns
+    # time to reach height h from h = 0
+    t_of_h = np.concatenate([[0.0], np.cumsum(np.diff(h)
+                                               / (0.5 * (v_um_ns[1:] + v_um_ns[:-1])))])
+
+    zh = pt["alpha_z_hist"]
+    cnt = np.asarray(zh["counts"], dtype=np.float64)
+    ed = np.asarray(zh["edges"], dtype=np.float64)
+    zc, w = 0.5 * (ed[:-1] + ed[1:]), cnt / cnt.sum()
+    keep = w > 0
+    zc, w = zc[keep], w[keep]
+
+    dt_ns = float(pt["signal_dt_ns"])
+    t_off = float(pt.get("t_arrival_mean_ns", 0.0))
+    t_span = t_off + float(np.interp(h_end.max(), h, t_of_h)) + 20.0
+    nb = int(np.ceil(t_span / dt_ns))
+    tg = (np.arange(nb) + 1) * dt_ns                 # bin upper edges
+
+    # Q(t): charge induced by time t on the ion clock, per path. The ion born
+    # at h0 is at height H(T(h0) + t), H the inverse of T(h), stopped at h_end.
+    q = np.zeros(nb)
+    t0 = np.interp(zc, h, t_of_h)
+    psi0 = np.interp(zc, h, psi)
+    for he in h_end:
+        tt = (tg - t_off)[None, :] + t0[:, None]      # (births, time)
+        hh = np.minimum(np.interp(tt, t_of_h, h), he)
+        hh = np.where(tg[None, :] - t_off < 0, zc[:, None], hh)
+        qq = psi0[:, None] - np.interp(hh, h, psi)
+        qq = np.where(zc[:, None] >= he, 0.0, qq)
+        q += (w[:, None] * qq).sum(axis=0) / len(h_end)
+    ii_shape = np.diff(np.concatenate([[0.0], q])) / dt_ns     # per ns
+
+    ie = np.asarray(pt["i_elec"], dtype=np.float64)
+    ii_meas = np.asarray(pt["i_ion"], dtype=np.float64)
+    qe, qi = ie.sum(), ii_meas.sum()          # in units of (current * bin)
+    n = max(nb, len(ie))
+    ii = np.zeros(n)
+    ii[:nb] = ii_shape * (qi / ii_shape.sum())
+    tot = np.zeros(n)
+    tot[:len(ie)] += ie
+    tot += ii
+    dt = dt_ns * 1e-9
+    hout = tot / (tot.sum() * dt)
+
+    c = np.cumsum(ii) / ii.sum()
+    t = (np.arange(n) + 1) * dt_ns
+    return hout, dt, {
+        "source": "reconstructed ion (S3 i_elec + birth hist + map E_z/psi)",
+        "mobility": mob_label,
+        "ion_speed_scale": float(ion_speed_scale),
+        "mesh_v": vm,
+        "E_bulk_Vcm": float(np.interp(75.0, h, ez)),
+        "K0_bulk": float(k0(np.interp(75.0, h, td))),
+        "f_ion": float(qi / (qe + qi)),
+        "f_electron": float(qe / (qe + qi)),
+        "t_ion_50pct_ns": float(np.interp(0.50, c, t)),
+        "t_ion_90pct_ns": float(np.interp(0.90, c, t)),
+        "t_ion_99pct_ns": float(np.interp(0.99, c, t)),
+        "z_birth_mean_um": float((w * zc).sum()),
+        "n_samples": int(n),
+        "span_ns": float(n * dt_ns),
         "lateral_model": "surface kernel frozen at creation point "
                          "(UNDER-estimates ion lateral sharing; T10 replaces)",
     }
