@@ -3,6 +3,7 @@
 # from AFS to /media/dylan/data (the desktop / is full), lay it out as stageB_w2/w2_<rho>_<kind>/<ang>/decoded_root,
 # then the desktop ledger / shape / X-Y balance / extent / neighbour-delay evaluation. Logs next to this script.
 set -u
+CLAUDE_JOB_DIR=${CLAUDE_JOB_DIR:-/media/dylan/data/claude_tmp}   # npz scratch for the neighbour-delay fit
 H=/home/dylan/CLionProjects/MX17_Geant/scratchpad/2026-10-17
 P=/home/dylan/PycharmProjects/nTof_x17/.venv/bin/python
 D=/media/dylan/data/claude_tmp/v2; SB=~/x17/response_sim/stageB_w2

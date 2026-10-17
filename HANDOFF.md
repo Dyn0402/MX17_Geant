@@ -1,5 +1,59 @@
 # Handoff
 
+## Verdict 2, drift-gap test, Y/X diagnosis — updated 2026-10-17 (dylan-MS-7C84)
+
+**Resume:** read condor 4477507/4477508 via `scratchpad/2026-10-17/eval_v2.sh` logs, write FRESH_LOOK §21.6; Dylan's ion call.
+
+**Goal:** run the outstanding sim tests: the combined "verdict 2" chain pass, the Y/X cause, the ±1 neighbour delay.
+
+**Done (FRESH_LOOK §21, commits 9eca6f0, a1b638f):**
+- **Evaluation now runs on the desktop** (yoga was offline). `m3_slopes_longrun_desktop.py` rebuilt
+  `~/x17/response_sim/hv_slope/peaks_longrun_m3.parquet`. `ledger_m3.py` and `shape_all_desktop.py` reproduce yoga's
+  verdict-1 ledger and shapes exactly. Sim points are symlinked as `~/x17/response_sim/stageB_w2/w2_<rho>_<kind>/<ang>/decoded_root`
+  → `/media/dylan/data/claude_tmp/...` (the desktop `/` is full).
+- **Y/X is not the electronics.** With one observable (`xy_balance_m3.py`), the sim's summed X/Y split f matches the data at
+  every angle (Δf ≤ 0.03). Only the peak strip is off. det3 gives f 0.484 on FEU 7/8 and 0.481–0.494 on FEU 3/4
+  (`xy_balance_survey.log`), so FEU gain is out. Y noise is 1.7 % above X (strip-C division would make it ~25 % quieter).
+  ρ_s 5M closes Y/X at 0° to 3 %. The remainder is on inclined tracks.
+- **Drift column:** inclined tracks spread over 14–23 % more strips in the sim (`xy_extent_m3.log`), which implies a ~25–27 mm
+  column vs the CAD 30. GAP_STUDY (nTof_x17) measured det3 27.9 ± 1 mm. New Stage B option `--drift-gap-mm` (default 30 = unchanged).
+- **Neighbour delay on verdict 1** (`xtalk_fit_{v1,r5}_m3.log`): the central strip is fixed (210 vs 195 ns), but the ±1 peaks
+  +150/+120 ns after it vs the data's +45/+60. ρ_s 5M matches the ±1 amplitude but makes the delay worse. The fit needs a prompt
+  in-phase coupling k ≈ 0.13–0.17 plus a derivative term: inter-strip capacitance, not modelled.
+
+**In progress / where it stopped:**
+- Condor running at wrap-up (20 of 40 left at 13:16), outputs to AFS `mx17_s1/stageBC/<tag>/` and EOS `response_sim/stageB_w2/<tag>/`:
+  - **4477507** `stageBC_w2_verdict2.sub`: e17 clusters, bG 0.47, nc1 calib, tp 166, × ρ_s {2M, 5M} × ion {s1.75, K0 2.05}
+    → `v2r<2|5><s|k>_<ang>`.
+  - **4477508** `stageBC_w2_gap.sub`: the v2r5 arm with `--drift-gap-mm` {27.9, 26.0} → `v2r5<s|k>g<279|260>_<ang>`.
+  - Predictions and falsifiers are in each .sub header (copies in `scratchpad/2026-10-17/`). **Read those before the numbers.**
+- The desktop driver `scratchpad/2026-10-17/eval_v2.sh` was started in the background. It waits for both clusters, pulls,
+  then writes `ledger_v2.log`, `shape_v2.log`, `xy_balance_v2.log`, `xy_extent_v2.log`, `xtalk_fit_<k>_m3.log` next to itself,
+  with progress in `eval_v2.log`. If it died with the session, rerun it on the desktop:
+  `cd scratchpad/2026-10-17 && setsid nohup bash eval_v2.sh > eval_v2.log 2>&1 < /dev/null &` (re-pulls are cheap, ~115 MB/point).
+
+**Next steps:**
+1. Check `eval_v2.log` says EVAL DONE (and `eval_v2_failed.txt` is empty). Compare against the pre-registrations and write FRESH_LOOK §21.6:
+   verdict 2 (additivity of the 10-16 one-variable results) and the gap test (does the 26–28 mm column close the inclined extent,
+   the inclined peak fractions and the inclined Y/X; how far bG must come down).
+2. Dylan decides: ion default (K0 2.05 vs s1.75, now also in light of the gap result), ρ_s 5M, the drift column for det3.
+3. Neighbour delay: model inter-strip coupling (buried X/Y tracks under the pad layer, or the protected-FEU input).
+   Irakli's questions (`scratchpad/2026-10-16/irakli_questions.md`) still matter here; Dylan sends them.
+4. Update the slide note (`design/report/deck/make_sim_state_deck.py`): the Y/X slide and the ideas list are superseded by §21.
+5. Still open: Ar/CF4 out-of-sample test; ADC/fC −10 %.
+
+**Gotchas / decisions:**
+- Condor multi-word args in `queue ... from (...)` get split on spaces. Use separate `ion = ...` + `queue` blocks (see the .sub files).
+  One bad cluster (4477506) was removed before it ran.
+- The data-side f uses no M3 match in the survey (every cosmic). The sim comparison must be angle-matched (`xy_balance_m3.py`),
+  because the f of amplitude sums depends strongly on angle (0.35–0.63).
+- `lxstore status` hung on lxplus today (timed out after 30 s). AFS was at 32 % via `fs lq`.
+
+**Key files & commands:**
+- `scratchpad/2026-10-17/` — all scripts and logs of this session; `README`-style docstrings at the top of each.
+- `response/digitizer/run.py --drift-gap-mm` — the new option.
+- `~/PycharmProjects/nTof_x17/.venv/bin/python <script>` — the interpreter for all desktop evaluation scripts.
+
 ## Sim to-do sweep: ion K0, rho_s 5M, Stage A e17, mesh G7 — updated 2026-10-17 (dylan-Yoga)
 
 **Resume:** results in FRESH_LOOK §20 + slide note mx17-response-sim-state. Next: Dylan's ion-default call; Y/X via strip C (§19).
