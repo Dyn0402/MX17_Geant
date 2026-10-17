@@ -1,8 +1,19 @@
 # Handoff
 
-## Verdict 2, drift-gap test, Y/X diagnosis — updated 2026-10-17 (dylan-MS-7C84)
+## Verdict 2, drift-gap test, Y/X diagnosis — updated 2026-10-17 late (dylan-Yoga)
 
-**Resume:** read condor 4477507/4477508 via `scratchpad/2026-10-17/eval_v2.sh` logs, write FRESH_LOOK §21.6; Dylan's ion call.
+**Resume:** §21.6 written. Verdict 2 passes and adds linearly; the data want a ~26–26.5 mm det3 column. Next: Dylan's calls
+(ion, ρ_s 5M, `--drift-gap-mm 26.5`), then a bG refit (≈ 0.45–0.46) at that column.
+
+**Evening update (yoga, desktop was in Windows):** all 40 jobs of 4477507/4477508 finished OK. `eval_v2_yoga.sh` (eval_v2.sh
+without the wait loop) pulled them to yoga `/media/dylan/data/claude_tmp/v2` and wrote the `*_v2.log` files. Yoga reaches AFS
+fine after `kinit` + `ssh lxplus` (GSSAPI delegation gives the token), so the old "yoga has no AFS token" gotcha is just a
+missing ticket. Results → FRESH_LOOK §21.6:
+- Verdict 2: every ledger band hit. Ion shift is +1.5 % / +5 ns at both ρ_s values. ρ5M leaves a ~10 % Y/X offset.
+- Gap: the 26.0 mm extent matches the data at 10° (1.43/1.46 vs 1.46/1.47 mm). Rise is unchanged. Amplitude moved only
+  half the predicted amount (deep clusters are the diffused ones). The inclined pkX/pkY does NOT move, so Y/X is not the column.
+- Neighbour ±1 delay unchanged (+135..150 vs +45/+60 ns); X central peak now 195 ns, = data.
+- Not done: the Y-wing profile (needs T14 outputs) and the slide-note update (step 4 below).
 
 **Goal:** run the outstanding sim tests: the combined "verdict 2" chain pass, the Y/X cause, the ±1 neighbour delay.
 

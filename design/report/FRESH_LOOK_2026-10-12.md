@@ -2041,3 +2041,69 @@ Test points are condor 4477508 (§21.6, pre-registered in `stageBC_w2_gap.sub`).
   (the buried X/Y tracks under the pad layer), or a protected-FEU input network that differentiates.
 - The data's delay is shorter here (+45/+60) than in §10.4 (+90/+75), because the selection changed from the T14
   reco window to true M3 angles.
+
+### 21.6 Verdict 2 and the drift-gap test (condor 4477507 / 4477508, evaluated on yoga)
+
+All 40 jobs ended with "=== done". `scratchpad/2026-10-17/eval_v2_yoga.sh` is a copy of `eval_v2.sh` without the
+condor wait loop, because the desktop was in Windows. Logs: `ledger_v2.log`, `shape_v2.log`, `xy_balance_v2.log`,
+`xy_extent_v2.log`, `xtalk_fit_v2r5*_m3.log`. All points use the e17 clusters, bG 0.47, the nc1 calib, tp 166 and `_cmq`.
+Ledger values are p50 data/sim, averaged over the 5 angles. Rise/FWHM are sim − data.
+
+**Verdict 2: passes, and the effects add.**
+
+| point | X | Y | joint | pre-registered X / Y | inclined rise X10/X20/Y10/Y20 [ns] |
+|---|---|---|---|---|---|
+| v2r2s (ρ 2M, s1.75) | 0.922 | 1.064 | 0.991 | 0.91–0.95 / 1.05–1.10 | +10 / +8 / +8 / +16 |
+| v2r2k (ρ 2M, K0 2.05) | 0.936 | 1.080 | 1.005 | +1..+3 % | +15 / +13 / +13 / +22 |
+| v2r5s (ρ 5M, s1.75) | 0.865 | 0.955 | 0.909 | 0.84–0.90 / 0.92–0.99 | +8 / +7 / +7 / +17 |
+| v2r5k (ρ 5M, K0 2.05) | 0.878 | 0.970 | 0.923 | as v2r5s + ion | +13 / +12 / +12 / +22 |
+
+- Every point is inside its band. v2r2s rise/FWHM are within 2 ns of verdict 1 (band ±3).
+- The ion shift is +1.5 % X and +1.5–1.6 % Y, with +5..+6 ns rise, at both ρ_s values (and at both gaps).
+  So additivity holds to < 0.2 % and 1 ns. **Falsifier not triggered:** the 10-16 one-variable results combine linearly.
+- ρ 5M raises the sim Y/X by 4.5 % (band +1..+8 %). Data/sim Y/X goes 1.154 → 1.104, so a **~10 % Y/X offset remains**.
+- Y wings: not re-measured (`profile_tails.py` needs T14 outputs, which this chain pass did not make).
+  Proxy: the 0° unsaturated pkY/qY is 0.374 vs data 0.382 (r5verdict1: 0.367).
+
+**Drift gap: the column length closes the inclined extent; the falsifier is not triggered; the amplitude prediction missed.**
+
+| inclined-view RMS extent [mm] | data | 30 mm | 27.9 mm | 26.0 mm |
+|---|---|---|---|---|
+| 10° x | 1.46 | 1.65 | 1.53 (−7 %) | **1.43** (−13 %) |
+| 20° x (n = 20) | 2.75 | 3.31 | 3.04 (−8 %) | 2.85 (−14 %) |
+| 10° y | 1.47 | 1.66 | 1.55 (−7 %) | **1.46** (−12 %) |
+| 20° y (n = 8) | 2.71 | 3.29 | 3.04 (−8 %) | 2.85 (−13 %) |
+| vertical X width, 0° | 0.66 | 0.72 | 0.70 (−3 %) | 0.68 (−6 %) |
+
+- The extent moves 7–8 % / 12–14 % (predicted 5–8 / 10–14). The 26.0 point is within 2 % of the data at 10°
+  (predicted within 5 %). Interpolating the 10° rows gives a column of **~26.5 mm**. The low-statistics 20° rows
+  extrapolate to ~25 mm. GAP_STUDY's 27.9 ± 1 mm is 1–2σ above. Vertical X width −3 / −6 % (predicted 2–5 %).
+- Rise moves ≤ 1 ns and FWHM ≤ 1 ns (predicted ≤ 6 ns; the falsifier bound is 10 ns). The ion arm k − s matches 30 mm.
+- **Amplitude missed:** p50 data/sim rises +2.2 / +2.9 % (X / Y) at 27.9 mm and +5.7 / +5.4 % at 26.0 mm.
+  The prediction was +5..+8 / +10..+15 % (at th00: +3.5–4.7 / +6.8–7.2 %). That is about half of what the primaries
+  lose (×0.928 / ×0.867). The removed clusters are the deepest. They are the most diffused, so they put less than
+  their share on the peak strip; the pre-registration assumed every primary counted the same.
+- Peak fractions (unsat, pk/q of the inclined view, data / 30 / 27.9 / 26.0): 10° x 0.244 / 0.237 / 0.251 / 0.265;
+  10° y 0.238 / 0.216 / 0.228 / **0.240**; 20° y 0.193 / 0.150 / 0.163 / 0.170. Each rises by the extent fraction, as
+  predicted. Inclined Y closes at 26 mm, inclined X now overshoots by 9 %. The vertical-view fractions rise by 2–5 %.
+- **The inclined Y/X does not close.** pkX/pkY is unchanged by the gap (10° y: data 1.142, sim 1.261 / 1.266 / 1.263;
+  10° x: 0.915 vs 0.99), because both views' peaks rise together. The Y/X offset is not the column either.
+- bG: on the ρ 5M arm, the joint data/sim at bG 0.47 is 0.909 (30 mm), 0.933 (27.9 mm) and 0.959 / 0.974 (26.0 mm,
+  s / K0). With §20.3's ~2 %/0.01 slope, the joint optimum is **bG ≈ 0.425 at 30 mm, ≈ 0.45 (s) / 0.46 (K0) at 26 mm**.
+  A shorter column needs a *higher* bG than the 30 mm column at the same ρ_s, so §21.4's "bG would come down" had
+  the sign wrong.
+
+**Neighbour delay** (`xtalk_fit_v2r5*_m3.log`, th00): the X central peak is now 195 ns, as in the data (210 in verdict 1).
+The ±1 delay stays +150 / +120 ns (X / Y) at 30 mm and +135 / +120–135 ns at 26 mm, against the data's +45 / +60.
+The ±1 amplitude is right (X 0.363–0.366 vs 0.368, Y 0.423–0.428 vs 0.408). The shorter column trims the chain's late
+neighbour tail, so the fitted in-phase k falls (X 0.155 → 0.062). The derivative term stays at k′ ≈ 0.16–0.21/sample.
+Inter-strip coupling is still the missing piece.
+
+**What this settles, and what is Dylan's call:**
+1. The verdict-2 combination is sound. The chain can move to e17 + nc1 + ρ_s 5M with bG refit.
+2. Drift column: the data want **~26–26.5 mm** for det3 (the 10° extent and the inclined Y peak fraction), within
+   1–2σ of GAP_STUDY. Proposed: `--drift-gap-mm 26.5` for det3, with 27.9 as the systematic, then refit bG (≈ 0.45–0.46).
+3. Ion: unchanged by everything here. K0 2.05 costs +5 ns of inclined rise (which is already +7..+17 ns over the data)
+   for +1.5 % amplitude.
+4. Still open: the ~10 % Y/X peak offset (neither ρ_s nor the column fixes it; the X/Y sums agree, §21.3), the ±1
+   delay (inter-strip C), and the inclined-X peak fraction now overshooting at 26 mm.
