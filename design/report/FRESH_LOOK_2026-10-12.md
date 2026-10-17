@@ -2107,3 +2107,24 @@ Inter-strip coupling is still the missing piece.
    for +1.5 % amplitude.
 4. Still open: the ~10 % Y/X peak offset (neither ρ_s nor the column fixes it; the X/Y sums agree, §21.3), the ±1
    delay (inter-strip C), and the inclined-X peak fraction now overshooting at 26 mm.
+
+### 21.7 bG refit at the det3 column; the v3 baseline (2026-10-18)
+
+Dylan's calls from §21.6: ρ_s 5 MΩ/sq, a 26.5 mm drift column for det3 (27.9 as the systematic), and the
+reconstructed ion with K0 2.05 (1.80 / 2.25 as the systematic). Condor 4480068 (`scratchpad/2026-10-18/stageBC_w3_bgrefit.sub`,
+pre-registered) scans bG at that column. Logs are in `scratchpad/2026-10-18/*_v3.log`.
+
+| bG | X | Y | joint | Y/X | pre-registered joint |
+|---|---|---|---|---|---|
+| 0.43 | 0.997 | 1.104 | 1.049 | 1.106 | 1.02–1.07 |
+| **0.45** | 0.953 | 1.054 | **1.002** | 1.107 | 0.99–1.02 |
+| 0.47 | 0.919 | 1.020 | 0.968 | 1.110 | 0.955–0.975 |
+
+- Every band is hit. **The joint optimum is bG = 0.450** (predicted 0.45–0.46). X alone wants ~0.43 and Y ~0.48: the
+  ~10 % Y/X offset again, unchanged by bG (1.106–1.110, band 1.08–1.12).
+- bG is a pure amplitude knob here. The 10° extent is 1.46 / 1.48 mm at every bG (data 1.46 / 1.47), and the inclined rise
+  and FWHM move ≤ 1 ns. The rise is still +11..+13 ns over the data (Y 20°: +22). **Falsifier not triggered.**
+- Inclined Y is the worst view: Y data/sim is 1.13 at 10° y and 20° y, and 0.97–1.03 elsewhere.
+
+**The v3 baseline** is `scripts/condor/recipes/det3_v3.args` (README next to it): ρ5M, e17, nc1, tp 166, 26.5 mm, K0 2.05, bG 0.45.
+`run.py`'s defaults stay bare so that old runs reproduce. The s1.75 ion would give bG ≈ 0.443.

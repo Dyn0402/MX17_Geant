@@ -29,6 +29,7 @@ from ..common import constants as C
 from .clusters import ClusterFile
 from .digitize import Digitizer, DEFAULT_DRIFT_GAP_MM
 from ..dream.shaper import DreamShaper
+from ..dream.coupling import couple, parse_coupling
 from .truth import TruthWriter
 
 CALIB = "~/x17/response_sim/avalanche/aval_calib.json"
@@ -252,6 +253,11 @@ def main():
                          "drift field becomes 1000 V / gap. Default 30 = the CAD "
                          "frame. det3's measured column is 27.9 +- 1 mm, a dished "
                          "cathode (nTof_x17 mx_june_wft/GAP_STUDY_2026-07-30.md).")
+    ap.add_argument("--strip-coupling", default=None,
+                    help="inter-strip coupling between adjacent channels, 'K,TAU_NS' "
+                         "or 'X:K,TAU/Y:K,TAU': each neighbour gets K i_c + TAU di_c/dt "
+                         "and the central strip keeps (1-2K) i_c (dream/coupling.py, "
+                         "FRESH_LOOK §21.7). Default off.")
     ap.add_argument("--seed", type=int, default=5)
     ap.add_argument("--fixed-position", action="store_true",
                     help="do NOT randomise the impact point (see below)")
@@ -399,6 +405,10 @@ def main():
               f"for mu +-30%)")
     else:
         print("  ions      DISABLED (electrons only)")
+    coupling = parse_coupling(a.strip_coupling)
+    if coupling:
+        print("  coupling  " + ", ".join(f"{v}: k {k:.3f}, tau {t:.1f} ns"
+                                         for v, (k, t) in sorted(coupling.items())))
     if shaper:
         sh = shaper.describe()
         # 'tau_ns' exists only on the legacy CR-RC^2 model; the manual-topology
@@ -529,12 +539,12 @@ def main():
         # The TRUE per-channel charge is the induced charge, taken BEFORE the
         # shaper: with the P6 residual-pole model int(h) = (1-beta) int(h_nom),
         # so a "true charge" read after shaping would carry beta (C9).
-        cur = cur_raw
+        cur = couple(cur_raw, coupling, dig.lut.dt * 1e9) if not empty else cur_raw
         if shaper is not None and not empty:
             # Shape each channel. The budget then integrates the SHAPED
             # waveform, which is what the data analysis sees.
             cur = {k: shaper.apply(v, dt_ns=dig.lut.dt * 1e9)
-                   for k, v in cur_raw.items()}
+                   for k, v in cur.items()}
 
         if truth is not None:
             qs = float(np.sum(q)) if not empty else 0.0
@@ -684,7 +694,8 @@ def main():
            "c2_X": float(c2X), "c2_Y": float(c2Y),
            "x_fraction": float(xfrac),
            "digitizer": info, "clusters": ci,
-           "shaper": shaper.describe() if shaper else None}
+           "shaper": shaper.describe() if shaper else None,
+           "strip_coupling": coupling}
     if daq is not None:
         from ..dream.daq import charges_to_fc, write_decoded
         res["trigger_phase"] = trig.describe()

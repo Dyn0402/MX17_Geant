@@ -1,0 +1,40 @@
+# INTER-STRIP COUPLING (2026-10-18). New Stage B option --strip-coupling K,TAU (response/dream/coupling.py):
+# each neighbour gets K i_c + TAU di_c/dt and the central loses the same (Kirchhoff). It targets the ±1 delay
+# (FRESH_LOOK §21.5: chain +135..150 ns vs data +45/+60) and the neighbour's leading-edge deficit.
+# Baseline = v3k265b45 (cluster 4480068): e17, nc1, tp 166, _cmq, rho5M, gap 26.5, K0 2.05, bG 0.45.
+# Scanned (k, tau ns) both views: (0.03, 10), (0.05, 15), (0.06, 20). Tags v3c<k*100>t<tau>_<ang>.
+#
+# PRE-REGISTERED (2026-10-18, before submission), from an offline emulation on v2r5kg260's 60 ns samples
+# (scratchpad/2026-10-18/emul_coupling.py, its log emul_coupling.log). vs baseline, th00, xtalk_fit:
+#   * ±1 delay: X +90..+110 / Y +90..+120 ns (still above data +45/+60: coupling closes part of it, not all).
+#   * neighbour leading edge (t = 0 at the central's 50 % crossing): X 0.20-0.25, Y 0.21-0.26 (data 0.219/0.225;
+#     baseline ~0.17/0.18).
+#   * neighbour-shape rms vs data down 20-35 % (X 0.028 -> ~0.020, Y 0.037 -> ~0.030).
+#   * ±1/central peak within ±0.03 of baseline; central peak time within 15 ns.
+#   * amplitude: joint p50 data/sim up +1..+8 % (in-phase k takes 2k of the central current); extent +0..+5 %;
+#     inclined rise within ±6 ns.
+# FALSIFIER: no point brings the X delay below +115 ns, or the neighbour rms improves < 10 % -> neighbour timing is
+#   not a channel-coupling effect; look at the induction kernel (the prompt weighting-field term on ±1).
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w2.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+arguments               = "rho5M v3c$(ct)_$(ang) /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07_cmq.json /afs/cern.ch/work/d/dneff/mx17_s1/clusters_ang_e17/mx17_muons_3k_ang_$(ang)_e17_t0.root '--ion-model reconstructed --ion-mobility K0=2.05 --drift-gap-mm 26.5 --feedback-bg 0.45 --strip-coupling $(cpl) --shaper-tp-ns 166 --calib /afs/cern.ch/work/d/dneff/mx17_s1/calib/aval_calib_meshfield_nc1_pooled.json'"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_v3c$(ct)_$(ang).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_v3c$(ct)_$(ang).err
+cpl = 0.03,10
+ct = 3t10
+queue ang in (th00 thx10 thx20 thy10 thy20)
+
+cpl = 0.05,15
+ct = 5t15
+queue ang in (th00 thx10 thx20 thy10 thy20)
+
+cpl = 0.06,20
+ct = 6t20
+queue ang in (th00 thx10 thx20 thy10 thy20)
