@@ -1944,3 +1944,100 @@ submission. Ledger values are p50 data/sim, data by true M3 angle. Shape values 
   +0.7 %. **No bG refit is needed.** The "mesh transparency ~4 % low" is real, but nearly all of it cancels.
 - The chain default is still the nc0 file. Switching to nc1 is a +0.7 % change, worth doing for honesty
   at the next full chain pass. The Mesh card on the site says this (`make_chain_animation.py`, 2026-10-17).
+
+## 21. Y/X is the strip spread, not the electronics; the drift column; neighbours (2026-10-17, desktop)
+
+Yoga was offline, so the evaluation was moved to the desktop. `scratchpad/2026-10-17/m3_slopes_longrun_desktop.py`
+rebuilds `hv_slope/peaks_longrun_m3.parquet` from the desktop's det3 decoded files (hv_slope `extract.py`), and
+`ledger_m3.py` and `shape_all_desktop.py` then reproduce yoga's verdict-1 ledger and shapes **row for row**.
+
+### 21.1 Pedestal noise: Y is not quieter than X
+
+`noise_det3_satscan_feu0{7,8}_cmq.json` (same run, CM removed): per-channel noise spectrum Y/X = **1.017**
+(rms over the 17 bins). The DREAM's ENC is ~810 e⁻ + ~11 e⁻/pF (Irakli, §19), and 7.4 ADC ≈ 2300 e⁻, so most of the
+noise depends on the input capacitance. A protection-network charge division large enough for the 15 % Y/X (C_Y
+75–100 pF below C_X, §19) would make Y **~25 % quieter**. A 15 % higher FEU 8 gain would make it 15 % noisier.
+Neither is seen. This is indirect: the noise model is a bench one.
+
+### 21.2 The X/Y split belongs to the chamber, not the FEUs
+
+`xy_balance_survey.py` → `xy_balance_survey.log`: f = q_X/(q_X+q_Y), the sums of combined-hits amplitudes ≥ 100 ADC,
+every June run on the desktop.
+
+| chamber | FEUs | runs | f (median) |
+|---|---|---|---|
+| **det3** | **7/8** | 6-27 long run, 6-27 overnight | **0.484, 0.484** (107k ev) |
+| **det3** | **3/4** | 6-22 long / longer / short | **0.481, 0.491, 0.481–0.494** (130k ev) |
+| det2 | 6/8 | 6-22 (four subruns) | 0.502–0.532 |
+| det1 | 3/4 | 6-17/6-18 | 0.453–0.480 |
+| det4 / det6 / det7 | 6/8, 3/4, 6/8 | 6-24, 6-26 | 0.462 / 0.462–0.495 / 0.428 |
+
+det3 gives the same f on two different FEU pairs, so **FEU gain is excluded** as the Y/X cause. Chambers differ
+by ±0.04 in f (±17 % in q_Y/q_X); that is a per-assembly property (PLAN_38 saw det2 vs det3 too).
+
+### 21.3 Sim vs data with one observable: the sums agree, the peak strip does not
+
+`xy_balance_m3.py` → `xy_balance_m3.log`. Both legs go through FeuReader, with strips ≥ 5σ and ≥ 100 ADC. q is the sum of
+strip peaks and pk the peak strip. Data are binned by M3 angle (±3° in both projections); "unsat" means no strip
+≥ 3500 ADC.
+
+| unsat | f data | f verdict 1 | f ρ_s 5M | pkX/pkY data | v1 | ρ5M | pkY/qY data | v1 | ρ5M | pkX/qX data | v1 | ρ5M |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0° | 0.476 | 0.478 | 0.487 | 1.073 | 1.213 | 1.104 | 0.382 | 0.320 | 0.367 | 0.442 | 0.422 | 0.430 |
+| 10° x | 0.573 | 0.599 | 0.609 | 0.915 | 1.034 | 0.990 | 0.365 | 0.318 | 0.367 | 0.244 | 0.219 | 0.231 |
+| 10° y | 0.390 | 0.377 | 0.381 | 1.142 | 1.316 | 1.273 | 0.238 | 0.198 | 0.211 | 0.439 | 0.420 | 0.422 |
+
+- **The sim splits the total charge between X and Y correctly** (Δf ≤ 0.03 at every angle). Charge division, strip
+  capacitance and FEU gain all scale the *sum*, so none of them is the Y/X offset.
+- The offset is in **how each view's charge spreads over its strips**. At 0° ρ_s 5M brings Y's peak fraction from
+  0.320 to 0.367 (data 0.382), and pkX/pkY from 13 % off to 3 % off. That agrees with the ledger: Y/X at 0° goes
+  1.12 → 1.045 (§20.2).
+- What remains is on **inclined** tracks: the inclined view's peak fraction is 5–11 % low in the sim.
+
+### 21.4 Inclined tracks spread over fewer strips in the data: the drift column
+
+`xy_extent_m3.py` → `xy_extent_m3.log`, unsaturated events, charge-weighted RMS across the strips [mm]:
+
+| | X rms data / v1 | Y rms data / v1 / ρ5M | sim/data, inclined view |
+|---|---|---|---|
+| 0° | 0.66 / 0.73 | 0.84 / 1.11 / 0.87 | – |
+| 10° x | 1.46 / 1.66 | | 1.14 |
+| 20° x (n = 20) | 2.75 / 3.29 | | 1.20 |
+| 10° y | | 1.47 / 1.74 / 1.68 | 1.14–1.18 |
+| 20° y (n = 8) | | 2.71 / 3.33 | 1.23 |
+
+At 20° the track term dominates (L·tanθ/√12 = 3.15 mm for 30 mm), and the ratio gives a charge-visible column of
+**~25 mm** (~26 mm from the 10° points after removing the vertical width in quadrature). nTof_x17
+`mx_june_wft/GAP_STUDY_2026-07-30.md` measured det3's column at **27.9 ± 0.1 ± 1.0 mm** (a dished cathode,
+25.7–29.2 mm across the chamber; det2 reads the full 30.5). The June weekend analysis read 23.4 mm. **The chain
+uses the CAD 30 mm.**
+
+Consequences, if the column is ~26–28 mm:
+- 7–13 % fewer primaries per vertical track, so bG would come down;
+- the inclined-view peak fractions and the inclined Y/X rows close;
+- the vertical X width (0.73 vs 0.66 mm) moves a little the right way (shorter diffusion path).
+
+The new Stage B option `--drift-gap-mm` drops clusters beyond the cathode and sets E = 1000 V / gap. The default is
+30, so earlier runs are unchanged. Smoke test: 27.9 mm keeps 0.9275 of the primaries, and v_drift goes 39.1 → 38.5 µm/ns.
+Test points are condor 4477508 (§21.6, pre-registered in `stageBC_w2_gap.sub`).
+
+### 21.5 Neighbour delay on verdict 1: the central strip is fixed, the ±1 is not
+
+`dump_pm3_m3.py` and `2026-10-13/xtalk_fit.py`. Data are vertical by M3 (455 events), sim is th00. Logs are
+`xtalk_fit_{v1,r5}_m3.log`.
+
+| | data | verdict 1 | ρ_s 5M | §10.4 (Aug chain) |
+|---|---|---|---|---|
+| central peak t, X / Y [ns] | 195 / 180 | 210 / 180 | 210 / 195 | 270 / 240 |
+| ±1 delay after central, X / Y [ns] | **+45 / +60** | +150 / +120 | +165 / +150 | +135 / +120 |
+| ±1/central peak, X / Y | 0.368 / 0.408 | 0.396 / 0.465 | **0.369 / 0.437** | |
+| fit: in-phase k, X / Y | | 0.168 / 0.059 | 0.175 / 0.135 | 0.165 / 0.167 |
+
+- The ion speed and the 166 ns shaper fixed the **central** pulse timing (270 → 210 ns against 195).
+- The ±1 neighbours have the right **amplitude** at ρ_s 5M but peak **~100 ns late**. Higher ρ_s makes this worse.
+  The fit needs a prompt in-phase copy of the central strip (k ≈ 0.13–0.17) plus a derivative term (k′ ≈ 0.15/sample).
+  That is the shape of capacitive inter-strip coupling (or of extra prompt sharing). The chain has neither.
+  It is the clearest remaining shape row. Candidates: inter-strip/inter-pad capacitance in the readout board
+  (the buried X/Y tracks under the pad layer), or a protected-FEU input network that differentiates.
+- The data's delay is shorter here (+45/+60) than in §10.4 (+90/+75), because the selection changed from the T14
+  reco window to true M3 angles.
