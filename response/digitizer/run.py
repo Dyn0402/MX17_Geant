@@ -27,7 +27,7 @@ import numpy as np
 
 from ..common import constants as C
 from .clusters import ClusterFile
-from .digitize import Digitizer
+from .digitize import Digitizer, DEFAULT_DRIFT_GAP_MM
 from ..dream.shaper import DreamShaper
 from .truth import TruthWriter
 
@@ -246,6 +246,12 @@ def main():
                          "full avalanches, recursively (mean gain x 1/(1-bG)). "
                          "0 = off. The det3 27 June ladder shape gives bG(490 V) "
                          "0.37-0.49 (FRESH_LOOK §9).")
+    ap.add_argument("--drift-gap-mm", type=float, default=DEFAULT_DRIFT_GAP_MM,
+                    help="charge-visible drift column [mm]. Drift clusters deeper "
+                         "than this are dropped (the cathode sits there) and the "
+                         "drift field becomes 1000 V / gap. Default 30 = the CAD "
+                         "frame. det3's measured column is 27.9 +- 1 mm, a dished "
+                         "cathode (nTof_x17 mx_june_wft/GAP_STUDY_2026-07-30.md).")
     ap.add_argument("--seed", type=int, default=5)
     ap.add_argument("--fixed-position", action="store_true",
                     help="do NOT randomise the impact point (see below)")
@@ -338,12 +344,18 @@ def main():
               "no error]")
 
     cf = ClusterFile(a.clusters)
+    if a.drift_gap_mm < DEFAULT_DRIFT_GAP_MM:
+        n0 = cf.n_e.sum()
+        cf.keep(cf.z <= a.drift_gap_mm)
+        print(f"  drift gap {a.drift_gap_mm:.2f} mm: kept {cf.n_e.sum() / n0:.4f} "
+              f"of the primary electrons")
     dig = Digitizer(a.kernel, os.path.expanduser(a.calib), seed=a.seed,
                     with_ions=not a.no_ions, ion_model=a.ion_model,
                     ion_speed_scale=a.ion_speed_scale,
                     ion_mobility=a.ion_mobility,
                     feedback_bg=a.feedback_bg,
                     z_aval_um=a.z_aval_um,
+                    drift_gap_mm=a.drift_gap_mm,
                     kernel_t_max_ns=a.kernel_t_max,
                     n_chan_side=a.n_side, y_window_mm=a.y_window)
     shaper = None if a.no_shaper else DreamShaper(

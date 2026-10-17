@@ -87,6 +87,11 @@ class ClusterFile:
         except (KeyError, ValueError, IndexError):
             pass
 
+    def keep(self, mask):
+        """Drop every cluster where `mask` is False (e.g. beyond a shorter drift gap)."""
+        for k in ("event", "x", "y", "z", "t", "edep", "n_e", "volume"):
+            setattr(self, k, getattr(self, k)[mask])
+
     def events(self):
         """Yield (eventID, slice) per event, in file order."""
         order = np.argsort(self.event, kind="stable")

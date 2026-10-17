@@ -1,0 +1,50 @@
+# VERDICT 2 (2026-10-17): every change validated on 10-16 put in together, crossed over the two
+# open choices so the data inform both decisions (FRESH_LOOK §20.4):
+#   fixed:  e17 clusters (clusters_ang_e17), bG 0.47 (joint e17 optimum, §20.3), nc1 avalanche calib
+#           (aval_calib_meshfield_nc1_pooled.json, §20.5; overrides the script's --calib, argparse takes
+#           the last), tp 166 ns, noise _cmq.
+#   crossed: rho_s 2M vs 5M  x  ion s1.75 (verdict 1) vs reconstructed K0 2.05.
+# Tags v2r<2|5><s|k>_<ang>.
+#
+# PRE-REGISTERED (2026-10-17, before submission). ledger_m3 p50 data/sim, mean of 5 angles; reference
+# e17b45 X 0.97 / Y 1.12 (§20.3):
+#   * v2r2s: X 0.91-0.95, Y 1.05-1.10 (bG 0.45->0.47 lowers data/sim ~4 %, nc1 ~0.7 %). Rise/FWHM
+#     within +-3 ns of verdict 1.
+#   * v2r2k: as v2r2s with p50 +1..+3 % and inclined rise +4..+7 ns (§20.1 transfers unchanged).
+#   * v2r5s: X 0.84-0.90, Y 0.92-0.99 (rho5M: X -5 %, Y -12 % vs rho2M, §20.2). Y wings ±2 within
+#     15 % of data (0.165 amp/pk at 0 deg). Sim Y/X +1..+8 % vs v2r2s, so Y/X still off by >= 8 %.
+#   * v2r5k: v2r5s with the same ion shifts as v2r2k.
+#   * Effects add: (v2r5k - v2r5s) agrees with (v2r2k - v2r2s) to within 2 % p50 and 2 ns rise.
+# FALSIFIER: any mean p50 outside its band by > 4 %, or the additivity check fails -> the 10-16 one-variable
+#   results do not combine linearly; go back to one-variable steps from e17b45.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w2.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+arguments               = "rho$(r)M v2r$(r)$(it)_$(ang) /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07_cmq.json /afs/cern.ch/work/d/dneff/mx17_s1/clusters_ang_e17/mx17_muons_3k_ang_$(ang)_e17_t0.root '$(ion) --feedback-bg 0.47 --shaper-tp-ns 166 --calib /afs/cern.ch/work/d/dneff/mx17_s1/calib/aval_calib_meshfield_nc1_pooled.json'"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_v2r$(r)$(it)_$(ang).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_v2r$(r)$(it)_$(ang).err
+r = 2
+it = s
+ion = --ion-speed-scale 1.75
+queue ang in (th00 thx10 thx20 thy10 thy20)
+
+r = 2
+it = k
+ion = --ion-model reconstructed --ion-mobility K0=2.05
+queue ang in (th00 thx10 thx20 thy10 thy20)
+
+r = 5
+it = s
+ion = --ion-speed-scale 1.75
+queue ang in (th00 thx10 thx20 thy10 thy20)
+
+r = 5
+it = k
+ion = --ion-model reconstructed --ion-mobility K0=2.05
+queue ang in (th00 thx10 thx20 thy10 thy20)

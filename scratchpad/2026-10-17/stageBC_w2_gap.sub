@@ -1,0 +1,53 @@
+# DRIFT-GAP TEST (2026-10-17): det3's charge-visible column is 27.9 +- 1 mm (nTof_x17 GAP_STUDY_2026-07-30,
+# dished cathode 25.7-29.2 mm; det2 reads 30.5), and the inclined-track strip extent in the 6-27 run
+# (xy_extent_m3.log: charge-weighted RMS, sim/data 1.14 at 10 deg, 1.20-1.23 at 20 deg) says ~24-26 mm.
+# The chain uses the CAD 30 mm. New Stage B option --drift-gap-mm drops deeper clusters, E = 1000 V / gap.
+# On top of verdict 2's rho5M arm (e17, bG 0.47, nc1, tp 166, _cmq): gap {27.9, 26.0} x ion {s1.75, K0 2.05}.
+# Tags v2r5<s|k>g<279|260>_<ang>; references v2r5s / v2r5k (cluster 4477507).
+#
+# PRE-REGISTERED (2026-10-17, before submission), each vs its 30 mm reference:
+#   * primaries x0.928 (27.9) / x0.867 (26.0) at 0 deg; ledger p50 data/sim up +5..+8 % / +10..+15 %
+#     (less at the saturated vertical X point), inclined similar.
+#   * inclined-view charge-weighted RMS extent (xy_extent_m3.py) down 5-8 % / 10-14 %; the 26.0 point
+#     lands within 5 % of the data at 10 deg. Inclined-view pk/q up by the same fractions.
+#   * vertical X RMS width down 2-5 % (diffusion over a shorter path, sigma_T 826 -> 800 / ~770 um).
+#   * inclined 10-90 % rise: change <= 6 ns (per-strip arrival window 0.78 mm / tan / v is gap-independent;
+#     v_drift 39.1 -> 38.5 / ~37.9 um/ns).
+#   * ion arm: (k - s) differences as at 30 mm to within 2 % p50 and 2 ns.
+# FALSIFIER: inclined RMS extent moves < 3 % at 26.0, or the rise moves > 10 ns -> the extent deficit is not
+#   the column length (look at threshold/sharing at the track ends instead).
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w2.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+arguments               = "rho5M v2r5$(it)g$(gt)_$(ang) /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07_cmq.json /afs/cern.ch/work/d/dneff/mx17_s1/clusters_ang_e17/mx17_muons_3k_ang_$(ang)_e17_t0.root '$(ion) --drift-gap-mm $(g) --feedback-bg 0.47 --shaper-tp-ns 166 --calib /afs/cern.ch/work/d/dneff/mx17_s1/calib/aval_calib_meshfield_nc1_pooled.json'"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_v2r5$(it)g$(gt)_$(ang).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_v2r5$(it)g$(gt)_$(ang).err
+g = 27.9
+gt = 279
+it = s
+ion = --ion-speed-scale 1.75
+queue ang in (th00 thx10 thx20 thy10 thy20)
+
+g = 27.9
+gt = 279
+it = k
+ion = --ion-model reconstructed --ion-mobility K0=2.05
+queue ang in (th00 thx10 thx20 thy10 thy20)
+
+g = 26.0
+gt = 260
+it = s
+ion = --ion-speed-scale 1.75
+queue ang in (th00 thx10 thx20 thy10 thy20)
+
+g = 26.0
+gt = 260
+it = k
+ion = --ion-model reconstructed --ion-mobility K0=2.05
+queue ang in (th00 thx10 thx20 thy10 thy20)
