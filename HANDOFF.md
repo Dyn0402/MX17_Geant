@@ -5,6 +5,12 @@
 **Resume:** §21.6 written. Verdict 2 passes and adds linearly; the data want a ~26–26.5 mm det3 column. Next: Dylan's calls
 (ion, ρ_s 5M, `--drift-gap-mm 26.5`), then a bG refit (≈ 0.45–0.46) at that column.
 
+**2026-10-18 00:14 (yoga):** Dylan chose ρ_s 5M and `--drift-gap-mm 26.5` for det3, with 27.9 as the systematic. The bG refit
+**condor 4480068** (15 jobs, `scratchpad/2026-10-18/stageBC_w3_bgrefit.sub`, pre-registered) runs K0 2.05 at 26.5 mm with
+bG {0.43, 0.45, 0.47} → `v3k265b<bt>_<ang>`. The yoga driver `scratchpad/2026-10-18/eval_v3.sh` waits, pulls and writes
+`*_v3.log`; progress is in `eval_v3.log`. To rerun: `setsid nohup bash eval_v3.sh > eval_v3.log 2>&1 < /dev/null &`.
+The ion default in the code is still s1.75; the switch to K0 2.05 waits for Dylan's answer.
+
 **Evening update (yoga, desktop was in Windows):** all 40 jobs of 4477507/4477508 finished OK. `eval_v2_yoga.sh` (eval_v2.sh
 without the wait loop) pulled them to yoga `/media/dylan/data/claude_tmp/v2` and wrote the `*_v2.log` files. Yoga reaches AFS
 fine after `kinit` + `ssh lxplus` (GSSAPI delegation gives the token), so the old "yoga has no AFS token" gotcha is just a
