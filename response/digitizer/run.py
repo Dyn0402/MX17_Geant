@@ -301,6 +301,16 @@ def main():
                          "name. wft pairs the X and Y files of a subrun by it "
                          "(wft/io.file_tag), so both views must share it — "
                          "see decoded_path().")
+    ap.add_argument("--wiring", choices=("identity", "connector-inverted"),
+                    default="identity",
+                    help="channel order of the decoded files. identity (the "
+                         "default, so old runs reproduce) writes pad column k "
+                         "to channel k. connector-inverted applies det3's real "
+                         "wiring (every connector 'inverted' in its "
+                         "run_config), so that wft's det3 strip map reads the "
+                         "true layout; with identity a track that crosses a "
+                         "64-channel connector boundary is read torn apart "
+                         "(response/dream/rewire.py, 2026-10-18).")
     ap.add_argument("--ftst-offset", type=int, default=None,
                     metavar="TICKS",
                     help="fixed X->Y FEU clock offset in 10 ns ftst ticks. "
@@ -505,7 +515,7 @@ def main():
               f" (X, FEU {a.feu_ids[0]}) and "
               f"{os.path.basename(decoded_path(a.decoded_out, a.decoded_tag, a.feu_ids[1]))}"
               f" (Y, FEU {a.feu_ids[1]}), "
-              f"{daq.n_sample} samples x {daq.dt_ns:.0f} ns")
+              f"{daq.n_sample} samples x {daq.dt_ns:.0f} ns, wiring {a.wiring}")
         print(f"  trigger   one phase per event, ftst {trig.n_ftst} states x "
               f"{trig.tick:.0f} ns, X->Y offset {trig.offset_ticks} ticks")
 
@@ -576,13 +586,16 @@ def main():
             # ftst sequence stays a property of the trigger rather than of
             # whether the event happened to make charge (C10).
             from ..dream.daq import N_CHAN as _NC
+            from ..dream.rewire import connector_inverted_perm
+            wire = (connector_inverted_perm(_NC) if a.wiring == "connector-inverted"
+                    else np.arange(_NC))
             phases = trig.draw(daq.rng)
             for view in ("X", "Y"):
                 plane = np.zeros((_NC, a.n_samp), dtype=np.float32)
                 for (v, idx), w in cur.items():
                     if v != view or not (0 <= idx < _NC):
                         continue
-                    plane[idx, :len(w)] += w[:a.n_samp]
+                    plane[wire[idx], :len(w)] += w[:a.n_samp]
                 ph, ftst = phases[view]
                 smp, _ph = daq.sample(plane, phase_ns=ph)
                 adc_buf[view].append(smp.T)          # (n_sample, n_chan)

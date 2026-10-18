@@ -90,5 +90,12 @@ for f in "$WORK"/sim_decoded_w2_${RHOTAG}*.root; do
     # AFS copy too: T13 runs wft on the laptop, which cannot reach EOS.
     cp "$f" "$OUTD/" || true
 done
+# The truth sidecar (truth.py; parquet, or npz where the worker lacks pyarrow).
+# Before 2026-10-18 it was left in $WORK and deleted, so earlier points have none.
+for f in "$WORK"/sim_decoded_w2_${RHOTAG}*_truth.*; do
+    [ -e "$f" ] || continue
+    xrdcp -f "$f" "root://eosuser.cern.ch/${EOSOUT}/$(basename "$f")"
+    cp "$f" "$OUTD/" || true
+done
 echo "=== done"
 rm -rf "$WORK"

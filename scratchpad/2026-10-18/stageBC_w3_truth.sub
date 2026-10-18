@@ -1,0 +1,31 @@
+# TRUTH REGENERATION + ANGLE LADDER (2026-10-18, for the reconstruction-truth study, RECO_TRUTH note).
+# run_stageBC_w2.sh now keeps the per-event truth sidecar (*_truth.parquet / .npz), which every earlier
+# point lost with its $WORK dir. Two configurations:
+#   v3  = det3_v3.args  (rho5M, K0 2.05, 26.5 mm, bG 0.45, tp 166, nc1)          -> tags v3t_<ang>
+#   v3c = det3_v3c.args (v3 + --strip-coupling 0.05,15, bG 0.47)                 -> tags v3ct_<ang>
+# Angles: the 10-16 e17 set (th00 thx10 thx20 thy10 thy20) plus new Stage A points made on yoga today
+# (thx05 thx15 thx30 thy05 thy15 thy30 txy10; seeds 101606-101612, Geant4 11.4.3 instead of 11.3.2).
+#
+# PRE-REGISTERED (before submission):
+#   * v3t_<old angle> decoded files are byte-identical in their ADC arrays to v3k265b45_<ang> (same clusters,
+#     same --seed 5, same flags). If not, Stage B is not reproducible and the existing v3 ledgers need a caveat.
+#   * The truth sidecar has 3000 rows per point; x_true/y_true spread ~9 mm (beam spread 31.2 mm FWHM-ish box).
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w3truth.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+arguments               = "rho5M $(cfg)t_$(ang) /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07_cmq.json /afs/cern.ch/work/d/dneff/mx17_s1/clusters_ang_e17/mx17_muons_3k_ang_$(ang)_e17_t0.root '$(flags)'"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_$(cfg)t_$(ang).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_$(cfg)t_$(ang).err
+cfg   = v3
+flags = --ion-model reconstructed --ion-mobility K0=2.05 --drift-gap-mm 26.5 --feedback-bg 0.45 --shaper-tp-ns 166 --calib /afs/cern.ch/work/d/dneff/mx17_s1/calib/aval_calib_meshfield_nc1_pooled.json
+queue ang in (th00 thx05 thx10 thx15 thx20 thx30 thy05 thy10 thy15 thy20 thy30 txy10)
+
+cfg   = v3c
+flags = --ion-model reconstructed --ion-mobility K0=2.05 --drift-gap-mm 26.5 --feedback-bg 0.47 --strip-coupling 0.05,15 --shaper-tp-ns 166 --calib /afs/cern.ch/work/d/dneff/mx17_s1/calib/aval_calib_meshfield_nc1_pooled.json
+queue ang in (th00 thx05 thx10 thx15 thx20 thx30 thy05 thy10 thy15 thy20 thy30 txy10)
