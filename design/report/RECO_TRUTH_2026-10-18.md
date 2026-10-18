@@ -2,6 +2,23 @@
 
 <p class="meta">Living record, started 2026-10-18 (dylan-Yoga). Source: MX17_Geant <code>design/report/RECO_TRUTH_2026-10-18.md</code>; scripts and logs in <code>scratchpad/2026-10-18/reco_truth/</code>.</p>
 
+## Bottom line (so far)
+
+- **The hits ban stands, for a different reason.** Hit-time ladders are compressed (C ≈ 0.85 at 10°), but almost all
+  of it is the measurement's geometry (each strip averages a slice of depth; diffusion dilutes the slope). An ideal
+  ladder with no readout reproduces the data. The neighbours' delayed copies add little on data. Waveforms remain
+  the right basis.
+- **wft is not shown to be biased on data.** On det3 data it is linear to 1 % against M3 from 7° to 24°. On the sim it
+  is not, and the sim, not wft, is what is off. No sim-derived angle correction should go into the cosmic or beam angles.
+- **The data's "|wft − M3| grows with depth" is mostly M3.** wft against exact truth is 0.10–0.22 mm on vertical tracks.
+- **The sim's ±1 neighbour delay (×2 too late since §10.4) closes** with wet gas (as the drift velocity says) plus
+  a ~0.4 mm prompt lateral spread at the anode. The inter-strip coupling candidate does not, and it degrades the ladder.
+  Y and the physical origin of the spread are open.
+- Found and fixed: the sim's channels were not on det3's connector wiring, which tore 20° tracks.
+- Scope: everything here is det3 on the cosmic bench. The SPS beam data are det4, which the sim is not configured for
+  (its own kernel, 62 % non-amplifying area). The method conclusions (ladder geometry, M3-dominated residuals)
+  carry over in kind; the numbers do not.
+
 ## Why
 
 The det3 response simulation (v3 baseline, FRESH_LOOK §21) now matches the cosmic-bench data in amplitude, X/Y charge
@@ -320,3 +337,32 @@ sim 17 % brighter: less diffusion concentrates the charge); wet σ0 420 µm 1.04
   together. ρ_s acts only on Y (the stripes run along y), and on both in the same direction. The Y open problem
   (§21.9) stands, with this baseline as the better starting point.
 - Amplitude: the σ0 420 µm arm wants bG ≈ 0.48–0.49 instead of 0.45 (≈ 2 % per 0.01, §21.10).
+
+### v4 candidate: wet + σ0 420 µm + bG 0.48, 12 angles (condor 4480263)
+
+Recipe: the v3 flags with `--feedback-bg 0.48 --sigma0-um 420 --wiring connector-inverted`, and
+`MX17_GAS_TABLE=design/gas/drift_velocity_Ar_iC4H10_95_5_H2O_1.0.json`. Truth kept.
+
+| | v3 | **v4c** | data | pre-registered |
+|---|---|---|---|---|
+| joint data/sim p50 | 1.002 | **0.987** | – | 0.97–1.03 ✔ |
+| X / Y mean data/sim (5 angles) | 0.953 / 1.054 | 0.933 / 1.045 | – | – |
+| ±1 delay X / Y | +135 / +135 | **+75 / +60** | +45 / +60 | within 15 ns of bG 0.45 ✔ |
+| ±1/central X / Y | 0.372 / 0.435 | 0.385 / 0.456 | 0.368 / 0.408 | within 0.01 ✔ |
+| nb rms X / Y | 0.028 / 0.039 | 0.020 / 0.035 | – | – |
+| vertical X rms / n / span | 0.68 / 4.5 / 3.12 | **0.64 / 4.0 / 2.34** | 0.66 / 4.0 / 2.34 | 0.63–0.67 ✔ |
+| vertical Y rms | 0.81 | 0.78 | 0.84 | – |
+| 10° / 20° X rms | 1.46 / 2.72 | 1.46 / 2.73 | 1.46 / 2.75 | 1.42–1.49 ✔ |
+| inclined Y 10° data/sim, sat. d / s | 1.128, 0.33 / 0.22 | 1.118, 0.33 / 0.22 | | |
+
+**Falsifier not triggered:** bG stays an amplitude knob. Y/X (1.12) is unchanged from v3: the Y problems of §21.9
+are independent of this change.
+
+**Ladder on v4c** (C, X / Y): 5° 0.563 / 0.535, 10° **0.819 / 0.815**, 15° 0.912 / 0.906, 20° 0.949 / 0.949, 30° 0.980 / 0.979.
+Data 0.615 / 0.547, **0.851 / 0.824**, 0.928 / 0.928; the matching ideal (wet + 0.42 mm) 0.591, 0.849, 0.926, 0.958.
+The Y ladder now matches the data at 5° and 10°. X is still ~0.03 more compressed than the data.
+
+**Closure on v4c** (its own truth-pinned calibration: c1 0.051, kY 2.49, τ_s 147 ns, σ_s 33 ns, σ_p0 0.088 mm, Dp 0.0227):
+core tan ratio X 1.032 / 1.053 / 1.013 / 0.989 / 0.957 at 5 / 10 / 15 / 20 / 30°; Y 1.052 / 1.039 / 1.022 / 1.017 / 0.997.
+Flips at 20° 0.149 / 0.116. Vertical σθ 0.97 / 1.10°. The X swing between 10° and 20° is 0.064 (v3 0.070); Y 0.022 (v3 0.057).
+Better calibration parameters (σ_s 33 ns instead of 71–351) and a smaller Y swing, but X keeps its nonlinearity.

@@ -1,0 +1,6 @@
+v3rw       x: delay data  +45 sim +135 | nb/c 0.368 0.372 | nb(0) 0.219 0.172 | nb rms 0.0281 | central rms 0.0446
+v3rw       y: delay data  +60 sim +135 | nb/c 0.408 0.435 | nb(0) 0.225 0.185 | nb rms 0.0387 | central rms 0.0459
+v3ws420    x: delay data  +45 sim  +60 | nb/c 0.368 0.382 | nb(0) 0.219 0.202 | nb rms 0.0176 | central rms 0.0498
+v3ws420    y: delay data  +60 sim  +60 | nb/c 0.408 0.461 | nb(0) 0.225 0.242 | nb rms 0.0382 | central rms 0.0633
+v4c        x: delay data  +45 sim  +75 | nb/c 0.368 0.385 | nb(0) 0.219 0.201 | nb rms 0.0202 | central rms 0.0485
+v4c        y: delay data  +60 sim  +60 | nb/c 0.408 0.456 | nb(0) 0.225 0.239 | nb rms 0.0354 | central rms 0.0605
