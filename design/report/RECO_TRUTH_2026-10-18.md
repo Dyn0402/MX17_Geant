@@ -45,10 +45,10 @@ written before each run. Angles from wft are in the Geant frame (ANGLED_LADDER �
 | Truth sidecars | `run_stageBC_w2.sh` dropped `*_truth.parquet` with the job's work dir. Fixed; v3 and v3+coupling regenerated with truth (condor 4480259, 24 jobs) |
 | New angles | Stage A at 5°, 15°, 30° in each view and 10°×10° oblique, made on yoga (seeds 101606–101612) |
 | **Wiring bug** | found and fixed for analysis (below). Affects every position-based sim-vs-data comparison at 20° |
-| 1. angle closure | **done (sim-calibrated arm)**: falsifier fired, but the data clear wft; the sim is the one off. r06-on-sim arm running |
+| 1. angle closure | **done**: falsifier fired, but the data clear wft; the sim's nonlinearity is unexplained (not ions, not the lateral model) |
 | 2. depth residuals | **done**: the data's growth with depth is mostly M3's pointing |
 | 3. hit-time ladder | **done**: the compression is geometry; the sim's readout adds twice the data's; coupling moves it the wrong way |
-| Sim | **wet gas + 0.42 mm prompt anode spread closes the ±1 neighbour delay** (+60 vs data +45/+60; v3 +135) and the vertical X cluster; Y still open. Closure yardstick on it running |
+| Sim | **wet gas + 0.42 mm prompt anode spread closes the ±1 neighbour delay** (+60 vs data +45/+60; v3 +135) and the vertical X cluster; v4 candidate (bG 0.48) run at 12 angles and passes its bands; Y still open |
 
 ## Found on the way: the sim's channels were not on det3's wiring
 
@@ -231,9 +231,14 @@ Vertical: Δθ −0.04 / +0.27°, σθ 1.43 / 1.66° (sim-calibrated: 1.10 / 1.2
   the weak link, not the waveforms.
 - **The nonlinearity is a property of the sim's waveforms.** It appears with either bundle (X swings 5–7 % between 10°
   and 20°; the data swing 1 %), and fixing the neighbour delay (wet + σ0 420 µm) does not remove it.
-- Next suspect: the slow pulse. The sim's inclined rise is +12 ns over the data's, with a rigid ~70 ns offset found in
-  August. **No-ions diagnostic submitted** (condor 4480264, pre-registered in `stageBC_w3_noions.sub`: swing < 0.02 if
-  the ion tail drives it, 0.05–0.08 if not).
+- **Not the ion tail.** v3 with `--no-ions` (condor 4480264, own truth-pinned calibration): core ratio X 1.006 / 1.042 /
+  1.008 / 0.975 at 5 / 10 / 15 / 20°, Y 1.052 / 1.052 / 1.021 / 1.007; swing 10→20° 0.067 / 0.045; flips at 20° 0.17 / 0.18.
+  Pre-registered "< 0.02 if the ion tail drives it, 0.05–0.08 if not": **not**.
+- **Still unexplained.** Excluded so far: ions, the lateral model (wet + σ0), the wiring, the bundle. Every sim variant
+  reads ~+4–5 % at 10° and ~−2.5 % at 20° in X. Untested candidates: the sim-measured template (the truth-pinned
+  calibration measures it on the sim's own bright inclined strips), the depth end of the column (the sim's charge
+  stops at exactly 26.5 mm, the data's cathode is dished), and the sampling-phase treatment. Until it is understood,
+  the sim says nothing about wft's angle linearity on data, and the data (M3) remain the reference.
 
 ## 2. Depth-resolved residuals
 
@@ -366,3 +371,20 @@ The Y ladder now matches the data at 5° and 10°. X is still ~0.03 more compres
 core tan ratio X 1.032 / 1.053 / 1.013 / 0.989 / 0.957 at 5 / 10 / 15 / 20 / 30°; Y 1.052 / 1.039 / 1.022 / 1.017 / 0.997.
 Flips at 20° 0.149 / 0.116. Vertical σθ 0.97 / 1.10°. The X swing between 10° and 20° is 0.064 (v3 0.070); Y 0.022 (v3 0.057).
 Better calibration parameters (σ_s 33 ns instead of 71–351) and a smaller Y swing, but X keeps its nonlinearity.
+
+
+## What's next (2026-10-18 evening)
+
+1. **Dylan's calls.**
+   - Coupling as a fitted term: the ladder and the neighbour delay both say no.
+   - The v4 candidate (wet 1 % + σ0 420 µm + bG 0.48, det3 wiring) as the new baseline: recipe flags are in
+     `scratchpad/2026-10-18/stageBC_w4_cand.sub`. It would also need a `det3_v4.args` recipe and `MX17_GAS_TABLE`
+     in the submit environment.
+2. **Origin of the prompt spread.** Candidate: lateral displacement of photon-feedback secondaries (the model puts them
+   on the primary). A `--feedback-spread-um` option would make the spread grow with gain, as cloud_basics sees
+   (σ0 0.3 → 0.5 mm over 425 → 505 V). Testing it needs avalanche calibs at other mesh voltages.
+3. **Y** (§21.9 and above): ±1/central too high while the vertical width is a bit narrow, inclined Y too dim. Not a ρ_s problem alone.
+4. **wft on the sim:** the nonlinearity (above). The sim-calibrated bundle also flips 12–18 % at 20°. The data
+   bundle doesn't, so seeding or pinning σ_s / kY in the truth-pinned fit is worth a try before reading closure numbers.
+5. **Housekeeping:** amplitude ledgers were not affected by the wiring (peak amplitudes only), but any older
+   position-based 20° comparison should be rerun on rewired files (`python -m response.dream.rewire IN OUT`).

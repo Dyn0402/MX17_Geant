@@ -20,19 +20,19 @@ track reconstruction (items 1–3), and keep improving the sim where the path is
 - **Sim:** wet gas (1 % H2O, `design/gas/..._H2O_1.0.json` via `MX17_GAS_TABLE`) + `--sigma0-um 420` closes the ±1 neighbour delay
   (X +60, Y +60 vs data +45/+60; v3 +135) and the vertical X cluster (n, span, rms). Y ±1/central overshoots; inclined Y dimmer.
 
-**Running at the end of this update:**
-- condor 4480263 **v4c** (wet + σ0 420 + bG 0.48, 12 angles, truth, det3 wiring) → `scratchpad/2026-10-18/eval_v4c.sh` (yoga; ledger,
-  extent, nb, ladder, sim calibration, closure).
-- condor 4480264 **v3ni** (v3 --no-ions diagnostic) → `eval_noions.sh` (waits for eval_v4c): does the ion tail make wft nonlinear on the sim?
-  Pre-registrations are in the .sub headers.
+**Finished later the same afternoon:**
+- **v4c** (condor 4480263; wet 1 % + σ0 420 µm + bG 0.48, 12 angles, truth, det3 wiring): passes its pre-registration
+  (joint 0.987, ±1 delay +75/+60, vertical X 0.64 mm with the data's n and span, 10° extent 1.46). Y/X unchanged (1.12).
+  Files on yoga `/media/dylan/data/claude_tmp/v3wet/v4c_<ang>`, AFS `mx17_s1/stageBC/v4c_<ang>`, EOS `response_sim/stageB_w2/v4c_<ang>`.
+- **No-ions diagnostic** (condor 4480264): wft's nonlinearity on the sim persists (swing 0.067 X). Not the ion tail. Unexplained.
 
 **Next steps:**
-1. Read `eval_v4c.log` / `eval_noions.log` outputs, write them into the note, republish.
-2. Dylan's calls: (a) coupling out? (ladder + delay say yes), (b) adopt wet gas + σ0 ≈ 0.42 mm as v4 (after the v4c bG check),
+1. Dylan's calls: (a) coupling out? (ladder + delay say yes), (b) adopt the v4 candidate (wet gas + σ0 420 µm + bG 0.48; the bG check passed),
    (c) the physical origin of the prompt spread (lateral displacement of photon-feedback secondaries is the candidate; would explain
    cloud_basics' σ0 growing with mesh voltage). A `--feedback-spread-um` option is the natural next model step.
-3. Y view: ±1/central too high while the vertical Y width is a bit narrow; inclined-Y dimness worse with σ0. Still open (§21.9).
-4. The sim-calibrated wft bundle is the weak link for closure (c1 at floor, σ_s runs away); consider seeding/pinning σ_s.
+   The note's last section ("What's next") is the ranked list.
+2. Y view: ±1/central too high while the vertical Y width is a bit narrow; inclined-Y dimness worse with σ0. Still open (§21.9).
+3. The sim-calibrated wft bundle is the weak link for closure (c1 at floor, σ_s runs away); consider seeding/pinning σ_s.
 
 **Gotchas:** `pkill -f <pattern>` from the Bash tool kills the tool's own shell when the pattern appears in the command line; kill by PID.
 Yoga's data disk is at ~98 %; `/media/dylan/data/claude_tmp/v3` (original identity-wired v3, 6.7 GB) and `v3t` (raw truth regen, 2.9 GB)
