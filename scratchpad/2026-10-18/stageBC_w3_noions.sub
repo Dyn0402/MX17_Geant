@@ -1,0 +1,22 @@
+# NO-IONS DIAGNOSTIC for wft's angle linearity on the sim (2026-10-18, RECO_TRUTH item 1).
+# Sim-calibrated wft on the v3 sim swings ~6 % in tan scale between 10 and 20 deg (1.045 -> 0.975 X), with the data's
+# r06 bundle too (1.082 -> 1.031); on det3 data vs M3 it is flat to 1 %. The wet + sigma0 420 arm, which fixes the
+# neighbour delay, does not change it (1.039 -> 0.981). Next suspect: the slow pulse (ion tail; the sim's rise is
+# +12 ns over the data, FRESH_LOOK §21). This arm is v3 with --no-ions (DIAGNOSIS only, not physics), det3 wiring, truth.
+# PRE-REGISTERED (before submission): sim-calibrated closure, X and Y core tan ratio at 10 and 20 deg:
+#   * if the ion tail drives the nonlinearity: |ratio(10) - ratio(20)| < 0.02 in both views;
+#   * if not: the swing stays 0.05-0.08.
+#   Anything in between is reported as partial.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w3noions.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+arguments               = "rho5M v3ni_$(ang) /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07_cmq.json /afs/cern.ch/work/d/dneff/mx17_s1/clusters_ang_e17/mx17_muons_3k_ang_$(ang)_e17_t0.root '--no-ions --drift-gap-mm 26.5 --feedback-bg 0.45 --shaper-tp-ns 166 --wiring connector-inverted --calib /afs/cern.ch/work/d/dneff/mx17_s1/calib/aval_calib_meshfield_nc1_pooled.json'"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_v3ni_$(ang).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_v3ni_$(ang).err
+queue ang in (th00 thx05 thx10 thx15 thx20 thy05 thy10 thy15 thy20 txy10)

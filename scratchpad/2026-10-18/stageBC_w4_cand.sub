@@ -1,0 +1,22 @@
+# v4 CANDIDATE (2026-10-18, RECO_TRUTH note): the v3 recipe + 1 % H2O gas + --sigma0-um 420 + bG refit, det3 wiring,
+# truth kept, 12 angles. Not adopted: it is a candidate for Dylan's call.
+# bG: the wet-sigma0-420 arm at bG 0.45 read data/sim p50 1.048 (X) / 1.094 (Y) vertical; ~2 % per 0.01 bG (§21.10).
+#   -> bG 0.48.
+# PRE-REGISTERED (before submission):
+#   * joint data/sim p50 (geo-mean X, Y over th00/thx10/thx20/thy10/thy20): 0.97-1.03.
+#   * neighbour shape (th00): within +-15 ns / +-0.01 of the bG 0.45 arm (bG is an amplitude knob, §21.7).
+#   * vertical X rms 0.63-0.67 mm, 10 deg extent 1.42-1.49 mm.
+# FALSIFIER: the neighbour delay or widths move with bG -> bG is not a pure amplitude knob in this configuration.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w4cand.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4 MX17_GAS_TABLE=/afs/cern.ch/work/d/dneff/mx17_s1/src/design/gas/drift_velocity_Ar_iC4H10_95_5_H2O_1.0.json"
+arguments               = "rho5M v4c_$(ang) /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07_cmq.json /afs/cern.ch/work/d/dneff/mx17_s1/clusters_ang_e17/mx17_muons_3k_ang_$(ang)_e17_t0.root '--ion-model reconstructed --ion-mobility K0=2.05 --drift-gap-mm 26.5 --feedback-bg 0.48 --shaper-tp-ns 166 --wiring connector-inverted --sigma0-um 420 --calib /afs/cern.ch/work/d/dneff/mx17_s1/calib/aval_calib_meshfield_nc1_pooled.json'"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_v4c_$(ang).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_v4c_$(ang).err
+queue ang in (th00 thx05 thx10 thx15 thx20 thx30 thy05 thy10 thy15 thy20 thy30 txy10)
