@@ -22,6 +22,7 @@ from response.digitizer.gas import DriftGas
 from response.digitizer import digitize as D
 
 GAP, PITCH = float(os.environ.get('GAP', 26.5)), 0.78
+SIG0 = float(os.environ.get('SIGMA0_MM', 0.0))   # gas table: MX17_GAS_TABLE, as in Stage B
 ANGS = {'thx05': ('x', 5), 'thx10': ('x', 10), 'thx15': ('x', 15), 'thx20': ('x', 20), 'thx30': ('x', 30),
         'thy05': ('y', 5), 'thy10': ('y', 10), 'thy15': ('y', 15), 'thy20': ('y', 20), 'thy30': ('y', 30)}
 
@@ -50,6 +51,8 @@ def main():
             sT = gas.sigma_T_um(E, z) * 1e-3
             st = gas.sigma_t_ns(E, z)
             u = u + rng.normal(0, 1, len(u)) * sT
+            if SIG0 > 0:                       # prompt anode spread (Stage B --sigma0-um), per electron
+                u = u + rng.normal(0, SIG0, len(u))
             t = z * 1e3 / v + rng.normal(0, 1, len(z)) * st
             s = np.floor(u / PITCH).astype(int)
             us = np.unique(s)

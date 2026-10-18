@@ -31,7 +31,7 @@ written before each run. Angles from wft are in the Geant frame (ANGLED_LADDER �
 | 1. angle closure | **done (sim-calibrated arm)**: falsifier fired, but the data clear wft; the sim is the one off. r06-on-sim arm running |
 | 2. depth residuals | **done**: the data's growth with depth is mostly M3's pointing |
 | 3. hit-time ladder | **done**: the compression is geometry; the sim's readout adds twice the data's; coupling moves it the wrong way |
-| Sim | testing "wet gas + prompt anode spread" (condor 4480262, pre-registered) |
+| Sim | **wet gas + 0.42 mm prompt anode spread closes the ±1 neighbour delay** (+60 vs data +45/+60; v3 +135) and the vertical X cluster; Y still open. Closure yardstick on it running |
 
 ## Found on the way: the sim's channels were not on det3's wiring
 
@@ -187,6 +187,19 @@ sim's late neighbour (§3, FRESH_LOOK §21). So:
 - 30° (|tan| 0.58) is outside anything det3 saw on the bench (no data events above |tan| 0.45); at 20° the sim flips
   twice as often as the data do (0.15 vs 0.07 ± 0.03).
 
+### The other arm: the data's bundle (r06) on the sim
+
+| | 5° | 10° | 15° | 20° | 30° |
+|---|---|---|---|---|---|
+| core tan ratio X / Y | 1.081 / 1.052 | **1.082 / 1.074** | 1.058 / 1.061 | 1.031 / 1.056 | 0.978 / 1.014 |
+| flip X / Y | 0.022 / 0.014 | 0.011 / 0.007 | 0.009 / 0.009 | **0.027 / 0.019** | 0.117 / 0.103 |
+
+Vertical: Δθ −0.04 / +0.27°, σθ 1.43 / 1.66° (sim-calibrated: 1.10 / 1.26).
+- Pre-registered 1.039 ± 0.03 (the v ratio 38.02/36.6): **missed** at 10° (1.08). The kernel mismatch adds +4 %.
+- The data's bundle flips **fewer** sim tracks at 20° (2–3 %) than the sim's own calibration does (15 %). That bundle
+  has the data's kernel (σ_p0 0.42 mm, slower Dp), so the flips belong to the sim-calibrated kernel. A wft model
+  pinned to the sim's narrow-at-the-mesh cloud is the one that loses the direction.
+
 ## 2. Depth-resolved residuals
 
 The data's |wft line − M3 line| (`data_line_res.py`, same accounting as the sim column; offsets centred):
@@ -211,3 +224,81 @@ The data's |wft line − M3 line| (`data_line_res.py`, same accounting as the si
 - The "physics floor" σθ ≈ 1.0–1.1° (WAVEFORM_FIRST_THREADING §12, from a toy) is confirmed on the full
   simulation for vertical tracks (1.10 / 1.26°) and is 0.7–1.0° on 5–15° tracks. The data's 1.15 / 1.18° against M3
   includes M3's angle error, so wft on data is at or below the floor.
+
+## Sim: wet gas + a prompt lateral spread at the anode (condor 4480262)
+
+**Why this test.** Three leads point at the same place.
+- FRESH_LOOK §12: the bench drift velocity says ~1 % water, but the bench widths look dry
+  (D_T 463–507 µm/√cm, the dry Magboltz value). The sim runs the dry table, which is why it drifts at
+  38.0 µm/ns instead of the data's 36.6.
+- wft's own calibration (item 1): on data the charge cloud is already σ_p0 = 0.42 mm wide at the mesh and grows
+  slowly (Dp 0.0144). On the dry v3 sim it starts at 0.03 mm and grows fast (Dp 0.0257).
+- FRESH_LOOK §21.11: the data's neighbour carries its share *earlier*, a prompt in-phase share the sim lacks.
+
+**Hypothesis H.** The gas is wet as v says, and the anode has a prompt, charge-conserving lateral spread of
+~0.4 mm. Together they mimic dry widths on average while moving charge from late diffusion into an in-phase
+neighbour share. Tested with the 1 % H₂O Magboltz table (`design/gas/drift_velocity_Ar_iC4H10_95_5_H2O_1.0.json`,
+v 37.2 µm/ns, σ_T over 26.5 mm 506 µm vs dry 785) and Stage B's new `--sigma0-um` (the avalanche spread; the calib
+has 94 µm). Arms on the v3 recipe, det3 wiring: wet only (v3w), wet + σ0 300 µm, wet + σ0 420 µm.
+Pre-registration in `scratchpad/2026-10-18/stageBC_w3_wetspread.sub`.
+
+**Neighbour shape** (vertical, M3-selected data; `nb_compare.py`, unscaled):
+
+| | ±1 delay X / Y [ns] | ±1 / central X / Y | nb(t = 0) X / Y | nb rms X / Y |
+|---|---|---|---|---|
+| data | +45 / +60 | 0.368 / 0.408 | 0.219 / 0.225 | – |
+| v3 (dry, 94 µm) | +135 / +135 | 0.372 / 0.435 | 0.172 / 0.185 | 0.028 / 0.039 |
+| v3 + coupling 0.05, 15 ns (§21.8) | +105 / +105 | 0.361 / 0.422 | 0.226 / 0.236 | 0.018 / 0.032 |
+| wet, 94 µm | +120 / +150 | 0.322 / 0.360 | 0.154 / 0.159 | 0.040 / 0.042 |
+| wet, σ0 300 µm | +90 / +105 | 0.360 / 0.417 | 0.183 / 0.199 | 0.022 / 0.028 |
+| **wet, σ0 420 µm** | **+60 / +60** | 0.382 / 0.461 | 0.202 / 0.242 | **0.018 / 0.038** |
+
+**Widths** (`xy_extent_m3.py`, unsaturated; RMS in mm, n strips, span in mm):
+
+| | vertical X: rms / n / span | vertical Y rms | 10° X rms | 20° X rms |
+|---|---|---|---|---|
+| data | 0.66 / 4.0 / 2.34 | 0.84 | 1.46 | 2.75 |
+| v3 (rewired) | 0.68 / 4.5 / 3.12 | 0.81 | 1.46 | 2.72 |
+| wet, 94 µm | 0.52 / 3.0 / 1.56 | 0.72 | 1.40 | 2.71 |
+| wet, σ0 300 µm | 0.58 / 4.0 / 2.34 | 0.75 | 1.42 | 2.71 |
+| **wet, σ0 420 µm** | **0.65 / 4.0 / 2.34** | 0.79 | 1.45 | 2.72 |
+
+**Amplitude ledger** (data/sim p50, vertical X / Y): v3 0.978 / 1.012; wet 94 µm 0.840 / 0.857 (wet alone makes the
+sim 17 % brighter: less diffusion concentrates the charge); wet σ0 420 µm 1.048 / 1.094. Inclined Y (10°): v3 1.128,
+σ0 420 µm 1.193; its saturated fraction 0.193 vs data 0.331 (v3 0.218).
+
+**Against the pre-registration:**
+1. v 37.2: ✔ (Stage B log).
+2. Vertical X width: wet alone 0.52 (band 0.55–0.62, a near miss, narrower than predicted); σ0 420 µm 0.65 (band 0.63–0.72) ✔.
+3. 10° extent within ±4 %: ✔ in every arm (1.40–1.45 vs 1.46).
+4. nb(0) X ≥ 0.19 with σ0 420 µm: ✔ 0.202. ±1 delay X ≤ +120 ns: ✔ **+60** (and Y +60 = data).
+7. Amplitude +3..+12 % (data/sim): ✔ +7 % X, +8 % Y.
+5. wft's truth-pinned calibration on the σ0 420 µm sim returns σ_p0 0.25–0.55 mm, Dp 0.008–0.014: **✘ failed.**
+   It returns σ_p0 0.031 mm and Dp 0.0256, and puts the extra width into the kernel's time smear (σ_s 351 ns) and
+   kY. Wet alone: σ_p0 0.038, Dp 0.0181 (the wet Magboltz value is ~0.010). **wft's σ_p0 and Dp are not clean
+   physical readouts**: they trade off against its sharing-kernel parameters. So the data bundle's 0.42 mm is no
+   evidence for a prompt spread by itself; that leg of the motivation falls. The neighbour shapes above stand on their own.
+6. Ladder C, X at 10° (band 0.80–0.86 for σ0 420 µm): ✔ **0.817**. Wet alone 0.873, σ0 300 µm 0.849.
+   The ideal ladder must use the same gas. Ideal wet + 0.42 mm is **identical** to ideal dry with none (0.591 / 0.849 /
+   0.926 / 0.958 vs 0.601 / 0.853 / 0.928 / 0.959 at 5/10/15/20°): the ladder only sees the total width, the "mimics
+   dry" statement in another observable. Against its own ideal, the sim's readout share at 10° goes from −0.045 (v3)
+   to −0.032 (σ0 420 µm); the data's is 0.00 (X) / −0.03 (Y).
+
+**Falsifier not triggered.** One pre-registered band failed (item 5, the wft parameters).
+
+**Reading.**
+- **The ±1 neighbour delay, the sim's longest-standing mismatch (×2 since §10.4), closes with a prompt anode spread
+  and wet gas.** Neither ρ_s (§21.11) nor the inter-strip coupling (§21.8) did: the coupling took the delay to +105
+  and spoiled the ladder (§3). In X every neighbour number now matches the data to 0.01–0.02 and 15 ns, and the
+  vertical X cluster has the data's strip count and span, which v3 never had.
+- The "widths look dry" puzzle has a reading: wet diffusion plus ~0.4 mm of prompt spread gives the dry total.
+  The water is real (v, FRESH_LOOK §12). The prompt spread is a phenomenological term with no mechanism in the
+  model yet. Candidates: lateral displacement of the photon-feedback secondaries, which the model places exactly
+  on the primary (`add_feedback`, "land where the primary did"). That would also explain why cloud_basics finds the
+  data's early width growing with mesh voltage (σ0 0.3 → 0.5 mm over 425 → 505 V), since bG grows with gain.
+  The other candidate is a wider avalanche than the 94 µm Garfield calib.
+- **Y is not fixed.** Y's ±1/central overshoots (0.461 vs 0.408, v3 already 0.435), the vertical Y width is a little
+  narrow (0.79 vs 0.84), and inclined Y gets dimmer (saturates 0.19 vs 0.33). One knob cannot fix Y's core and wings
+  together. ρ_s acts only on Y (the stripes run along y), and on both in the same direction. The Y open problem
+  (§21.9) stands, with this baseline as the better starting point.
+- Amplitude: the σ0 420 µm arm wants bG ≈ 0.48–0.49 instead of 0.45 (≈ 2 % per 0.01, §21.10).

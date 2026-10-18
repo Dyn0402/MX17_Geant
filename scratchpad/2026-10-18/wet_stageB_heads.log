@@ -1,0 +1,9 @@
+  gas       v_drift=37.2 µm/ns  sigma_T(full gap)=506 µm
+  avalanche gain=23368 sigma0=300.0 µm   transparency=0.9928125 [S3 meshfield calib `survival` (meshfield:meshfield_production.txt); T6 3-D G7 measures the same quantity at 0.955]
+  decoded   writing sim_decoded_w2_rho5M_v3ws300_th00_datrun_w2rho5Mv3ws300_th00_000_07.root (X, FEU 7) and sim_decoded_w2_rho5M_v3ws300_th00_datrun_w2rho5Mv3ws300_th00_000_08.root (Y, FEU 8), 32 samples x 60 ns, wiring connector-inverted
+  gas       v_drift=37.2 µm/ns  sigma_T(full gap)=506 µm
+  avalanche gain=23368 sigma0=420.0 µm   transparency=0.9928125 [S3 meshfield calib `survival` (meshfield:meshfield_production.txt); T6 3-D G7 measures the same quantity at 0.955]
+  decoded   writing sim_decoded_w2_rho5M_v3ws420_th00_datrun_w2rho5Mv3ws420_th00_000_07.root (X, FEU 7) and sim_decoded_w2_rho5M_v3ws420_th00_datrun_w2rho5Mv3ws420_th00_000_08.root (Y, FEU 8), 32 samples x 60 ns, wiring connector-inverted
+  gas       v_drift=37.2 µm/ns  sigma_T(full gap)=506 µm
+  avalanche gain=23368 sigma0=94.3 µm   transparency=0.9928125 [S3 meshfield calib `survival` (meshfield:meshfield_production.txt); T6 3-D G7 measures the same quantity at 0.955]
+  decoded   writing sim_decoded_w2_rho5M_v3w_th00_datrun_w2rho5Mv3w_th00_000_07.root (X, FEU 7) and sim_decoded_w2_rho5M_v3w_th00_datrun_w2rho5Mv3w_th00_000_08.root (Y, FEU 8), 32 samples x 60 ns, wiring connector-inverted
