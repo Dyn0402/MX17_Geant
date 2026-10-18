@@ -21,6 +21,11 @@ construction. This is the signature of coupling capacitance between adjacent cha
 
 (Kirchhoff at each node: whatever a neighbour gains, the central loses.)
 
+DIAGNOSTIC ONLY: an optional third value KFREE adds kf i_c to each neighbour WITHOUT taking it from the
+central. That does not conserve charge, so it is not a circuit model. It asks whether the data's prompt
+neighbour share (FRESH_LOOK §21.8 and §21.11: the residual in-phase k ≈ 0.05 with no central loss) closes
+the rest of the ±1 delay.
+
 This acts on the induced currents, per view and in channel order (channel = strip
 index, run.py), before the shaper. Both steps are linear, so the order is only a
 matter of convention. The truth sidecar keeps the uncoupled induced charge.
@@ -32,7 +37,7 @@ import numpy as np
 
 
 def parse_coupling(spec):
-    """'K,TAU_NS' or 'X:K,TAU/Y:K,TAU' -> {'X': (k, tau_ns), 'Y': (k, tau_ns)}."""
+    """'K,TAU_NS[,KFREE]' or 'X:K,TAU[,KFREE]/Y:...' -> {'X': (k, tau_ns, kfree), 'Y': (...)}."""
     if spec is None:
         return None
     out = {}
@@ -45,11 +50,14 @@ def parse_coupling(spec):
             if len(parts) > 1:
                 raise ValueError(f"mix of per-view and global coupling: {spec!r}")
             views, vals = ("X", "Y"), p
-        k, tau = (float(v) for v in vals.split(","))
-        if not 0.0 <= k < 0.5 or tau < 0:
-            raise ValueError(f"coupling needs 0 <= k < 0.5 and tau >= 0, got {k}, {tau}")
+        f = [float(v) for v in vals.split(",")]
+        if len(f) not in (2, 3):
+            raise ValueError(f"coupling wants K,TAU or K,TAU,KFREE, got {vals!r}")
+        k, tau, kf = f[0], f[1], (f[2] if len(f) == 3 else 0.0)
+        if not 0.0 <= k < 0.5 or tau < 0 or not 0.0 <= kf < 0.5:
+            raise ValueError(f"coupling needs 0 <= k, kfree < 0.5 and tau >= 0, got {k}, {tau}, {kf}")
         for v in views:
-            out[v] = (k, tau)
+            out[v] = (k, tau, kf)
     return out
 
 
@@ -63,12 +71,13 @@ def couple(cur, coupling, dt_ns):
     for (view, idx), w in cur.items():
         if view not in coupling:
             continue
-        k, tau = coupling[view]
+        k, tau, kf = coupling[view]
         w = np.asarray(w, dtype=float)
         # Central-difference derivative. np.gradient keeps the length and the sum is
         # ~0, so the derivative term carries no net charge.
         give = k * w + (tau / dt_ns) * np.gradient(w) if tau > 0 else k * w
         out[(view, idx)] -= 2.0 * give
+        give = give + kf * w          # the diagnostic term is not taken from the central
         for j in (idx - 1, idx + 1):
             tgt = out.get((view, j))
             if tgt is None:

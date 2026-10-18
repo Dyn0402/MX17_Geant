@@ -2233,3 +2233,10 @@ Logs: `*_v3r2.log`, `nb_compare_v3r2.log`.
   an input network that couples neighbours with a non-conserving, in-phase term (e.g. a shared reference or common return through the
   protection network). That needs Irakli's schematic. The cheap next test is a non-conserving coupling option (neighbours get k·i_c,
   the central keeps i_c) to see whether k ≈ 0.05 closes the remaining delay.
+- **Non-conserving prompt share, tested offline: does not work.** `--strip-coupling K,TAU,KFREE` (a diagnostic third value: neighbours
+  gain kf·i_c, the central keeps everything) was emulated on v3c5t15's samples (`scratchpad/2026-10-18/emul_kfree.py`, `.log`).
+  kf 0.02–0.08 moves the delay only +105 → +90/+75 ns. It raises ±1/central past the data (X 0.37 → 0.41) and *worsens* the shape
+  rms (X 0.018 → 0.035). Not run on condor. **Reading:** the data's neighbour is not the chain's neighbour plus a prompt extra. It carries
+  the same share *earlier instead of later*. That wants the slow resistive delivery reduced (higher ρ_s) and a prompt lateral
+  delivery added, with the total share held. The Y wings already sit near the data at 5 MΩ/sq, so that is a joint re-fit of the
+  lateral model (ρ_s with a prompt spread term), not one more knob on top.

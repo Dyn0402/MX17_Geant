@@ -254,10 +254,10 @@ def main():
                          "frame. det3's measured column is 27.9 +- 1 mm, a dished "
                          "cathode (nTof_x17 mx_june_wft/GAP_STUDY_2026-07-30.md).")
     ap.add_argument("--strip-coupling", default=None,
-                    help="inter-strip coupling between adjacent channels, 'K,TAU_NS' "
+                    help="inter-strip coupling between adjacent channels, 'K,TAU_NS[,KFREE]' "
                          "or 'X:K,TAU/Y:K,TAU': each neighbour gets K i_c + TAU di_c/dt "
                          "and the central strip keeps (1-2K) i_c (dream/coupling.py, "
-                         "FRESH_LOOK §21.7). Default off.")
+                         "FRESH_LOOK §21.8). KFREE is a non-conserving diagnostic term. Default off.")
     ap.add_argument("--seed", type=int, default=5)
     ap.add_argument("--fixed-position", action="store_true",
                     help="do NOT randomise the impact point (see below)")
@@ -407,8 +407,8 @@ def main():
         print("  ions      DISABLED (electrons only)")
     coupling = parse_coupling(a.strip_coupling)
     if coupling:
-        print("  coupling  " + ", ".join(f"{v}: k {k:.3f}, tau {t:.1f} ns"
-                                         for v, (k, t) in sorted(coupling.items())))
+        print("  coupling  " + ", ".join(f"{v}: k {k:.3f}, tau {t:.1f} ns" + (f", kfree {kf:.3f}" if kf else "")
+                                         for v, (k, t, kf) in sorted(coupling.items())))
     if shaper:
         sh = shaper.describe()
         # 'tau_ns' exists only on the legacy CR-RC^2 model; the manual-topology

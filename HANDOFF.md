@@ -1,6 +1,6 @@
 # Handoff
 
-## Overnight 10-17/18: v3 baseline, coupling, systematics — updated 2026-10-18 04:00 (dylan-Yoga)
+## Overnight 10-17/18: v3 baseline, coupling, systematics — updated 2026-10-18 04:30 (dylan-Yoga)
 
 **Resume:** FRESH_LOOK §21.7–21.10 and slides 9–13 of https://dylan-neff.web.cern.ch/notes/mx17-response-sim-state.html.
 Dylan to decide: adopt the inter-strip coupling (k 0.05, τ 15 ns, then bG 0.47) as a fitted term, or wait for Irakli's values?
@@ -25,8 +25,9 @@ Dylan to decide: adopt the inter-strip coupling (k 0.05, τ 15 ns, then bG 0.47)
    of the peak after FeuReader's pedestal (mixed 32/37-sample events or ZS?). Sort out that format first, then select by M3 slope.
 5. ρ_s × coupling (condor 4480075, §21.11): ρ2M shortens the delay 30 ns but breaks the Y profile (vertical Y rms 1.05 vs 0.85).
    ρ5M + coupling stays best. The remaining prompt neighbour share is NOT the glue (Aug d_k scan: < 1 %) and NOT diffusion
-   (vertical width already slightly wide). Next: a non-conserving in-phase coupling option (neighbours get k·i_c, central keeps i_c)
-   and one condor scan; physically it needs Irakli's input-network schematic.
+   (vertical width already slightly wide). A non-conserving prompt share (`--strip-coupling K,TAU,KFREE`, diagnostic) was emulated
+   offline and makes the shape worse (`emul_kfree.log`). The data neighbour carries the same share earlier instead of later. Next:
+   rethink the lateral model (slower sheet delivery and a prompt lateral term with the total held), ideally with Irakli's schematic.
 6. Still open: Ar/CF4 out-of-sample; Irakli's questions (protection R/C, inter-channel C).
 
 **Gotchas:** the laptop OOMs building a kernel LUT (`run.py` locally gets killed); run Stage B on condor. `wf_shape.py` (10-12)

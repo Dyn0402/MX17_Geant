@@ -35,6 +35,10 @@ def main():
     assert ("Y", 21) not in o and np.array_equal(o[("Y", 20)], 0.5 * w)
     print("k 0.05 on X only: central keeps 0.90, each neighbour 0.05; Y untouched")
 
+    o = couple(cur, parse_coupling("0,0,0.04"), 1.0)
+    assert abs(o[("X", 10)].sum() / w.sum() - 1) < 1e-9 and abs(o[("X", 11)].sum() / w.sum() - 0.04) < 1e-9
+    print("kfree 0.04 (diagnostic): central keeps 1.00, each neighbour gains 0.04")
+
     sh = DreamShaper(dt_ns=1.0)
     cpl = parse_coupling("0.03,15")
     a = {k: sh.apply(v) for k, v in couple(cur, cpl, 1.0).items()}

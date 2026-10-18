@@ -1,0 +1,10 @@
+x kf 0.00: delay +105 (data +45) nb/c 0.361 (0.368) nb(0) 0.226 (0.219) nb rms 0.0179
+x kf 0.02: delay  +90 (data +45) nb/c 0.374 (0.368) nb(0) 0.232 (0.219) nb rms 0.0195
+x kf 0.04: delay  +90 (data +45) nb/c 0.387 (0.368) nb(0) 0.238 (0.219) nb rms 0.0235
+x kf 0.06: delay  +75 (data +45) nb/c 0.401 (0.368) nb(0) 0.244 (0.219) nb rms 0.0291
+x kf 0.08: delay  +75 (data +45) nb/c 0.414 (0.368) nb(0) 0.250 (0.219) nb rms 0.0350
+y kf 0.00: delay +105 (data +60) nb/c 0.422 (0.408) nb(0) 0.236 (0.225) nb rms 0.0319
+y kf 0.02: delay +105 (data +60) nb/c 0.434 (0.408) nb(0) 0.241 (0.225) nb rms 0.0352
+y kf 0.04: delay  +90 (data +60) nb/c 0.445 (0.408) nb(0) 0.247 (0.225) nb rms 0.0391
+y kf 0.06: delay  +90 (data +60) nb/c 0.456 (0.408) nb(0) 0.253 (0.225) nb rms 0.0437
+y kf 0.08: delay  +90 (data +60) nb/c 0.467 (0.408) nb(0) 0.258 (0.225) nb rms 0.0486
