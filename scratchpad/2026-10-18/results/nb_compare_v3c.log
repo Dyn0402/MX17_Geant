@@ -1,0 +1,8 @@
+v3k265b45  x: delay data  +45 sim +135 | nb/c 0.368 0.361 | nb(0) 0.219 0.166 | nb rms 0.0292 | central rms 0.0446
+v3k265b45  y: delay data  +60 sim +135 | nb/c 0.408 0.423 | nb(0) 0.225 0.181 | nb rms 0.0366 | central rms 0.0459
+v3c3t10    x: delay data  +45 sim +120 | nb/c 0.368 0.360 | nb(0) 0.219 0.203 | nb rms 0.0195 | central rms 0.0463
+v3c3t10    y: delay data  +60 sim +120 | nb/c 0.408 0.423 | nb(0) 0.225 0.215 | nb rms 0.0320 | central rms 0.0449
+v3c5t15    x: delay data  +45 sim +105 | nb/c 0.368 0.361 | nb(0) 0.219 0.226 | nb rms 0.0179 | central rms 0.0473
+v3c5t15    y: delay data  +60 sim +105 | nb/c 0.408 0.422 | nb(0) 0.225 0.236 | nb rms 0.0319 | central rms 0.0435
+v3c6t20    x: delay data  +45 sim  +90 | nb/c 0.368 0.357 | nb(0) 0.219 0.244 | nb rms 0.0205 | central rms 0.0486
+v3c6t20    y: delay data  +60 sim +120 | nb/c 0.408 0.417 | nb(0) 0.225 0.251 | nb rms 0.0324 | central rms 0.0407

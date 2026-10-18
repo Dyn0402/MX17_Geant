@@ -2174,7 +2174,7 @@ The saturated fraction per view (ledger `sat d / s`, v3 baseline), at the angle 
 X matches at every angle. In the data, inclined Y tracks rail as often as vertical ones (0.33), while the sim's fraction falls by
 a factor 1.7. So **the sim's Y peak strip is too dim, mostly on inclined Y tracks**. That is the ledger's Y/X (1.17–1.20 at 10°/20° in y).
 The unsaturated-only X/Y balance (§21.3) does not see it, because it drops exactly the bright Y events: its Y peak fractions agree
-with the data at 26.5 mm. Ledger Y/X at p25, far from the rail, is the same as at p50 within ±0.07, so this is a real dimness
+with the data at 26.5 mm. Ledger Y/X at p25, far from the rail, agrees with p50 to within ±0.1 and keeps the inclined-Y excess (1.10–1.25), so this is a real dimness
 and not a saturation artefact.
 
 Leads, none tested yet:

@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Slide note: the MX17 response simulation against det3 data, state on 2026-10-17.
+"""Slide note: the MX17 response simulation against det3 data, state on 2026-10-18.
 
 Follow-up to make_sim_status_deck.py (2026-10-12, "six discrepancies, none closed"). It summarises
 design/report/FRESH_LOOK_2026-10-12.md §8-20: what now matches the det3 target run, what still
 disagrees, and ideas to fix each remaining row.
 
 Inputs:
+    scratchpad/2026-10-18/results/      ledgers, shapes, X/Y balance, extent and neighbour logs of the 10-17/18
+                                        points (verdict 2, drift gap, v3 bG refit, coupling scan)
     scratchpad/2026-10-16/results/      ledgers, shape and Y-profile logs of the 2026-10-16 chain points
                                         (ledger_m3.py / shape_all.py / profile_tails.py on yoga), and the
                                         pooled nc0 / nc1 avalanche calibrations (from EOS response_sim/avalanche/)
@@ -29,6 +31,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
 RES = REPO / 'scratchpad' / '2026-10-16' / 'results'
+RES2 = REPO / 'scratchpad' / '2026-10-18' / 'results'
 sys.path.insert(0, os.path.expanduser(os.environ.get(
     'SLIDEDOC_DIR', '~/PycharmProjects/dylan-cern-site/scripts')))
 import slidedoc as sd  # noqa: E402
@@ -88,10 +91,10 @@ def read_ledger(name):
     return out
 
 
-def read_shape():
+def read_shape(path=RES / 'shape_1016.log'):
     """shape_all.py output -> {(point, view, angle): (rise_sim, rise_diff, fwhm_sim, fwhm_diff)}."""
     out = {}
-    for ln in open(RES / 'shape_1016.log'):
+    for ln in open(path):
         m = re.match(r'(\S+)\s+([xy])\s+(\d+)\s+rise\s+(\d+)\s+\(\s*([+-]?\d+)\)\s+fwhm\s+(\d+)\s+\(\s*([+-]?\d+)\)', ln)
         if m:
             pt = m[1].replace('w2_rho5M_', '')
@@ -115,6 +118,41 @@ def read_profile(name):
     return out
 
 
+def read_extent(name):
+    """xy_extent_m3.py output -> {(point, angle): (X rms, Y rms)} [mm]; point 'data' for the data."""
+    out, ang = {}, None
+    for ln in open(RES2 / name):
+        m = re.match(r'\s*(\S+)(?: (th\w+))?\s+\d+\s+X n\s+[\d.]+ span\s+[\d.]+ rms\s+([\d.]+)\s+Y n\s+[\d.]+ span\s+[\d.]+ rms\s+([\d.]+)', ln)
+        if m:
+            if m[1] == 'data':
+                ang = m[2]
+            out[(m[1], ang)] = (float(m[3]), float(m[4]))
+    return out
+
+
+def read_balance(name):
+    """xy_balance_m3.py output -> {(point, angle): dict(f, pkxy, pkx, pky)}, unsaturated columns."""
+    out, ang = {}, None
+    for ln in open(RES2 / name):
+        m = re.match(r'\s*(\S+)(?: (th\w+))?\s+\d+\s+[\d.]+\s+[\d.]+\s+[\d.]+\s+[\d.]+\s+\|\s+\d+\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)', ln)
+        if m:
+            if m[1] == 'data':
+                ang = m[2]
+            out[(m[1], ang)] = dict(f=float(m[3]), pkxy=float(m[4]), pkx=float(m[5]), pky=float(m[6]))
+    return out
+
+
+def read_nb(name):
+    """nb_compare.py output -> {(point, view): dict(delay_d, delay_s, lead_d, lead_s, rms)}."""
+    out = {}
+    for ln in open(RES2 / name):
+        m = re.match(r'(\S+)\s+([xy]): delay data\s+([+-]\d+) sim\s+([+-]\d+) \| nb/c [\d.]+ [\d.]+ \| nb\(0\) ([\d.]+) ([\d.]+) \| nb rms ([\d.]+)', ln)
+        if m:
+            out[(m[1], m[2])] = dict(delay_d=float(m[3]), delay_s=float(m[4]), lead_d=float(m[5]), lead_s=float(m[6]),
+                                     rms=float(m[7]))
+    return out
+
+
 def read_calib(name):
     p = json.load(open(RES / name))['point']
     q = p['polya']
@@ -131,7 +169,16 @@ def load():
     L = {}
     for f in ('v1', 'ionK', 'r5', 'e17'):
         L.update(read_ledger(f'ledger_1016_{f}.log'))
-    return dict(L=L, S=read_shape(),
+    for f in ('v2', 'v3', 'v3c'):
+        L.update(read_ledger(RES2 / f'ledger_{f}.log'))
+    S = read_shape()
+    for f in ('v2', 'v3', 'v3c'):
+        S.update(read_shape(RES2 / f'shape_{f}.log'))
+    E = read_extent('xy_extent_v2.log')
+    E.update(read_extent('xy_extent_v3.log'))
+    B = read_balance('xy_balance_v2.log')
+    B.update(read_balance('xy_balance_v3.log'))
+    return dict(L=L, S=S, E=E, B=B, NB=read_nb('nb_compare_v3c.log'),
                 prof={(r, a): read_profile(f'profile_1016_{r}_{a}.log')
                       for r in ('rho2M_verdict1', 'rho5M_r5verdict1') for a in ('th00', 'thy10')},
                 nc0=read_calib('aval_calib_meshfield_nc0_pooled.json'),
@@ -398,30 +445,34 @@ def build(R, out):
     v1_rise = [S[('verdict1', v, a)][1] for v in 'xy' for a in (10, 20)]
     wing_lo, wing_hi = sorted((d['wing'][2]['rho'], d['wing'][3]['rho']))
     yxm_lo, yxm_hi = min(d['yx_move']) * 100, max(d['yx_move']) * 100
+    V3 = 'v3k265b45'
+    v3_lo, v3_hi = (f(L[k]['p50'] for k in L if k[0] == V3) for f in (min, max))
+    v3_rise = [S[(V3, v, a)][1] for v in 'xy' for a in (10, 20)]
+    v3_yx = [L[(V3, a, 'y')]['p50'] / L[(V3, a, 'x')]['p50'] for a in ANGLES]
     D = sd.Deck('MX17 response simulation: where it stands',
                 'The MX17 Micromegas response simulation against the det3 target run on 2026-10-17: what now matches, '
                 'what still disagrees, and ideas to close the rest.')
 
     # 1 cover ----------------------------------------------------------------
-    D.slide('cover', sd.kicker('MX17 response simulation · det3 cosmics, 490 V · 2026-10-17')
+    D.slide('cover', sd.kicker('MX17 response simulation · det3 cosmics, 490 V · 2026-10-18')
             + '<h1 style="font-size:72px;font-weight:600;line-height:1.08;letter-spacing:-1px;max-width:1640px">'
-              'The simulation now matches det3 in amplitude to within 15 % and in pulse shape to ~10 ns; '
-              'what is left is how the charge splits between the X and Y strips</h1>'
-            + sd.p('Five days ago it was ×1.6–2.4 too dim and 70 ns too slow. Two physics additions (fast hydrocarbon ions, '
-                   'avalanche feedback) and six bug fixes closed that. The Y view and the neighbour strips are the open rows, '
-                   'and none of the tuning has yet been tested on a second gas or chamber.', 30, DMUT)
+              'The simulation now matches det3 in amplitude and strip extent at every angle; '
+              'what is left is the peak strip of inclined Y tracks and the neighbour timing</h1>'
+            + sd.p('Six days ago it was ×1.6–2.4 too dim and 70 ns too slow. Two physics additions (fast hydrocarbon ions, '
+                   'avalanche feedback), six bug fixes, the measured drift column (26.5 mm, not 30) and a joint gain refit '
+                   'closed that. Slides 9–13 are new on 10-17/18. None of the tuning has been tested on a second gas or chamber.',
+                   30, DMUT)
             + sd.row(
-                sd.bignum(f'{lo:.2f}–{hi:.2f}', 'peak amplitude, data ÷ sim', DGREEN,
-                          'all angles, X and Y, verdict 1 (was 2.1–3.0)',
+                sd.bignum(f'{v3_lo:.2f}–{v3_hi:.2f}', 'peak amplitude, data ÷ sim', DGREEN,
+                          'all angles, X and Y, v3 baseline (was 2.1–3.0)',
                           tip='Peak-strip median, data selected by true M3 angle, sim all events (ledger_m3.py).\n'
-                              'Verdict 1: hydrocarbon ion, bG 0.45, shaper 166 ns, fixed noise.'),
-                sd.bignum(f'+{min(v1_rise)}…+{max(v1_rise)} ns', 'inclined rise time, sim − data', DGREEN,
+                              'v3: K0 2.05 ion, bG 0.45, 26.5 mm column, ρ_s 5 MΩ/sq, shaper 166 ns.'),
+                sd.bignum(f'+{min(v3_rise)}…+{max(v3_rise)} ns', 'inclined rise time, sim − data', DGREEN,
                           f'10° and 20°, X and Y (was +{LEDGER["rise_aug"]["x20"]}…+{LEDGER["rise_aug"]["x10"]} ns in X)',
-                          tip='Median 10–90 % rise, peak strip, inclined tracks (shape_all.py).'),
-                sd.bignum(f'+{yx_lo:.0f}…+{yx_hi:.0f} %', 'Y/X amplitude ratio still off', DRED,
-                          'sim puts too little in Y; ρ_s does not fix it',
-                          tip='(Y data/sim) ÷ (X data/sim) at the five angles, verdict 1.\n'
-                              'A ρ_s of 5 MΩ/sq moves it by only ' + f'{yxm_lo:.0f}–{yxm_hi:.0f} %.'),
+                          tip='Median 10–90 % rise, peak strip, inclined tracks (shape_all.py), v3 baseline.'),
+                sd.bignum(f'+{(min(v3_yx) - 1) * 100:.0f}…+{(max(v3_yx) - 1) * 100:.0f} %', 'Y/X amplitude ratio still off', DRED,
+                          'worst on inclined Y; not ρ_s, gain or column',
+                          tip='(Y data/sim) ÷ (X data/sim) at the five angles, v3 baseline (slide 9, §21.9).'),
                 gap=64),
             dark=True, short='Summary',
             notes='<p>Target run: det3 cosmic bench, Ar/iC4H10 95/5, 490 V mesh, 1000 V drift over 30 mm, the June 27 long run '
@@ -457,19 +508,23 @@ def build(R, out):
         ['<b>FWHM</b>', '×1.18 wide', f'+{min(S[("verdict1", v, a)][3] for v in "xy" for a in (10, 20))}…'
          f'+{max(S[("verdict1", v, a)][3] for v in "xy" for a in (10, 20))} ns', ok, 'same'],
         ['<b>Multiplicity</b> strips ≥ 5σ', '12/13 vs 6/8', 'equal', ok, 'common-mode noise bug'],
-        ['<b>Y/X</b> amplitude ratio', 'biased by the cut', f'+{yx_lo:.0f}…+{yx_hi:.0f} %', bad, 'not ρ_s (slide 8)'],
+        ['<b>Y/X</b> amplitude ratio', 'biased by the cut', f'+{(min(v3_yx) - 1) * 100:.0f}…+{(max(v3_yx) - 1) * 100:.0f} %', bad,
+         'inclined Y peak strip (slide 9)'],
         ['<b>Y wings</b> ±2–3 strips', 'too wide', f'match at {wing_lo:.0f}–{wing_hi:.1f} MΩ/sq', part, 'outside the T2b ρ_s band'],
-        ['<b>±1 neighbour delay</b>', '+135 vs +90 ns (X)', 'not re-measured', bad, 'not ion speed, not ρ_s'],
+        ['<b>±1 neighbour delay</b>', '+135 vs +90 ns (X)', '+105 vs +45 ns', part, 'coupling closes a third (slide 13)'],
+        ['<b>Inclined extent</b>', '+14…+23 %', '−2…+5 %', ok, 'drift column 26.5 mm (slide 11)'],
         ['Early foot, Y lobe', 'data only / sim deeper', 'unchanged', bad, 'lobe is real board physics'],
     ]
-    D.slide('score', sd.title('Five of the nine rows are closed; the Y view and the neighbours are not',
-                              'det3, 490 V. X = FEU 7, Y = FEU 8. "Then" is 2026-10-12, "now" the verdict-1 configuration.')
+    D.slide('score', sd.title('Six of the ten rows are closed; the inclined Y peak and the neighbours are not',
+                              'det3, 490 V. X = FEU 7, Y = FEU 8. "Then" is 2026-10-12, "now" verdict 1 (rise, FWHM) '
+                              'and the v3 baseline (Y/X, extent, neighbours).')
             + sd.table(['observable', 'then', 'now', 'status', 'how / why'], rows, 27,
                        widths=[440, 360, 330, 170, 360], align=['left'] * 5,
                        tips=['peak p50 data/sim, unbiased ledger (§18.2); then: §18.2 s=1 row and T14',
                              'feedback multiplies gain and slope by the same 1/(1−bG) (§9)',
                              'shape_all.py on the M3-selected data (§18.8)', 'same', '§18.4–18.5, A/B condor 4451433',
-                             '§18.3, §20.2', '§18.10, §20.2 (profile_tails.py)', '§10.3–10.4, vertical tracks',
+                             '§18.3, §20.2, §21.9', '§18.10, §20.2 (profile_tails.py)', '§21.8, vertical tracks by M3',
+                             '§21.4, §21.6–21.7, xy_extent_m3.py',
                              '§7.2, §11']),
             notes='<p>"Closed" means within the pre-registered band on the target run. It does not mean tested on a second run: '
                   'the ion speed, the feedback bG and the shaper were all read from this same run (slide 13).</p>'
@@ -510,7 +565,7 @@ def build(R, out):
                                  'The pre-registration said 0.49–0.53: the amplitude falls faster with bG than predicted.', 26),
                             sd.p(f'The gap between the X and Y optima <b>is the Y/X problem</b>: '
                                  f'one gain cannot serve both views until the split is fixed. A joint fit now just averages over it.', 26),
-                            sd.callout('Use bG ≈ 0.47 for now; refit once Y/X has a cause.', GREEN, 26),
+                            sd.callout('Superseded: at the 26.5 mm column the joint refit gives bG 0.45 (slide 12).', GREEN, 26),
                             w=580), gap=56),
             notes='<p>Pre-registered in <code>scripts/condor/stageBC_w2_e17.sub</code>: bG 0.45 raises every p50 data/sim by '
                   '7–12 % (falsifier: < 4 % or > 15 %). Observed +5.2…+10.3 %, so it passes; the X saturated fraction falls '
@@ -529,7 +584,7 @@ def build(R, out):
                                      'that matches <b>K0 ≈ 2.2</b>.', 25),
                                 sd.p('The literature value K0 2.05 is 5–6 ns slower than verdict 1. The rise is already '
                                      '+8…+16 ns over the data, so that costs a little agreement for a physical parameter.', 25),
-                                sd.callout('Decision: adopt K0 2.05 as default, with 1.80 / 2.25 as the systematic?', GOLD, 25),
+                                sd.callout('Adopted 2026-10-18: K0 2.05 is the v3 default, with 1.80 / 2.25 as the systematic.', GREEN, 25),
                                 w=560), gap=40),
             notes='<p>Condor 4472241 (<code>stageBC_w2_ionK.sub</code>), <code>--ion-model reconstructed --ion-mobility K0=…</code>. '
                   'Pre-registered: K0 2.05 within +2…+8 ns of verdict 1 in rise and 0…+4 % in amplitude; falsifier > 10 ns or > 6 %. '
@@ -566,6 +621,172 @@ def build(R, out):
                   f'~{d["rho_yx0"]:.1f} MΩ/sq and the inclined angles far more. The 2026-10-14 point-source estimate (2.5 MΩ/sq for both) '
                   'is wrong once the electron cloud is included.</p>',
             short='ρ_s')
+
+    # 9 Y/X is the spread, not the sum ------------------------------------------
+    B = R['B']
+    rows = []
+    for a, lab in (('th00', 'vertical'), ('thx10', '10° in x'), ('thy10', '10° in y')):
+        dd, ss = B[('data', a)], B[('v3k265b45', a)]
+        incl = 'pky' if a == 'thy10' else 'pkx'
+        rows.append([f'<b>{lab}</b>', f'{dd["f"]:.3f} / {ss["f"]:.3f}', f'{dd["pkxy"]:.2f} / {ss["pkxy"]:.2f}',
+                     f'{dd["pky"]:.3f} / {ss["pky"]:.3f}', f'{dd["pkx"]:.3f} / {ss["pkx"]:.3f}'])
+    D.slide('xy', sd.title('Y/X is not a gain: the sim splits the total charge right and spreads it wrong',
+                           'Same reader on both legs (FeuReader, strips ≥ 5σ and ≥ 100 ADC), unsaturated events, '
+                           'data by true M3 angle. Each cell: data / sim (v3 baseline).')
+            + sd.table(['tracks', sd.term('f = q_X ÷ (q_X + q_Y)', 'Sum of strip peaks in each view. Strip capacitance, '
+                                          'charge division and FEU gain all scale this sum.'),
+                        'peak X ÷ peak Y', 'peak Y ÷ q_Y', 'peak X ÷ q_X'], rows, 27,
+                       widths=[260, 360, 330, 330, 330], align=['left'] * 5)
+            + sd.row(sd.callout('The charge sum f agrees to ≤ 0.02, so <b>nothing that scales a whole view</b> '
+                                '(strip C, protection charge division, FEU gain) causes Y/X.', GREEN, 26),
+                     sd.callout('det3 gives f = 0.484 on FEU 7/8 and 0.481–0.494 on FEU 3/4: <b>the FEUs are excluded</b> '
+                                'too. Y pedestal noise is 1.7 % above X, where a strip-C division would make it ~25 % quieter.',
+                                GREEN, 26),
+                     sd.callout('What is off is the <b>peak strip</b>: inclined Y keeps too little of its charge on one strip.',
+                                RED, 26), gap=32),
+            notes='<p><code>scratchpad/2026-10-17/xy_balance_m3.py</code> and <code>xy_balance_survey.py</code> (FRESH_LOOK §21.1–21.3). '
+                  'The survey reads every June run without M3 matching, so its f is not angle-matched; the per-angle f ranges from '
+                  '0.35 to 0.63, which is why the sim comparison above is angle-matched.</p>'
+                  '<p>Chambers differ by ±0.04 in f, which is a per-assembly property.</p>',
+            short='Y/X: sum vs spread')
+
+    # 10 verdict 2 ---------------------------------------------------------------
+    def vm(pt):
+        x, y = view_mean(L, pt, 'x'), view_mean(L, pt, 'y')
+        return x, y, math.sqrt(x * y)
+    rows = []
+    for pt, lab, band in (('v2r2s', 'ρ_s 2 MΩ/sq, template ×1.75', 'X 0.91–0.95, Y 1.05–1.10'),
+                          ('v2r2k', 'ρ_s 2 MΩ/sq, K0 2.05', '+1…+3 %'),
+                          ('v2r5s', 'ρ_s 5 MΩ/sq, template ×1.75', 'X 0.84–0.90, Y 0.92–0.99'),
+                          ('v2r5k', 'ρ_s 5 MΩ/sq, K0 2.05', 'as above + ion')):
+        x, y, j = vm(pt)
+        rs = '/'.join(f'{S[(pt, v, a)][1]:+d}' for v in 'xy' for a in (10, 20))
+        rows.append([f'<b>{lab}</b>', f'{x:.3f}', f'{y:.3f}', f'{j:.3f}', band, rs])
+    ion2 = vm('v2r2k')[0] / vm('v2r2s')[0] - 1
+    ion5 = vm('v2r5k')[0] / vm('v2r5s')[0] - 1
+    D.slide('v2', sd.title('Verdict 2: every 10-16 change combined lands inside its predicted band, and the effects add',
+                           'Corrected primaries, bG 0.47, null-collision avalanche, 166 ns shaper, crossed over ρ_s and the ion '
+                           'model (condor 4477507). Peak median data ÷ sim, mean of 5 angles.')
+            + sd.table(['configuration', 'X', 'Y', 'joint', 'pre-registered', 'rise X10/X20/Y10/Y20 [ns]'], rows, 27,
+                       widths=[520, 150, 150, 150, 380, 360], align=['left'] * 6)
+            + sd.row(sd.callout(f'<b>Additivity:</b> the ion shift is {ion2 * 100:+.1f} % at 2 MΩ/sq and {ion5 * 100:+.1f} % at '
+                                '5 MΩ/sq, with +5 ns of rise at both. The one-variable results combine linearly.', GREEN, 26),
+                     sd.callout('ρ_s 5 MΩ/sq raises the sim Y/X by 4.5 % (predicted 1–8 %), leaving <b>~10 %</b> of the offset.',
+                                GOLD, 26), gap=40),
+            notes='<p>Pre-registered in <code>scratchpad/2026-10-17/stageBC_w2_verdict2.sub</code>. Falsifier: any mean outside its '
+                  'band by > 4 %, or the ion shift differing between the ρ_s arms by > 2 % / 2 ns. Not triggered. v2r2s rise and '
+                  'FWHM are within 2 ns of verdict 1 (FRESH_LOOK §21.6).</p>',
+            short='Verdict 2')
+
+    # 11 drift column ------------------------------------------------------------
+    E = R['E']
+    P = sd.Plot(1000, 600, x=(25.5, 30.5), y=(0.93, 1.27), xlabel='drift column in the sim [mm]',
+                ylabel='inclined-view RMS extent, sim ÷ data')
+    P.band([26.9, 28.9], [0.93, 0.93], [1.27, 1.27], GOLD, 0.15, tip='GAP_STUDY (nTof_x17): det3 27.9 ± 1 mm')
+    P.hline(1.0, INK, '6 6', 2, label='sim = data')
+    P.xticks([(g, f'{g:g}') for g in (26, 27, 28, 29, 30)])
+    P.yticks([(v, f'{v:.2f}') for v in (0.95, 1.0, 1.05, 1.1, 1.15, 1.2, 1.25)])
+    gaps = [(26.0, 'v2r5sg260'), (26.5, 'v3k265b45'), (27.9, 'v2r5sg279'), (30.0, 'v2r5s')]
+    for (a, iv, c, mk, lab) in (('thx10', 0, C_X, 'circle', 'X, 10°'), ('thx20', 0, C_X, 'diamond', 'X, 20° (n = 20)'),
+                                ('thy10', 1, C_Y, 'circle', 'Y, 10°'), ('thy20', 1, C_Y, 'diamond', 'Y, 20° (n = 8)')):
+        dv = E[('data', a)][iv]
+        xs = [g for g, pt in gaps]; ys = [E[(pt, a)][iv] / dv for g, pt in gaps]
+        P.line(xs, ys, c, r=7, marker=mk, dash=None if '10' in a else '8 6',
+               tips=[f'{lab}, {g:g} mm: sim {E[(pt, a)][iv]:.2f} mm vs data {dv:.2f} mm' for g, pt in gaps])
+    P.text(26.55, 1.235, 'measured', 22, GOLD)
+    D.slide('column', sd.title('The inclined tracks say det3\'s drift column is ~26.5 mm, not the 30 mm of the drawing',
+                               'Charge-weighted RMS extent of inclined tracks across the strips, sim ÷ data, at three columns '
+                               '(condor 4477508) and the 26.5 mm baseline.')
+            + sd.row(P.svg('extent vs drift column'),
+                     sd.col(sd.legend([('X view', C_X, 'line'), ('Y view', C_Y, 'line')], 24),
+                            sd.p('At 30 mm the sim spreads inclined tracks over 14–23 % more strips than the data. '
+                                 'A shorter column closes it: <b>26.0–26.5 mm matches at 10°</b>, within 1–2σ of the measured '
+                                 'dished cathode (27.9 ± 1 mm).', 25),
+                            sd.p('The amplitude rose only half as much as the lost primaries (+5.5 % at 26 mm): the deepest '
+                                 'clusters are the most diffused and feed the peak strip least.', 25),
+                            sd.callout('It does not move Y/X: both views\' peaks rise together.', GOLD, 25),
+                            w=600), gap=48),
+            notes='<p>New Stage B option <code>--drift-gap-mm</code>: clusters beyond the cathode are dropped and the field is '
+                  '1000 V / gap. Rise and FWHM move ≤ 1 ns. Pre-registered in <code>stageBC_w2_gap.sub</code>: extent −5…−8 % / '
+                  '−10…−14 % (observed −7…−8 / −12…−14), amplitude +5…+8 / +10…+15 % (observed +2…+3 / +5…+6: missed). '
+                  'Falsifier (extent < 3 % or rise > 10 ns) not triggered.</p>'
+                  '<p>The 20° points have 20 (X) and 8 (Y) data events.</p>',
+            short='Drift column')
+
+    # 12 bG refit ----------------------------------------------------------------
+    bgs = [0.43, 0.45, 0.47]
+    bx = [view_mean(L, f'v3k265b{int(round(b * 100))}', 'x') for b in bgs]
+    by = [view_mean(L, f'v3k265b{int(round(b * 100))}', 'y') for b in bgs]
+    bj = [math.sqrt(x * y) for x, y in zip(bx, by)]
+    gx, gy, gj = (interp_zero(bgs, v) for v in (bx, by, bj))
+    P = sd.Plot(1000, 600, x=(0.42, 0.50), y=(0.88, 1.14), xlabel='feedback bG (26.5 mm, K0 2.05, ρ_s 5 MΩ/sq)',
+                ylabel='peak median data ÷ sim (mean of 5 angles)')
+    P.hline(1.0, INK, '6 6', 2, label='sim = data')
+    P.xticks([(b, f'{b:.2f}') for b in (0.43, 0.45, 0.47, 0.49)])
+    P.yticks([(v, f'{v:.2f}') for v in (0.90, 0.95, 1.0, 1.05, 1.10)])
+    P.line(bgs, bx, C_X, r=8, tips=[f'X, bG {b:.2f}: {y:.3f}' for b, y in zip(bgs, bx)])
+    P.line(bgs, by, C_Y, r=8, marker='diamond', tips=[f'Y, bG {b:.2f}: {y:.3f}' for b, y in zip(bgs, by)])
+    P.line(bgs, bj, INK, w=2.5, dash='3 6', r=5, tips=[f'joint, bG {b:.2f}: {y:.3f}' for b, y in zip(bgs, bj)])
+    for g, c, lab in ((gx, C_X, 'X'), (gy, C_Y, 'Y'), (gj, INK, 'joint')):
+        if 0.42 < g < 0.50:
+            P.vline(g, c, '2 5', 2, tip=f'{lab} alone matches at bG ≈ {g:.3f}')
+    P.text(gj + 0.001, 1.12, f'joint {gj:.3f}', 22, INK)
+    D.slide('refit', sd.title(f'At the 26.5 mm column the joint feedback is bG = {gj:.2f}; X and Y still want different gains',
+                              'The v3 baseline: corrected primaries, null-collision avalanche, 166 ns shaper, ρ_s 5 MΩ/sq, '
+                              'K0 2.05, 26.5 mm (condor 4480068).')
+            + sd.row(P.svg('amplitude vs bG at 26.5 mm'),
+                     sd.col(sd.legend([('X', C_X, 'line'), ('Y', C_Y, 'line'), ('joint', INK, 'dash')], 24),
+                            sd.p(f'Predicted optimum 0.45–0.46; found <b>{gj:.3f}</b>. Extent, rise and FWHM do not move with bG '
+                                 '(≤ 1 ns, ≤ 1 %), so bG is a pure amplitude knob here.', 25),
+                            sd.p('Y/X is 1.106–1.110 at every bG: the remaining 10 % is the peak-strip spread of slide 9, '
+                                 'concentrated on inclined Y (data ÷ sim 1.13 at 10° and 20° in y).', 25),
+                            sd.callout('Recipe: <code>scripts/condor/recipes/det3_v3.args</code>. A −10 % ADC/fC would move bG to ~0.50.',
+                                       GREEN, 24),
+                            w=600), gap=48),
+            notes='<p>Pre-registered in <code>scratchpad/2026-10-18/stageBC_w3_bgrefit.sub</code>: joint 0.955–0.975 / 0.99–1.02 / '
+                  '1.02–1.07 at bG 0.47 / 0.45 / 0.43; falsifier: optimum outside 0.44–0.47 or extent/rise moving with bG. '
+                  'All hit (FRESH_LOOK §21.7).</p>'
+                  '<p>With the template ×1.75 instead of K0 2.05, the optimum would be ~0.443 (the ion adds +1.5 % in amplitude).</p>',
+            short='bG refit')
+
+    # 13 inter-strip coupling ------------------------------------------------------
+    NB = R['NB']
+    pts = [('v3k265b45', 'off (v3)', C_V1), ('v3c3t10', 'k 0.03, τ 10 ns', '#9bb7d9'),
+           ('v3c5t15', 'k 0.05, τ 15 ns', C_R5), ('v3c6t20', 'k 0.06, τ 20 ns', ORANGE)]
+    P = sd.Plot(1000, 600, x=(-0.5, 1.5), y=(0, 150), xlabel='', ylabel='±1 neighbour peak after the central [ns]',
+                margin=(24, 30, 70, 104))
+    P.xticks([(0, 'X view'), (1, 'Y view')])
+    P.yticks([(v, f'+{v}') for v in (0, 30, 60, 90, 120, 150)])
+    for i, v in enumerate('xy'):
+        dv = NB[('v3k265b45', v)]['delay_d']
+        for j, (pt, lab, c) in enumerate(pts):
+            n = NB[(pt, v)]
+            P.vbar((P.X(i) + (j - 1.5) * 52,), n['delay_s'], 46, c, base=0,
+                   tip=f'{lab}, {v.upper()}: neighbour peaks {n["delay_s"]:+.0f} ns after the central (data {dv:+.0f})\n'
+                       f'leading edge {n["lead_s"]:.3f} (data {n["lead_d"]:.3f}), shape rms {n["rms"]:.4f}')
+        P.points([i], [dv], INK, r=10, marker='diamond', tips=[f'data, {v.upper()}: {dv:+.0f} ns'])
+    nx, ny = NB[('v3c5t15', 'x')], NB[('v3c5t15', 'y')]
+    ox, oy = NB[('v3k265b45', 'x')], NB[('v3k265b45', 'y')]
+    D.slide('coupling', sd.title('A capacitive coupling between neighbouring strips closes the neighbour\'s leading edge '
+                                 'and a third of its delay',
+                                 'Each neighbour gets k·i + τ·di/dt of the central current and the central loses the same. '
+                                 'Vertical tracks, event-aligned on the central strip (condor 4480073).')
+            + sd.row(P.svg('neighbour delay vs coupling'),
+                     sd.col(sd.legend([(lab, c, 'box') for _, lab, c in pts] + [('data', INK, 'dot')], 23),
+                            sd.p(f'At k 0.05, τ 15 ns the neighbour\'s leading edge goes {ox["lead_s"]:.2f} → {nx["lead_s"]:.2f} '
+                                 f'(data {nx["lead_d"]:.2f}), and the shape rms falls {(1 - nx["rms"] / ox["rms"]) * 100:.0f} % in X, '
+                                 f'{(1 - ny["rms"] / oy["rms"]) * 100:.0f} % in Y.', 25),
+                            sd.p('The rest of the delay is the chain neighbour staying high after its peak: that is '
+                                 'the resistive-layer spread, so ρ_s and coupling now need fitting together.', 25),
+                            sd.callout('τ = R·C_c = 15 ns (e.g. 300 Ω × 50 pF) is plausible but unmeasured: '
+                                       'a candidate, not yet in the baseline.', GOLD, 24),
+                            w=600), gap=48),
+            notes='<p><code>--strip-coupling K,TAU_NS</code> (<code>response/dream/coupling.py</code>), on the induced currents '
+                  'before the shaper. Pre-registered in <code>scratchpad/2026-10-18/stageBC_w3_coupling.sub</code> from an offline '
+                  'emulation; falsifier (X delay stays ≥ +115 ns, or rms improves < 10 %) not triggered. The Y rms improvement '
+                  'missed its 20–35 % band (FRESH_LOOK §21.8).</p>'
+                  '<p>Side effects: amplitude +2…+4 %, the X 20° rise −4 ns, the Y FWHM excess 14 → 9 ns.</p>',
+            short='Coupling')
 
     # 9 mesh -------------------------------------------------------------------
     D.slide('mesh', sd.title('The mesh transparency was 4 % low, but correcting it changes the signal by only 0.7 %',
@@ -625,24 +846,27 @@ def build(R, out):
     p50x = L[('verdict1', 'th00', 'x')]['p50']
     nb = LEDGER['nb_delay']
     rows = [
-        ['<b>Y/X amplitude</b>', f'sim Y {yx_lo:.0f}–{yx_hi:.0f} % low vs X', 'every angle; not ρ_s', 'charge division, strip C, FEU 7 vs 8 gain'],
+        ['<b>Y/X amplitude</b>', f'sim Y {(min(v3_yx) - 1) * 100:.0f}–{(max(v3_yx) - 1) * 100:.0f} % low vs X',
+         'inclined Y; Y rails 0.33 vs 0.16–0.22', 'Y-direction spread on the resistive stripes'],
         ['<b>Y wings vs ρ_s</b>', f'need {wing_lo:.0f}–{wing_hi:.1f} MΩ/sq', f'T2b says {LEDGER["t2b"][0]}–{LEDGER["t2b"][1]}', 'ρ_s of det3 itself, or the stack-up'],
-        ['<b>±1 neighbour delay</b>', f'X +{nb["x"][1]} vs +{nb["x"][0]} ns', 'Y the same, ×0.67', 'crosstalk or prompt sharing'],
-        ['<b>Inclined rise</b>', f'+{min(v1_rise)}…+{max(v1_rise)} ns', 'Y 20° is the largest', 'shaper 158 vs 166 ns, ion z-lift'],
+        ['<b>±1 neighbour delay</b>', '+105 vs +45/+60 ns', 'with coupling k 0.05, τ 15', 'ρ_s × coupling, fit jointly'],
+        ['<b>Inclined rise</b>', f'+{min(v3_rise)}…+{max(v3_rise)} ns', 'Y 20° is the largest', 'coupling takes 4 ns off X 20°'],
         ['<b>Low-side width</b>', f'X p25 {p25x:.2f} vs p50 {p50x:.2f}', 'data broader than sim', 'gain map over the area'],
         ['Early foot', '+0.04–0.16 of peak', 'data only, −360…−240 ns', 'not looked at since 10-12'],
         ['Y negative lobe', 'sim −0.2, data −0.11', 'COMSOL reproduces the shape', 'tied to the Y-kernel inputs'],
-        ['ADC/fC scale', 'datasheet chain', 'TPOT bench −10 %', 'absorbed in bG today'],
+        ['Central tail X vs Y', 'data X slower, Y faster', 'sim between them', 'per-view shaping? (§21.9)'],
+        ['ADC/fC scale', 'datasheet chain', 'TPOT bench −10 %', '≡ bG 0.45 → ~0.50'],
     ]
-    D.slide('open', sd.title('What still disagrees: mostly the Y view and the neighbour strips',
-                             'Verdict-1 configuration unless noted. The first three share the Y/induction side of the chain.')
+    D.slide('open', sd.title('What still disagrees: the inclined Y peak strip and the neighbour timing',
+                             'v3 baseline unless noted. The first three share the Y/induction side of the chain.')
             + sd.table(['observable', 'size now', 'where', 'leading suspect'], rows, 27,
                        widths=[380, 420, 420, 440], align=['left'] * 4,
-                       tips=['§18.3, §20.2', '§20.2 vs T2b (§18.10)', '§10.4: event-aligned on the central strip, before verdict 1',
-                             'shape_all.py, verdict 1', 'ledger_m3, verdict 1 vertical X', '§7.2', '§7.2, §11',
-                             '§19: Irakli TPOT 18.05 vs 20 mV/fC']),
-            notes='<p>The neighbour delay was last measured on 2026-10-13, before verdict 1. §10.4 showed it does not depend on '
-                  'the ion speed, so it is expected to be unchanged, but it should be re-measured on the verdict-1 output first.</p>'
+                       tips=['§21.9: saturated fraction per view and angle', '§20.2 vs T2b (§18.10)',
+                             '§21.8: nb_compare.py, vertical by M3', 'shape_all.py, v3', 'ledger_m3, verdict 1 vertical X',
+                             '§7.2', '§7.2, §11', '§21.9: event-aligned central strip, M3 vertical',
+                             '§19: Irakli TPOT 18.05 vs 20 mV/fC; the bG slope is ~2 %/0.01']),
+            notes='<p>The inclined-Y deficit shows most cleanly in the saturated fraction: X rails as often in the sim as in the data '
+                  'at every angle, but inclined Y tracks rail 0.33 of the time in the data and 0.16–0.22 in the sim (§21.9).</p>'
                   '<p>The low-side width: the data p25/p50 ratio is lower than the sim\'s, so the data are broader on the low side. bG '
                   'hardly changes that (§18.7), which points to something the sim does not have, such as gain varying across the '
                   'chamber.</p>',
@@ -650,26 +874,27 @@ def build(R, out):
 
     # 12 ideas ---------------------------------------------------------------
     rows = [
-        ['<b>Compute the X and Y strip capacitances</b> from the board stack-up (2D field solve)',
-         'Y/X', 'sim only', 'If C_Y < C_X by ~75–100 pF, the protection network\'s charge division explains the 15 % (§19).'],
-        ['<b>Ask Irakli</b> for the protection network values (C_c, BOM)', 'Y/X', 'email', 'Needed for the same estimate.'],
-        ['<b>Check the X–Y stack-up</b> (layer thickness, ε_r) against the board', 'Y/X, Y wings, Y lobe', 'drawings, photos',
-         'The Y strips sit deeper; their induction depends on it. Peel photos of a board exist (design/figures).'],
-        ['<b>Compare FEU 7 and FEU 8 gains</b> in pulser or calibration runs in the archive', 'Y/X', 'archive',
-         'X and Y are on different FEUs; a 10 % gain difference looks exactly like Y/X.'],
-        ['<b>Re-measure the neighbour delay</b> on verdict 1, then pulser crosstalk from the archive', '±1 delay', 'sim + archive',
-         'Separates crosstalk from extra prompt sharing (§10.4).'],
+        ['<b>Anisotropic ρ_s</b>: the resistive stripes run along y, so charge spreads across the Y strips; '
+         'give the kernel separate along/across resistivities', 'inclined Y, Y wings', 'kernel build (CERN)',
+         'The one lever that acts on Y and not on X. An isotropic 5 MΩ/sq already moved the wings the right way.'],
+        ['<b>Fit ρ_s, k and τ together</b> on the Y wings and the neighbour shape', '±1 delay, Y wings', 'condor',
+         'The remaining delay is the slow spread of the chain neighbour; the two trade off.'],
+        ['<b>Measure det3\'s ρ_s</b> bus to bus, both directions', 'Y wings, inclined Y', 'ohmmeter, minutes',
+         'Decides whether 4–5 MΩ/sq (and any anisotropy) is real.'],
+        ['<b>Ask Irakli</b> for the protection network (series R, C) and the inter-channel C', '±1 delay', 'email',
+         'Turns the fitted τ = 15 ns and k = 0.05 into a prediction.'],
+        ['<b>FEU 7/8 vs 3/4 pulse shapes</b> with M3 vertical tracks on the 6-22 run', 'central tail X vs Y', 'archive',
+         'Separates a per-FEU shaping difference from a chamber one (§21.9).'],
         ['<b>Gain map vs M3 position</b> in data, applied in the sim', 'low-side width', 'data only', 'Tests gain non-uniformity.'],
-        ['<b>Ar/CF₄ out-of-sample run</b> on the archived old-det3 data', 'everything tuned', 'condor', 'The first test not fitted on this run.'],
-        ['<b>Measure det3\'s ρ_s</b> bus to bus', 'Y wings', 'ohmmeter, minutes', 'Decides whether ρ_s 4–5.6 is real.'],
+        ['<b>Ar/CF₄ out-of-sample run</b> on the archived old-det3 data', 'everything tuned', 'condor',
+         'The first test not fitted on this run.'],
     ]
     D.slide('ideas', sd.title('Ideas, roughly in order of information per effort',
-                              'Most need no bench time. Y/X is first because it blocks the bG fit and three other rows.')
+                              'Updated 2026-10-18. Strip capacitance and FEU gain are gone from the list: slide 9 excludes both.')
             + sd.table(['idea', 'closes', 'needs', 'why'], rows, 23, widths=[640, 220, 230, 570], align=['left'] * 4),
-            notes='<p>The Y/X candidates are not exclusive. Charge division at a protected FEU input scales each view by '
-                  'C_c/(C_c + C_strip); with C_c ≈ 510 pF (Irakli\'s NSW fit, rough) a 15 % Y/X needs C_Y roughly 75–100 pF below C_X. '
-                  'MX17 strip capacitances have never been measured or computed.</p>'
-                  '<p>Applying Irakli\'s −10 % ADC/fC would raise the needed gain, so bG goes up by ~0.03; it changes no shape row.</p>',
+            notes='<p>Dropped since 10-17: the strip-capacitance and FEU-gain ideas. Both scale a whole view, and the X/Y charge '
+                  'sums agree (f within 0.02, and det3 gives the same f on two FEU pairs).</p>'
+                  '<p>Applying Irakli\'s −10 % ADC/fC would raise the needed gain, so bG goes up to ~0.50; it changes no shape row.</p>',
             short='Ideas')
 
     # 13 close -----------------------------------------------------------------
@@ -684,20 +909,20 @@ def build(R, out):
                                 '<b>Feedback is a model.</b> G/(1 − bG) fits; the carrier (photons) is the leading candidate, '
                                 'not a measurement.'], DRED), gap=18),
                      sd.col(sd.p('<b>Decisions</b>', 32, DINK),
-                            dl(['Ion default: <code>--ion-model reconstructed --ion-mobility K0=2.05</code>, '
-                                '1.80 / 2.25 as the systematic?',
-                                'Next full chain pass ("verdict 2"): corrected primaries, bG 0.47, the null-collision '
-                                'avalanche calibration, ρ_s 2 or 5 MΩ/sq?',
-                                'Where to spend effort on Y/X: strip capacitance and protection values first (no hardware needed).'],
+                            dl(['Taken 10-17/18: ρ_s 5 MΩ/sq, a 26.5 mm column for det3, the K0 2.05 ion, bG 0.45 '
+                                '(<code>recipes/det3_v3.args</code>).',
+                                'Adopt the inter-strip coupling (k 0.05, τ 15 ns) as a fitted electronics term, or wait for '
+                                'Irakli\'s protection values?',
+                                'Spend the next kernel build on an anisotropic ρ_s (along vs across the stripes)?'],
                                DGREEN), gap=18), gap=72),
             dark=True, short='Open questions')
 
     D.write(out, note_meta=dict(
-        title='MX17 response simulation: where it stands (2026-10-17)',
-        summary='The MX17 Micromegas response simulation against det3 cosmics: amplitude now matches to ~10 % and '
-                'inclined pulse shape to ~10 ns; the Y/X charge split, the Y wings and the neighbour strips still disagree. '
-                'What was fixed, what is open, and ideas to close it.',
-        tags='MX17,simulation,micromegas,Garfield', date='2026-10-17'))
+        title='MX17 response simulation: where it stands (2026-10-18)',
+        summary='The MX17 Micromegas response simulation against det3 cosmics: amplitude and inclined strip extent now match '
+                '(26.5 mm drift column, bG 0.45); the inclined-Y peak strip and the neighbour timing still disagree, and an '
+                'inter-strip coupling closes part of the latter. What was fixed, what is open, and ideas to close it.',
+        tags='MX17,simulation,micromegas,Garfield', date='2026-10-18'))
     return out
 
 
