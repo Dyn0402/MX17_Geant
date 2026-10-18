@@ -1,5 +1,43 @@
 # Handoff
 
+## Reco truth study + wet gas / prompt anode spread — updated 2026-10-18 afternoon (dylan-Yoga)
+
+**Resume:** read `design/report/RECO_TRUTH_2026-10-18.md` (live: https://dylan-neff.web.cern.ch/notes/mx17-sim-reco-truth.html,
+rebuild + deploy with `scratchpad/2026-10-18/reco_truth/publish.sh`). Dylan asked: use the sim to reinforce the cosmic/SPS
+track reconstruction (items 1–3), and keep improving the sim where the path is clear.
+
+**Done (all in the note, scripts in `scratchpad/2026-10-18/reco_truth/`):**
+- **Wiring bug:** Stage B wrote pad column k to channel k; det3 connectors are "inverted", so wft's strip map tore sim tracks that
+  cross a 64-channel boundary (> 25 % at 20°). `response/dream/rewire.py` fixes existing files; `run.py --wiring connector-inverted`
+  (opt-in) for new ones. Only position-based 20° comparisons moved (sim 20° extent now = data). The 26.5 mm choice stands.
+- `run_stageBC_w2.sh` now keeps the truth sidecar. v3 / v3+coupling regenerated with truth at 12 angles (condor 4480259;
+  byte-identical to the originals). New Stage A angles 5/15/30° and 10°×10° (yoga, seeds 101606–101612).
+- **Item 3 ladder:** hit-time compression is mostly geometry (ideal no-readout ladder = data); the sim's readout compresses ~2× the
+  data's; the coupling candidate makes it worse (a vote against adopting it).
+- **Item 1 closure:** wft calibrated on the sim (truth for M3) is +4.5 % at 10° and nonlinear (flips 15 % at 20°); data vs M3 are
+  linear to 1 %. Flips come from the sim-calibrated bundle; the nonlinearity from the sim's waveforms. No correction carried to data.
+- **Item 2:** the data's |wft − M3| growth with depth is mostly M3's pointing; wft vs truth is 0.10–0.22 mm on vertical tracks.
+- **Sim:** wet gas (1 % H2O, `design/gas/..._H2O_1.0.json` via `MX17_GAS_TABLE`) + `--sigma0-um 420` closes the ±1 neighbour delay
+  (X +60, Y +60 vs data +45/+60; v3 +135) and the vertical X cluster (n, span, rms). Y ±1/central overshoots; inclined Y dimmer.
+
+**Running at the end of this update:**
+- condor 4480263 **v4c** (wet + σ0 420 + bG 0.48, 12 angles, truth, det3 wiring) → `scratchpad/2026-10-18/eval_v4c.sh` (yoga; ledger,
+  extent, nb, ladder, sim calibration, closure).
+- condor 4480264 **v3ni** (v3 --no-ions diagnostic) → `eval_noions.sh` (waits for eval_v4c): does the ion tail make wft nonlinear on the sim?
+  Pre-registrations are in the .sub headers.
+
+**Next steps:**
+1. Read `eval_v4c.log` / `eval_noions.log` outputs, write them into the note, republish.
+2. Dylan's calls: (a) coupling out? (ladder + delay say yes), (b) adopt wet gas + σ0 ≈ 0.42 mm as v4 (after the v4c bG check),
+   (c) the physical origin of the prompt spread (lateral displacement of photon-feedback secondaries is the candidate; would explain
+   cloud_basics' σ0 growing with mesh voltage). A `--feedback-spread-um` option is the natural next model step.
+3. Y view: ±1/central too high while the vertical Y width is a bit narrow; inclined-Y dimness worse with σ0. Still open (§21.9).
+4. The sim-calibrated wft bundle is the weak link for closure (c1 at floor, σ_s runs away); consider seeding/pinning σ_s.
+
+**Gotchas:** `pkill -f <pattern>` from the Bash tool kills the tool's own shell when the pattern appears in the command line; kill by PID.
+Yoga's data disk is at ~98 %; `/media/dylan/data/claude_tmp/v3` (original identity-wired v3, 6.7 GB) and `v3t` (raw truth regen, 2.9 GB)
+duplicate the rewired copies and EOS, and can go if space is needed.
+
 ## Overnight 10-17/18: v3 baseline, coupling, systematics — updated 2026-10-18 04:30 (dylan-Yoga)
 
 **Resume:** FRESH_LOOK §21.7–21.10 and slides 9–13 of https://dylan-neff.web.cern.ch/notes/mx17-response-sim-state.html.
