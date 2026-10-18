@@ -200,6 +200,24 @@ Vertical: Δθ −0.04 / +0.27°, σθ 1.43 / 1.66° (sim-calibrated: 1.10 / 1.2
   has the data's kernel (σ_p0 0.42 mm, slower Dp), so the flips belong to the sim-calibrated kernel. A wft model
   pinned to the sim's narrow-at-the-mesh cloud is the one that loses the direction.
 
+### Refinement: flips belong to the bundle, the nonlinearity to the sim's waveforms
+
+| core tan ratio X / Y, flip at 20° | 10° | 20° | swing 10→20° | flip 20° |
+|---|---|---|---|---|
+| v3 sim, sim-calibrated | 1.045 / 1.066 | 0.975 / 1.009 | 0.070 / 0.057 | 0.15 / 0.15 |
+| v3 sim, data bundle r06 | 1.082 / 1.074 | 1.031 / 1.056 | 0.051 / 0.018 | 0.03 / 0.02 |
+| wet + σ0 420 µm sim, sim-calibrated | 1.039 / 1.040 | 0.981 / 1.008 | 0.058 / 0.032 | 0.15 / 0.14 |
+| **det3 data vs M3 (r06)** | 1.001 / 0.999 (7–12°) | 0.991 / 0.993 (18–24°) | **0.010 / 0.006** | 0.07 / 0.03 |
+
+- **The flips are a property of the sim-calibrated bundle.** The data's bundle on the same sim flips 2–3 % at 20°, like
+  the data; the sim's own truth-pinned calibration (c1 at its floor, σ_s 71–351 ns) flips 15 %. That calibration is
+  the weak link, not the waveforms.
+- **The nonlinearity is a property of the sim's waveforms.** It appears with either bundle (X swings 5–7 % between 10°
+  and 20°; the data swing 1 %), and fixing the neighbour delay (wet + σ0 420 µm) does not remove it.
+- Next suspect: the slow pulse. The sim's inclined rise is +12 ns over the data's, with a rigid ~70 ns offset found in
+  August. **No-ions diagnostic submitted** (condor 4480264, pre-registered in `stageBC_w3_noions.sub`: swing < 0.02 if
+  the ion tail drives it, 0.05–0.08 if not).
+
 ## 2. Depth-resolved residuals
 
 The data's |wft line − M3 line| (`data_line_res.py`, same accounting as the sim column; offsets centred):
