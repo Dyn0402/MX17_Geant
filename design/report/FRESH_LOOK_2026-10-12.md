@@ -2178,8 +2178,11 @@ with the data at 26.5 mm. Ledger Y/X at p25, far from the rail, agrees with p50 
 and not a saturation artefact.
 
 Leads, none tested yet:
-- **Readout geometry.** How MX17 routes the pad charge to the Y lines (`SUPERPERIOD_M`, the pad-to-Y via pattern) sets how
-  much of an inclined Y track one Y strip collects. Check the pad map against the board.
+- **Resistive stripes.** The kernels (`response/solver/kernels.py`) model the resistive layer as stripes along y (550/250 µm
+  line/gap, insulating gaps) over a checkerboard of pads read out as combs: a Y channel is a pad row, an X channel a pad column,
+  both on a 1.56 mm pitch (from the gerbers). All lateral spread on the stripes therefore crosses Y rows and stays inside an X
+  column. So the stripe geometry and ρ_s act on Y far more than on X. ρ_s itself is pinned at 4–5.6 MΩ/sq by the Y wings; the
+  printed line/gap has not been measured on a board.
 - **Shape.** The data Y central falls faster after its peak than the sim's (−0.08..−0.10 of the peak at +360..+540 ns) and undershoots more
   (−0.125 vs X −0.02). The X tail is slower than the sim's. A per-view shaping difference in the data that the chain lacks
   would change the peak amplitudes per view. `scratchpad/2026-10-18/central_shape_feu_swap.py` was meant to test FEU 7/8 against

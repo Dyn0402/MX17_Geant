@@ -874,9 +874,10 @@ def build(R, out):
 
     # 12 ideas ---------------------------------------------------------------
     rows = [
-        ['<b>Anisotropic ρ_s</b>: the resistive stripes run along y, so charge spreads across the Y strips; '
-         'give the kernel separate along/across resistivities', 'inclined Y, Y wings', 'kernel build (CERN)',
-         'The one lever that acts on Y and not on X. An isotropic 5 MΩ/sq already moved the wings the right way.'],
+        ['<b>As-built resistive stripes</b>: the kernel has them running along y (550/250 µm line/gap), so all lateral '
+         'spread crosses Y rows; measure the printed line/gap on a board and rebuild the kernel if it differs',
+         'inclined Y, Y wings', 'microscope + kernel build',
+         'The stripe geometry acts on Y far more than on X; ρ_s alone is pinned at 4–5.6 MΩ/sq by the Y wings.'],
         ['<b>Fit ρ_s, k and τ together</b> on the Y wings and the neighbour shape', '±1 delay, Y wings', 'condor',
          'The remaining delay is the slow spread of the chain neighbour; the two trade off.'],
         ['<b>Measure det3\'s ρ_s</b> bus to bus, both directions', 'Y wings, inclined Y', 'ohmmeter, minutes',
