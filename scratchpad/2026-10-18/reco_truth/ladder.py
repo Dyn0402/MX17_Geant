@@ -29,7 +29,7 @@ cfg = get_config('sat_det3')
 PM = strip_position_map(cfg)
 DEC = f'{cfg.BASE_PATH}{cfg.RUN}/{cfg.SUB_RUN}/decoded_root'
 SAT, DT = 3500.0, 60.0
-V_SIM, V_DATA = 38.0, 36.6
+V_SIM, V_DATA = float(os.environ.get('V_SIM', 38.0)), 36.6
 ANGS = {'thx05': ('x', 5), 'thx10': ('x', 10), 'thx15': ('x', 15), 'thx20': ('x', 20), 'thx30': ('x', 30),
         'thy05': ('y', 5), 'thy10': ('y', 10), 'thy15': ('y', 15), 'thy20': ('y', 20), 'thy30': ('y', 30)}
 

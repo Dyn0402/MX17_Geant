@@ -1,0 +1,44 @@
+# WET GAS + PROMPT LATERAL SPREAD (2026-10-18, RECO_TRUTH note "sim" section). Hypothesis H:
+# the bench gas is wet (~1 % H2O, as v(E) says: FRESH_LOOK §12) and the anode has a prompt lateral spread of
+# ~0.4 mm (wft's own calibration on data: sigma_p0 0.42 mm, Dp 0.0144; on the dry v3 sim: 0.034, 0.0257).
+# Together they would mimic "dry" widths on average (the §12 puzzle) while moving charge from late diffusion
+# to a prompt in-phase share at the anode, the share §21.11 finds missing from the sim's neighbours.
+# All arms: the v3 recipe (rho5M, K0 2.05, 26.5 mm, bG 0.45, tp 166, nc1), det3 wiring, truth kept.
+#   v3w      MX17_GAS_TABLE = 1 % H2O Magboltz (v 37.2 um/ns, sigma_T(26.5 mm) 506 vs dry 785 um)
+#   v3ws300  + --sigma0-um 300   (calib's sigma0 is 94 um)
+#   v3ws420  + --sigma0-um 420
+#
+# PRE-REGISTERED (before submission), against v3 (dry, 94 um) and the det3 data:
+#   1. v: Stage B log v_drift 37.2 (data 36.6, v3 38.0).
+#   2. Vertical X RMS extent (data 0.66, v3 0.68 mm): v3w drops to 0.55-0.62; v3ws420 back to 0.63-0.72.
+#   3. 10 deg inclined extent (data 1.46 / 1.47, v3 1.46 / 1.48): within +-4 % in every arm.
+#   4. Neighbour leading edge nb(t=0) X (data 0.219, v3 0.166): v3w <= v3; v3ws420 >= 0.19.
+#      ±1 delay X (data +45, v3 +135 ns): v3ws420 <= +120 ns.
+#   5. wft truth-pinned calibration (sim_calib.py) on v3ws420: sigma_p0 0.25-0.55 mm, Dp 0.008-0.014.
+#   6. Ladder C X at 10 deg (data 0.851, ideal 0.853, v3 0.808): v3ws420 0.80-0.86.
+#   7. Amplitude: joint p50 data/sim rises (cloud wider at the anode -> dimmer peak strip) by +3..+12 % in v3ws420.
+# FALSIFIER: nb(t=0) does not rise with sigma0 (item 4), or the v3ws420 vertical width leaves 0.60-0.75 mm while
+#   the inclined one stays put -> a prompt anode spread is not what the data's neighbours carry.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w3wet.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4 MX17_GAS_TABLE=/afs/cern.ch/work/d/dneff/mx17_s1/src/design/gas/drift_velocity_Ar_iC4H10_95_5_H2O_1.0.json"
+arguments               = "rho5M $(cfg)_$(ang) /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07_cmq.json /afs/cern.ch/work/d/dneff/mx17_s1/clusters_ang_e17/mx17_muons_3k_ang_$(ang)_e17_t0.root '$(flags)'"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_$(cfg)_$(ang).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_$(cfg)_$(ang).err
+cfg   = v3w
+flags = --ion-model reconstructed --ion-mobility K0=2.05 --drift-gap-mm 26.5 --feedback-bg 0.45 --shaper-tp-ns 166 --wiring connector-inverted --calib /afs/cern.ch/work/d/dneff/mx17_s1/calib/aval_calib_meshfield_nc1_pooled.json
+queue ang in (th00 thx10 thx20 thy10 thy20)
+
+cfg   = v3ws300
+flags = --ion-model reconstructed --ion-mobility K0=2.05 --drift-gap-mm 26.5 --feedback-bg 0.45 --shaper-tp-ns 166 --wiring connector-inverted --sigma0-um 300 --calib /afs/cern.ch/work/d/dneff/mx17_s1/calib/aval_calib_meshfield_nc1_pooled.json
+queue ang in (th00 thx10 thx20 thy10 thy20)
+
+cfg   = v3ws420
+flags = --ion-model reconstructed --ion-mobility K0=2.05 --drift-gap-mm 26.5 --feedback-bg 0.45 --shaper-tp-ns 166 --wiring connector-inverted --sigma0-um 420 --calib /afs/cern.ch/work/d/dneff/mx17_s1/calib/aval_calib_meshfield_nc1_pooled.json
+queue ang in (th00 thx10 thx20 thy10 thy20)

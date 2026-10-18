@@ -247,6 +247,12 @@ def main():
                          "full avalanches, recursively (mean gain x 1/(1-bG)). "
                          "0 = off. The det3 27 June ladder shape gives bG(490 V) "
                          "0.37-0.49 (FRESH_LOOK §9).")
+    ap.add_argument("--sigma0-um", type=float, default=None,
+                    help="override the calib's avalanche lateral spread sigma0 "
+                         "(the prompt, in-phase, charge-conserving width at the "
+                         "anode). Default: the calib's value. Used to test a "
+                         "prompt lateral spread of ~0.4 mm (wft's data "
+                         "calibration has sigma_p0 0.42 mm; RECO_TRUTH 2026-10-18).")
     ap.add_argument("--drift-gap-mm", type=float, default=DEFAULT_DRIFT_GAP_MM,
                     help="charge-visible drift column [mm]. Drift clusters deeper "
                          "than this are dropped (the cathode sits there) and the "
@@ -369,7 +375,7 @@ def main():
                     with_ions=not a.no_ions, ion_model=a.ion_model,
                     ion_speed_scale=a.ion_speed_scale,
                     ion_mobility=a.ion_mobility,
-                    feedback_bg=a.feedback_bg,
+                    feedback_bg=a.feedback_bg, sigma0_um=a.sigma0_um,
                     z_aval_um=a.z_aval_um,
                     drift_gap_mm=a.drift_gap_mm,
                     kernel_t_max_ns=a.kernel_t_max,

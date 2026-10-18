@@ -237,7 +237,11 @@ class Digitizer:
                  y_window_mm=None, ion_speed_scale=1.0, feedback_bg=0.0,
                  # --ion-model reconstructed only: the drifting ion's K0(E/N),
                  # a Garfield-format table or "K0=<flat value>".
-                 ion_mobility="IonMobility_Ar+_Ar.txt"):
+                 ion_mobility="IonMobility_Ar+_Ar.txt",
+                 # Override of the calib's avalanche lateral spread (None =
+                 # the calib's value). A prompt, charge-conserving, in-phase
+                 # spread at the anode; see run.py --sigma0-um.
+                 sigma0_um=None):
         # kernel_t_max_ns exists so the LUT window can be varied without
         # editing the default — the A1 before/after (test_window) and any
         # SPS-config run (64 x 60 ns frame -> 4200) both need it.
@@ -293,7 +297,9 @@ class Digitizer:
             self.transparency_source = (
                 "T6 3-D G7 measured (production map accepted 2026-08-08); "
                 "calib is uniform_field and contains no mesh")
-        self.sigma0_um = self.calib["sigma0_um"]
+        self.sigma0_calib_um = self.calib["sigma0_um"]
+        self.sigma0_um = (self.sigma0_calib_um if sigma0_um is None
+                          else float(sigma0_um))
         self.calib_seed_z0_mm = calib_seed_z0_mm(self.calib)
         self.v_drift = float(np.ravel(
             self.gas.v_drift_um_ns(self.E_drift))[0])
@@ -648,6 +654,7 @@ class Digitizer:
                 else "S3 calib" if "survival" in self.calib.get("polya", {})
                 else "absent from calib (schema <= 2), assumed 1.0"),
             "sigma0_um": self.sigma0_um,
+            "sigma0_calib_um": self.sigma0_calib_um,
             "calib_voltage_V": self.calib_v,
             "field_model": self.calib.get("field_model"),
             "with_ions": self.with_ions,

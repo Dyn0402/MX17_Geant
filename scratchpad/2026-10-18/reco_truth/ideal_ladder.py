@@ -21,7 +21,7 @@ from response.digitizer.clusters import ClusterFile
 from response.digitizer.gas import DriftGas
 from response.digitizer import digitize as D
 
-GAP, PITCH = 26.5, 0.78
+GAP, PITCH = float(os.environ.get('GAP', 26.5)), 0.78
 ANGS = {'thx05': ('x', 5), 'thx10': ('x', 10), 'thx15': ('x', 15), 'thx20': ('x', 20), 'thx30': ('x', 30),
         'thy05': ('y', 5), 'thy10': ('y', 10), 'thy15': ('y', 15), 'thy20': ('y', 20), 'thy30': ('y', 30)}
 
