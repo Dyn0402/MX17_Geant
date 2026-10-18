@@ -2225,8 +2225,11 @@ Logs: `*_v3r2.log`, `nb_compare_v3r2.log`.
   edge and amplitude (+8.9 %, band +4..+9) predictions hold. The inclined extent moves +5 % in Y at 10° y (band ±3 %): a small miss.
 - But ρ2M wrecks the Y lateral profile (vertical Y rms 1.05 vs 0.85 mm, ±1/central Y 0.46 vs 0.41, nb rms Y 0.051–0.055)
   and worsens Y/X (1.16). **ρ5M + coupling stays the best compromise.** The delay cannot be traded against ρ_s without breaking the Y wings.
-- What is left is a prompt, in-phase neighbour share (the X fit's residual k ≈ 0.05, §21.8) with no loss from the central. That is
-  direct induction: the ±1 pad's weighting field reaching under the central pad. It grows with the insulator thickness between the
-  pads and the resistive layer. The glue under the kapton is the stack's largest uncertainty (12.5–35 µm supplied, 18.8 µm over the
-  pad assumed, `response/common/constants.py`). **Next lever: a kernel with 35 µm glue** (or `GLUE_FLOW_MODEL = "uniform"`).
-  It would raise the prompt neighbour share without speeding the resistive spread. That is a kernel build at CERN.
+- What is left is a prompt, in-phase neighbour share (the X fit's residual k ≈ 0.05, §21.8) with no loss from the central.
+  **Not the insulator:** the August ρ_s × d_k scan (`DESKTOP_RUNS_2026-08-07.md`) has the prompt X ±1 share moving only
+  0.205 → 0.212 over d_k 50 → 125 µm. The glue bracket (series 57–82 µm) would move it < 1 %, so a thicker-glue kernel is not worth
+  building. **Not diffusion:** the sim's vertical X width is already slightly above the data's (0.69 vs 0.66 mm), and more diffusion
+  would widen it. A prompt share that does not widen the cluster and does not drain the central points back at the electronics:
+  an input network that couples neighbours with a non-conserving, in-phase term (e.g. a shared reference or common return through the
+  protection network). That needs Irakli's schematic. The cheap next test is a non-conserving coupling option (neighbours get k·i_c,
+  the central keeps i_c) to see whether k ≈ 0.05 closes the remaining delay.

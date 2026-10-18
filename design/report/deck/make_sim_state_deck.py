@@ -790,7 +790,8 @@ def build(R, out):
                   '<p>Side effects: amplitude +2…+4 %, the X 20° rise −4 ns, the Y FWHM excess 14 → 9 ns.</p>'
                   '<p>ρ_s 2 MΩ/sq shortens the delay a further 15–30 ns but widens the vertical Y profile to 1.05 mm (data 0.85) '
                   'and overshoots the ±1/central in Y (0.46 vs 0.41): ρ_s cannot close the delay without breaking the Y wings '
-                  '(condor 4480075, §21.11). The remaining prompt share points at direct induction, i.e. the glue thickness.</p>',
+                  '(condor 4480075, §21.11). The remaining prompt share is not the insulator (the August d_k scan moves it < 1 %) '
+                  'nor diffusion (the vertical width is already slightly wide): it points back at the input network.</p>',
             short='Coupling')
 
     # 9 mesh -------------------------------------------------------------------
@@ -883,9 +884,9 @@ def build(R, out):
          'spread crosses Y rows; measure the printed line/gap on a board and rebuild the kernel if it differs',
          'inclined Y, Y wings', 'microscope + kernel build',
          'The stripe geometry acts on Y far more than on X; ρ_s alone is pinned at 4–5.6 MΩ/sq by the Y wings.'],
-        ['<b>Kernel with 35 µm glue</b> (the stack\'s largest uncertainty): more direct induction on ±1, same spread speed',
-         '±1 delay', 'kernel build (CERN)',
-         'ρ_s cannot close the delay without breaking the Y wings (§21.11); a prompt share can.'],
+        ['<b>Non-conserving in-phase coupling</b> (neighbours get k·i, the central keeps all): one condor scan',
+         '±1 delay', 'code + condor',
+         'ρ_s cannot close the delay without breaking the Y wings, and glue/diffusion are ruled out (§21.11).'],
         ['<b>Measure det3\'s ρ_s</b> bus to bus, both directions', 'Y wings, inclined Y', 'ohmmeter, minutes',
          'Decides whether 4–5 MΩ/sq (and any anisotropy) is real.'],
         ['<b>Ask Irakli</b> for the protection network (series R, C) and the inter-channel C', '±1 delay', 'email',
