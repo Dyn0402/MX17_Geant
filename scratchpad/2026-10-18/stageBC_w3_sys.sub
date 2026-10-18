@@ -1,0 +1,38 @@
+# v3 SYSTEMATICS + COUPLING CANDIDATE (2026-10-18). Baseline v3k265b45 (scripts/condor/recipes/det3_v3.args).
+# One variable at a time at bG 0.45: K0 1.80, K0 2.25, gap 27.9 (GAP_STUDY); plus the best coupling point of 4480073
+# (k 0.05, tau 15 ns) at bG 0.46, to refit bG with coupling on. Tags v3s<k180|k225|g279>_<ang>, v3c5t15b46_<ang>.
+#
+# PRE-REGISTERED (2026-10-18, before submission), vs v3k265b45 (joint 1.002; rise X10/X20/Y10/Y20 +12/+12/+12/+22):
+#   * K0 1.80: rise +8..+12 ns, FWHM +10..+16 ns, joint data/sim +2..+5 % (§20.1 differences 1.80 - 2.05).
+#   * K0 2.25: rise -4..-8 ns, joint -1..-3 %.
+#   * gap 27.9: joint -1..-4 %, inclined extent +5..+8 % (10 deg X 1.46 -> ~1.55), rise within 2 ns.
+#   * coupling at bG 0.46: joint 1.01-1.03 (v3c5t15 at 0.45 is 1.037, slope ~2 %/0.01), shape as v3c5t15 within 2 ns.
+# FALSIFIER: any shift outside its band by > 2 % / 4 ns -> the one-variable differences of §20-21 do not transfer to
+#   the 26.5 mm baseline; quote systematics from these runs, not from the old ones.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w2.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+arguments               = "rho5M $(tag)_$(ang) /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07_cmq.json /afs/cern.ch/work/d/dneff/mx17_s1/clusters_ang_e17/mx17_muons_3k_ang_$(ang)_e17_t0.root '$(flags)'"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_$(tag)_$(ang).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_$(tag)_$(ang).err
+tag = v3sk180
+flags = --ion-model reconstructed --ion-mobility K0=1.80 --drift-gap-mm 26.5 --feedback-bg 0.45 --shaper-tp-ns 166 --calib /afs/cern.ch/work/d/dneff/mx17_s1/calib/aval_calib_meshfield_nc1_pooled.json
+queue ang in (th00 thx10 thx20 thy10 thy20)
+
+tag = v3sk225
+flags = --ion-model reconstructed --ion-mobility K0=2.25 --drift-gap-mm 26.5 --feedback-bg 0.45 --shaper-tp-ns 166 --calib /afs/cern.ch/work/d/dneff/mx17_s1/calib/aval_calib_meshfield_nc1_pooled.json
+queue ang in (th00 thx10 thx20 thy10 thy20)
+
+tag = v3sg279
+flags = --ion-model reconstructed --ion-mobility K0=2.05 --drift-gap-mm 27.9 --feedback-bg 0.45 --shaper-tp-ns 166 --calib /afs/cern.ch/work/d/dneff/mx17_s1/calib/aval_calib_meshfield_nc1_pooled.json
+queue ang in (th00 thx10 thx20 thy10 thy20)
+
+tag = v3c5t15b46
+flags = --ion-model reconstructed --ion-mobility K0=2.05 --strip-coupling 0.05,15 --drift-gap-mm 26.5 --feedback-bg 0.46 --shaper-tp-ns 166 --calib /afs/cern.ch/work/d/dneff/mx17_s1/calib/aval_calib_meshfield_nc1_pooled.json
+queue ang in (th00 thx10 thx20 thy10 thy20)

@@ -1,0 +1,20 @@
+view x: central peak t data 195 / chain 195 ns (from the leading 50%)
+   +-1 neighbour peak t: data 240, chain 315  -> delay vs central data +45, chain +120 ns
+   neighbour/central peak: data 0.368, chain 0.360
+   fit data_nb = a chain_nb: a = 1.015, rms 0.0192
+   fit + k data_c + k' d/dt data_c: a = 0.897, k = +0.0562, k' = +0.0529 [/sample], rms 0.0168; model nb peak t 270 ns
+   t[ns]      -240  -120     0   120   240   360   480   600   720   840   960  1080
+   data c    0.057 0.167 0.500 0.860 0.897 0.736 0.543 0.365 0.202 0.077 0.008 -0.019
+   data nb   0.060 0.118 0.219 0.328 0.368 0.349 0.304 0.239 0.150 0.067 0.017 -0.005
+   chain nb  0.030 0.091 0.203 0.305 0.354 0.358 0.325 0.244 0.133 0.044 -0.005 -0.024
+   fit nb    0.032 0.097 0.221 0.328 0.365 0.357 0.317 0.235 0.127 0.041 -0.005 -0.023
+view y: central peak t data 180 / chain 195 ns (from the leading 50%)
+   +-1 neighbour peak t: data 240, chain 315  -> delay vs central data +60, chain +120 ns
+   neighbour/central peak: data 0.408, chain 0.423
+   fit data_nb = a chain_nb: a = 0.955, rms 0.0300
+   fit + k data_c + k' d/dt data_c: a = 0.939, k = +0.0143, k' = +0.0921 [/sample], rms 0.0279; model nb peak t 285 ns
+   t[ns]      -240  -120     0   120   240   360   480   600   720   840   960  1080
+   data c    0.058 0.156 0.500 0.894 0.890 0.646 0.405 0.216 0.056 -0.060 -0.113 -0.125
+   data nb   0.065 0.119 0.225 0.362 0.408 0.379 0.325 0.254 0.159 0.059 -0.007 -0.037
+   chain nb  0.029 0.089 0.215 0.347 0.414 0.419 0.377 0.276 0.132 0.012 -0.047 -0.066
+   fit nb    0.030 0.095 0.231 0.349 0.393 0.390 0.350 0.255 0.118 0.007 -0.047 -0.064

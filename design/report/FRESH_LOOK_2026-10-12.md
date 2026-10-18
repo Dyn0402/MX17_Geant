@@ -2128,3 +2128,59 @@ pre-registered) scans bG at that column. Logs are in `scratchpad/2026-10-18/*_v3
 
 **The v3 baseline** is `scripts/condor/recipes/det3_v3.args` (README next to it): ρ5M, e17, nc1, tp 166, 26.5 mm, K0 2.05, bG 0.45.
 `run.py`'s defaults stay bare so that old runs reproduce. The s1.75 ion would give bG ≈ 0.443.
+
+### 21.8 Inter-strip coupling: it fixes the neighbour's leading edge, and about half of the delay (2026-10-18)
+
+New Stage B option `--strip-coupling K,TAU_NS` (`response/dream/coupling.py`, test `python -m response.dream.test_coupling`).
+It models adjacent channels coupled through a capacitance C_c on input nodes of finite series impedance R. Each neighbour gets
+k·i_c + τ·di_c/dt, with τ = R·C_c, and the central strip loses the same (Kirchhoff), so charge is conserved.
+It acts on the induced currents before the shaper. The default is off. An offline emulation on v2r5kg260's 60 ns samples
+(`scratchpad/2026-10-18/emul_coupling.py`, `.log`) picked the scan points. They ran on condor 4480073 on top of the v3 baseline
+(`stageBC_w3_coupling.sub`, pre-registered). `nb_compare.py` → `nb_compare_v3c.log` compares the shapes unscaled;
+th00 is vertical by M3.
+
+| (k, τ) | ±1 delay X / Y [ns] | nb(t = 0) X / Y | nb rms X / Y | joint p50 | rise X10/X20/Y10/Y20 | FWHM X10 / Y10 |
+|---|---|---|---|---|---|---|
+| data | +45 / +60 | 0.219 / 0.225 | – | – | – | – |
+| off (v3) | +135 / +135 | 0.166 / 0.181 | 0.029 / 0.037 | 1.002 | +12/+12/+12/+22 | −1 / +14 |
+| 0.03, 10 | +120 / +120 | 0.203 / 0.215 | 0.020 / 0.032 | 1.024 | +15/+11/+16/+22 | −3 / +12 |
+| **0.05, 15** | **+105 / +105** | **0.226 / 0.236** | **0.018 / 0.032** | 1.037 | +13/+8/+16/+20 | −5 / +9 |
+| 0.06, 20 | +90 / +120 | 0.244 / 0.251 | 0.021 / 0.032 | 1.034 | +9/+3/+13/+18 | −9 / +5 |
+
+- **Falsifier not triggered:** the X delay goes below +115 ns, and the neighbour rms improves 39 % in X.
+  The delay (X +90..+110, Y +90..+120), leading edge, amplitude (+2..+4 %, band +1..+8), extent (+0..+2 %) and ±1/central (±0.01)
+  predictions hold. **Missed:** the Y rms improves only 13 % (band 20–35 %).
+- (0.05, 15 ns) is the best point. The leading edge closes in both views. The delay closes by ~30 of the ~90 ns.
+  The ±1/central peak ratio stays where it was. A residual in-phase k ≈ 0.05 remains in the X fit: the data neighbour carries
+  a prompt copy of the central that a charge-conserving coupling (which also takes it out of the central) does not give.
+- Side effects go the right way: the X 20° rise drops 4 ns (12 → 8) and the Y FWHM excess drops 14 → 9 ns.
+  The X FWHM goes to −5. At (0.06, 20) X overshoots (−9 FWHM).
+- Physically: τ = 15 ns is R·C_c, e.g. 300 Ω × 50 pF. k = 0.05 is C_c over an effective CSA input of ~1 nF. Both are plausible
+  for 50 cm strips and a protected input, but neither is measured. **Not in the v3 baseline.** It is a candidate, with its bG refit
+  in condor 4480074 (bG 0.46).
+- What is left of the delay (~+45..+60 ns over data) is a chain neighbour that stays high too long after its peak. That is the
+  resistive-layer spread, so ρ_s and coupling trade against each other here. A joint fit of ρ_s, k and τ on the Y wings and the
+  neighbour shape is the next step.
+
+### 21.9 The Y view saturates too rarely on inclined tracks in the sim (2026-10-18)
+
+The saturated fraction per view (ledger `sat d / s`, v3 baseline), at the angle in that view, has no selection behind it:
+
+| | 0° | 10° | 20° |
+|---|---|---|---|
+| X data / sim | 0.379 / 0.371 | 0.303 / 0.268 | 0.229 / 0.224 |
+| Y data / sim | 0.334 / 0.284 | 0.331 / 0.218 | 0.273 / 0.164 |
+
+X matches at every angle. In the data, inclined Y tracks rail as often as vertical ones (0.33), while the sim's fraction falls by
+a factor 1.7. So **the sim's Y peak strip is too dim, mostly on inclined Y tracks**. That is the ledger's Y/X (1.17–1.20 at 10°/20° in y).
+The unsaturated-only X/Y balance (§21.3) does not see it, because it drops exactly the bright Y events: its Y peak fractions agree
+with the data at 26.5 mm. Ledger Y/X at p25, far from the rail, is the same as at p50 within ±0.07, so this is a real dimness
+and not a saturation artefact.
+
+Leads, none tested yet:
+- **Readout geometry.** How MX17 routes the pad charge to the Y lines (`SUPERPERIOD_M`, the pad-to-Y via pattern) sets how
+  much of an inclined Y track one Y strip collects. Check the pad map against the board.
+- **Shape.** The data Y central falls faster after its peak than the sim's (−0.08..−0.10 of the peak at +360..+540 ns) and undershoots more
+  (−0.125 vs X −0.02). The X tail is slower than the sim's. A per-view shaping difference in the data that the chain lacks
+  would change the peak amplitudes per view. `scratchpad/2026-10-18/central_shape_feu_swap.py` was meant to test FEU 7/8 against
+  3/4. Its first version is **not usable** (proxy selection, pedestal handling). It needs the 6-22 run's pedestals and an M3 selection.
