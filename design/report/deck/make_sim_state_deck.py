@@ -746,7 +746,9 @@ def build(R, out):
             notes='<p>Pre-registered in <code>scratchpad/2026-10-18/stageBC_w3_bgrefit.sub</code>: joint 0.955–0.975 / 0.99–1.02 / '
                   '1.02–1.07 at bG 0.47 / 0.45 / 0.43; falsifier: optimum outside 0.44–0.47 or extent/rise moving with bG. '
                   'All hit (FRESH_LOOK §21.7).</p>'
-                  '<p>With the template ×1.75 instead of K0 2.05, the optimum would be ~0.443 (the ion adds +1.5 % in amplitude).</p>',
+                  '<p>With the template ×1.75 instead of K0 2.05, the optimum would be ~0.443 (the ion adds +1.5 % in amplitude).</p>'
+                  '<p>Systematics (condor 4480074, §21.10): K0 1.80 / 2.25 → amplitude +3.2 / −1.7 %, inclined rise +11 / −6 ns; '
+                  'a 27.9 mm column → −1.5 % and inclined extent +4–5 %. In bG: +0.016 / −0.008 / −0.007.</p>',
             short='bG refit')
 
     # 13 inter-strip coupling ------------------------------------------------------
@@ -779,7 +781,7 @@ def build(R, out):
                             sd.p('The rest of the delay is the chain neighbour staying high after its peak: that is '
                                  'the resistive-layer spread, so ρ_s and coupling now need fitting together.', 25),
                             sd.callout('τ = R·C_c = 15 ns (e.g. 300 Ω × 50 pF) is plausible but unmeasured: '
-                                       'a candidate, not yet in the baseline.', GOLD, 24),
+                                       'a candidate, not yet in the baseline. With it on, bG refits to 0.47.', GOLD, 24),
                             w=600), gap=48),
             notes='<p><code>--strip-coupling K,TAU_NS</code> (<code>response/dream/coupling.py</code>), on the induced currents '
                   'before the shaper. Pre-registered in <code>scratchpad/2026-10-18/stageBC_w3_coupling.sub</code> from an offline '
