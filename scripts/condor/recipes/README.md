@@ -10,3 +10,13 @@ stay reproducible; the physics baseline lives here.
 
 det3 v3: ion reconstructed K0 2.05 (systematic 1.80 / 2.25), drift column 26.5 mm (systematic 27.9 = GAP_STUDY), bG 0.45
 (joint fit at that column; s1.75 instead of K0 2.05 → bG ~0.443), nc1 avalanche calib, DREAM tp 166 ns.
+
+Systematics of det3_v3 (FRESH_LOOK §21.10, condor 4480074), one at a time:
+
+| variant | amplitude (joint data/sim) | inclined rise | other |
+|---|---|---|---|
+| K0 1.80 | +3.2 % | +10..+11 ns | FWHM +12..+14 ns |
+| K0 2.25 | −1.7 % | −6..−7 ns | FWHM −7..−8 ns |
+| drift column 27.9 mm | −1.5 % | 0 | inclined extent +4..+5 % |
+
+Candidate add-on, not in the recipe: `--strip-coupling 0.05,15` with `--feedback-bg 0.47` (§21.8, §21.10).

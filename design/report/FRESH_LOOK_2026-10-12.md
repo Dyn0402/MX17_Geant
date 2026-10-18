@@ -2187,3 +2187,23 @@ Leads, none tested yet:
   (−0.125 vs X −0.02). The X tail is slower than the sim's. A per-view shaping difference in the data that the chain lacks
   would change the peak amplitudes per view. `scratchpad/2026-10-18/central_shape_feu_swap.py` was meant to test FEU 7/8 against
   3/4. Its first version is **not usable** (proxy selection, pedestal handling). It needs the 6-22 run's pedestals and an M3 selection.
+
+### 21.10 Systematics of the v3 baseline, and bG with coupling on (2026-10-18)
+
+Condor 4480074 (`scratchpad/2026-10-18/stageBC_w3_sys.sub`, pre-registered) changes one input at a time at bG 0.45.
+Logs: `*_v3s.log`. Differences are vs v3k265b45 (joint 1.002; rise X10/X20/Y10/Y20 +12/+12/+12/+22 ns).
+
+| variant | joint data/sim | Δ joint | Δ rise [ns] | Δ FWHM [ns] | other | pre-registered |
+|---|---|---|---|---|---|---|
+| K0 1.80 | 1.034 | +3.2 % | +10..+11 | +12..+14 | | +2..+5 %, +8..+12, +10..+16 |
+| K0 2.25 | 0.985 | −1.7 % | −6..−7 | −7..−8 | | −1..−3 %, −4..−8 |
+| gap 27.9 mm | 0.987 | −1.5 % | 0 | ≤ 2 | inclined extent +4..+5 % | −1..−4 %, +5..+8 % |
+| coupling (0.05, 15), bG 0.46 | 1.020 | – | as bG 0.45 ± 1 | ± 1 | nb rms X 0.019, Y 0.034 | 1.01–1.03 |
+
+- Every band is hit except the 27.9 mm extent (+4..+5 %, band +5..+8 %), which misses by < 1 %. **Falsifier not triggered:**
+  the one-variable differences of §20–21 carry over to the 26.5 mm baseline.
+- **v3 systematics as quoted:** ion K0 1.80 / 2.25 → amplitude +3.2 / −1.7 %, inclined rise +11 / −6 ns. Column 27.9 mm →
+  amplitude −1.5 %, inclined extent +4..+5 % (the 27.9 point sits 4–5 % above the data's extent; 26.5 sits within ±1 % at 10°).
+  In bG terms: K0 1.80 → bG +0.016, K0 2.25 → −0.008, 27.9 mm → −0.007 (slope ~2 %/0.01).
+- **With coupling on, the joint optimum is bG ≈ 0.47** (1.037 at 0.45 and 1.020 at 0.46). The coupling takes ~3.5 % of the peak
+  amplitude into the neighbours and their bipolar term, and bG puts it back. The shapes are unchanged by the refit.

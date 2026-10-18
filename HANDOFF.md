@@ -1,5 +1,33 @@
 # Handoff
 
+## Overnight 10-17/18: v3 baseline, coupling, systematics — updated 2026-10-18 03:10 (dylan-Yoga)
+
+**Resume:** FRESH_LOOK §21.7–21.10 and slides 9–13 of https://dylan-neff.web.cern.ch/notes/mx17-response-sim-state.html.
+Dylan to decide: adopt the inter-strip coupling (k 0.05, τ 15 ns, then bG 0.47) as a fitted term, or wait for Irakli's values?
+
+**Done (all pre-registered, every falsifier passed):**
+- **v3 baseline** `scripts/condor/recipes/det3_v3.args`: ρ5M, e17, nc1, tp 166, 26.5 mm, ion reconstructed K0 2.05 (Dylan said
+  "Ok great" to the switch; `run.py` defaults stay bare so that old runs reproduce), **bG 0.45** (condor 4480068, joint 1.002).
+- **Inter-strip coupling** `--strip-coupling K,TAU` (`response/dream/coupling.py` + test; Kirchhoff, conserves charge). Condor 4480073:
+  (0.05, 15 ns) closes the neighbour leading edge (0.17 → 0.23, data 0.22), cuts the nb-shape rms 39 % in X and 13 % in Y, and moves the
+  ±1 delay from +135 to +105 ns (data +45/+60). It also takes 4 ns off the X 20° rise. With it on, bG → 0.47 (4480074).
+- **Systematics** (4480074): K0 1.80 / 2.25 → amplitude +3.2 / −1.7 %, rise +11 / −6 ns; 27.9 mm → −1.5 %, extent +4–5 %.
+- **Y/X, sharpened (§21.9):** X saturates as often in the sim as in the data at every angle, but inclined-Y tracks rail 0.33 in the
+  data vs 0.16–0.22 in the sim. The sim's Y peak strip is too dim on inclined Y. Strip C / FEU gain are excluded (sums agree).
+  The kernels already model the resistive stripes along y. The open lever is the as-built stripe line/gap (never measured).
+- Slide note republished (dylan-cern-site 613de81). Evaluation drivers: `scratchpad/2026-10-18/eval_v3*.sh` (yoga).
+
+**Next steps:**
+1. Dylan: coupling in or out (above). If in, add `--strip-coupling 0.05,15 --feedback-bg 0.47` to a det3_v3c recipe.
+2. Fit ρ_s × (k, τ) jointly on the Y wings + neighbour shape. That needs the Y-wing profile, which needs T14 outputs (not made since 10-16).
+3. Inclined-Y peak: measure the printed stripe line/gap on a board (microscope); if it differs, rebuild the kernel at CERN.
+4. FEU 7/8 vs 3/4 central pulse shapes: `central_shape_feu_swap.py` is NOT usable yet. The 6-22 run's waveforms plateau at ~0.57
+   of the peak after FeuReader's pedestal (mixed 32/37-sample events or ZS?). Sort out that format first, then select by M3 slope.
+5. Still open: Ar/CF4 out-of-sample; Irakli's questions (protection R/C, inter-channel C).
+
+**Gotchas:** the laptop OOMs building a kernel LUT (`run.py` locally gets killed); run Stage B on condor. `wf_shape.py` (10-12)
+loads a file at import; copy `cross()` instead of importing it.
+
 ## Verdict 2, drift-gap test, Y/X diagnosis — updated 2026-10-17 late (dylan-Yoga)
 
 **Resume:** §21.6 written. Verdict 2 passes and adds linearly; the data want a ~26–26.5 mm det3 column. Next: Dylan's calls
