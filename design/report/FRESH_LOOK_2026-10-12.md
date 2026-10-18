@@ -2207,3 +2207,26 @@ Logs: `*_v3s.log`. Differences are vs v3k265b45 (joint 1.002; rise X10/X20/Y10/Y
   In bG terms: K0 1.80 → bG +0.016, K0 2.25 → −0.008, 27.9 mm → −0.007 (slope ~2 %/0.01).
 - **With coupling on, the joint optimum is bG ≈ 0.47** (1.037 at 0.45 and 1.020 at 0.46). The coupling takes ~3.5 % of the peak
   amplitude into the neighbours and their bipolar term, and bG puts it back. The shapes are unchanged by the refit.
+
+### 21.11 ρ_s × coupling: the delay and the Y spread pull ρ_s in opposite directions (2026-10-18)
+
+Condor 4480075 (`stageBC_w3_rho2c.sub`, pre-registered): the v3 settings at ρ_s 2 MΩ/sq, without and with coupling (0.05, 15 ns).
+Logs: `*_v3r2.log`, `nb_compare_v3r2.log`.
+
+| point | ±1 delay X / Y | ±1/central X / Y | nb rms X / Y | Y rms, vertical Y (data 0.85 mm) | joint | Y/X |
+|---|---|---|---|---|---|---|
+| data | +45 / +60 | 0.368 / 0.408 | – | 0.85 | – | – |
+| ρ5M (v3) | +135 / +135 | 0.361 / 0.423 | 0.029 / 0.037 | 0.82 | 1.002 | 1.107 |
+| ρ5M + coupling | +105 / +105 | 0.361 / 0.422 | 0.018 / 0.032 | 0.81 | 1.037 | 1.095 |
+| ρ2M | +105 / +105 | 0.385 / 0.458 | 0.034 / 0.051 | 1.05 | 1.091 | 1.161 |
+| ρ2M + coupling | +90 / +75 | 0.391 / 0.456 | 0.029 / 0.055 | 1.03 | 1.124 | 1.146 |
+
+- **Falsifier not triggered:** ρ_s does set the neighbour tail (2M is 30 ns shorter than 5M). The delay, ±1/central, leading
+  edge and amplitude (+8.9 %, band +4..+9) predictions hold. The inclined extent moves +5 % in Y at 10° y (band ±3 %): a small miss.
+- But ρ2M wrecks the Y lateral profile (vertical Y rms 1.05 vs 0.85 mm, ±1/central Y 0.46 vs 0.41, nb rms Y 0.051–0.055)
+  and worsens Y/X (1.16). **ρ5M + coupling stays the best compromise.** The delay cannot be traded against ρ_s without breaking the Y wings.
+- What is left is a prompt, in-phase neighbour share (the X fit's residual k ≈ 0.05, §21.8) with no loss from the central. That is
+  direct induction: the ±1 pad's weighting field reaching under the central pad. It grows with the insulator thickness between the
+  pads and the resistive layer. The glue under the kapton is the stack's largest uncertainty (12.5–35 µm supplied, 18.8 µm over the
+  pad assumed, `response/common/constants.py`). **Next lever: a kernel with 35 µm glue** (or `GLUE_FLOW_MODEL = "uniform"`).
+  It would raise the prompt neighbour share without speeding the resistive spread. That is a kernel build at CERN.

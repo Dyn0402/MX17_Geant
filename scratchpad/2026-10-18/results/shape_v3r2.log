@@ -1,0 +1,8 @@
+v3r2             x 10  rise   201 ( +14)  fwhm   331 ( +10)  sat 0.23
+v3r2             x 20  rise   182 ( +13)  fwhm   302 (  +7)  sat 0.19
+v3r2             y 10  rise   200 ( +12)  fwhm   320 ( +10)  sat 0.19
+v3r2             y 20  rise   181 ( +21)  fwhm   297 ( +11)  sat 0.14
+v3r2c5t15        x 10  rise   203 ( +16)  fwhm   324 (  +3)  sat 0.22
+v3r2c5t15        x 20  rise   178 (  +9)  fwhm   295 (  -0)  sat 0.19
+v3r2c5t15        y 10  rise   206 ( +18)  fwhm   315 (  +5)  sat 0.19
+v3r2c5t15        y 20  rise   180 ( +20)  fwhm   293 (  +7)  sat 0.14

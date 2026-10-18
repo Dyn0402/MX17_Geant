@@ -1,6 +1,6 @@
 # Handoff
 
-## Overnight 10-17/18: v3 baseline, coupling, systematics — updated 2026-10-18 03:10 (dylan-Yoga)
+## Overnight 10-17/18: v3 baseline, coupling, systematics — updated 2026-10-18 04:00 (dylan-Yoga)
 
 **Resume:** FRESH_LOOK §21.7–21.10 and slides 9–13 of https://dylan-neff.web.cern.ch/notes/mx17-response-sim-state.html.
 Dylan to decide: adopt the inter-strip coupling (k 0.05, τ 15 ns, then bG 0.47) as a fitted term, or wait for Irakli's values?
@@ -23,7 +23,10 @@ Dylan to decide: adopt the inter-strip coupling (k 0.05, τ 15 ns, then bG 0.47)
 3. Inclined-Y peak: measure the printed stripe line/gap on a board (microscope); if it differs, rebuild the kernel at CERN.
 4. FEU 7/8 vs 3/4 central pulse shapes: `central_shape_feu_swap.py` is NOT usable yet. The 6-22 run's waveforms plateau at ~0.57
    of the peak after FeuReader's pedestal (mixed 32/37-sample events or ZS?). Sort out that format first, then select by M3 slope.
-5. Still open: Ar/CF4 out-of-sample; Irakli's questions (protection R/C, inter-channel C).
+5. ρ_s × coupling (condor 4480075, §21.11): ρ2M shortens the delay 30 ns but breaks the Y profile (vertical Y rms 1.05 vs 0.85).
+   ρ5M + coupling stays best. The remaining prompt neighbour share points at direct induction, i.e. the glue thickness.
+   Next lever: a kernel with 35 µm glue (or the "uniform" glue model), built at CERN.
+6. Still open: Ar/CF4 out-of-sample; Irakli's questions (protection R/C, inter-channel C).
 
 **Gotchas:** the laptop OOMs building a kernel LUT (`run.py` locally gets killed); run Stage B on condor. `wf_shape.py` (10-12)
 loads a file at import; copy `cross()` instead of importing it.
