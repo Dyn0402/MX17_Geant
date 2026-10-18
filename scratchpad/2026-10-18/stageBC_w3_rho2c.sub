@@ -1,0 +1,31 @@
+# rho_s x COUPLING TRADE (2026-10-18). The remaining ±1 delay (+105 vs +45/+60 ns with coupling 0.05/15, §21.8) is the chain
+# neighbour staying high after its peak, i.e. the resistive-layer spread. Same v3 settings (K0 2.05, 26.5 mm, bG 0.45) at
+# rho_s 2 MOhm/sq, without and with coupling. Tags v3r2_<ang>, v3r2c5t15_<ang>. References v3k265b45 / v3c5t15 (rho5M).
+#
+# PRE-REGISTERED (2026-10-18, before submission), th00 nb_compare, vs the rho5M references (from §20.2/§21.5: 2M vs 5M at
+# 30 mm gave a delay shorter by 15-30 ns and ±1/central higher by 0.03):
+#   * v3r2: ±1 delay X +105..+125 / Y +105..+125 (v3 +135/+135); ±1/central X 0.38-0.41, Y 0.44-0.47 (data 0.368/0.408).
+#   * v3r2c5t15: delay +75..+95 both views; leading edge 0.23-0.26; ±1/central overshoots the data by 0.02-0.06.
+#   * amplitude: joint data/sim +4..+9 % vs the rho5M partner (verdict 2: 2M -> 5M lowered it ~9 %).
+#   * inclined extent within ±3 % of the rho5M partner (column-dominated).
+# FALSIFIER: the 2M delay is not shorter than the 5M one by >= 10 ns -> rho_s does not set the neighbour tail; look at the
+#   ion tail of the neighbour's induced current instead.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w2.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+arguments               = "rho2M $(tag)_$(ang) /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07_cmq.json /afs/cern.ch/work/d/dneff/mx17_s1/clusters_ang_e17/mx17_muons_3k_ang_$(ang)_e17_t0.root '$(flags)'"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_$(tag)_$(ang).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_$(tag)_$(ang).err
+tag = v3r2
+flags = --ion-model reconstructed --ion-mobility K0=2.05 --drift-gap-mm 26.5 --feedback-bg 0.45 --shaper-tp-ns 166 --calib /afs/cern.ch/work/d/dneff/mx17_s1/calib/aval_calib_meshfield_nc1_pooled.json
+queue ang in (th00 thx10 thx20 thy10 thy20)
+
+tag = v3r2c5t15
+flags = --strip-coupling 0.05,15 --ion-model reconstructed --ion-mobility K0=2.05 --drift-gap-mm 26.5 --feedback-bg 0.45 --shaper-tp-ns 166 --calib /afs/cern.ch/work/d/dneff/mx17_s1/calib/aval_calib_meshfield_nc1_pooled.json
+queue ang in (th00 thx10 thx20 thy10 thy20)
