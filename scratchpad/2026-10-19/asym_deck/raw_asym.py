@@ -8,10 +8,14 @@ Stores the 9x32 raw waveforms of channels p-4..p+4 (channel order, NOT position 
 Noise: on quiet events (no channel over 5 sigma) accumulates the channel-distance correlation corr(x_n, x_n+d), d = 1..6,
 within each chip, raw and after a per-chip-per-sample median (common-mode) subtraction, plus the same with a copy
 x_n+1 += 0.15 x_n injected, to show what an electronics-side copy would do to the noise.
-Usage: raw_asym.py DECODED_DIR FEU OUT.npz [--files 3] [--skip 0]"""
+--cm (beam data): also subtract a per-chip, per-sample median (common mode) before thresholding, which removes the
+gamma-flash ringing, and cut each 32-sample window around the peak channel's maximum instead of samples 0-31;
+channels noisier than 3x the median are masked and the isolation cut is applied within the peak's own chip.
+Usage: raw_asym.py DECODED_DIR FEU OUT.npz [--files 3] [--skip 0] [--cm]"""
 import sys, glob, argparse, numpy as np, uproot, awkward as ak
 ap = argparse.ArgumentParser(); ap.add_argument('dec'); ap.add_argument('feu', type=int); ap.add_argument('out')
 ap.add_argument('--files', type=int, default=3); ap.add_argument('--skip', type=int, default=0)
+ap.add_argument('--cm', action='store_true')
 a = ap.parse_args()
 files = [f for f in sorted(glob.glob(f'{a.dec}/*_{a.feu:02d}.root')) if 'pedestal' not in f and 'decoded_array' not in f]
 files = files[a.skip:a.skip + a.files]
@@ -32,8 +36,14 @@ for fi, f in enumerate(files):
         x = ak.to_numpy(amp[keep]).reshape(-1, ns_mode, 512).astype(np.float32); eid = np.asarray(arr['eventId'])[keep]
         if ped is None:
             ped = np.median(x, axis=(0, 1)); r0 = x - ped
+            if a.cm:
+                r0 = r0 - np.repeat(np.median(r0.reshape(len(r0), ns_mode, 8, 64), axis=3), 64, axis=2)
             sig = 1.4826 * np.median(np.abs(r0 - np.median(r0, axis=(0, 1))), axis=(0, 1)); sig[sig <= 0] = np.inf
+            if a.cm:
+                sig[sig > 3 * np.median(sig[np.isfinite(sig)])] = np.inf
         r = x - ped                                        # (ev, ns, 512) raw - pedestal
+        if a.cm:                                           # (beam) minus the per-chip, per-sample median
+            r = r - np.repeat(np.median(r.reshape(len(r), ns_mode, 8, 64), axis=3), 64, axis=2)
         A = r.max(axis=1); over = A / sig > 5; nov = over.sum(1)
         q = nov == 0
         if q.any() and nquiet < 6000:
@@ -41,10 +51,15 @@ for fi, f in enumerate(files):
             corr_acc(xq, 'raw')
             xc = xq - np.median(xq, axis=3, keepdims=True); corr_acc(xc, 'cm')
             xi = xc.copy(); xi[..., 1:] += AINJ * xc[..., :-1]; corr_acc(xi, 'inj')
-        for i in np.flatnonzero((nov >= 1) & (nov <= 12)):
+        cand = np.flatnonzero(nov >= 1) if a.cm else np.flatnonzero((nov >= 1) & (nov <= 12))
+        for i in cand:
             c = np.flatnonzero(over[i]); p = int(c[np.argmax(A[i, c])])
+            if a.cm:
+                c = c[c // 64 == p // 64]
+                if len(c) > 12: continue
             if not (4 <= p % 64 <= 59) or c.min() < p - 3 or c.max() > p + 3: continue
-            blk = r[i, :32, p - HW:p + HW + 1].T
+            s0 = min(max(int(r[i, :, p].argmax()) - 8, 0), ns_mode - 32) if a.cm else 0
+            blk = r[i, s0:s0 + 32, p - HW:p + HW + 1].T
             if blk.shape[1] < 32: continue
             WF.append(blk.astype(np.float32)); P.append(p); EV.append(int(eid[i])); FI.append(fi)
             if len(DISP) < 40 and 600 < A[i, p] < 2500: DISP.append(r[i, :32, (p // 64) * 64:(p // 64) * 64 + 64].T.astype(np.float32))

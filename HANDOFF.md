@@ -1,5 +1,31 @@
 # Handoff
 
+## det3 X asymmetry, second round: it lives at the Y pads — updated 2026-10-19 late (dylan-MS-7C84)
+
+**Resume:** deck slides 19–27 (https://dylan-neff.web.cern.ch/notes/det3-x-asymmetry.html), `asym_deck/FINDINGS.md`
+"Second round". Mechanism at the Y pad still open; Dylan to pick bench tests (deck "Open").
+
+**Done:**
+- Copy only for charge over a Y pad (X/Y matched parity split): det3 June-15 0.22, det4/det7 0.08, det6 0.02, others 0;
+  every Y pad alike (no pillar, no stripe-beat pattern). Electronics/cable excluded by this.
+- Date + drift-field dependence collapse onto cluster width (Y ±1 share): gas state of the night + field. Gas circulation
+  ruled out as the cause (X only, pad-level, flat top-bottom, non-monotonic). Varies along the X-chip axis only.
+- Beam drift scans (condor 4502894) of det2/det6/det7: inconclusive (det6 0, det7 too noisy, det2 beam-angle).
+- Sims: copper/dielectric/displacement give < 0.02 on the data estimator; floating stripes have the wrong fingerprint.
+
+**Next steps:**
+1. Bench: same HV, two gas states; collimated Fe-55 on one Y pad vs X pad; det4/det7 drift scan; ask Stephan about the
+   June recipe; microscope det3 Y pads; same PCB/resistive print for det3 May vs June-15?
+2. Model candidates not yet built: a partly floating Y pad, a conductive/charged residue at the Y-pad edge on the bus side.
+3. Analysis correction: uncopy on Y-pad events only (parity from the Y view).
+
+**Gotchas:** `fwd_parity.py` Y-line placement had a half-pitch bug (fixed; it made ±0.15 per class from symmetric
+geometry). Beam needs `raw_asym.py --cm` (flash). Desktop-only derived data: `~/x17/nb_asym_raw/{extra,beam}/`; beam
+npz also on EOS `/eos/user/d/dneff/asym_beam/`.
+
+**Key files:** `asym_deck/asym_more.py`, `asym_deck/beam/{beam_drift.py,beamjob.sh,beam.sub,mkjobs.py}`,
+`bus_wpot.py`, `bus_float.py`, `fwd_parity.py`, `bus_par/`, `fwd_out/`.
+
 ## det3 X asymmetry, raw-ADC deck — updated 2026-10-19 (dylan-MS-7C84)
 
 **Resume:** det3 X copy is real (raw ADC, follows the board); next: the discriminating tests (bus side, cable swap, HV-off pulser).

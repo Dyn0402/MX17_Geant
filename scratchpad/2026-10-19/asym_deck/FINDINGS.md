@@ -61,3 +61,29 @@ The 6-19 config swapped HV channels between the two boards vs 6-17; the other bo
 (372 noisy events), so no clean label swap, but a cabling mix-up isn't excluded. 6-26 weekend scan is empty on EOS;
 6-19 HV scan + long_run exist only as raw_daq_data (could be decoded to extend 6-19/20).
 Extra extractions: ~/x17/nb_asym_raw/extra/{d617_long_x,d619_longer_x,d619_longer_feu3_x}.npz (desktop only, derived).
+
+## Second round (10-19 evening): the copy lives at the Y pads (deck slides "Y pads" .. "Simulations")
+Numbers from `asym_more.py` → `asym_more.json`, `beam/beam_drift.py` → `beam_drift.json`, `../fwd_parity.py` → `../fwd_out/`.
+1. **Parity split.** X/Y matched by (file index, eventId); (p_x + p_y) % 2 = pad type under the charge; the Y-pad class is
+   the one with the smaller Y ±1 share and A_x/A_y. Copy (X-pad / Y-pad): det3 June-15 0.020 / **0.221**; det4 0.000 /
+   **0.078**; det7 0.018 / **0.078**; det6 −0.004 / 0.017; det3 May, det1, det2 ≈ 0 / ≈ 0. Same phenomenon on all three.
+   Flat mod 3/4/6/12 (pillars 4.68 mm = 6 pads excluded), no 40-ch period (stripe beat excluded), X channel parity alone flat.
+   For Y-pad events it is a redistribution between the two X neighbours (α+1 ≈ 0.43, α−1 ≈ 0.18 of the central).
+2. **One curve.** For Y-pad events, excess on n+1 / Y signal vs the Y ±1 share falls on one curve for all sessions and
+   drift voltages (0.32 at Ysh 0.47 → 0.12 at 0.9). Date + drift-field dependence = cluster width (gas of the night via
+   diffusion/drift velocity, and the field). Within a run per-event width matters little → width is a proxy for the gas state.
+   At fixed 1000 V pulse widths are 1400 (6-22), 1140 (6-18), 840 (6-27), 600 ns (6-19): the drift velocity differed
+   between nights. 6-19 (0.03) stays an outlier on the width curve (X share 0.84 → ~0.13 expected).
+3. **Board axes.** Varies along the X-chip axis only (6-24: 0.55 → 0.15), flat along the Y-chip axis (= top-bottom with
+   Dylan's orientation, the inlet→exhaust direction). Local pulse width does not follow it → not local gas.
+4. **Gas circulation: not the cause** (flow speed, X-only, pad-level, flat top-bottom, non-monotonic in time). Gas
+   composition as a modulator: yes.
+5. **Beam drift scans** (condor 4502894, runs 58/61/64 90/10 etc., raw_asym.py --cm): det6 ≈ 0 at all fields; det7
+   unmeasurable (noisy X FEU, Y fails); det2 0.03–0.12 (≈ 0 on bench: beam angle); det3 0.05–0.14 flat in 90/10.
+   No bench drift scan of any board but det3.
+6. **Simulations.** `bus_wpot.py` (now with parity fold, --eps-gap/--eps-kap), `bus_float.py` (stripes as floating
+   conductors), `fwd_parity.py` (uniform clouds, data's estimator). Copper at any bus depth, wet gaps, kapton ε, a 60 µm
+   displacement over Y pads: |a| < 0.02 in both classes. The old 0.010 was a kernel asymmetry that peak selection absorbs.
+   Floating stripes offset ±200 µm: ±0.06–0.15 but equal in both classes and growing with σ: wrong fingerprint.
+7. Electronics/cable excluded: they cannot know the pad type under the charge; copy linear.
+Open: what at a Y pad couples ~30 % of its charge signal into the n+1 X line on Stephan's June bulks.

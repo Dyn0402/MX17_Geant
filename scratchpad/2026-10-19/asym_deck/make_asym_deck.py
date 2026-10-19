@@ -1022,6 +1022,232 @@ def s_time(D, rows):
         sources('raw survey', '../copy_survey.csv (start times, HV)')), short='Time, field')
 
 
+# ----------------------------------------------------------------------------------------------------------------- #
+# second round (10-19 evening): parity, board axes, drift time, gas, beam drift scans, simulations
+# ----------------------------------------------------------------------------------------------------------------- #
+def more():
+    p = os.path.join(HERE, 'asym_more.json')
+    return json.load(open(p)) if os.path.exists(p) else None
+
+
+def checker_svg():
+    """Top view of the checkerboard around one Y pad: its left/right X pads are the central X line, above/below the
+    two X neighbours; the neighbour above has its bus in the gap at the Y pad's edge."""
+    s = 120; o = []
+    for j in range(3):
+        for i in range(3):
+            x0, y0 = 30 + i * s, 30 + j * s
+            isx = (i + j) % 2 == 1
+            c = BLUE if isx else '#e6c9a8'
+            o.append(f'<rect x="{x0 + 8}" y="{y0 + 8}" width="{s - 16}" height="{s - 16}" rx="6" fill="{c}" opacity="{0.9 if isx else 0.7}"/>')
+    o.append(sd.T(30 + 1.5 * s, 30 + 1.5 * s + 8, 'Y', 30, INK, weight=700))
+    o.append(sd.T(30 + 0.5 * s, 30 + 1.5 * s + 8, 'n', 26, '#fff', weight=700)); o.append(sd.T(30 + 2.5 * s, 30 + 1.5 * s + 8, 'n', 26, '#fff', weight=700))
+    o.append(sd.T(30 + 1.5 * s, 30 + 0.5 * s + 8, 'n+1', 24, '#fff', weight=700)); o.append(sd.T(30 + 1.5 * s, 30 + 2.5 * s + 8, 'n−1', 24, '#fff', weight=700))
+    o.append(sd.line(30, 30 + s, 30 + 3 * s, 30 + s, RED, 4, '10 6'))
+    o.append(sd.T(30 + 3 * s + 10, 30 + s + 8, 'bus of n+1', 21, RED, 'start'))
+    o.append(sd.T(30, 30 + 3 * s + 34, 'blue: X pads (rows = X lines) · tan: Y pads', 20, MUT, 'start'))
+    return sd.svg(560, 440, ''.join(o), 'checkerboard around a Y pad')
+
+
+def s_parity(D):
+    m = more()
+    if not m: return
+    order = ['det3 June-15', 'det4', 'det7', 'det6', 'det3 May', 'det2', 'det1']
+    bs = {b['build']: b for b in m['boards']}; bs = [bs[k] for k in order if k in bs]
+    P = sd.Plot(1060, 600, x=(-0.6, len(bs) - 0.4), y=(-0.05, 0.25), ylabel='copy a', margin=(24, 20, 110, 100))
+    P.yticks([(v, f'{v:.1f}') for v in (0, 0.1, 0.2)]); P.hline(0, MUT, None, 1.5)
+    for i, b in enumerate(bs):
+        for dx, key, col, nm in ((-0.17, 'xpad', GREY, 'charge over an X pad'), (0.17, 'ypad', CJUN, 'charge over a Y pad')):
+            v, e, n = b[key]
+            P.vbar(i + dx, max(v, -0.049), 46, col, base=0., tip=f'{b["build"]} X, {nm}: a = {v:+.3f} ± {e:.3f} ({n} matched events)')
+            P.raw(sd.line(P.X(i + dx), P.Y(v - e), P.X(i + dx), P.Y(v + e), INK, 2))
+        P.raw(sd.T(P.X(i), P.y0 + P.ph + 34, b['build'].replace('det3 ', 'det3·'), 20, INK))
+    key = sd.legend([('charge over an X pad', GREY, 'box'), ('charge over a Y pad', CJUN, 'box')], 22)
+    j = bs[0]
+    body = (sd.title('Only charge over a Y pad is copied, on every board that has it',
+                     'X and Y matched event by event; the pad type under the charge from the parity of the two peak channels')
+            + sd.row(sd.col(P.svg('parity'), key, gap=8), sd.col(checker_svg(),
+                     sd.callout(f'det3 June-15: {j["ypad"][0]:.2f} over Y pads, {j["xpad"][0]:.2f} over X pads. det4 and det7 '
+                                'show the same split at a third of the size.', CJUN, 24), gap=10), gap=40))
+    D.slide('parity', body, details(
+        'Method: for each sub-run the X and Y dumps are matched by file index and eventId. In the checkerboard the parity of '
+        '(peak X channel + peak Y channel) tells whether the charge sits over an X pad or a Y pad. Which parity is which is '
+        'read from the data itself: the Y-pad class has the smaller Y ±1 share and the smaller A_x/A_y (det3 June-15: '
+        f'A_x/A_y {j["axay_y"]:.2f} vs {j["axay_x"]:.2f}, Y share {j["ysh_y"]:.2f} vs {j["ysh_x"]:.2f}).',
+        'Control: a forward model with the solved weighting fields and a symmetric geometry (fwd_parity.py) gives 0 in both '
+        'classes, as mirror symmetry demands; the split cannot be manufactured by the classification.',
+        'Within the Y-pad class the copy is the same at every Y pad: flat in (X ch mod k, Y ch mod k) for k = 3, 4, 6 (the '
+        'pillar grid is 6 pads) and 12 (χ²/ndf 1.0–1.6). No 40-channel (31.2 mm, ESL beat) period either. So it is not '
+        'the pillars and not the stripe-to-pad registration.',
+        'Reading: for a Y pad its left and right neighbours are X pads of the central X line and the pads above and below '
+        'belong to the two X neighbours; the copy is an imbalance between those two, about 0.43/0.18 of the central instead '
+        'of 0.31/0.31. For an X pad the X neighbours are diagonal and the direct signal dominates.',
+        sources('asym_more.py', 'fwd_parity.py', 'raw survey')), short='Y pads')
+
+
+def s_axes(D):
+    m = more()
+    if not m: return
+    cols = [CJUN, PURPLE, ORANGE]; pl = []
+    for ax, ttl in (('xchip', 'along the X-chip axis (what X measures)'), ('ychip', 'along the Y-chip axis')):
+        P = sd.Plot(780, 520, x=(-0.5, 7.5), y=(0, 0.6), xlabel=f'{"X" if ax == "xchip" else "Y"} chip (64 channels)',
+                    ylabel='copy a, Y-pad events' if ax == 'xchip' else '', title=ttl)
+        P.xticks([(c, str(c)) for c in range(8)]); P.yticks([(v, f'{v:.1f}') for v in (0, 0.2, 0.4, 0.6)])
+        for (lab, d), c in zip(m['chips'].items(), cols):
+            pts = [(i, q['copy'][0], q['copy'][1], q['w30']) for i, q in enumerate(d[ax]) if q['copy'][2] > 30]
+            P.line([p[0] for p in pts], [p[1] for p in pts], c, 3, r=7,
+                   tips=[f'{lab}, chip {p[0]}: a = {p[1]:+.3f} ± {p[2]:.3f}; pulse w30 {p[3]:.0f} ns' for p in pts])
+        pl.append(P.svg(ax))
+    key = sd.legend([(k, c, 'line') for k, c in zip(m['chips'], cols)], 22)
+    body = (sd.title('It changes along one board axis only, and not with the local drift time',
+                     'det3 June-15, Y-pad events, per 64-channel chip · three sessions')
+            + sd.row(*pl, gap=30) + key
+            + sd.callout('With your orientation (X cards at the bottom, Y cards on the right) the Y-chip axis is top to bottom: '
+                         'the inlet-to-exhaust direction. The copy is flat along it.', BLUE, 24))
+    D.slide('axes', body, details(
+        'Left: along the X-chip axis the copy falls by a factor 2–3 from chips 1–3 to chip 7, in every session. Right: along '
+        'the Y-chip axis it is flat within ~±0.03.',
+        'The local pulse width (a drift-time proxy, in the tooltips) does not follow the X-chip profile: on 6-22/23 it is '
+        '1080 ns on every chip while the copy halves. So the spatial profile is not local gas transport.',
+        'What varies along one axis only and per build: anything printed or laminated in stripes along the X lines (the '
+        'resistive stripes run parallel to the X lines), or the X lines themselves (length to the connector, routing).',
+        sources('asym_more.py')), short='Board axes')
+
+
+def s_drifttime(D):
+    m = more()
+    if not m: return
+    sr = [s for s in m['subruns'] if s['ac'] == s['ac'] and s['ac'] is not None]
+    dcol = lambda v: sd.seq_color((float(v) - 100) / 1000)
+    P = sd.Plot(900, 600, x=(500, 1600), y=(0, 0.32), xlabel='pulse width above 30 % of the mean peak, w30 [ns]',
+                ylabel='copy a, centre chips', title='Every det3 June-15 sub-run')
+    P.xticks([(v, str(v)) for v in (600, 800, 1000, 1200, 1400, 1600)]); P.yticks([(v, f'{v:.1f}') for v in (0, 0.1, 0.2, 0.3)])
+    for s in sr:
+        P.points([s['w30']], [s['ac']], dcol(s['drift']), r=8, marker='circle' if s['feu'] == 3 else 'open',
+                 tips=[f'{s["t"]} {s["run"]} / {s["sub"]}\nFEU {s["feu"]}, drift {s["drift"]} V\ncopy {s["ac"]:+.3f} ± {s["eac"]:.3f}; w30 {s["w30"]:.0f} ns; median A {s["medA"]:.0f}'])
+    for s in sr:
+        if s['sub'] in ('long_run', 'longer_run') and ('6-17' in s['run'] or '6-19' in s['run']):
+            P.text(s['w30'] + 20, s['ac'] + 0.012, '6-18' if '6-17' in s['run'] else '6-19', 20, INK, weight=700)
+    se = [s for s in sr if s['exc']]
+    Q = sd.Plot(700, 600, x=(0.4, 1.05), y=(0, 0.4), xlabel='Y ±1 share of the same events', ylabel='excess on n+1 / Y signal',
+                title='Y-pad events')
+    Q.xticks([(v, f'{v:.1f}') for v in (0.4, 0.6, 0.8, 1.0)]); Q.yticks([(v, f'{v:.1f}') for v in (0, 0.1, 0.2, 0.3, 0.4)])
+    for s in se:
+        Q.points([s['ysh']], [s['exc'][0]], dcol(s['drift']), r=7, marker='circle' if s['feu'] == 3 else 'open',
+                 tips=[f'{s["t"]} {s["sub"]}, drift {s["drift"]} V: excess/Y {s["exc"][0]:+.3f} ± {s["exc"][1]:.3f}, Y share {s["ysh"]:.2f}'])
+    cb = sd.colorbar(130, 600, 100, 1100, [(v, f'{v}') for v in (100, 300, 600, 1000)], 'drift [V]')
+    body = (sd.title('The date and drift-field dependence collapse onto the cluster width',
+                     'colour: drift voltage · filled: FEU 3 · open: FEU 7 · each point one sub-run')
+            + sd.row(P.svg('w30'), Q.svg('ysh'), cb, gap=16))
+    D.slide('drifttime', body, details(
+        'Left, the drift time: at the same nominal 1000 V the pulses are ~1400 ns long on 6-22/23, 1140 on 6-18, 840 on '
+        '6-27/28 and 600 on 6-19, and the copy roughly orders the same way (0.17, 0.26, 0.10, 0.03; 6-18 and 6-22 swap). A '
+        'longer pulse at fixed field means a slower drift: a different gas on different nights. But the drift time is not '
+        'the variable: 6-23/24 at 600 V has shorter pulses than 6-22/23 and a larger copy.',
+        'For scale (Magboltz, 26.5 mm): at 1000 V the drift time is ~700 ns dry or with 1 % H2O; at 600 V it is 640 ns dry '
+        'but 1220 ns with 1 % H2O; at 300 V 730 vs 3100 ns. The measured widths (shaping adds ~150–300 ns) follow the wet '
+        'curve in the 6-27 scan. 6-22/23 needs an even slower gas at 1000 V.',
+        'Right, the cluster width: for Y-pad events the excess on n+1, in units of the Y pad’s own signal, falls on one '
+        'curve against the Y ±1 share of the same events for all sessions and drift voltages: narrower clusters, larger '
+        'copy. Wet Ar/iso diffuses less (D_T 0.024–0.031 vs 0.048 √cm dry) and its D_T changes with field, so both the gas '
+        'of the night and the drift field set the width. Within one run, event by event, the width matters much less '
+        '(only the widest fifth drops), so the width is a proxy for the gas state, not the mechanism itself.',
+        '6-19 has no Y in hand; its X ±1 share (0.84) would predict ~0.13 on this curve, against 0.03 measured. It stays '
+        'an outlier: the night det3’s drift HV was sparking.',
+        'Also: the median amplitude drops at low drift field (6-27: 2080 ADC at 1000 V, 630 at 100 V): attachment, so the '
+        'gas was not clean either.',
+        sources('asym_more.py', 'design/gas/*.json')), short='Drift time')
+
+
+def s_gas(D):
+    rows = [
+        ['Electrons are carried by the flow', 'Flow ~mm/s against drift ~4 cm/µs: a 10⁻⁷ mm push.', '✗'],
+        ['A gain or composition gradient', 'Needs ~20 % change per 1.5 mm; compounded over 40 cm that is e⁵⁰.', '✗'],
+        ['It would act on X and Y alike', 'Y has no copy (|a| ≲ 0.02) on every board.', '✗'],
+        ['A map following inlet → exhaust', 'Flat top-to-bottom; changes along one axis only.', '✗'],
+        ['It should fade as the gas equalises', 'On, off, on (6-18, 6-19, 6-22) and reversible with the drift field.', '✗'],
+        ['A large-scale cause', 'The same at every Y pad, absent over X pads.', '✗'],
+        ['The gas composition as a modulator', 'The size follows the cluster width (diffusion), session to session.', '✓'],
+    ]
+    body = (sd.title('Your gas-circulation idea, tested: not the cause, but the gas sets the size',
+                     'what a flow pattern inside the chamber predicts, against what the data show')
+            + sd.table(['A gas-flow asymmetry predicts…', 'Observed', ''], [[r[0], r[1], f'<b style="color:{RED if r[2] == "✗" else GREEN}">{r[2]}</b>'] for r in rows],
+                       size=25, widths=[620, 980, 60], align=['left', 'left', 'center'])
+            + sd.callout('What survives: the copy is a fixed, pad-level property of the board whose size is set by the gas '
+                         'transport (drift velocity, diffusion). A wetter or dirtier gas on some nights is the simplest reading.', GREEN, 26))
+    D.slide('gas', body, details(
+        'Why flow cannot do it: a few litres per hour through a ~5 L chamber is ~0.1–1 mm/s; electrons cross the 26.5 mm gap '
+        'in ~1 µs. A composition gradient changes gain and drift velocity smoothly over centimetres; the copy needs a 20 % '
+        'difference between strips 1.6 mm apart, the same at every Y pad, and only in X.',
+        'Equalisation: if the copy came from incoming gas mixing in, it would fall monotonically after a flush. Instead it was '
+        '0.26 on 6-18, 0.03 on 6-19, 0.16 on 6-22 and moves up and down with the drift voltage within an hour.',
+        'What to look for if the gas matters as a modulator: the copy should follow anything that changes the water or air '
+        'content (flow rate, bottle change, lines opened, room humidity, how long the chamber sat unflushed).',
+        sources('NB_ASYM.md', 'asym_more.py')), short='Gas idea')
+
+
+def s_beamdrift(D):
+    p = os.path.join(HERE, 'beam', 'beam_drift.json')
+    if not os.path.exists(p): return
+    res = json.load(open(p)); runs = ('run_61', 'run_64'); bds = ('det3', 'det2', 'det6', 'det7'); drs = (200, 300, 400, 500, 600, 700)
+    hdr = ['board / run'] + [f'{v} V' for v in drs]; body_rows = []; tips = []
+    for b in bds:
+        for r in runs:
+            cells = []
+            for v in drs:
+                q = [x for x in res if x['run'] == r and x['board'] == b and x['drift'] == v]
+                cells.append(f'{q[0]["a1"][0]:+.2f}' if q and q[0]['a1'][2] > 150 else '—')
+            body_rows.append([f'{b} · {r}'] + cells); tips.append(f'{b}, {r}: X copy per drift point, all matched-quality events (— : < 150 events)')
+    body = (sd.title('Drift scans of the other boards exist only in the beam, and they cannot settle it',
+                     'July n_TOF runs 61 and 64 (Ar/iso 90/10), all four chambers scanned together · X copy, raw extractor with common-mode removal')
+            + sd.table(hdr, body_rows, size=24, tips=tips)
+            + sd.row(sd.callout('det6: ~0 at every field. det3 itself is flat here (0.05–0.14) in this gas, unlike on the bench.', BLUE, 24),
+                     sd.callout('det7: its X FEU is noisy in the beam set-up and its Y view fails (known), so ~100 events/point. '
+                                'det2 reads 0.03–0.12 here but ≈ 0 on the bench: beam-track angle.', GOLD, 24), gap=40))
+    D.slide('beamdrift', body, details(
+        'No bench run scanned the drift field of any board but det3 (6-27; the 6-26 FEU-3 scan is empty on EOS). The beam ran '
+        'drift × mesh scans on all four chambers: runs 58, 61, 64 (Ar/iso 90/10, 150–700 V), 12 (Ar/CF4/iso), 14/15/18/19 '
+        '(95/5, 400–800 V), 3/5 (Ar/CO2). Extracted on condor (4502894) with raw_asym.py --cm.',
+        'Limits: the gamma flash needs the common-mode subtraction (it reads ~15–20 % lower than the raw bench extraction), '
+        'beam gains are low (median 130–330 ADC), tracks come at an angle from the target (that shifts the X asymmetry: det2 '
+        'reads ≈ 0 on the bench), and runs 3/12/14/15 used PS-only triggers or 20 ns sampling and gave no isolated tracks.',
+        'What it does say: in 90/10 the det3 copy does not grow at low drift field. Consistent with the bench reading that the '
+        'driver is the gas transport (drift velocity and diffusion behave differently in 90/10), not the field itself.',
+        sources('beam/beam_drift.py', 'beam/beam_drift.json', 'condor 4502894')), short='Beam scans')
+
+
+def s_sims(D):
+    import glob as _g
+    fo = {os.path.basename(f)[:-5]: json.load(open(f)) for f in _g.glob(os.path.join(HERE, '..', 'fwd_out', '*.json'))}
+    nm = [('d20_nobus', 'pads and vias only (symmetric)'), ('d20_nominal', 'one-sided bus, nominal depth'),
+          ('d20_h15', 'bus touching the pads (15 µm)'), ('shift60', 'charge over Y pads displaced 60 µm'),
+          ('f_offm200', 'stripes floating, offset −200 µm'), ('f_offp200', 'stripes floating, offset +200 µm')]
+    rows = []
+    for k, lab in nm:
+        if k not in fo: continue
+        r = {x['sigma']: x for x in fo[k]['res']}
+        c = lambda s, key: f'{r[s][key][0]:+.3f}' if s in r else '—'
+        rows.append([lab, c(300., 'ypad'), c(300., 'xpad'), c(450., 'ypad'), c(450., 'xpad')])
+    m = more(); j = [b for b in m['boards'] if b['build'] == 'det3 June-15'][0] if m else None
+    if j: rows.append(['<b>data, det3 June-15</b>', f'<b>{j["ypad"][0]:+.3f}</b>', f'<b>{j["xpad"][0]:+.3f}</b>', '', ''])
+    body = (sd.title('What the simulations exclude: no static geometry makes it',
+                     '3D weighting-field solves (bus_wpot.py, bus_float.py) + a forward model on uniform clouds with the data’s own estimator')
+            + sd.table(['geometry', 'Y-pad, σ 300', 'X-pad, σ 300', 'Y-pad, σ 450', 'X-pad, σ 450'], rows, size=24)
+            + sd.row(sd.callout('The copper alone (any bus depth, wet gap fill, kapton ε) gives |a| < 0.02 on the data’s estimator.', BLUE, 24),
+                     sd.callout('Floating stripes do make a real copy, but in both pad classes and growing with cloud size: the wrong fingerprint.', GOLD, 24), gap=40))
+    D.slide('sims', body, details(
+        'Why the old 0.010 is not the data’s number: the old solve took the asymmetry of one channel’s kernel. The data pick '
+        'the peak channel per event; a kernel that is only lopsided (the bus) is then absorbed by relabelling, and the '
+        'forward model returns ~0. A copy that survives the peak selection needs line n+1 to receive a share of line n’s own '
+        'signal.',
+        'Displacing the charge over Y pads also averages away (it only moves where the charge lands). Floating stripes '
+        '(fast transverse equalisation, ~26 ns at 2 MΩ/sq) offset from the rows give 0.06–0.15, but equally for X- and '
+        'Y-pad events and more for wider clouds; the data are the opposite on both counts.',
+        'Static dielectric variants (bus_wpot.py --eps-gap 20/80, --eps-kap 10): a wet gap fill lowers the bus pickup, the '
+        'kapton permittivity hardly matters.',
+        sources('bus_wpot.py', 'bus_float.py', 'fwd_parity.py', 'fwd_out/*.json', 'bus_par/*.json')), short='Simulations')
+
+
 def s_bus(D):
     sol = {}
     for k in ('nominal', 'L6', 'nobus', 'h132', 'h66', 'h33', 'h15'):
@@ -1081,55 +1307,60 @@ def s_bus(D):
 
 def s_verdict(D):
     steps = [
-        dict(label='Track', sub='flat in angle; Y clean', color=GREY, strike=True),
-        dict(label='Drift, avalanche', sub='isotropic', color=GREY, strike=True),
-        dict(label='Resistive beat', sub='flat in phase', color=GREY, strike=True),
-        dict(label='Bus traces', sub='real, but ~0.01 and uniform', color=GOLD),
-        dict(label='Board area / bulk', sub='mid-board, field-dependent, one build', color=RED),
-        dict(label='Connector, cable', sub='not excluded if it moved with det3', color=GOLD),
-        dict(label='FEU / ADC', sub='noise not copied; same FEU clean', color=GREY, strike=True),
-        dict(label='Our code', sub='raw, symmetric; hot channel fixed', color=GREY, strike=True),
+        dict(label='Track, our code', sub='Y clean; raw, symmetric', color=GREY, strike=True),
+        dict(label='Gas flow', sub='pad-level, X only, flat top-bottom', color=GREY, strike=True),
+        dict(label='FEU, cable, connector', sub='cannot know the pad type under the charge', color=GREY, strike=True),
+        dict(label='Pillars, stripe beat', sub='flat mod 6, no 40-ch period', color=GREY, strike=True),
+        dict(label='Copper (bus, vias)', sub='< 0.02 on the data estimator', color=GREY, strike=True),
+        dict(label='Floating stripes', sub='wrong fingerprint', color=GOLD),
+        dict(label='Y pads in the June bulks', sub='every Y pad, smooth along one axis', color=RED),
     ]
-    body = (sd.title('Verdict per suspect: excluded, too small, or standing',
-                     'Struck: excluded by a slide in this deck · gold: possible but cannot explain it alone · red: the leading suspect')
-            + sd.flow(steps, size=24)
-            + sd.row(sd.callout('Real: in raw ADC, in phase, linear, one-sided, signal-only.', BLUE, 28),
-                     sd.callout('Specific: det3 June-15 X; small on det4/det7 X; zero elsewhere.', CJUN, 28), gap=56)
-            + sd.callout('Most likely in the board’s bulk or surface (it varies over the area and with the drift field), '
-                         'acting through the one-sided bus geometry that sets its direction. Not proven.', RED, 28))
+    body = (sd.title('Verdict: something at the Y pads of Stephan’s June bulks, scaled by the gas',
+                     'Struck: excluded by a slide in this deck · gold: tested, does not fit · red: where the effect lives')
+            + sd.flow(steps, size=23)
+            + sd.row(sd.callout('Real: in raw ADC, in phase, linear, one-sided, signal-only, X only, '
+                                'only for charge over a Y pad, the same at every Y pad.', BLUE, 27),
+                     sd.callout('Boards: det3 June-15 0.22, det4 and det7 0.08 (Y-pad events); det6 0.02; det3 May, det1, det2 0.', CJUN, 27), gap=56)
+            + sd.callout('Its size changes with the cluster width (gas of the night, drift field), and along one board axis. '
+                         'The mechanism that moves Y-pad charge into the n+1 X line is not identified.', RED, 27))
     D.slide('verdict', body, details(
-        'Excluded with evidence here: the code (raw extraction, symmetric steps, 13 control views at 50 %), the FEU and '
-        'ADC (same slot clean on other boards; noise not copied), track geometry (Y clean, flat in angle), the '
-        'resistive-strip beat (flat in phase).',
-        'Too small alone: the bus traces (0.010 nominal). They are still the natural reason the copy has a direction at '
-        'all, if something raises the coupling in the bulk (moisture or uncured material in the June bulk, charge on '
-        'insulating surfaces near the gaps). That is speculation until a test separates it.',
-        'Not excluded: a fault in det3’s own X cable/adapter that travelled with it. Against it: the copy varies across '
-        'the board chip by chip in a smooth, centre-peaked way, and with the drift field.'), short='Verdict')
+        'Excluded with evidence: the code, track geometry, the FEU/ADC (same slot clean on other boards; noise not copied). '
+        'New: any cable, connector or electronics cause. The copy appears only when the charge sits over a Y pad, which the X '
+        'electronics cannot know (it is read only by matching with the Y view), and the copy is linear in amplitude.',
+        'Excluded by simulation (3D weighting fields + forward model with the data’s own estimator): the one-sided bus at any '
+        'depth, wet gap fills, kapton ε, a displacement of the charge over Y pads. Floating resistive stripes offset from the '
+        'rows do make a copy, but in both pad classes and growing with cloud size: the data show neither.',
+        'Excluded as the cause: gas circulation (see “Gas idea”). The gas still matters as a modulator: the copy follows the '
+        'cluster width, which the gas composition and the drift field set.',
+        'Not identified: what at a Y pad sends ~30 % of its charge signal into the n+1 X line on these builds. Candidates '
+        'not yet modelled: a conductive or charged residue near the Y-pad edge on the bus side, a defect in the Y-pad '
+        'connection that leaves it partly floating, or a bulk-process layer over the pads that differs from the May recipe.'),
+        short='Verdict')
 
 
 def s_close(D):
-    body = (sd.kicker('what this does not rule out, and what would settle it')
-            + '<h2 style="font-size:60px;font-weight:600;line-height:1.1;color:#eef0f3">The effect is real and belongs to '
-              'det3’s June-15 board; its mechanism is open</h2>'
+    body = (sd.kicker('what is open, and what would settle it')
+            + '<h2 style="font-size:60px;font-weight:600;line-height:1.1;color:#eef0f3">A pad-level property of the June '
+              'bulks, made bigger by a narrower cloud; the mechanism at the Y pad is open</h2>'
             + sd.row(
-                sd.col(sd.p('Not ruled out', 30, DINK, 600),
-                       sd.p('· det3’s X cable or adapter, if it moved with the board between FEU slots.', 26, DMUT),
-                       sd.p('· The May and June-15 “det3” being different PCBs (then “re-bulking switched it on” is unproven).', 26, DMUT),
-                       sd.p('· That the bus side predicts the opposite direction: not yet checked.', 26, DMUT),
-                       sd.p('· The beam data (run_79, 0.05–0.07) rest on the older, non-raw survey.', 26, DMUT), gap=14),
+                sd.col(sd.p('Open', 30, DINK, 600),
+                       sd.p('· What at a Y pad couples into the n+1 X line (residue, a partly floating Y pad, a bulk layer).', 26, DMUT),
+                       sd.p('· Whether the May and June-15 “det3” share a PCB and a resistive print.', 26, DMUT),
+                       sd.p('· 6-19: 0.03 with ordinary cluster widths, the night det3’s drift HV was sparking.', 26, DMUT),
+                       sd.p('· Drift scans of det4/det7 on the bench (the beam ones are too limited).', 26, DMUT), gap=14),
                 sd.col(sd.p('Tests that would settle it', 30, DINK, 600),
-                       sd.p('1. Swap det3’s X cable with another board’s: does the copy stay with det3?', 26, DMUT),
-                       sd.p('2. Pin the gerber → channel orientation; does the bus side match p+1?', 26, DMUT),
-                       sd.p('3. Ask Stephan what differed in the June-15 bulk (process, drying, coverlay).', 26, DMUT),
-                       sd.p('4. A pulser into one pad of det3 X with HV off: copy present without gas gain or field?', 26, DMUT), gap=14),
+                       sd.p('1. Same HV, two gas states (fresh vs long-unflushed, or a humidifier): the copy should follow the width.', 26, DMUT),
+                       sd.p('2. A collimated Fe-55 spot on one Y pad vs one X pad: point-like clouds, the largest Y/X contrast.', 26, DMUT),
+                       sd.p('3. Ask Stephan what differs in the June recipe; look at det3 Y pads under a microscope.', 26, DMUT),
+                       sd.p('4. Drift scan of det4 or det7 on the bench at fixed gas.', 26, DMUT), gap=14),
                 gap=80)
-            + sd.p('For analysis now: det3 X can be corrected per run with uncopy (one a per run, or per chip).', 28, DGREEN, 600))
+            + sd.p('For analysis now: correct det3 X per run with uncopy applied to Y-pad events (parity from the Y view).', 28, DGREEN, 600))
     D.slide('close', body, details(
-        'Test 4 is the cleanest discriminator between “geometry/static coupling” (present with HV off) and “a field- or '
-        'charge-dependent effect in the bulk” (absent with HV off).',
-        'Correction: <code>uncopy.py</code> undoes x(n+1) −= a·x(n) chip by chip. Given the centre-peaked profile a '
-        'per-chip a is better than one per run.'), dark=True, short='Open')
+        'Test 1 separates “the gas sets the size” from “something about the board changes”. Test 2 gives the cleanest '
+        'fingerprint: a point source over a Y pad should show the full copy, over an X pad none.',
+        'Correction: <code>uncopy.py</code> with one a for all events over-corrects X-pad events and under-corrects Y-pad '
+        'events; applying it to the Y-pad class only (a ≈ 0.22 on det3 June-15 6-22..24, 0.15 on 6-27/28) is the better '
+        'model of the data.'), dark=True, short='Open')
 
 
 def build(out):
@@ -1137,11 +1368,14 @@ def build(out):
     rows = survey_rows()
     s_cover(D); s_setup(D); s_suspects(D); s_event(D); s_processing(D); s_coin(D); s_hists(D); s_waves(D)
     s_copy_shape(D); s_copy_model(D); s_noise(D); s_follow(D); s_map(D); s_amp(D); s_hot(D)
-    s_survey(D, rows); s_date(D, rows); s_time(D, rows); s_bus(D); s_verdict(D); s_close(D)
+    s_survey(D, rows); s_date(D, rows); s_time(D, rows)
+    s_parity(D); s_axes(D); s_drifttime(D); s_gas(D); s_beamdrift(D); s_sims(D)
+    s_bus(D); s_verdict(D); s_close(D)
     meta = dict(title='det3 X neighbour asymmetry: real, in the raw ADC, and det3’s own',
                 summary='From the rawest observable up: det3’s June-15 build copies ~0.1–0.2 of each X pulse into the next '
-                        'channel; it is in-phase, linear, signal-only, follows the board, peaks mid-board and grows at low '
-                        'drift field. The bus traces give only ~0.01. Mechanism open.',
+                        'channel, only when the charge sits over a Y pad, at every Y pad; det4/det7 the same at a third. '
+                        'Its size follows the cluster width (gas, drift field). Not gas flow, not electronics, not the '
+                        'copper; mechanism at the Y pad open.',
                 tags='MX17,detector,crosstalk', date=dt.date.today().isoformat())
     return D.write(out, meta, footer=f'Built {dt.datetime.now():%Y-%m-%d %H:%M} by '
                                      'MX17_Geant/scratchpad/2026-10-19/asym_deck/make_asym_deck.py with slidedoc.py.')

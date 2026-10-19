@@ -16,7 +16,12 @@ columns, stubs +x) sit on the other bus layer at V = 0. Periodic in x (1.56 mm),
 
 Output: phi(x, y) on the resistive-layer plane; folded with a Gaussian cloud (sigma S) whose centre is uniform over a
 row: I_k = mean induced on channel 0 for clouds centred on row k. The copy (as measured) = (I_{-1} - I_{+1}) / I_0.
-Usage: bus_wpot.py [--h1 264] [--h2 264] [--layer 5|6] [--gap 100] [--dxy 20] [--sigma 300,400] [--no-bus]"""
+Parity split (added later on 10-19): the data's copy lives in events whose charge sits over a Y pad. Line k is line 0
+shifted by (780 k, 780 k), so for a 2D Gaussian cloud at c: copy_Y = (I(390, 780) - I(390, -780)) / I(-390, 0) (cloud on
+the Y pads around the own pads) and copy_X = (I(-390, 780) - I(-390, -780)) / I(390, 0) (cloud on X pads). Sign: + = the
+row below (-y, the bus side) gets more. --eps-gap / --eps-kap change the inter-pad gap fill and the kapton (moisture test).
+Usage: bus_wpot.py [--h1 264] [--h2 264] [--layer 5|6] [--gap 100] [--dxy 20] [--sigma 300,400] [--no-bus]
+                   [--eps-gap 3.2] [--eps-kap 3.5]"""
 import argparse, time, json, numpy as np, scipy.sparse as sp, scipy.sparse.linalg as spl
 
 ap = argparse.ArgumentParser()
@@ -25,6 +30,7 @@ ap.add_argument('--layer', type=int, default=5); ap.add_argument('--gap', type=f
 ap.add_argument('--dxy', type=float, default=20.); ap.add_argument('--sigma', default='300,450')
 ap.add_argument('--no-bus', action='store_true'); ap.add_argument('--nrow', type=int, default=5)
 ap.add_argument('--bottom', type=float, default=1400.); ap.add_argument('--out')
+ap.add_argument('--eps-gap', type=float, default=3.2); ap.add_argument('--eps-kap', type=float, default=3.5)
 a = ap.parse_args()
 P = 780.; PAD = P - a.gap; CU = 26.; GLUE = 19.; KAP = 50.; AMP = 150.; Z_ESL = GLUE + KAP; Z_MESH = Z_ESL + AMP
 z5 = (-CU - a.h1 - CU, -CU - a.h1); z6 = (z5[0] - a.h2 - CU, z5[0] - a.h2)
@@ -44,7 +50,7 @@ zn = zgrid(); zc = .5 * (zn[:-1] + zn[1:]); dz = zn[:-1] - zn[1:]; nz = len(zc)
 
 eps = np.empty((nx, ny, nz)); V = np.full((nx, ny, nz), np.nan)          # NaN = free
 for k, z in enumerate(zc):
-    eps[:, :, k] = 1. if z > Z_ESL else 3.5 if z > GLUE else 3.2 if z > -CU else 4.4
+    eps[:, :, k] = 1. if z > Z_ESL else a.eps_kap if z > GLUE else 3.2 if z > 0 else a.eps_gap if z > -CU else 4.4
 X, Y = np.meshgrid(xc, yc, indexing='ij')
 # pads: centres at (x = -390 + 780 i, y = 780 j); own pads: row 0, i odd -> x = +390 (mod 1560)
 def pad_mask(cx, cy): return (np.abs(X - cx) <= PAD / 2) & (np.abs(Y - cy) <= PAD / 2)
@@ -125,6 +131,17 @@ for s in [float(v) for v in a.sigma.split(',')]:
         cs = np.linspace(k * P - P / 2, k * P + P / 2, 40)
         I[k] = float(np.mean([np.sum(S * np.exp(-.5 * ((yc - c) / s) ** 2)) / np.sum(np.exp(-.5 * ((yc - c) / s) ** 2)) for c in cs]))
     res[f'sigma{int(s)}'] = dict(I=I, copy=(I[-1] - I[1]) / I[0], copy2=(I[-2] - I[2]) / I[0])
+# parity split with 2D clouds (periodic in x, 1560 um)
+E = phi[:, :, kE]
+def I2(cx, cy, s):
+    dxp = (xc - cx + P) % (2 * P) - P
+    w = np.exp(-.5 * (dxp / s) ** 2)[:, None] * np.exp(-.5 * ((yc - cy) / s) ** 2)[None, :]
+    return float((E * w).sum() / w.sum())
+for s in [float(v) for v in a.sigma.split(',')] + [50.]:
+    iy = dict(c=I2(-P / 2, 0, s), up=I2(P / 2, P, s), dn=I2(P / 2, -P, s))
+    ix = dict(c=I2(P / 2, 0, s), up=I2(-P / 2, P, s), dn=I2(-P / 2, -P, s))
+    res[f'par_sigma{int(s)}'] = dict(Y=iy, X=ix, copy_Y=(iy['dn'] - iy['up']) / iy['c'], copy_X=(ix['dn'] - ix['up']) / ix['c'])
+np.save(a.out.replace('.json', '_esl.npy'), E.astype(np.float32)) if a.out else None
 # profile across rows at the ESL (x-averaged) for the record
 res['profile_y_um'] = yc[::5].round(1).tolist(); res['profile_phi'] = S[::5].round(6).tolist()
 print(json.dumps({k: v for k, v in res.items() if not k.startswith('profile')}, indent=1))

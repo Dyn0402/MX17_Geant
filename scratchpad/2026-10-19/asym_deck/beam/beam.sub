@@ -1,0 +1,11 @@
+universe   = vanilla
+executable = /afs/cern.ch/work/d/dneff/asym929/beamjob.sh
+arguments  = $(run) $(sub)
+log        = /afs/cern.ch/work/d/dneff/asym929/logs/beam.log
+output     = /afs/cern.ch/work/d/dneff/asym929/logs/$(run)_$(sub).out
+error      = /afs/cern.ch/work/d/dneff/asym929/logs/$(run)_$(sub).err
+request_cpus = 1
+request_memory = 4000
++JobFlavour = "longlunch"
+MY.SendCredential = true
+queue run, sub from /afs/cern.ch/work/d/dneff/asym929/jobs.txt
