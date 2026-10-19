@@ -1,4 +1,10 @@
-# Raw-ADC check of the X asymmetry (2026-10-19, for the asymmetry slide deck; deck NOT built yet)
+# Raw-ADC check of the X asymmetry (2026-10-19)
+
+Deck: https://dylan-neff.web.cern.ch/notes/det3-x-asymmetry.html, built by `make_asym_deck.py` (observables in
+`asym_lib.py`). Rebuild: `~/PycharmProjects/nTof_x17/.venv/bin/python make_asym_deck.py` then
+`python3 ~/PycharmProjects/dylan-cern-site/scripts/add-note.py det3-x-asymmetry.html --slug det3-x-asymmetry --force --deploy`.
+Raw survey done (151 detector-views x sub-runs): det3 June-15 X median 0.137 (0.04-0.21, 57 sub-runs), its Y 0.00 +- 0.04;
+det3 May X -0.008; det4 X 0.05, det7 X 0.06; det1/2/6 ~0. 2D map (6-24, 4495 events): X blocks 1-2 ~0.25, X block 0 ~0.1.
 
 Extractor `raw_asym.py` (yoga): decoded_root ADC minus per-channel pedestal only. No strip map, no common-mode
 subtraction, no clustering, no M3; DAQ channel numbers. Outputs: yoga `/media/dylan/data/claude_tmp/tmp/nb/raw/`,
@@ -33,6 +39,6 @@ Findings:
 5. Open: whether the one-sided bus side predicts the observed direction (gerber -> map orientation unpinned), and
    which data view sits on L5 vs L6 (bus solve gives 0.010 on L5, 0.001 on L6). May and June-15 det3 may be different PCBs.
 
-Deck plan (slide-note, `make_asym_deck.py` to write): setup cartoon; suspects map; raw event; 3-step processing with
+Original deck plan (slide-note, `make_asym_deck.py` to write): setup cartoon; suspects map; raw event; 3-step processing with
 struck steps; coin-flip bars; L/c vs R/c hists; mean waveforms; copy shape; copy model + uncopy; hot-channel trap;
 same-FEU grid; noise; board map; amplitude; survey; time/drift; bus geometry; verdicts; what it doesn't rule out.
