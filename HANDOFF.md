@@ -15,7 +15,13 @@
 - Centre-peaked across the board (chips 2–5 ~0.25, edges ~0.1; 2D map too); rises reversibly at low drift field; flat in mesh HV ≤ 500 V.
 - det4/det7 X (Stephan June-22 batch) 0.05–0.06; det1/det2/det6 ≈ 0.
 
+- **By date** (slide 17, added 10-19 evening): centre-chip copy 6-18 0.26 → 6-19/20 0.03 → 6-22 0.16 → 6-24 (600 V) 0.26 →
+  6-27/28 0.10 → beam 0.06. Session-stable, jumps between sessions. 6-19 = only run with det3 drift HV sparking (4–9 µA).
+  Details in `asym_deck/FINDINGS.md` "By date"; extra npz in desktop `~/x17/nb_asym_raw/extra/`.
+
 **Next steps:**
+0. Decode 6-19 HV scan + long_run (raw_daq_data only, EOS june_tests) to see if the copy returns within 6-19/20; ask Dylan
+   whether det3 cables/HV were moved on 6-19 (config swapped the boards' HV channels vs 6-17).
 1. Pin gerber → channel orientation: does the one-sided bus side predict p+1 receiving the copy? (wrong side ⇒ bus excluded)
 2. Ask Dylan/Stephan: cable/adapter swap test; same PCB for det3 May vs June-15?; what differed in the June-15 bulk.
 3. HV-off pulser into one det3 X pad (static coupling vs field-dependent bulk effect).

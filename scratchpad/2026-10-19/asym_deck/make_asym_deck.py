@@ -74,6 +74,22 @@ def phys(rd, det):
     return {'mx17_B': 'det2', 'mx17_C': 'det6', 'mx17_D': 'det7'}.get(det, det.replace('mx17_', 'det'))
 
 
+def central(d):
+    """Copy a over the board-centre chips 2-5 only (the copy is centre-peaked, so the board average moves with
+    where the hits land: several HV-scan points have most hits on chip 7)."""
+    chip = (d['p'] % 512) // 64
+    m = (chip >= 2) & (chip <= 5)
+    if m.sum() < 2:
+        return float('nan'), float('nan'), int(m.sum())
+    a, ea = L.mean_se(d['a1'][m])
+    return a, ea, int(m.sum())
+
+
+# det3 June-15 X runs fetched from EOS after the survey (not in ../survey_jobs.tsv): file, run, sub, FEU, start, drift
+EXTRA = [('extra/d617_long_x.npz', 'mx17_det1_det2_overnight_6-17-26', 'long_run', 7, '2026-06-18 05:43', '1000'),
+         ('extra/d619_longer_x.npz', 'mx17_det2_det3_weekend_6-19-26', 'longer_run', 7, '2026-06-19 22:40', '1000')]
+
+
 def survey_rows():
     idx = f'{L.RAW}/survey/index.tsv'
     if not os.path.exists(idx):
@@ -100,8 +116,9 @@ def survey_rows():
         if board == 'det3':
             build = 'det3 May' if ('5-5-26' in rd or '5-6-26' in rd or '6-6-26' in rd) else 'det3 June-15'
         a, ea = L.mean_se(d['a1'])
+        ac, eac, nc = central(d)
         rows.append(dict(f=f, run=run, sub=sub, det=det, view=v.upper(), feu=int(feu), board=board, build=build,
-                         a=a, ea=ea, n=d['n'], coin=L.coin(d)[0], hot=list(d['hot']),
+                         a=a, ea=ea, ac=ac, eac=eac, nc=nc, n=d['n'], coin=L.coin(d)[0], hot=list(d['hot']),
                          mesh=m.get('mesh_V'), drift=m.get('drift_V'), t=m.get('tstart', '')))
     return rows
 
@@ -590,7 +607,7 @@ def s_follow(D):
         pts.append((feu, b, a, e, colour_of(t), f'{b} X on FEU {feu}, {run}: a = {a:+.3f} ± {e:.3f} ({d["n"]} events)'))
     rows = survey_rows()
     feus = [3, 4, 6, 7]
-    P = sd.Plot(1100, 640, x=(-0.6, 3.6), y=(-0.05, 0.22), xlabel='FEU slot the X view was read on',
+    P = sd.Plot(1080, 640, x=(-0.6, 3.6), y=(-0.05, 0.22), xlabel='FEU slot the X view was read on',
                 ylabel='copy a  (p+1 minus p−1, in phase)')
     P.xticks([(i, f'FEU {f}') for i, f in enumerate(feus)])
     P.yticks([(v, f'{v:.2f}') for v in (-0.05, 0, 0.05, 0.10, 0.15, 0.20)])
@@ -823,6 +840,124 @@ def s_survey(D, rows):
         sources('run_raw3.sh', 'raw/survey/index.tsv', '../copy_survey.csv (times, HV)')), short='Survey')
 
 
+def date_rows(rows):
+    """det3 June-15 X, one row per sub-run with >= 60 board-centre events, plus the EXTRA runs; days since 6-16."""
+    out = [r for r in rows if r['build'] == 'det3 June-15' and r['view'] == 'X' and r['t'] and r['nc'] >= 60]
+    for f, run, sub, feu, t, drift in EXTRA:
+        p = f'{L.RAW}/{f}'
+        if not os.path.exists(p):
+            continue
+        d = L.load(p)
+        a, ea = L.mean_se(d['a1'])
+        ac, eac, nc = central(d)
+        out = [r for r in out if r['run'] != run] + [dict(
+            f=p, run=run, sub=sub, det='', view='X', feu=feu, board='det3', build='det3 June-15', a=a, ea=ea, ac=ac,
+            eac=eac, nc=nc, n=d['n'], coin=L.coin(d)[0], hot=list(d['hot']), mesh='500', drift=drift, t=t)]
+    t0 = dt.datetime(2026, 6, 16)
+    for r in out:
+        r['day'] = (dt.datetime.strptime(r['t'], '%Y-%m-%d %H:%M') - t0).total_seconds() / 86400
+    return sorted(out, key=lambda r: r['day'])
+
+
+def s_date(D, rows):
+    jx = date_rows(rows)
+    if not jx:
+        return
+    dcol = lambda v: sd.seq_color((float(v) - 100) / 1000)
+    YR = (-0.02, 0.40)
+    yt = [(v, f'{v:.1f}') for v in (0, 0.1, 0.2, 0.3)]
+    tip = lambda r: (f'{r["run"]} / {r["sub"]}\n{r["t"]}, FEU {r["feu"]}, mesh {r["mesh"]} V, drift {r["drift"]} V\n'
+                     f'centre chips 2–5: a = {r["ac"]:+.3f} ± {r["eac"]:.3f} ({r["nc"]} events)\n'
+                     f'whole board: a = {r["a"]:+.3f} ± {r["ea"]:.3f} ({r["n"]} events)')
+    # May build (same board name, earlier bulk)
+    may = sorted([r for r in rows if r['build'] == 'det3 May' and r['view'] == 'X' and r['nc'] >= 60],
+                 key=lambda r: r['t'])
+    M = sd.Plot(250, 640, x=(-0.5, len(may) - 0.5), y=YR, ylabel='copy a, board-centre chips 2–5',
+                title='May build', margin=(24, 16, 92, 104))
+    M.yticks(yt); M.hline(0, MUT, None, 1.5)
+    for i, r in enumerate(may):
+        M.raw(sd.line(M.X(i), M.Y(r['ac'] - r['eac']), M.X(i), M.Y(r['ac'] + r['eac']), MUT, 2))
+        M.points([i], [r['ac']], dcol(r['drift']), r=7, tips=[tip(r)])
+    M.raw(sd.T(M.X((len(may) - 1) / 2), M.y0 + M.ph + 34, '5-5 → 6-7', 20, MUT))
+    M.text(-0.3, 0.375, '≈ 0', 26, INK, weight=700)
+    # June-15 build on the bench
+    P = sd.Plot(1080, 640, x=(1.4, 12.8), y=YR, xlabel='start of sub-run (June 2026)', ylabel='',
+                title='June-15 build, cosmic bench', margin=(24, 24, 92, 40))
+    P.xticks([(k, f'6-{16 + k}') for k in range(2, 13)])
+    P.yticks(yt); P.hline(0, MUT, None, 1.5)
+    for r in jx:
+        P.raw(sd.line(P.X(r['day']), P.Y(r['ac'] - r['eac']), P.X(r['day']), P.Y(r['ac'] + r['eac']), MUT, 2))
+    for r in jx:
+        P.points([r['day']], [r['ac']], dcol(r['drift']), r=8, marker='circle' if r['feu'] == 3 else 'open',
+                 tips=[tip(r)])
+    def sess(key, lab_x, lab_y, extra='', drift=None):
+        rr = [r for r in jx if key in r['run'] and (drift is None or r['drift'] == drift)]
+        if not rr:
+            return
+        w = np.array([1 / r['eac'] ** 2 for r in rr]); m = float(np.sum(w * [r['ac'] for r in rr]) / w.sum())
+        dv = sorted({r['drift'] for r in rr})
+        P.text(lab_x, lab_y, f'{m:.2f}', 26, INK, weight=700)
+        P.text(lab_x, lab_y - 0.022, f'drift {"/".join(dv)} V' + extra, 18, MUT)
+    sess('6-17-26', 1.75, 0.375)
+    sess('6-19-26', 3.6, 0.10, '')
+    P.text(3.6, 0.056, 'drift HV sparking', 18, RED, weight=600)
+    sess('det2_det3_overnight_6-22', 6.0, 0.375)
+    sess('6-23-26', 7.6, 0.375)
+    sess('6-25-26', 9.2, 0.375)
+    sess('6-27-26', 10.6, 0.375, drift='1000')
+    P.text(10.15, 0.235, 'drift scan → 100 V', 18, MUT, anchor='start')
+    # n_TOF beam (older survey, whole board)
+    beam = [r for r in csv.DictReader(open(os.path.join(HERE, '..', 'copy_survey.csv')))
+            if r['phys'] == 'det3' and r['run'] == 'run_79' and r['view'] == 'X']
+    B = sd.Plot(250, 640, x=(-0.6, max(len(beam), 1) - 0.4), y=YR, ylabel='', title='Beam, 7-26',
+                margin=(24, 16, 92, 64))
+    B.yticks(yt); B.hline(0, MUT, None, 1.5)
+    for i, r in enumerate(beam):
+        a, ea = float(r['a']), float(r['ea'])
+        B.raw(sd.line(B.X(i), B.Y(a - ea), B.X(i), B.Y(a + ea), MUT, 2))
+        B.points([i], [a], dcol(r['drift_V']), r=7, marker='diamond',
+                 tips=[f'n_TOF run_79 / {r["sub"]}, {r["tstart"]}\nFEU {r["feu"]}, mesh {r["mesh_V"]} V, drift {r["drift_V"]} V, '
+                       f'{r["gas"]}\nwhole board, older survey method: a = {a:+.3f} ± {ea:.3f}\n'
+                       f'(det3 Y in the same run reads −0.04: beam-angle systematic)'])
+    B.raw(sd.T(B.X((len(beam) - 1) / 2), B.y0 + B.ph + 34, 'run_79', 20, MUT))
+    cb = sd.colorbar(130, 640, 100, 1100, [(v, f'{v}') for v in (100, 300, 600, 1000)], 'drift [V]')
+    key = sd.legend([('FEU 3 slot', INK, 'dot'), ('FEU 7 slot', INK, 'open'),
+                     ('beam: whole board, older method', INK, 'box')], 20)
+    body = (sd.title('By date: on, off, on, and fading',
+                     'det3 X copy per sub-run · raw extraction, hot channels vetoed · board-centre chips only · '
+                     'colour: drift voltage')
+            + sd.row(M.svg('may build'), P.svg('june bench by date'), B.svg('beam'), cb, gap=4)
+            + key)
+    D.slide('date', body, details(
+        'Each point is one sub-run of det3 X (an HV/drift-scan point or a long run) with at least 60 clean events in '
+        'the board-centre chips 2–5; bars are the standard error. Centre chips only, because the copy is centre-peaked '
+        '(~0.25 mid-board, ~0.1 at the edges) and several 6-22 high-mesh points have 70–90 % of their hits on chip 7: '
+        'their board average reads low for a reason that has nothing to do with time. The tooltip has both numbers. '
+        'Bold numbers: inverse-variance mean of each session (the 6-27 one mixes the drift scan with the 1000 V runs; '
+        'its 1000 V runs alone are ≈ 0.10).',
+        'Reading it: <b>6-18</b> (first night, FEU 7, only chips 0–3 lit) 0.26. <b>6-19/20</b> (FEU 7, 7458 events, flat '
+        'through all 8 files, no centre peak) 0.03. <b>6-22/23</b> (FEU 3, drift 1000 V) 0.16, flat through 12 h. '
+        '<b>6-23/24</b> at drift 600 V 0.26, flat through 7 h. <b>6-25</b> drift 500 V 0.17. <b>6-27/28</b> (FEU 7, '
+        'resist HV moved 3:3 → 3:4) 0.09–0.10 at 1000 V, rising to 0.21 at 100 V. <b>7-26</b> beam run_79 0.05–0.07 '
+        '(Ar/iso 90/10, drift 700 V; older method on the whole board, and the same method gives −0.04 on det3 Y there, so '
+        'treat it as ≲ 0.1). May build ≈ 0 throughout.',
+        'What it says: the copy is stable within a session (hours) and jumps between sessions (days). It is not a slow '
+        'monotonic decay: it was large on the first night, near zero the next, back two days later. Drift field moves it '
+        '(×1.6–2 from 1000 V to ≲ 600 V) but cannot explain 6-19, which ran at 1000 V like 6-22. The slot (FEU 3 vs 7) '
+        'cannot either: 6-18 and 6-19 were both on FEU 7.',
+        'The one thing special about 6-19: it is the only run where det3’s drift channel (0:7 in that config) misbehaved, '
+        '4–9 µA spikes with the voltage sagging to 890–960 V in most sub-runs, against a flat 0.34 µA (the module’s '
+        'own load) in every other run. Resist current was also high (2–4 µA at 500 V vs ~1 µA). A board that was '
+        'discharging in the drift gap all night carried no copy. One coincidence, not a mechanism, but it fits a charge-on-'
+        'a-surface picture (sparks neutralising it) better than any fixed coupling. Caveat: the 6-19 config swapped the HV '
+        'channels between the two boards relative to 6-17; the other board that night (FEU 3) reads 0.08 ± 0.03 from 372 '
+        'noisy events, so it is not a clean label swap, but a cabling mix-up that night is not excluded.',
+        'Missing: the 6-26 weekend scan (FEU 3) is empty on EOS; the 6-19 HV scan and long_run exist only as raw_daq_data '
+        '(not decoded), so they could extend 6-19/20 if decoded.',
+        sources('raw survey', 'extra/d617_long_x.npz, extra/d619_longer_x.npz (EOS june_tests, raw_asym.py)',
+                'hv_monitor.csv per sub-run', '../copy_survey.csv (beam)')), short='By date')
+
+
 def s_time(D, rows):
     jx = [r for r in rows if r['build'] == 'det3 June-15' and r['view'] == 'X' and r['t']]
     if not jx:
@@ -1002,7 +1137,7 @@ def build(out):
     rows = survey_rows()
     s_cover(D); s_setup(D); s_suspects(D); s_event(D); s_processing(D); s_coin(D); s_hists(D); s_waves(D)
     s_copy_shape(D); s_copy_model(D); s_noise(D); s_follow(D); s_map(D); s_amp(D); s_hot(D)
-    s_survey(D, rows); s_time(D, rows); s_bus(D); s_verdict(D); s_close(D)
+    s_survey(D, rows); s_date(D, rows); s_time(D, rows); s_bus(D); s_verdict(D); s_close(D)
     meta = dict(title='det3 X neighbour asymmetry: real, in the raw ADC, and det3’s own',
                 summary='From the rawest observable up: det3’s June-15 build copies ~0.1–0.2 of each X pulse into the next '
                         'channel; it is in-phase, linear, signal-only, follows the board, peaks mid-board and grows at low '

@@ -42,3 +42,22 @@ Findings:
 Original deck plan (slide-note, `make_asym_deck.py` to write): setup cartoon; suspects map; raw event; 3-step processing with
 struck steps; coin-flip bars; L/c vs R/c hists; mean waveforms; copy shape; copy model + uncopy; hot-channel trap;
 same-FEU grid; noise; board map; amplitude; survey; time/drift; bus geometry; verdicts; what it doesn't rule out.
+
+## By date (slide 17 "By date", added 2026-10-19 evening)
+Board-centre chips 2-5 only (the copy is centre-peaked; several 6-22 high-mesh points have 70-90 % of hits on chip 7, so
+the board average there is low for geometric reasons). Session means, det3 June-15 X:
+| session | FEU | drift | a (chips 2-5) |
+|---|---|---|---|
+| 6-18 long_run (EOS, new; only chips 0-3 read) | 7 | 1000 | 0.26 |
+| 6-19/20 longer_run (EOS, new; 7458 ev, flat over 8 files, no centre peak) | 7 | 1000 | 0.03 |
+| 6-22/23 | 3 | 1000 | 0.16 |
+| 6-23/24 | 3 | 600 | 0.26 |
+| 6-25 | 3 | 500 | 0.17 |
+| 6-27/28 (resist HV 3:3 -> 3:4) | 7 | 1000 | 0.09-0.10 (drift scan to 100 V: 0.21) |
+| 7-26 beam run_79 (old method, whole board, 90/10) | 3 | 700 | 0.05-0.07 |
+Stable within a session, jumps between sessions; not a monotonic decay; FEU slot can't explain it (6-18 and 6-19 both FEU 7).
+6-19 is the only run with det3's drift channel (0:7) misbehaving: 4-9 uA spikes, sag to 890-960 V (others flat 0.34 uA).
+The 6-19 config swapped HV channels between the two boards vs 6-17; the other board that night (FEU 3) reads 0.08 +- 0.03
+(372 noisy events), so no clean label swap, but a cabling mix-up isn't excluded. 6-26 weekend scan is empty on EOS;
+6-19 HV scan + long_run exist only as raw_daq_data (could be decoded to extend 6-19/20).
+Extra extractions: ~/x17/nb_asym_raw/extra/{d617_long_x,d619_longer_x,d619_longer_feu3_x}.npz (desktop only, derived).
