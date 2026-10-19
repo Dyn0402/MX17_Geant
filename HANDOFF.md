@@ -1,12 +1,38 @@
 # Handoff
 
-## det3 X asymmetry, raw-ADC deck — 2026-10-19 evening (dylan-MS-7C84)
+## det3 X asymmetry, raw-ADC deck — updated 2026-10-19 (dylan-MS-7C84)
 
-**Resume:** read `scratchpad/2026-10-19/asym_deck/FINDINGS.md`; deck https://dylan-neff.web.cern.ch/notes/det3-x-asymmetry.html
-(`make_asym_deck.py`). The asymmetry is real in raw ADC (det3 June-15 X: p+1 bigger in 84 % of events; 13 control views 50 %),
-follows the board not the FEU, peaks mid-board (0.25 vs 0.1 at the edges), rises at low drift field. The old survey's 6-23
-"turn-on" was hot channel 492 — copy_survey.csv needs a hot-channel veto. Open: bus-side vs observed direction, cable swap,
-pulser with HV off, same PCB May vs June-15? Raw extractions: desktop `~/x17/nb_asym_raw/` (+ yoga `.../tmp/nb/raw/`).
+**Resume:** det3 X copy is real (raw ADC, follows the board); next: the discriminating tests (bus side, cable swap, HV-off pulser).
+
+**Goal:** convince Dylan (sceptical) whether the det3 X left/right neighbour asymmetry is real, from the rawest data up.
+
+**Done:**
+- Deck https://dylan-neff.web.cern.ch/notes/det3-x-asymmetry.html (20 slides), built by
+  `scratchpad/2026-10-19/asym_deck/make_asym_deck.py`; findings and numbers in `asym_deck/FINDINGS.md`.
+- New independent extractor `raw_asym.py` (raw ADC − per-channel pedestal, channel numbers, no map/CMS/clustering) over 16
+  detector views + every cosmic-bench sub-run (`run_raw*.sh`, yoga). det3 June-15 X: p+1 bigger in 84 % of events; other 13
+  views 50 %. Copy a ≈ 0.19 balances ±1 and ±2; in phase; linear; noise not copied; same FEU 3 clean on det3-May/det6.
+- Centre-peaked across the board (chips 2–5 ~0.25, edges ~0.1; 2D map too); rises reversibly at low drift field; flat in mesh HV ≤ 500 V.
+- det4/det7 X (Stephan June-22 batch) 0.05–0.06; det1/det2/det6 ≈ 0.
+
+**Next steps:**
+1. Pin gerber → channel orientation: does the one-sided bus side predict p+1 receiving the copy? (wrong side ⇒ bus excluded)
+2. Ask Dylan/Stephan: cable/adapter swap test; same PCB for det3 May vs June-15?; what differed in the June-15 bulk.
+3. HV-off pulser into one det3 X pad (static coupling vs field-dependent bulk effect).
+4. Add the hot-channel veto (`asym_lib.hot`) to `../nb_copy_survey.py`/copy_survey.csv; beam rows still need a raw re-check
+   (raw_asym's isolation cut rejects every beam event: flash).
+
+**Gotchas / decisions:**
+- The old survey's 6-23 "turn-on" (0.035→0.17) was hot channel 492 (97 % of short-run events). Always veto hot channels.
+- Junk (flat, no-pulse) events: the pulse-shape cut in `asym_lib.good` is needed.
+- `pkill -f <pattern>` over ssh kills the ssh shell itself when the pattern is in the command line (lost run_raw3 once).
+- 2D map: X and Y files must be matched by file number + eventId (file lists differ between FEUs).
+
+**Key files & commands:**
+- `asym_deck/raw_asym.py`, `run_raw.sh`, `run_raw2.sh`, `run_raw3.sh` — yoga extraction → `/media/dylan/data/claude_tmp/tmp/nb/raw/`
+  (copied to desktop `~/x17/nb_asym_raw/`, incl. `survey/`).
+- `~/PycharmProjects/nTof_x17/.venv/bin/python make_asym_deck.py` then
+  `python3 ~/PycharmProjects/dylan-cern-site/scripts/add-note.py det3-x-asymmetry.html --slug det3-x-asymmetry --force --deploy`.
 
 ## Neighbour asymmetry + timing vs strip distance — updated 2026-10-19 (dylan-MS-7C84)
 
