@@ -1,5 +1,13 @@
 # Handoff
 
+## det3 X asymmetry, raw-ADC deck — 2026-10-19 evening (dylan-MS-7C84)
+
+**Resume:** read `scratchpad/2026-10-19/asym_deck/FINDINGS.md`; deck https://dylan-neff.web.cern.ch/notes/det3-x-asymmetry.html
+(`make_asym_deck.py`). The asymmetry is real in raw ADC (det3 June-15 X: p+1 bigger in 84 % of events; 13 control views 50 %),
+follows the board not the FEU, peaks mid-board (0.25 vs 0.1 at the edges), rises at low drift field. The old survey's 6-23
+"turn-on" was hot channel 492 — copy_survey.csv needs a hot-channel veto. Open: bus-side vs observed direction, cable swap,
+pulser with HV off, same PCB May vs June-15? Raw extractions: desktop `~/x17/nb_asym_raw/` (+ yoga `.../tmp/nb/raw/`).
+
 ## Neighbour asymmetry + timing vs strip distance — updated 2026-10-19 (dylan-MS-7C84)
 
 **Resume:** det3 X copy + displaced-feedback sim (v5a); next: ±1/±2 timing and Y shares on top of v5a (NB_ASYM §E).
