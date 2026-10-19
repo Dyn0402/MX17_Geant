@@ -1,5 +1,35 @@
 # Handoff
 
+## det3 X asymmetry, third round: stripes ruled out, parity split partly selection, bus side matches — updated 2026-10-20 (dylan-MS-7C84)
+
+**Resume:** deck slides 25–31 (https://dylan-neff.web.cern.ch/notes/det3-x-asymmetry.html), `asym_deck/FINDINGS.md` "Third round".
+
+**Done:**
+- Stripe vs kapton gap (Dylan's question): copy flat over the 39:40 stripe beat with TRUE columns (sine 0.007 ± 0.004 on
+  0.22; a floating-stripe coupling would swing ±0.1). Per-event stripe/gap is unresolvable with cosmics (σ ≈ 450 µm,
+  pad localises ±390 µm): needs a collimated point source.
+- Caveat: a plain injected channel copy also gives a parity split (det2 + 0.3 → 0.20 / 0.05). det4/det7 look like a plain
+  copy, a ≈ 0.15–0.2. The "electronics excluded because they can't know the pad type" argument is withdrawn; the noise test stands.
+- det3 June-15 is NOT a plain copy: the narrow-cluster X-pad bins sit at −0.40 whatever single copy is undone. A
+  forward model with the X sensitivity offset ~200 µm toward n+1 reproduces the sign flip.
+- Inside the Y pad: flat in y; the excess is prompt (peaks with the Y central).
+- Bus side pinned from the gerbers: each X line's bus is on the n+1 side, on the shallow layer → right side, right view.
+
+**Next steps:**
+1. Why the bus side is ~20× the copper coupling on the June-15 build (~6× det4/det7): a dielectric/surface change in the
+   inter-pad gaps above the L5 bus from the bulk process? Model: raise the gap's coupling until 0.2, check the Ysh curve.
+2. Fit an X-offset + copy model per session (offset vs width = "one curve"?); then a position-level correction for det3 X.
+3. Bench: collimated Fe-55 stepped across one column (maps the one-sided reach; also stripe vs gap); ask Stephan about
+   the June bulk recipe; was det3 May the same PCB?
+
+**Gotchas:** re-centring after uncopy with the WRONG a biases (fakes +0.1 on controls); use injection/closure.
+`fwd_variants.py` sign: 'shift −d' = toward the data's n+1. `migrate.py` imports `uncopy_parity.events` (main is guarded).
+Desktop-only cache `~/x17/nb_asym_raw/esl_cache.npz`.
+
+**Key files:** `scratchpad/2026-10-20/{esl_cache,esl_phase,esl_share,esl_bins,inject_parity,uncopy_parity,fit_two_copy,
+migrate,fwd_variants,ypad_probe,dist_narrow,toy_offset,reclass,deck_slides_1020}.py` (+ JSON); deck built by
+`asym_deck/make_asym_deck.py` (imports deck_slides_1020).
+
 ## det3 X asymmetry, second round: it lives at the Y pads — updated 2026-10-19 late (dylan-MS-7C84)
 
 **Resume:** deck slides 19–27 (https://dylan-neff.web.cern.ch/notes/det3-x-asymmetry.html), `asym_deck/FINDINGS.md`

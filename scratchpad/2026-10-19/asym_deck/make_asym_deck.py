@@ -11,6 +11,8 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.expanduser(os.environ.get('SLIDEDOC_DIR', '~/PycharmProjects/dylan-cern-site/scripts')))
 import slidedoc as sd
 import asym_lib as L
+sys.path.insert(0, os.path.join(HERE, '..', '..', '2026-10-20'))
+import deck_slides_1020 as R3
 from slidedoc import INK, MUT, RULE, BLUE, ORANGE, RED, GOLD, PURPLE, GREY, GREEN, BG, CARD
 from slidedoc import DBLUE, DRED, DGREY, DGREEN, DINK, DMUT
 
@@ -1075,10 +1077,12 @@ def s_parity(D):
         'read from the data itself: the Y-pad class has the smaller Y ±1 share and the smaller A_x/A_y (det3 June-15: '
         f'A_x/A_y {j["axay_y"]:.2f} vs {j["axay_x"]:.2f}, Y share {j["ysh_y"]:.2f} vs {j["ysh_x"]:.2f}).',
         'Control: a forward model with the solved weighting fields and a symmetric geometry (fwd_parity.py) gives 0 in both '
-        'classes, as mirror symmetry demands; the split cannot be manufactured by the classification.',
+        'classes, as mirror symmetry demands. <b>Correction 10-20 (slide “Caution”):</b> that only shows the classification '
+        'makes no asymmetry from nothing. Applied to a plain channel copy, the peak selection does make a split (det2 + 0.3 → '
+        '0.20 / 0.05), so the contrast here is partly selection. det3 June-15 still differs from a plain copy (slide “Not a copy”).',
         'Within the Y-pad class the copy is the same at every Y pad: flat in (X ch mod k, Y ch mod k) for k = 3, 4, 6 (the '
-        'pillar grid is 6 pads) and 12 (χ²/ndf 1.0–1.6). No 40-channel (31.2 mm, ESL beat) period either. So it is not '
-        'the pillars and not the stripe-to-pad registration.',
+        'pillar grid is 6 pads) and 12 (χ²/ndf 1.0–1.6). So it is not the pillars. The 40-channel (ESL beat) check here used '
+        'DAQ channels; redone with true columns on slide “Stripes”: still flat.',
         'Reading: for a Y pad its left and right neighbours are X pads of the central X line and the pads above and below '
         'belong to the two X neighbours; the copy is an imbalance between those two, about 0.43/0.18 of the central instead '
         'of 0.31/0.31. For an X pad the X neighbours are diagonal and the direct signal dominates.',
@@ -1284,7 +1288,7 @@ def s_bus(D):
             ('det3 June-15 X (data)', 0.17, CJUN, 'raw: 0.06–0.18 by run, 0.1–0.3 by chip')]
     bars = sd.hbars(rows + data, 0.3, width=520, h=30, log=True, vmin=0.0005, label_w=420,
                     fmt=lambda v: f'{v:.3f}', size=22)
-    body = (sd.title('The bus traces break left/right, but only at the 1 % level',
+    body = (sd.title('The bus traces sit on the side that gets the copy, but copper alone gives 1 %',
                      'Left: the pad/bus layout from the gerbers · right: copy from a 3D weighting-field solve vs data (log scale)')
             + sd.row(cart, sd.col(bars, sd.callout('Even with the bus touching the pads the solve stays below det3’s '
                                                   'copy, and a layout cannot vary across the board or with the field.',
@@ -1298,10 +1302,17 @@ def s_bus(D):
         'read at the resistive layer and folded with a 300–450 µm cloud. With the Geant4 stack estimate (264 µm FR4 per '
         'layer) it gives 0.010, about what det1/det2/det6 show. It reaches 0.085 only with the bus 15 µm below the '
         'pads, which no 8-layer board has.',
-        'Not checked yet, and decisive: whether the side the buses sit on predicts the observed direction (p+1 gets '
-        'the copy). That needs the gerber → strip-map orientation (board rotated 90° on the bench, connectors '
-        'inverted). If it is the wrong side, the bus is out entirely. Also open: which data view sits on L5 vs L6; '
-        'the solve says the L6 view should see ~0.001.',
+        '<b>Direction, checked 10-20:</b> the column buses (DAQ X) are on the shallower bus layer (physical L5, '
+        '<code>L3-TrackY.gbr</code>), the row buses (DAQ Y) on L6, which matches the copy being in X only (solve: L6 view '
+        '~0.001). In the gerbers the column buses fan out at the top and the row buses on the right; the detector has X '
+        'connectors at the bottom and Y on the right seen from the pad side, so the gerber is that view mirrored in y, x '
+        'kept. Every X stub runs +0.39 mm in x, so column c’s bus lies in the gap toward column c+1, beside the Y pads of '
+        'column c+1. Charge on a Y pad therefore reaches the bus of the X line one column lower, which is DAQ n+1 after '
+        'the connector reversal: the side that gets the copy. This relies on the ActiveAreaFrame / Mx17StripMap conventions '
+        '(settled 2026-08-08).',
+        'So the bus is the one x-handed structure, on the right side, in the right view, and an extended one-sided '
+        'sensitivity is what the forward model wants (slide “Not a copy”). What is missing is a factor ~20 in strength on '
+        'the June-15 build (~6 on det4/det7), with the other boards at the copper value.',
         sources('../bus_wpot.py', '../bus_scan/d10_*.json', '../gerber_stubs.py')), short='Bus traces')
 
 
@@ -1309,20 +1320,21 @@ def s_verdict(D):
     steps = [
         dict(label='Track, our code', sub='Y clean; raw, symmetric', color=GREY, strike=True),
         dict(label='Gas flow', sub='pad-level, X only, flat top-bottom', color=GREY, strike=True),
-        dict(label='FEU, cable, connector', sub='cannot know the pad type under the charge', color=GREY, strike=True),
-        dict(label='Pillars, stripe beat', sub='flat mod 6, no 40-ch period', color=GREY, strike=True),
+        dict(label='FEU, cable, connector', sub='noise is not copied', color=GREY, strike=True),
+        dict(label='Pillars, resistive stripes', sub='flat mod 6; flat over the stripe beat', color=GREY, strike=True),
         dict(label='Copper (bus, vias)', sub='< 0.02 on the data estimator', color=GREY, strike=True),
         dict(label='Floating stripes', sub='wrong fingerprint', color=GOLD),
-        dict(label='Y pads in the June bulks', sub='every Y pad, smooth along one axis', color=RED),
+        dict(label='X lines’ bus side, June bulks', sub='right side; ~20× the copper', color=RED),
     ]
-    body = (sd.title('Verdict: something at the Y pads of Stephan’s June bulks, scaled by the gas',
+    body = (sd.title('Verdict: a one-sided reach of the X lines toward their bus, ~20× too strong on the June bulks',
                      'Struck: excluded by a slide in this deck · gold: tested, does not fit · red: where the effect lives')
             + sd.flow(steps, size=23)
             + sd.row(sd.callout('Real: in raw ADC, in phase, linear, one-sided, signal-only, X only, '
-                                'only for charge over a Y pad, the same at every Y pad.', BLUE, 27),
+                                'largest for charge over a Y pad, the same at every Y pad.', BLUE, 27),
                      sd.callout('Boards: det3 June-15 0.22, det4 and det7 0.08 (Y-pad events); det6 0.02; det3 May, det1, det2 0.', CJUN, 27), gap=56)
-            + sd.callout('Its size changes with the cluster width (gas of the night, drift field), and along one board axis. '
-                         'The mechanism that moves Y-pad charge into the n+1 X line is not identified.', RED, 27))
+            + sd.callout('10-20: the stripes play no part; the parity split is partly peak selection; det3 behaves like an X '
+                         'sensitivity reaching ~200 µm toward n+1, the side where each X line’s bus runs. The bus would need '
+                         '~20× its copper coupling.', RED, 27))
     D.slide('verdict', body, details(
         'Excluded with evidence: the code, track geometry, the FEU/ADC (same slot clean on other boards; noise not copied). '
         'New: any cable, connector or electronics cause. The copy appears only when the charge sits over a Y pad, which the X '
@@ -1332,6 +1344,11 @@ def s_verdict(D):
         'rows do make a copy, but in both pad classes and growing with cloud size: the data show neither.',
         'Excluded as the cause: gas circulation (see “Gas idea”). The gas still matters as a modulator: the copy follows the '
         'cluster width, which the gas composition and the drift field set.',
+        'Third round (10-20): the resistive stripes leave no mark (slide “Stripes”). A plain channel copy also makes a '
+        'parity split (slide “Caution”), so det4/det7 are not shown to be pad-local. det3 June-15 is not a plain copy; it '
+        'fits better as a one-sided extension of the X lines’ sensitivity toward n+1, and the gerbers put every X line’s bus '
+        'on exactly that side (slide “Bus traces”). The open question becomes: what makes the bus side ~20× more sensitive '
+        'on the June-15 build than the copper allows.',
         'Not identified: what at a Y pad sends ~30 % of its charge signal into the n+1 X line on these builds. Candidates '
         'not yet modelled: a conductive or charged residue near the Y-pad edge on the bus side, a defect in the Y-pad '
         'connection that leaves it partly floating, or a bulk-process layer over the pads that differs from the May recipe.'),
@@ -1344,23 +1361,24 @@ def s_close(D):
               'bulks, made bigger by a narrower cloud; the mechanism at the Y pad is open</h2>'
             + sd.row(
                 sd.col(sd.p('Open', 30, DINK, 600),
-                       sd.p('· What at a Y pad couples into the n+1 X line (residue, a partly floating Y pad, a bulk layer).', 26, DMUT),
+                       sd.p('· What makes the X lines’ bus side ~20× more sensitive on the June-15 build (it is the right side).', 26, DMUT),
                        sd.p('· Whether the May and June-15 “det3” share a PCB and a resistive print.', 26, DMUT),
                        sd.p('· 6-19: 0.03 with ordinary cluster widths, the night det3’s drift HV was sparking.', 26, DMUT),
                        sd.p('· Drift scans of det4/det7 on the bench (the beam ones are too limited).', 26, DMUT), gap=14),
                 sd.col(sd.p('Tests that would settle it', 30, DINK, 600),
                        sd.p('1. Same HV, two gas states (fresh vs long-unflushed, or a humidifier): the copy should follow the width.', 26, DMUT),
-                       sd.p('2. A collimated Fe-55 spot on one Y pad vs one X pad: point-like clouds, the largest Y/X contrast.', 26, DMUT),
+                       sd.p('2. Collimated Fe-55 stepped across one column (Y pad → gap → X pad): maps the one-sided reach, and stripe vs gap.', 26, DMUT),
                        sd.p('3. Ask Stephan what differs in the June recipe; look at det3 Y pads under a microscope.', 26, DMUT),
                        sd.p('4. Drift scan of det4 or det7 on the bench at fixed gas.', 26, DMUT), gap=14),
                 gap=80)
-            + sd.p('For analysis now: correct det3 X per run with uncopy applied to Y-pad events (parity from the Y view).', 28, DGREEN, 600))
+            + sd.p('For analysis now: no single uncopy fits det3; uncopy a ≈ 0.33 restores the Y-pad class, X-pad events need a model.', 28, DGREEN, 600))
     D.slide('close', body, details(
         'Test 1 separates “the gas sets the size” from “something about the board changes”. Test 2 gives the cleanest '
         'fingerprint: a point source over a Y pad should show the full copy, over an X pad none.',
         'Correction: <code>uncopy.py</code> with one a for all events over-corrects X-pad events and under-corrects Y-pad '
-        'events; applying it to the Y-pad class only (a ≈ 0.22 on det3 June-15 6-22..24, 0.15 on 6-27/28) is the better '
-        'model of the data.'), dark=True, short='Open')
+        'events. 10-20: undoing a ≈ 0.33 flattens the Y-pad class in every Y-share bin; the X-pad class keeps a sign flip '
+        '(−0.4 narrow, +0.2 wide) that no copy removes. A position-level correction (shift the X view’s estimate toward '
+        'n−1 by a width-dependent amount, calibrated on Y-pad events) is the next thing to try.'), dark=True, short='Open')
 
 
 def build(out):
@@ -1370,12 +1388,14 @@ def build(out):
     s_copy_shape(D); s_copy_model(D); s_noise(D); s_follow(D); s_map(D); s_amp(D); s_hot(D)
     s_survey(D, rows); s_date(D, rows); s_time(D, rows)
     s_parity(D); s_axes(D); s_drifttime(D); s_gas(D); s_beamdrift(D); s_sims(D)
+    R3.s_stripes(D); R3.s_inject(D); R3.s_flip(D); R3.s_inside(D)
     s_bus(D); s_verdict(D); s_close(D)
     meta = dict(title='det3 X neighbour asymmetry: real, in the raw ADC, and det3’s own',
                 summary='From the rawest observable up: det3’s June-15 build copies ~0.1–0.2 of each X pulse into the next '
                         'channel, only when the charge sits over a Y pad, at every Y pad; det4/det7 the same at a third. '
-                        'Its size follows the cluster width (gas, drift field). Not gas flow, not electronics, not the '
-                        'copper; mechanism at the Y pad open.',
+                        'Its size follows the cluster width (gas, drift field). Not gas flow, not the resistive stripes; '
+                        'the parity split is partly peak selection; det3 fits a one-sided X reach on the bus side, ~20× '
+                        'the copper value.',
                 tags='MX17,detector,crosstalk', date=dt.date.today().isoformat())
     return D.write(out, meta, footer=f'Built {dt.datetime.now():%Y-%m-%d %H:%M} by '
                                      'MX17_Geant/scratchpad/2026-10-19/asym_deck/make_asym_deck.py with slidedoc.py.')

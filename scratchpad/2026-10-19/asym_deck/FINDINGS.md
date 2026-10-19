@@ -87,3 +87,36 @@ Numbers from `asym_more.py` → `asym_more.json`, `beam/beam_drift.py` → `beam
    Floating stripes offset ±200 µm: ±0.06–0.15 but equal in both classes and growing with σ: wrong fingerprint.
 7. Electronics/cable excluded: they cannot know the pad type under the charge; copy linear.
 Open: what at a Y pad couples ~30 % of its charge signal into the n+1 X line on Stephan's June bulks.
+
+## Third round (2026-10-20): stripes, a selection caveat, and the bus side (deck slides "Stripes" .. "Inside", "Bus traces")
+Scripts and JSON in `scratchpad/2026-10-20/`; event cache `~/x17/nb_asym_raw/esl_cache.npz` (desktop, derived; `esl_cache.py`).
+1. **Resistive stripes: no mark.** With TRUE pad columns (col = 64·(ch//64) + 63 − ch%64; the old mod-40 check used DAQ
+   channels, which mixes phases between connectors), Y-pad copy vs column mod 40: sine amp 0.007 ± 0.004 on 0.221; X-pad
+   0.006 ± 0.009; Y share 0.007 ± 0.005; det3 May / det2 flat too. A floating-stripe coupling (fwd_out/f_off±200) would
+   swing ±0.10 over the beat. So no mechanism tied to how the stripes sit over the pads/bus gap.
+   Per-event "landed on stripe vs kapton gap" has no handle with cosmics: cloud σ ≈ 450 µm (fwd model matches Ysh 0.65)
+   and the peak pad fixes x only to ±390 µm ≈ one 800 µm period → harmonic attenuated to ~0.002. Needs a point source.
+2. **Caveat on the parity split** (`inject_parity.py`): injecting a plain channel copy x(n+1) += a·x(n) into copy-free
+   boards and running the same analysis gives det2 + 0.3 → Y-pad 0.20 / X-pad 0.05 (det1 0.18/0.10, det3 May 0.16/0.09).
+   Peak migration: the copy lifts n+1 above n, parity flips, the event lands in the X-pad class with a negative a1.
+   The old control (symmetric fwd model → 0) did not test this. So the split does not by itself show pad-locality or
+   exclude electronics (the noise test still excludes electronics). det4/det7 are consistent with a plain copy a ≈ 0.15–0.2.
+3. **det3 June-15 is not a plain copy** (`uncopy_parity.py`, closure on injected controls is exact): undoing a = 0.33
+   flattens the Y-pad class in every Y-share bin, but the narrow-cluster X-pad bins stay at −0.43/−0.32/−0.19 for any
+   a in 0..0.35. Data X-pad by Ysh: −0.40 → +0.20; a plain copy gives ≈ 0 → +0.15. Two-copy fit (a_Y, a_X;
+   `fit_two_copy.py`): a_Y 0.30–0.35, a_X 0.05–0.15 but χ² 230–380/21. Migration (`migrate.py`): 13.4 % of Ysh < 0.4
+   clusters on det3 have the X peak on the X-pad parity (77 % with the true column at n−1); det2/det1 4–4.5 % at a ≤ 0.3,
+   13 % only at a ≈ 0.8 (but det3 May baseline is 20 %, so not decisive alone).
+4. **Forward model** (`fwd_variants.py`, solved weighting fields): an X-view sensitivity offset of ~200 µm toward n+1
+   (relative to Y) reproduces the X-pad sign flip (−0.39 → +0.21); offset + copy 0.1 also lifts the Y-pad class. The
+   model's pad-type purity vs Ysh is lower than the data's (0.53–0.65 vs 0.87 narrowest bin): shape only, no χ².
+5. **Inside the Y pad** (`ypad_probe.py`): copy flat in η_y (y inside the Y pad, copy-free view): 0.21–0.25 everywhere,
+   so not a via/stub/defect at one edge. Excess waveform peaks with the Y central (720 ns), before the X central (840) and
+   the neighbours' own signal (900); fit 0.17·X_c + 0.07·Y_c leaves 7 %. Prompt: induced as the charge arrives.
+6. **Bus side, checked:** column buses (DAQ X) = `L3-TrackY.gbr` = physical L5 (shallow), row buses on L6 → copy in X only
+   ✓. Gerber: column buses fan out at the top, row buses on the right; detector (pad side): X connectors bottom, Y right →
+   gerber = pad-side view mirrored in y, x kept. Stubs +0.39 mm in x → column c's bus in the gap toward c+1, beside the Y
+   pads of column c+1 → Y-pad charge reaches the bus of the line one column lower = DAQ n+1 (connector reversal) ✓.
+   Relies on ActiveAreaFrame/Mx17StripMap conventions. Copper solve: 0.010 nominal; det3 needs ~20×, det4/det7 ~6×.
+Reading now: a one-sided reach of each X line toward its own bus, right side, right view, far too strong on the June
+bulks; the date/field dependence is the cluster width acting on a fixed one-sided kernel (6-19 still an outlier).
