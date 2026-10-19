@@ -24,9 +24,9 @@ if [ -z "$OUT_DIR" ]; then OUT_DIR=results_meshfield; [ "$NULLCOLL" = 1 ] && OUT
 LOG_DIR=$OUT_DIR/logs
 
 mkdir -p "$OUT_DIR" "$LOG_DIR"
-# nTof_x17's setup_garfield.sh is broken on the desktop (ROOT 6.30, no Garfield headers); use 6.40.
+# Desktop: ROOT 6.40.04 + Garfield install-r6404-g4114 (the HEP stack, claude-skills docs/hep-stack).
 source ~/Software/root_6_40/bin/thisroot.sh >/dev/null 2>&1
-source ~/Software/garfield/install/share/Garfield/setupGarfield.sh
+source ~/Software/garfield/install-r6404-g4114/share/Garfield/setupGarfield.sh
 export MX17_GARFIELD_PIN=${MX17_GARFIELD_PIN:-local-install-root640}
 
 run_one() {
