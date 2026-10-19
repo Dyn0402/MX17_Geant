@@ -891,6 +891,8 @@ Post-fix smoke test gives the expected two-component shape: a 13-bin electron sp
 
 **Pin: garfieldpp master `927e5c21`.** Built from source on all three hosts; all pass upstream `ctest` 22/22.
 
+> **Update 2026-10-19: lxplus/condor moved to LCG_110** (ROOT 6.40.02, Geant4 11.4.1, gcc 14) to track the desktop/laptop stack (ROOT 6.40.04, Geant4 11.4.3). Current Garfield install `~/work/garfield_install/lcg110-927e5c21p`, condor tarball `garfield-927e5c21-lcg110.tar.gz` (pin + ComponentGrid patch), both selected by `nTof_x17/garfield_sim/setup_garfield.sh`. The `lcg109-*` paths and `LCG_109` view in the table and listing below are the superseded setup; do not paste them into new jobs. Older results/scripts that mention LCG_109 stay as written (historical). Any future script or doc you touch should use LCG_110 (or whatever `setup_garfield.sh` names).
+
 | Host | ROOT | Garfield install (full path) | source clone |
 |---|---|---|---|
 | laptop | 6.36.06 | `/home/dylan/garfield/install` | `/home/dylan/garfield` |

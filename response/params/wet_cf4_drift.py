@@ -31,7 +31,7 @@ that shows how large the effect is. Picking a single value would hide the
 sensitivity, and the plan carries drift as an open item precisely because it
 has been quoted three incompatible ways.
 
-Run on lxplus (Garfield pinned at master 927e5c21, self-built vs LCG_109):
+Run on lxplus (Garfield pinned at master 927e5c21, self-built vs LCG_109; superseded 2026-10-19: use LCG_110 via setup_garfield.sh for new runs):
     source setup_garfield.sh
     nohup python3 wet_cf4_drift.py > wet_cf4.log 2>&1 &
 """

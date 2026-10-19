@@ -29,7 +29,7 @@ it is not a guess -- it is the recorded gas-survey value for the very run this
 whole comparison targets. Dry is kept as the reference (should reproduce the
 existing drift_velocity_Ar_iC4H10_95_5_Saclay.json table).
 
-Run on lxplus (Garfield pinned at master 927e5c21, self-built vs LCG_109):
+Run on lxplus (Garfield pinned at master 927e5c21, self-built vs LCG_109; superseded 2026-10-19: use LCG_110 via setup_garfield.sh for new runs):
     source setup_garfield.sh
     nohup python3 wet_ariso_drift.py > wet_ariso.log 2>&1 &
 """

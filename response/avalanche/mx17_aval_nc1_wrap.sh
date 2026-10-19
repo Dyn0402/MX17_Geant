@@ -50,6 +50,6 @@ if [ "$want" != "$got" ]; then
     exit 3
 fi
 rm -f "$json" meshfield_production.txt meshfield_production.json
-rm -rf garfield garfield-*.tar.gz lcg109-* *.gas
+rm -rf garfield garfield-*.tar.gz lcg109-* lcg110-* *.gas
 echo "$want" > "done_$5.txt"
 echo "[wrap] end=$(date)"
