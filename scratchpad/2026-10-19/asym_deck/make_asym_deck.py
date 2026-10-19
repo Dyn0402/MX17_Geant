@@ -1365,11 +1365,11 @@ def s_close(D):
                        sd.p('· Whether the May and June-15 “det3” share a PCB and a resistive print.', 26, DMUT),
                        sd.p('· 6-19: 0.03 with ordinary cluster widths, the night det3’s drift HV was sparking.', 26, DMUT),
                        sd.p('· Drift scans of det4/det7 on the bench (the beam ones are too limited).', 26, DMUT), gap=14),
-                sd.col(sd.p('Tests that would settle it', 30, DINK, 600),
-                       sd.p('1. Same HV, two gas states (fresh vs long-unflushed, or a humidifier): the copy should follow the width.', 26, DMUT),
-                       sd.p('2. Collimated Fe-55 stepped across one column (Y pad → gap → X pad): maps the one-sided reach, and stripe vs gap.', 26, DMUT),
-                       sd.p('3. Ask Stephan what differs in the June recipe; look at det3 Y pads under a microscope.', 26, DMUT),
-                       sd.p('4. Drift scan of det4 or det7 on the bench at fixed gas.', 26, DMUT), gap=14),
+                sd.col(sd.p('What can still be done (no detector access since 10-13)', 30, DINK, 600),
+                       sd.p('1. A forward model with resistive spreading, so its Y-share scale matches: does one fixed geometry give the width curve?', 26, DMUT),
+                       sd.p('2. Re-extract with chip-edge peaks kept: copy across DAQ neighbours on different connectors (should be 0).', 26, DMUT),
+                       sd.p('3. Ask Stephan what differs in the June bulk recipe; was the May det3 the same PCB?', 26, DMUT),
+                       sd.p('4. Archived det4/det7 runs at other drift fields, if any exist on EOS.', 26, DMUT), gap=14),
                 gap=80)
             + sd.p('For analysis now: no single uncopy fits det3; uncopy a ≈ 0.33 restores the Y-pad class, X-pad events need a model.', 28, DGREEN, 600))
     D.slide('close', body, details(
@@ -1388,7 +1388,7 @@ def build(out):
     s_copy_shape(D); s_copy_model(D); s_noise(D); s_follow(D); s_map(D); s_amp(D); s_hot(D)
     s_survey(D, rows); s_date(D, rows); s_time(D, rows)
     s_parity(D); s_axes(D); s_drifttime(D); s_gas(D); s_beamdrift(D); s_sims(D)
-    R3.s_stripes(D); R3.s_inject(D); R3.s_flip(D); R3.s_inside(D)
+    R3.s_stripes(D); R3.s_inject(D); R3.s_flip(D); R3.s_inside(D); R3.s_readout(D); R3.s_sessions(D)
     s_bus(D); s_verdict(D); s_close(D)
     meta = dict(title='det3 X neighbour asymmetry: real, in the raw ADC, and det3’s own',
                 summary='From the rawest observable up: det3’s June-15 build copies ~0.1–0.2 of each X pulse into the next '

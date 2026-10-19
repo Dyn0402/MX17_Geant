@@ -15,12 +15,18 @@
 - Inside the Y pad: flat in y; the excess is prompt (peaks with the Y central).
 - Bus side pinned from the gerbers: each X line's bus is on the n+1 side, on the shallow layer → right side, right view.
 
-**Next steps:**
-1. Why the bus side is ~20× the copper coupling on the June-15 build (~6× det4/det7): a dielectric/surface change in the
-   inter-pad gaps above the L5 bus from the bulk process? Model: raise the gap's coupling until 0.2, check the Ysh curve.
-2. Fit an X-offset + copy model per session (offset vs width = "one curve"?); then a position-level correction for det3 X.
-3. Bench: collimated Fe-55 stepped across one column (maps the one-sided reach; also stripe vs gap); ask Stephan about
-   the June bulk recipe; was det3 May the same PCB?
+- Later the same day (Dylan asked about the one-sided M1 readout): ruled out for det3. The profile is smooth through
+  connector edges, flat with distance from the readout edge, and no linear channel mixing of any sign reproduces the
+  narrow X-pad −0.40 (`mix_fit.py`, `mix_reach2.py`, `m1_profile.py`). Per-session forward fits: offset + copy beats a
+  copy everywhere; copy 0.10–0.15, offset −100…−250 µm tracking the session's cluster width (`fwd_session_fit.py`).
+
+**Next steps (no detector access since 10-13, so archive/sim only):**
+1. Forward model with resistive spreading + shaping, so its Y-share scale matches the data; then test whether ONE fixed
+   offset+copy gives the width curve across sessions (else the geometry itself moves with field/gas).
+2. Why the bus side is ~20× the copper coupling on June-15 (~6× det4/det7): a stronger gap-coupling model.
+3. Re-extract det3 X keeping chip-edge peaks (copy across DAQ neighbours on different connectors should be 0).
+4. Ask Stephan about the June bulk recipe and whether the May det3 is the same PCB; look for archived det4/det7 runs at
+   other drift fields on EOS.
 
 **Gotchas:** re-centring after uncopy with the WRONG a biases (fakes +0.1 on controls); use injection/closure.
 `fwd_variants.py` sign: 'shift −d' = toward the data's n+1. `migrate.py` imports `uncopy_parity.events` (main is guarded).

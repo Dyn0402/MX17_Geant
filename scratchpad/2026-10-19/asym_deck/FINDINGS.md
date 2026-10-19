@@ -120,3 +120,22 @@ Scripts and JSON in `scratchpad/2026-10-20/`; event cache `~/x17/nb_asym_raw/esl
    Relies on ActiveAreaFrame/Mx17StripMap conventions. Copper solve: 0.010 nominal; det3 needs ~20×, det4/det7 ~6×.
 Reading now: a one-sided reach of each X line toward its own bus, right side, right view, far too strong on the June
 bulks; the date/field dependence is the cluster width acting on a fixed one-sided kernel (6-19 still an outlier).
+
+## Readout question + per-session fits (2026-10-20, later; slides "Readout?", "Sessions")
+1. **Not the one-sided readout (M1/connectors/cables/FEU).** All X lines are read at the same edge: not handed in x;
+   passive neighbour coupling is reciprocal. Any readout effect = fixed linear channel mixing. Data:
+   - profile across the board (Y-pad, 16-col bins, true columns) is smooth through all 7 connector edges: step rms at
+     edges 0.026 vs 0.041 between bins inside connectors (`m1_profile.py`);
+   - flat along the X line (by Y chip, distance from the readout edge): 0.21–0.27;
+   - general mixing x'(n) = x(n) + Σ m_k x(n+k), k = ±1, ±2, either sign, injected into det2/det3 May/det1 and run through
+     det3's analysis (`mix_fit.py`, `mix_reach2.py`; scored on class asym + ±1 sums by Ysh): best χ² 410–750/28, narrow
+     X-pad bins −0.10…+0.23 vs data −0.40/−0.29. Only m₋₁ ≈ 1 gets there, and that wrecks the shares. Structural reason:
+     det3 acts like an X–Y registration shift, which an X-only map can't make.
+   - Not testable: DAQ-neighbour pairs across a connector edge (extractor drops chip-edge peaks). det4/det7 (plain-copy-like)
+     rest on the profile + noise test only.
+2. **Per-session forward fits** (`fwd_session_fit.py`, Y-share sextiles, 12 class asymmetries, 0.02 floor): offset + copy
+   beats pure copy everywhere (χ² 44 vs 211; 214 vs 535; 8 vs 59; 87 vs 196; all 59 vs 365). Copy 0.10–0.15 in every
+   session; offset −250 (6-23/24, 600 V; 6-27 drift ≤ 500 V), −200 (6-22/23), −100 µm (6-27/28 1000 V): it tracks the
+   session's median Y share (0.52 → 1.01). With quantile bins the absolute width is not used, so this is the old width
+   curve reappearing as an offset; deciding "one fixed geometry" needs a model with the data's Y-share scale (model
+   medians 0.37–0.49: no resistive spreading / shaping in the static fields).

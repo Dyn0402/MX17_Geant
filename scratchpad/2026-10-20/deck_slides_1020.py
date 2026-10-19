@@ -222,3 +222,78 @@ def s_inside(D):
         'Y_c 31 %; the derivative of Y_c adds nothing. So the extra charge on n+1 is induced while the avalanche charge '
         'arrives, not later by spreading.',
         _src('../../2026-10-20/ypad_probe.py', 'ypad_probe.json')), short='Inside')
+
+
+def s_readout(D):
+    pr, mx = _j('m1_profile.json'), _j('mix_reach2.json')
+    if not (pr and mx): return
+    j = pr['det3 June-15']
+    P = sd.Plot(1000, 520, x=(0, 512), y=(0, 0.4), xlabel='pad column (true order) · dashed: 64-channel connector edges',
+                ylabel='copy, Y-pad events', title='Across the board: smooth through every connector edge')
+    P.xticks([(v, str(v)) for v in range(0, 513, 128)]); P.yticks([(v, f'{v:.1f}') for v in (0, .1, .2, .3, .4)])
+    for k in range(1, 8): P.vline(64 * k, MUT, '6 6', 1.5)
+    pts = [p for p in j['profile_ypad'] if p[1] is not None]
+    for p in pts: _err(P, p[0], p[1], p[2], CJUN)
+    P.line([p[0] for p in pts], [p[1] for p in pts], CJUN, 3, r=6, tips=[f'columns {p[0]-8}–{p[0]+7}: {p[1]:+.3f} ± {p[2]:.3f} ({p[3]} ev)' for p in pts])
+    jr = np.sqrt(np.mean([s[1] ** 2 for s in j['jumps_at_connector']])); ir = np.sqrt(np.mean([s[1] ** 2 for s in j['steps_inside']]))
+    yc = [v[1] for v in j['vs_ychip_ypad'] if v[1] is not None]
+    best = {k: v for k, v in mx.items() if k != 'data'}
+    rows = [[k, f'{v["chi2_zero"]:.0f}', ', '.join(f'{m:+.1f}' for m in v['best']), f'{v["chi2"]:.0f} / {v["ndf"]}',
+             f'{v["model"][2][0]:+.2f}  {v["model"][7][0]:+.2f}'] for k, v in best.items()]
+    rows.append(['<b>det3 June-15 data</b>', '', '', '', f'<b>{mx["data"][2][0]:+.2f}  {mx["data"][7][0]:+.2f}</b>'])
+    body = (sd.title('Not the one-sided readout (M1 cards, connectors, cables)',
+                     'Anything after the pads is a fixed channel-to-channel mixing: it cannot know where the hit is, and it '
+                     'steps where the cards do')
+            + sd.row(P.svg('readout profile'),
+                     sd.col(sd.table(['template', 'χ² no mix', 'best m(−1,+1,−2,+2)', 'χ² best', 'narrow X-pad'], rows, size=19),
+                            sd.callout('No linear mixing of neighbours, of any sign, makes the narrow X-pad bins negative while '
+                                       'keeping the shares: −0.10 … +0.23 against −0.40 / −0.29.', CJUN, 22), gap=14, w=760), gap=30)
+            + sd.row(sd.callout(f'Steps at connector edges rms {jr:.3f}, steps between bins inside a connector {ir:.3f}: no card '
+                                'boundaries in the profile.', BLUE, 23),
+                     sd.callout(f'Along the X line (distance from the readout edge, by Y chip): {min(yc):.2f}–{max(yc):.2f}, '
+                                'flat. Coupling along the line or in the fan-out would grow with it.', GOLD, 23), gap=36))
+    D.slide('readout', body, _det(
+        'Every X line is read out at the same board edge, so the readout is not handed in x: line n and its two neighbours are '
+        'read the same way. A passive coupling between neighbouring traces (fan-out, M1 card, cable) is reciprocal: it '
+        'raises both neighbours and creates no left/right asymmetry, unless the routing order differs from the pad order. Any '
+        'such effect, and any electronics effect, is a fixed linear map from channels to channels.',
+        'Test (<code>mix_fit.py</code>, <code>mix_reach2.py</code>): inject x′(n) = x(n) + Σ m_k x(n+k), k = ±1, ±2, '
+        'negative values allowed (a derivative-like mixing that the noise test is blind to at first order), into copy-free '
+        'boards, run det3’s full analysis, and score class asymmetries and ±1 sums in seven Y-share bins (the class fraction is '
+        'left out: it differs between boards with no mixing). Grid m₋₁ 0–1, m₊₁ −0.5–0.5, m±₂ −0.2–0.2. The best mixing still '
+        'leaves χ² 410–750 / 28, and the narrow X-pad bins never go below −0.19. The mixings that get there (m₋₁ ≈ 1) wreck '
+        'the shares.',
+        'The reason is structural: det3 behaves as if the X view sensed the charge displaced relative to the Y pads. That '
+        'is a change in the X–Y registration, and nothing acting on the X channels alone can make it.',
+        'Not testable here: the DAQ-neighbour pairs across a connector edge (the extractor drops chip-edge peaks). det4/det7 '
+        'are consistent with a plain copy, so for them this slide only rests on the smooth profile and the noise test.',
+        _src('../../2026-10-20/m1_profile.py', '../../2026-10-20/mix_fit.py', '../../2026-10-20/mix_reach2.py')), short='Readout?')
+
+
+def s_sessions(D):
+    f = _j('fwd_session_fit.json')
+    if not f: return
+    rows = []
+    for lab, o in f.items():
+        rows.append([lab, f'{o["n"]}', f'{o["median_ysh"]:.2f}', f'{o["offset"]:+.0f} µm', f'{o["copy"]:.2f}',
+                     f'{o["chi2"]:.0f}', f'{o["pure_copy"]["chi2"]:.0f} (a {o["pure_copy"]["a"]:.2f})'])
+    pts = [(o['median_ysh'], -o['offset'], lab) for lab, o in f.items() if not lab.startswith('all')]
+    P = sd.Plot(640, 480, x=(0.4, 1.1), y=(0, 300), xlabel='session median Y share (wider →)', ylabel='fitted X offset (µm)',
+                title='Offset follows the cluster width')
+    P.xticks([(v, f'{v:.1f}') for v in (.5, .7, .9, 1.1)]); P.yticks([(v, str(v)) for v in (0, 100, 200, 300)])
+    P.points([p[0] for p in pts], [p[1] for p in pts], CJUN, r=9, tips=[f'{p[2]}: {p[1]:.0f} µm at Ysh {p[0]:.2f}' for p in pts])
+    body = (sd.title('Per session: an offset plus a small copy fits every night far better than a copy',
+                     'Forward model (solved weighting fields) fitted to the 12 class asymmetries in Y-share sextiles')
+            + sd.row(sd.table(['session', 'events', 'median Ysh', 'X offset', 'copy', 'χ² /12', 'χ² pure copy'], rows, size=21),
+                     P.svg('sessions'), gap=30)
+            + sd.callout('The copy stays at 0.10–0.15; the offset carries the night-to-night and drift-field change, and it '
+                         'grows as the clusters narrow. Whether one fixed geometry does that through the width alone needs '
+                         'a model whose Y-share scale matches the data (its medians are 0.37–0.49).', BLUE, 24))
+    D.slide('sessions', body, _det(
+        'Bins are Y-share quantiles in data and model separately, because the model’s Y-share scale and pad-type purity '
+        'differ from the data’s (the static weighting fields have no resistive spreading and no shaping). Grid: offset '
+        '0 to −300 µm, copy 0–0.3, five cloud-width ranges; a 0.02 floor is added to each bin’s error.',
+        'Same night, 6-27: 1000 V drift gives −100 µm, 100–500 V gives −250 µm, reversibly. With quantile bins the absolute '
+        'width is not used, so a fixed sensitivity extension whose effect grows for narrower clouds would show up here as an '
+        'offset that grows with narrowness. That is what is seen; it is not yet evidence of a field-dependent geometry.',
+        _src('../../2026-10-20/fwd_session_fit.py', 'fwd_session_fit.json')), short='Sessions')
