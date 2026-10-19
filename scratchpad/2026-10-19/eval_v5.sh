@@ -7,14 +7,17 @@ H=/home/dylan/CLionProjects/MX17_Geant/scratchpad/2026-10-19; H17=$H/../2026-10-
 P=/home/dylan/PycharmProjects/nTof_x17/.venv/bin/python
 D=/media/dylan/data/claude_tmp/v3wet; SB=~/x17/response_sim/stageB_w2; T=/media/dylan/data/claude_tmp/tmp/nb/tagged
 ANGS="th00 thx10 thx20 thy10 thy20"; TAGS="v5a v5b v5c"
+# SKIP_PULL=1: the points are already in $D (e.g. pulled through the desktop when yoga has no AFS token), symlink only.
+if [ "${SKIP_PULL:-0}" != 1 ]; then
 while :; do
   n=$(ssh -o BatchMode=yes lxplus 'condor_q 4481160 -af ClusterId 2>/dev/null | wc -l' 2>/dev/null || echo err)
   echo "$(date +%T) jobs left: $n"; [ "$n" = "0" ] && break; sleep 300
 done
 ssh -o BatchMode=yes lxplus 'grep -L "=== done" ~/work/mx17_s1/logs/stageBC_v5*.out' > $H/eval_v5_failed.txt 2>&1
+fi
 for t in $TAGS; do for a in $ANGS; do
   mkdir -p $D/${t}_$a $SB/w2_rho5M_$t/$a
-  rsync -a "lxplus:work/mx17_s1/stageBC/${t}_$a/*.root" "lxplus:work/mx17_s1/stageBC/${t}_$a/*truth*" "lxplus:work/mx17_s1/stageBC/${t}_$a/stageBC_rho5M.log" $D/${t}_$a/ || echo "PULL FAILED ${t}_$a"
+  [ "${SKIP_PULL:-0}" = 1 ] || rsync -a "lxplus:work/mx17_s1/stageBC/${t}_$a/*.root" "lxplus:work/mx17_s1/stageBC/${t}_$a/*truth*" "lxplus:work/mx17_s1/stageBC/${t}_$a/stageBC_rho5M.log" $D/${t}_$a/ || echo "PULL FAILED ${t}_$a"
   ln -sfn $D/${t}_$a $SB/w2_rho5M_$t/$a/decoded_root
 done; done
 cd ~

@@ -1,0 +1,42 @@
+
+sim_v5a.npz X  n=1873   copy a from d1 = -0.004±0.012, from d2 = +0.003±0.008
+    -1: peak  +120± 10  edge   +18±  3   |   +1: peak  +105±  8  edge   +17±  3
+    -2: peak  +165± 26  edge   +48±  7   |   +2: peak  +180± 19  edge   +46±  7
+    -3: peak  +135± 42  edge    +7± 15   |   +3: peak  +120± 42  edge   +11±  9
+    -4: peak  +120± 68  edge    -2± 24   |   +4: peak  +105± 49  edge   +30± 16
+    copy-corrected s1 = n_+1 - a n_+2: peak delay +105±8 ns, s1/c 0.351±0.006
+
+sim_v5a.npz Y  n=2094   copy a from d1 = +0.009±0.012, from d2 = +0.012±0.012
+    -1: peak  +105± 10  edge   +33±  3   |   +1: peak  +105± 10  edge   +30±  2
+    -2: peak  +330± 11  edge  +149±  8   |   +2: peak  +330± 12  edge  +143±  7
+    -3: peak  +945± 53  edge  +138± 18   |   +3: peak  +990± 36  edge  +180± 18
+    -4: peak +1215±  8  edge  +983± 21   |   +4: peak +1215±  7  edge  +947±205
+    copy-corrected s1 = n_+1 - a n_+2: peak delay +105±10 ns, s1/c 0.395±0.006
+
+sim_v5b.npz X  n=2100   copy a from d1 = -0.006±0.012, from d2 = -0.007±0.010
+    -1: peak   +75±  9  edge   +13±  3   |   +1: peak   +75±  7  edge   +11±  2
+    -2: peak  +105± 24  edge   +28±  5   |   +2: peak  +105± 13  edge   +31±  5
+    -3: peak  +135± 39  edge   +33± 10   |   +3: peak  +180± 41  edge   +29± 10
+    -4: peak   +15± 37  edge    -8± 19   |   +4: peak    +0± 37  edge    -8± 26
+    copy-corrected s1 = n_+1 - a n_+2: peak delay +75±7 ns, s1/c 0.391±0.006
+
+sim_v5b.npz Y  n=2320   copy a from d1 = +0.011±0.010, from d2 = +0.007±0.008
+    -1: peak   +90±  9  edge   +20±  2   |   +1: peak   +90±  9  edge   +19±  2
+    -2: peak  +330±  9  edge  +121±  6   |   +2: peak  +330± 10  edge  +125±  5
+    -3: peak  +480± 74  edge  +137± 14   |   +3: peak  +510± 51  edge  +179± 14
+    -4: peak +1230±  7  edge  +912±242   |   +4: peak +1230±  7  edge  +108±207
+    copy-corrected s1 = n_+1 - a n_+2: peak delay +90±9 ns, s1/c 0.451±0.006
+
+sim_v5c.npz X  n=2163   copy a from d1 = +0.003±0.013, from d2 = +0.009±0.015
+    -1: peak   +75±  5  edge   +12±  2   |   +1: peak   +75±  6  edge   +10±  2
+    -2: peak   +60±  9  edge   +14±  3   |   +2: peak   +45±  8  edge   +14±  3
+    -3: peak  +225± 34  edge   +37± 10   |   +3: peak  +135± 15  edge   +52±  9
+    -4: peak   +15± 12  edge    +6± 11   |   +4: peak    +0± 15  edge    +4± 11
+    copy-corrected s1 = n_+1 - a n_+2: peak delay +75±6 ns, s1/c 0.404±0.007
+
+sim_v5c.npz Y  n=2389   copy a from d1 = +0.009±0.011, from d2 = +0.004±0.009
+    -1: peak   +45±  5  edge    +9±  2   |   +1: peak   +45±  5  edge    +8±  1
+    -2: peak  +255± 11  edge   +83±  4   |   +2: peak  +255± 10  edge   +74±  4
+    -3: peak  +405± 18  edge  +118± 10   |   +3: peak  +375± 12  edge  +123±  9
+    -4: peak +1215±  0  edge   +71± 13   |   +4: peak +1215±  2  edge   +56± 14
+    copy-corrected s1 = n_+1 - a n_+2: peak delay +45±5 ns, s1/c 0.505±0.006

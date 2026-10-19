@@ -1,0 +1,14 @@
+g_det3_wknd.npz    X n=  919  rms both 0.738±0.004  +side mirrored 0.694  -side mirrored 0.799 mm
+g_det3_wknd.npz    Y n=  969  rms both 0.898±0.003  +side mirrored 0.915  -side mirrored 0.911 mm
+sim_v3w.npz        X n= 1506  rms both 0.574±0.002  +side mirrored 0.581  -side mirrored 0.582 mm
+sim_v3w.npz        Y n= 1787  rms both 0.790±0.001  +side mirrored 0.801  -side mirrored 0.812 mm
+sim_v3ws300.npz    X n= 1851  rms both 0.636±0.002  +side mirrored 0.642  -side mirrored 0.644 mm
+sim_v3ws300.npz    Y n= 2100  rms both 0.818±0.001  +side mirrored 0.829  -side mirrored 0.835 mm
+sim_v4c.npz        X n= 1877  rms both 0.693±0.002  +side mirrored 0.702  -side mirrored 0.699 mm
+sim_v4c.npz        Y n= 2188  rms both 0.846±0.001  +side mirrored 0.856  -side mirrored 0.864 mm
+sim_v5a.npz        X n= 1873  rms both 0.697±0.002  +side mirrored 0.707  -side mirrored 0.711 mm
+sim_v5a.npz        Y n= 2094  rms both 0.830±0.001  +side mirrored 0.843  -side mirrored 0.848 mm
+sim_v5b.npz        X n= 2100  rms both 0.743±0.002  +side mirrored 0.755  -side mirrored 0.758 mm
+sim_v5b.npz        Y n= 2320  rms both 0.861±0.001  +side mirrored 0.872  -side mirrored 0.875 mm
+sim_v5c.npz        X n= 2163  rms both 0.801±0.002  +side mirrored 0.817  -side mirrored 0.819 mm
+sim_v5c.npz        Y n= 2389  rms both 0.900±0.001  +side mirrored 0.912  -side mirrored 0.912 mm

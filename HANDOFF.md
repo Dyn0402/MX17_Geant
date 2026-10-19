@@ -2,16 +2,23 @@
 
 ## Neighbour asymmetry + timing vs strip distance — 2026-10-19 (desktop, dumps on yoga)
 
-**Resume:** read `scratchpad/2026-10-19/NB_ASYM.md` (and `NB_FAR.md` for the ±1..±5 delay tables).
-**Findings:** the det3 X −1/+1 asymmetry is not the ESL beat. It is a one-sided, linear, prompt in-phase copy
-(channel n+1 gets a = 0.09–0.21 of channel n). It is det3-only (other boards ≈ 0.01), X-only, absent from the noise, so
-induced on the detector, not the electronics. Candidate: the one-sided bus traces under the inter-pad gaps (gerbers);
-`channel_map.py` docstring corrected. On the copy-free + side, X ±1 delay = +75 ± 18 ns = v4c, but share 0.30 vs v4c
-0.39 (Y 0.41 vs 0.45): v4c's σ0 420 µm was tuned on copy-inflated X numbers. Every board has a symmetric exponential
-prompt tail at ±3..±5 (~1 % at ±3) that the sim lacks; Y far strips rise ~300 ns earlier and larger than the sim.
-**Next:** see NB_ASYM.md "Next" (copy-free X targets; bus-trace weighting solve; reduce late ±1 charge rather than add
-prompt; prompt tail as a readout term). Tagged dumps on yoga `/media/dylan/data/claude_tmp/tmp/nb/tagged/` (~70 MB);
-`run_dumps.sh` regenerates them.
+**Resume:** read `scratchpad/2026-10-19/NB_ASYM.md`, its top "Update" sections A–D first (they supersede "det3-only" and
+the bus-trace explanation of det3's size). `NB_FAR.md` has the ±1..±5 delay tables.
+**Findings:**
+- The det3 X −1/+1 asymmetry is a one-sided in-phase copy (channel n+1 gets a × channel n): signal only, not noise, and
+  removable with `uncopy.py`.
+- It is ≈ 0 on the May det3 build. On the June-15 build it is 0.11–0.17 on 6-22, decaying to 0.08 on 6-27/28 and
+  0.06 at n_TOF run_79. It grows at low drift field (reversibly). Other June builds have 0.02–0.08.
+- The one-sided bus traces (gerbers) give 0.010 in a 3D solve with the Geant4 stack estimate (264 µm FR4/layer), which
+  matches the quiet boards but can't make det3's size or its time/field dependence.
+- The far ±3..±5 prompt halo on every board is displaced photon feedback (Cauchy, H ≈ 150 µm = amp gap, f = bG);
+  Stage B now has `--feedback-spread-um`. **v5a** (wet, σ0 94, bG 0.45, H 150 µm; condor 4481160) matches the copy-free
+  X view with no retuning (halo, ±1/±2 shares, widths, amplitude 0.98/1.02). Open: ±1 peak 30–45 ns late, ±2 early, Y
+  shares low.
+- Copy-free X: ±1 delay +75 ns = v4c, but share 0.30 vs 0.39; no single σ0 fits shares and delays together.
+**Next:** NB_ASYM §E. Gotcha: yoga's lxplus session had no AFS token today, so `kinit` there first, or pull through
+the desktop and run `SKIP_PULL=1 ./eval_v5.sh`. Dylan: does anyone know what differed in the June-15 bulk (process, drying,
+coverlay), and was det3's X cabling moved between slots? Tagged dumps: yoga `/media/dylan/data/claude_tmp/tmp/nb/{tagged,survey}/`.
 
 ## Reco truth study + wet gas / prompt anode spread — updated 2026-10-18 afternoon (dylan-Yoga)
 
