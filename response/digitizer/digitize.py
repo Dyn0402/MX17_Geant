@@ -241,7 +241,11 @@ class Digitizer:
                  # Override of the calib's avalanche lateral spread (None =
                  # the calib's value). A prompt, charge-conserving, in-phase
                  # spread at the anode; see run.py --sigma0-um.
-                 sigma0_um=None):
+                 sigma0_um=None,
+                 # Lateral displacement of photon-feedback secondaries (0 = they
+                 # land on their parent, the historical behaviour); see
+                 # add_feedback_spread and run.py --feedback-spread-um.
+                 feedback_spread_um=0.0, feedback_rmax_mm=10.0):
         # kernel_t_max_ns exists so the LUT window can be varied without
         # editing the default — the A1 before/after (test_window) and any
         # SPS-config run (64 x 60 ns frame -> 4200) both need it.
@@ -319,6 +323,10 @@ class Digitizer:
         self.feedback_bg = float(feedback_bg)
         if not 0.0 <= self.feedback_bg < 1.0:
             raise ValueError(f"feedback bG must be in [0, 1), got {feedback_bg}")
+        self.feedback_spread_um = float(feedback_spread_um)
+        self.feedback_rmax_mm = float(feedback_rmax_mm)
+        if self.feedback_spread_um < 0 or self.feedback_rmax_mm <= 0:
+            raise ValueError("feedback spread must be >= 0 and rmax > 0")
         self.ion = ION.describe(C.AMP_GAP_M, mesh_v, mu_ion * self.ion_speed_scale, z_aval_um * 1e-6)
         self.ion_measured = None
         self.ion_mobility = ion_mobility
@@ -494,6 +502,8 @@ class Digitizer:
         # 0.4 % of the electrons that is far below anything observable.
         gain = gain * gain_frac
         if self.feedback_bg > 0:
+            if self.feedback_spread_um > 0:
+                return self.add_feedback_spread(x, y, t, gain)
             gain = self.add_feedback(gain)
         return x, y, t, gain
 
@@ -521,6 +531,48 @@ class Digitizer:
             total += new
             pending = new
         return total
+
+    def add_feedback_spread(self, x, y, t, gain):
+        """Photon feedback with the secondaries DISPLACED from their parent
+        (scratchpad/2026-10-19/NB_ASYM.md, "far prompt tail").
+
+        Same branching as add_feedback (each avalanche of size g frees
+        Poisson(beta*g) photoelectrons, beta = bG/gbar, each making a full Polya
+        avalanche that branches in turn), but every secondary is its own
+        avalanche, placed at its parent's position plus a lateral displacement
+        and at the parent's time (prompt, ~ns). The displacement is that of an
+        isotropic UV photon from an avalanche at the anode reaching the mesh a
+        height H above it: P(R > r) = H / sqrt(r^2 + H^2), uniform azimuth, so
+        its projection on either strip axis is a Cauchy of half-width H. R is
+        capped at feedback_rmax_mm (redrawn), which stands in for absorption in
+        the quencher. Mean gain is unchanged, gbar / (1 - bG). Returns the
+        primaries followed by every secondary: (x, y, t, q)."""
+        beta = self.feedback_bg / self.gbar
+        H = self.feedback_spread_um * 1e-6
+        rmax = self.feedback_rmax_mm * 1e-3
+        xs, ys, ts, qs = [x], [y], [t], [gain]
+        px, py, pt, pg = x, y, t, gain
+        for _ in range(200):
+            n = self.rng.poisson(beta * pg)
+            if not n.any():
+                break
+            k = np.repeat(np.arange(len(pg)), n)
+            m = len(k)
+            u = self.rng.random(m)
+            r = H * np.sqrt(1.0 / np.maximum(u, 1e-12) ** 2 - 1.0)
+            bad = r > rmax
+            while bad.any():
+                u = self.rng.random(int(bad.sum()))
+                r[bad] = H * np.sqrt(1.0 / np.maximum(u, 1e-12) ** 2 - 1.0)
+                bad = r > rmax
+            phi = self.rng.random(m) * 2.0 * np.pi
+            cx = px[k] + r * np.cos(phi)
+            cy = py[k] + r * np.sin(phi)
+            cg = polya_sample(self.rng, self.gbar, self.theta, m)
+            xs.append(cx); ys.append(cy); ts.append(pt[k]); qs.append(cg)
+            px, py, pt, pg = cx, cy, pt[k], cg
+        return (np.concatenate(xs), np.concatenate(ys), np.concatenate(ts),
+                np.concatenate(qs))
 
     def induce(self, x, y, t, q, n_samp):
         """
@@ -645,6 +697,8 @@ class Digitizer:
             "gain_mean": self.gbar, "polya_theta": self.theta,
             "feedback_bG": self.feedback_bg,
             "gain_mean_with_feedback": self.gbar / (1.0 - self.feedback_bg),
+            "feedback_spread_um": self.feedback_spread_um,
+            "feedback_rmax_mm": self.feedback_rmax_mm,
             "ion_speed_scale": self.ion_speed_scale,
             "aval_survival": self.aval_survival,
             "aval_survival_source": (

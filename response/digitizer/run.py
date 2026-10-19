@@ -247,6 +247,19 @@ def main():
                          "full avalanches, recursively (mean gain x 1/(1-bG)). "
                          "0 = off. The det3 27 June ladder shape gives bG(490 V) "
                          "0.37-0.49 (FRESH_LOOK §9).")
+    ap.add_argument("--feedback-spread-um", type=float, default=0.0,
+                    help="lateral displacement scale H of photon-feedback "
+                         "secondaries (needs --feedback-bg > 0): each secondary "
+                         "is its own avalanche at the parent's time, displaced "
+                         "by P(R > r) = H / sqrt(r^2 + H^2) (isotropic photon to "
+                         "the mesh H above the anode; a Cauchy of half-width H "
+                         "on each strip axis). 0 = secondaries land on their "
+                         "parent (historical, bit-identical). ~150 = the "
+                         "amplification gap (NB_ASYM.md 2026-10-19). With it on, "
+                         "the truth sidecar's n_seed counts the secondaries too.")
+    ap.add_argument("--feedback-rmax-mm", type=float, default=10.0,
+                    help="cap on the feedback displacement (redrawn beyond it); "
+                         "stands in for UV absorption in the quencher.")
     ap.add_argument("--sigma0-um", type=float, default=None,
                     help="override the calib's avalanche lateral spread sigma0 "
                          "(the prompt, in-phase, charge-conserving width at the "
@@ -376,6 +389,8 @@ def main():
                     ion_speed_scale=a.ion_speed_scale,
                     ion_mobility=a.ion_mobility,
                     feedback_bg=a.feedback_bg, sigma0_um=a.sigma0_um,
+                    feedback_spread_um=a.feedback_spread_um,
+                    feedback_rmax_mm=a.feedback_rmax_mm,
                     z_aval_um=a.z_aval_um,
                     drift_gap_mm=a.drift_gap_mm,
                     kernel_t_max_ns=a.kernel_t_max,

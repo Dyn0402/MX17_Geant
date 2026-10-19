@@ -1,0 +1,38 @@
+# v5 DISPLACED PHOTON FEEDBACK (2026-10-19, NB_ASYM.md): Stage B's new --feedback-spread-um H places each feedback
+# secondary at its parent + an isotropic photon-to-mesh displacement, P(R > r) = H / sqrt(r^2 + H^2) (Cauchy of
+# half-width H per strip axis), capped at 10 mm. H = 150 um = the amplification gap. Base = v3 recipe + 1 % H2O gas
+# + det3 wiring + truth; 5 angles.
+#   v5a: bG 0.45, sigma0 = calib (94 um)      (v3w + spread)
+#   v5b: bG 0.45, sigma0 300 um               (v3ws300 + spread)
+#   v5c: bG 0.48, sigma0 420 um               (v4c + spread)
+# PRE-REGISTERED (before submission), from the offline emulation nb_fb_emul.py (f = 0.45, H = 150) on the same bases:
+#   * th00 far in-phase content (nb_prompt.py, early window): X alpha_±3 0.008-0.017, alpha_±4 0.003-0.006,
+#     alpha_±5 0.0015-0.003; Y alpha_±3 0.012-0.021, alpha_±4 0.004-0.006. (Data weekend: X 0.012/0.0055/0.0034,
+#     Y 0.026/0.0078/0.0026.)
+#   * th00 ±1: delay 0-30 ns EARLIER than the base arm; share (peak/central) +0.03-0.06 above the base arm.
+#   * amplitude (ledger data/sim p50): UP by +5-12 % vs the base arm (charge moved off the peak strip at fixed bG).
+# FALSIFIER: alpha_±4 < 0.002 in both views at H = 150 -> the displaced charge does not reach the far strips through
+# the chain (kernel window / fiducial), or the emulation's translation-invariant shortcut was wrong.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/w5fb.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4 MX17_GAS_TABLE=/afs/cern.ch/work/d/dneff/mx17_s1/src/design/gas/drift_velocity_Ar_iC4H10_95_5_H2O_1.0.json"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_$(tag)_$(ang).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_$(tag)_$(ang).err
+
+tag = v5a
+arguments               = "rho5M $(tag)_$(ang) /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07_cmq.json /afs/cern.ch/work/d/dneff/mx17_s1/clusters_ang_e17/mx17_muons_3k_ang_$(ang)_e17_t0.root '--ion-model reconstructed --ion-mobility K0=2.05 --drift-gap-mm 26.5 --feedback-bg 0.45 --feedback-spread-um 150 --shaper-tp-ns 166 --wiring connector-inverted --calib /afs/cern.ch/work/d/dneff/mx17_s1/calib/aval_calib_meshfield_nc1_pooled.json'"
+queue ang in (th00 thx10 thx20 thy10 thy20)
+
+tag = v5b
+arguments               = "rho5M $(tag)_$(ang) /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07_cmq.json /afs/cern.ch/work/d/dneff/mx17_s1/clusters_ang_e17/mx17_muons_3k_ang_$(ang)_e17_t0.root '--ion-model reconstructed --ion-mobility K0=2.05 --drift-gap-mm 26.5 --feedback-bg 0.45 --feedback-spread-um 150 --sigma0-um 300 --shaper-tp-ns 166 --wiring connector-inverted --calib /afs/cern.ch/work/d/dneff/mx17_s1/calib/aval_calib_meshfield_nc1_pooled.json'"
+queue ang in (th00 thx10 thx20 thy10 thy20)
+
+tag = v5c
+arguments               = "rho5M $(tag)_$(ang) /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07_cmq.json /afs/cern.ch/work/d/dneff/mx17_s1/clusters_ang_e17/mx17_muons_3k_ang_$(ang)_e17_t0.root '--ion-model reconstructed --ion-mobility K0=2.05 --drift-gap-mm 26.5 --feedback-bg 0.48 --feedback-spread-um 150 --sigma0-um 420 --shaper-tp-ns 166 --wiring connector-inverted --calib /afs/cern.ch/work/d/dneff/mx17_s1/calib/aval_calib_meshfield_nc1_pooled.json'"
+queue ang in (th00 thx10 thx20 thy10 thy20)
