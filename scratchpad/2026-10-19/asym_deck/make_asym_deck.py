@@ -1388,7 +1388,7 @@ def build(out):
     s_copy_shape(D); s_copy_model(D); s_noise(D); s_follow(D); s_map(D); s_amp(D); s_hot(D)
     s_survey(D, rows); s_date(D, rows); s_time(D, rows)
     s_parity(D); s_axes(D); s_drifttime(D); s_gas(D); s_beamdrift(D); s_sims(D)
-    R3.s_stripes(D); R3.s_inject(D); R3.s_flip(D); R3.s_inside(D); R3.s_readout(D); R3.s_sessions(D)
+    R3.s_stripes(D); R3.s_inject(D); R3.s_flip(D); R3.s_inside(D); R3.s_readout(D); R3.s_edge(D); R3.s_sessions(D); R3.s_boards(D, more())
     s_bus(D); s_verdict(D); s_close(D)
     meta = dict(title='det3 X neighbour asymmetry: real, in the raw ADC, and det3’s own',
                 summary='From the rawest observable up: det3’s June-15 build copies ~0.1–0.2 of each X pulse into the next '

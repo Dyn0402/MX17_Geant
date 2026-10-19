@@ -245,7 +245,10 @@ class Digitizer:
                  # Lateral displacement of photon-feedback secondaries (0 = they
                  # land on their parent, the historical behaviour); see
                  # add_feedback_spread and run.py --feedback-spread-um.
-                 feedback_spread_um=0.0, feedback_rmax_mm=10.0):
+                 feedback_spread_um=0.0, feedback_rmax_mm=10.0,
+                 # DIAGNOSIS (2026-10-20, det3 X asymmetry): the X band reads the
+                 # charge at x + offset, the Y band at x. 0 = bit-identical.
+                 x_view_offset_um=0.0):
         # kernel_t_max_ns exists so the LUT window can be varied without
         # editing the default — the A1 before/after (test_window) and any
         # SPS-config run (64 x 60 ns frame -> 4200) both need it.
@@ -324,6 +327,7 @@ class Digitizer:
         if not 0.0 <= self.feedback_bg < 1.0:
             raise ValueError(f"feedback bG must be in [0, 1), got {feedback_bg}")
         self.feedback_spread_um = float(feedback_spread_um)
+        self.x_view_offset_um = float(x_view_offset_um)
         self.feedback_rmax_mm = float(feedback_rmax_mm)
         if self.feedback_spread_um < 0 or self.feedback_rmax_mm <= 0:
             raise ValueError("feedback spread must be >= 0 and rmax > 0")
@@ -596,6 +600,12 @@ class Digitizer:
         # by a y OFFSET, not by an absolute row, so there is only one rounding.
         ix = self.lut.ix(x)
         col = self.lut.col_at(x, ix=ix)
+        if self.x_view_offset_um:
+            xX = x + self.x_view_offset_um * 1e-6
+            ixX = self.lut.ix(xX)
+            colX = self.lut.col_at(xX, ix=ixX)
+        else:
+            ixX, colX = ix, col
         row = np.rint((y - K.PAD_ORIGIN_M) / pitch).astype(int)
         k0 = np.rint(t / (self.lut.dt * 1e9)).astype(int)
 
@@ -623,7 +633,7 @@ class Digitizer:
         # Compact channel numbering, so the scatter target is a dense 2-D
         # (channel, time) array that np.bincount can fill in one call.
         rows_all = row[idx][:, None] + ds[None, :]
-        cols_all = col[idx][:, None] + ds[None, :]
+        cols_all = colX[idx][:, None] + ds[None, :]
         keyY = np.unique(rows_all)
         keyX = np.unique(cols_all)
         nY, nX = len(keyY), len(keyX)
@@ -652,7 +662,7 @@ class Digitizer:
             y_rel = np.mod(y[sl] - K.PAD_ORIGIN_M, 2 * pitch)
             jy = np.clip(np.rint((y_rel - self.lut.y_X[0]) / dyx_step
                                  ).astype(int), 0, len(self.lut.y_X) - 1)
-            curX = np.moveaxis(self.lut.I_X[:, jy, ix[sl], :], 1, 0)
+            curX = np.moveaxis(self.lut.I_X[:, jy, ixX[sl], :], 1, 0)
 
             # Time index of every sample, clipped INTO the last row and then
             # masked, so the scatter never wraps a late avalanche around to
@@ -698,6 +708,7 @@ class Digitizer:
             "feedback_bG": self.feedback_bg,
             "gain_mean_with_feedback": self.gbar / (1.0 - self.feedback_bg),
             "feedback_spread_um": self.feedback_spread_um,
+            "x_view_offset_um": self.x_view_offset_um,
             "feedback_rmax_mm": self.feedback_rmax_mm,
             "ion_speed_scale": self.ion_speed_scale,
             "aval_survival": self.aval_survival,

@@ -265,8 +265,9 @@ def s_readout(D):
         'the shares.',
         'The reason is structural: det3 behaves as if the X view sensed the charge displaced relative to the Y pads. That '
         'is a change in the X–Y registration, and nothing acting on the X channels alone can make it.',
-        'Not testable here: the DAQ-neighbour pairs across a connector edge (the extractor drops chip-edge peaks). det4/det7 '
-        'are consistent with a plain copy, so for them this slide only rests on the smooth profile and the noise test.',
+        'The DAQ-neighbour pairs across a connector edge are tested directly on the next slide (re-extraction with chip-edge '
+        'peaks kept). det4/det7 are consistent with a plain copy, so for them the readout question rests on that slide, the '
+        'smooth profile and the noise test.',
         _src('../../2026-10-20/m1_profile.py', '../../2026-10-20/mix_fit.py', '../../2026-10-20/mix_reach2.py')), short='Readout?')
 
 
@@ -297,3 +298,90 @@ def s_sessions(D):
         'width is not used, so a fixed sensitivity extension whose effect grows for narrower clouds would show up here as an '
         'offset that grows with narrowness. That is what is seen; it is not yet evidence of a field-dependent geometry.',
         _src('../../2026-10-20/fwd_session_fit.py', 'fwd_session_fit.json')), short='Sessions')
+
+
+def s_edge(D):
+    e = _j('edge_test.json')
+    if not e: return
+    runs = [('e_d3jun23_x', 'det3 June-15, 6-23 (FEU 3)', CJUN), ('e_d3wk_x', 'det3 June-15, 6-28 (FEU 7)', ORANGE),
+            ('e_d2_x', 'det2', GREY), ('e_d3may_x', 'det3 May', GREEN), ('e_d4_x', 'det4', PURPLE)]
+    cats = [('col%64==1..3', 'inside, low end'), ('col%64==0 (col-1 on OTHER connector)', 'lowest column:\ncol−1 on the other connector'),
+            ('col%64==60..62', 'inside, high end')]
+    P = sd.Plot(1100, 540, x=(-0.6, 2.6), y=(-0.1, 0.3), ylabel='α(col−1) − α(col+1), physical neighbours', margin=(24, 20, 120, 110))
+    P.yticks([(v, f'{v:+.1f}') for v in (-.1, 0, .1, .2, .3)]); P.hline(0, MUT, None, 1.5)
+    for i, (k, lab) in enumerate(cats):
+        for j, (tag, nm, c) in enumerate(runs):
+            r = e.get(tag, {}).get(k)
+            if not r: continue
+            x = i + (j - 2) * 0.16; v, s = r['phys']
+            P.vbar(x, v, 22, c, base=0., tip=f'{nm}, {lab.replace(chr(10), " ")}: {v:+.3f} ± {s:.3f} ({r["n"]} ev)')
+            _err(P, x, v, s, INK)
+        for li, line in enumerate(lab.split('\n')):
+            P.raw(sd.T(P.X(i), P.y0 + P.ph + 34 + 26 * li, line, 21, INK, weight=600 if i == 1 else 400))
+    key = sd.legend([(nm, c, 'box') for _, nm, c in runs], 20)
+    j = e['e_d3jun23_x']['col%64==0 (col-1 on OTHER connector)']
+    body = (sd.title('The copy crosses connector boundaries with the pads, not with the electronics',
+                     'Peaks at the edge of a 64-channel connector · re-extracted in true column order (raw_asym.py --edge)')
+            + P.svg('edge') + key
+            + sd.row(sd.callout(f'det3 6-23: when col−1 is on the other connector, cable and DREAM chip, it still gets the excess: '
+                                f'{j["phys"][0]:+.2f} ± {j["phys"][1]:.2f}, as inside a connector.', CJUN, 23),
+                     sd.callout(f'Its DAQ n+1 there (same FEU, next chip, 127 columns away) gets α = {j["a_daqp1"]:.2f}. '
+                                'A copy made after the pads would land on DAQ n+1.', BLUE, 23), gap=36))
+    D.slide('edge', body, _det(
+        'Wiring: inside each 64-channel connector the DAQ order runs opposite to the columns, so DAQ n+1 is the next-lower '
+        'column, except at the connector’s lowest column, where DAQ n+1 is the far (highest) column of the next connector '
+        'and the physical neighbour col−1 is on the previous connector. The two orders separate there.',
+        'Extraction: peak search and the isolation cut (all channels over 5σ within ±3 columns) in column order, peaks with '
+        'col mod 64 in 0..3 or 60..63; both the column-order and the DAQ-order 9-channel windows are stored. The usual good-pulse '
+        'cut and hot-channel veto.',
+        'The 6-28 weekend run (FEU 7, copy ~0.09 inside) reads +0.03 ± 0.03 at the lowest column, 2σ below its inside value: '
+        'not decisive alone. At col mod 64 = 63 (col+1 on the other connector) every board, controls included, reads '
+        '+0.04 … +0.14: the cross-connector neighbour comes out low on all of them, a chip-to-chip or edge-pad effect common '
+        'to the readout, which is why the clean comparison is the col mod 64 = 0 case.',
+        _src('asym_deck/raw_asym.py --edge', '../../2026-10-20/edge_test.py', 'edge_test.json')), short='Connector edge')
+
+
+BOARDS = [  # (build, run_config description, Y-pad copy (asym_more), stripe orientation from data)
+    ('det3 June-15', '“Bulked by Stephan June 15” (beam: mx17_A)', 'Y slow (+420 ns at ±2)'),
+    ('det4', '“Stephan batch of 3, June 22. Was board C. A few bubbles … just no caps”', 'Y slow'),
+    ('det7', '“Stephan batch of 3, June 22. Was board B. One or two bubbles”', 'Y slow (+240 ns)'),
+    ('det6', '“Stephan June 24 (?). Was board D. Relaminated … column of waves”', 'Y slow (+240 ns)'),
+    ('det2', '“Bulked by Arnaud June 12. Giant pillars on parts” (beam: mx17_B)', 'Y slow (+240 ns)'),
+    ('det3 May', '“Bulked 5-5-26. Strip resist vertical. ESL no silver paste”', 'Y slower than X'),
+    ('det1', 'Jan build (no description); April re-bulk “Strip resist horizontal … strips broken”', 'X slower than Y (reversed)'),
+]
+
+
+def s_boards(D, more_json):
+    m = more_json; fp = _j('pcb_fingerprint.json') or {}
+    cp = {b['build']: b['ypad'] for b in m['boards']} if m else {}
+    def dead(bu):
+        ks = [k for k in fp if k.startswith(bu + '|')]
+        bo = {}
+        for k in ks:
+            _, v, feu = k.split('|'); bo.setdefault(v, []).append(set(fp[k]))
+        out = []
+        for v, ss in sorted(bo.items()):
+            com = set.intersection(*ss) if len(ss) > 1 else ss[0]
+            if com: out.append(f'{v} {",".join(map(str, sorted(com)))}' + ('' if len(ss) > 1 else ' (1 slot)'))
+        return '; '.join(out) or '—'
+    rows = [[bu, desc, f'{cp[bu][0]:+.2f}' if bu in cp else '—', ori, dead(bu)] for bu, desc, ori in BOARDS]
+    body = (sd.title('The boards: what the run configs say, and what the copy does',
+                     'Descriptions verbatim from run_config.json · Y-pad-class copy · stripe direction read from the slow sharing · '
+                     'dead lines (true order) on the board’s own FEU slot(s)')
+            + sd.table(['board', 'run_config.json', 'Y-pad copy', 'stripes (from data)', 'dead lines'], rows, size=19)
+            + sd.row(sd.callout('Stephan: nothing different about the June bulks. The copy is per board: 0.22 on det3 June-15, '
+                                '0.07–0.08 on the June-22 batch, ~0 on det2, det6, det3 May and det1.', CJUN, 23),
+                     sd.callout('No shared dead line between det3 May and det3 June-15 (its Y row 23 is dead on both of its FEU '
+                                'slots, fine in May): no sign they are the same PCB.', BLUE, 23), gap=36))
+    D.slide('boards', body, _det(
+        'Bulk dates for the July/August beam: mx17_A = det3, “Bulked by Stephan June 15”; mx17_B = det2, “Bulked by Arnaud '
+        'June 12. Giant pillars on parts of the detector.” (all 162 beam run configs). mx17_C = det6, mx17_D = det7. The May det3 '
+        '(bench 5-5 to 5-6, and “Det3 from May beam test” in the 6-6 to 6-17 runs) was “Bulked 5-5-26”.',
+        'Stripe direction (<code>stripe_orient.py</code>): charge spreads along the stripes, so the view measuring along them '
+        'gets the slow, late sharing; at ±2, the late content is larger in Y than in X on every board but det1, with Y peaking '
+        '240–420 ns late on the June boards. det3 June-15 looks like the others: orientation is not what singles it out.',
+        'Dead lines (<code>pcb_fingerprint.py</code>): a line that is the peak < 15 % as often as its neighbours. X 112 is dead '
+        'on every board read through FEU 3 (an electronics channel), so only lines that follow a board across slots, or a '
+        'board’s only slot, are listed. A PCB-level break would survive a re-bulk; bulk-level ones would not.',
+        _src('run_config.json (local + EOS)', '../../2026-10-20/stripe_orient.py', '../../2026-10-20/pcb_fingerprint.py')), short='Boards')

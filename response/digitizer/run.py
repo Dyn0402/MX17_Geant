@@ -257,6 +257,12 @@ def main():
                          "parent (historical, bit-identical). ~150 = the "
                          "amplification gap (NB_ASYM.md 2026-10-19). With it on, "
                          "the truth sidecar's n_seed counts the secondaries too.")
+    ap.add_argument("--x-view-offset-um", type=float, default=0.0,
+                    help="DIAGNOSIS: the X channels see every avalanche displaced by "
+                         "this much in x, the Y channels do not (an X-Y sensing "
+                         "offset; det3 X asymmetry, scratchpad/2026-10-20). Negative "
+                         "= toward lower columns = the data's DAQ n+1 under "
+                         "connector-inverted wiring. 0 = bit-identical.")
     ap.add_argument("--feedback-rmax-mm", type=float, default=10.0,
                     help="cap on the feedback displacement (redrawn beyond it); "
                          "stands in for UV absorption in the quencher.")
@@ -391,6 +397,7 @@ def main():
                     feedback_bg=a.feedback_bg, sigma0_um=a.sigma0_um,
                     feedback_spread_um=a.feedback_spread_um,
                     feedback_rmax_mm=a.feedback_rmax_mm,
+                    x_view_offset_um=a.x_view_offset_um,
                     z_aval_um=a.z_aval_um,
                     drift_gap_mm=a.drift_gap_mm,
                     kernel_t_max_ns=a.kernel_t_max,

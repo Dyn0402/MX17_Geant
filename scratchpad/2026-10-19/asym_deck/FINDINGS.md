@@ -139,3 +139,27 @@ bulks; the date/field dependence is the cluster width acting on a fixed one-side
    session's median Y share (0.52 → 1.01). With quantile bins the absolute width is not used, so this is the old width
    curve reappearing as an offset; deciding "one fixed geometry" needs a model with the data's Y-share scale (model
    medians 0.37–0.49: no resistive spreading / shaping in the static fields).
+
+## Connector edges, boards, X-offset sim (2026-10-20 evening; slides "Connector edge", "Boards")
+1. **Connector-edge test** (`raw_asym.py --edge` on yoga → `~/x17/nb_asym_raw/edge/`, `edge_test.py`): peaks at a
+   connector's lowest column (col % 64 == 0), whose physical col−1 is on the other connector/cable/DREAM chip.
+   det3 June-15 6-23 (FEU 3): physical α(col−1) − α(col+1) = +0.206 ± 0.025 there vs +0.21…+0.23 inside; DAQ n+1 at that
+   boundary (next chip, 127 columns away) α = 0.00. The copy follows the pads. 6-28 (FEU 7): +0.03 ± 0.03 vs +0.09 inside
+   (2σ, not decisive). Controls at col%64==0: det2 −0.01, det3 May +0.02, det4 +0.07. At col%64==63 every board reads
+   +0.04…+0.14 (cross-connector neighbour reads low on all boards): use the ==0 case.
+2. **run_config.json** descriptions (all local + EOS configs): May det3 "Bulked 5-5-26. Strip resist vertical. ESL no
+   silver paste"; det1 April "Bulked 4-24-26. Strip resist horizontal … Resist strips broken"; beam mx17_A = det3 "Bulked
+   by Stephan June 15", mx17_B = det2 "Bulked by Arnaud June 12. Giant pillars on parts of the detector", mx17_C = det6
+   (Stephan June 24, board D), mx17_D = det7 (Stephan June 22 batch, board B); det4 = June 22 batch, board C. Stephan
+   (via Dylan, 10-20): nothing different about the June bulks.
+3. **Stripe direction from data** (`stripe_orient.py`, ±2 late content): Y > X on every board except det1 (Jan build,
+   reversed); June boards' Y ±2 peaks 240–420 ns late. det3 June-15 looks like det2/det6/det7: orientation does not
+   single it out.
+4. **PCB fingerprint** (`pcb_fingerprint.py`): det3 June-15 Y row 23 dead on both FEU 4 and FEU 8 (follows the board);
+   X 112 dead on all FEU-3 boards (electronics). det3 May has a different set (Y 52/182/299, X clusters 151–163, 335–357,
+   462–507) and row 23 alive: no shared board-level defect. Same PCB not supported (bulk-level defects can't be excluded).
+5. **Full-sim X-view offset**: digitizer `--x-view-offset-um` (X band reads the avalanche at x + D). Pilot condor
+   4505153 (v5a recipe, th00, D = 0/−100/−200/−300): D = 0 is bit-identical to v5a_th00 (raw windows equal). Only ~190
+   matched isolated events per arm → too few. Statistics run condor 4505159: 4 offsets × 12 angle files × 2 seeds
+   (`run_xoff_job.sh`, decoded ROOT to EOS `response_sim/stageB_w2/xoff/`, npz to AFS `simxoff_npz/`); evaluate with
+   `sim_xoff_eval.py` against 6-27/28 1000 V (the v5a target) and all det3 June-15.

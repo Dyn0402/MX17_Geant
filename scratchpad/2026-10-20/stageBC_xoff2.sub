@@ -1,0 +1,16 @@
+# X-VIEW OFFSET, statistics run (2026-10-20): 4 offsets x 12 track-angle files x 2 seeds, v5a recipe (run_xoff_job.sh).
+# The th00-only pilot (4505153) kept ~190 matched isolated events per arm, too few; this gives ~70k events per offset.
+# Pre-registration as in stageBC_xoff.sub (narrow X-pad class at -200..-300 um goes to ~ -0.3; falsifier >= -0.1 at -300).
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_xoff_job.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/xoff2.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4 MX17_GAS_TABLE=/afs/cern.ch/work/d/dneff/mx17_s1/src/design/gas/drift_velocity_Ar_iC4H10_95_5_H2O_1.0.json"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/xoff2_xo$(o)_$(ang)_s$(seed).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/xoff2_xo$(o)_$(ang)_s$(seed).err
+arguments               = "xo$(o)_$(ang)_s$(seed) $(ov) $(ang) $(seed)"
+queue o, ov, ang, seed from xoff2_list.txt

@@ -11,16 +11,21 @@ x_n+1 += 0.15 x_n injected, to show what an electronics-side copy would do to th
 --cm (beam data): also subtract a per-chip, per-sample median (common mode) before thresholding, which removes the
 gamma-flash ringing, and cut each 32-sample window around the peak channel's maximum instead of samples 0-31;
 channels noisier than 3x the median are masked and the isolation cut is applied within the peak's own chip.
-Usage: raw_asym.py DECODED_DIR FEU OUT.npz [--files 3] [--skip 0] [--cm]"""
+--edge (2026-10-20): keep ONLY peaks within 4 channels of a 64-channel chip/connector edge, with the isolation cut and
+the peak search done in TRUE pad-column order (each 64-channel connector reversed); stores the column-order window
+(wf, physical neighbours) and the DAQ-order window around the same channel (wf_daq). At a connector edge the two
+differ: DAQ neighbours sit on another connector/chip 127 columns away, physical ones are 127 DAQ channels away.
+Usage: raw_asym.py DECODED_DIR FEU OUT.npz [--files 3] [--skip 0] [--cm] [--edge]"""
 import sys, glob, argparse, numpy as np, uproot, awkward as ak
 ap = argparse.ArgumentParser(); ap.add_argument('dec'); ap.add_argument('feu', type=int); ap.add_argument('out')
 ap.add_argument('--files', type=int, default=3); ap.add_argument('--skip', type=int, default=0)
-ap.add_argument('--cm', action='store_true')
+ap.add_argument('--cm', action='store_true'); ap.add_argument('--edge', action='store_true')
 a = ap.parse_args()
 files = [f for f in sorted(glob.glob(f'{a.dec}/*_{a.feu:02d}.root')) if 'pedestal' not in f and 'decoded_array' not in f]
 files = files[a.skip:a.skip + a.files]
 HW, D, AINJ = 4, 6, 0.15
-WF, P, EV, FI, DISP = [], [], [], [], []
+WF, P, EV, FI, DISP, WFD = [], [], [], [], [], []
+COL = np.array([64 * (c // 64) + 63 - c % 64 for c in range(512)])   # DAQ ch -> column; its own inverse
 cs = {k: np.zeros(D + 1) for k in ('raw', 'cm', 'inj')}; cn = {k: np.zeros(D + 1) for k in cs}; cq = {k: np.zeros(D + 1) for k in cs}
 nquiet = 0
 def corr_acc(x, key):
@@ -52,6 +57,16 @@ for fi, f in enumerate(files):
             xc = xq - np.median(xq, axis=3, keepdims=True); corr_acc(xc, 'cm')
             xi = xc.copy(); xi[..., 1:] += AINJ * xc[..., :-1]; corr_acc(xi, 'inj')
         cand = np.flatnonzero(nov >= 1) if a.cm else np.flatnonzero((nov >= 1) & (nov <= 12))
+        if a.edge:
+            for i in cand:
+                cc = COL[np.flatnonzero(over[i])]; Ac = A[i, COL]               # A in column order
+                pc = int(cc[np.argmax(Ac[cc])])
+                if not (4 <= pc <= 507) or (3 < pc % 64 < 60) or cc.min() < pc - 3 or cc.max() > pc + 3: continue
+                pd = int(COL[pc])
+                if not (4 <= pd <= 507): continue
+                WF.append(r[i, :32][:, COL[pc - HW:pc + HW + 1]].T.astype(np.float32)); WFD.append(r[i, :32, pd - HW:pd + HW + 1].T.astype(np.float32))
+                P.append(pd); EV.append(int(eid[i])); FI.append(fi)
+            continue
         for i in cand:
             c = np.flatnonzero(over[i]); p = int(c[np.argmax(A[i, c])])
             if a.cm:
@@ -65,7 +80,7 @@ for fi, f in enumerate(files):
             if len(DISP) < 40 and 600 < A[i, p] < 2500: DISP.append(r[i, :32, (p // 64) * 64:(p // 64) * 64 + 64].T.astype(np.float32))
     print(f, len(WF), 'kept', nquiet, 'quiet', flush=True)
 corr = {k: cs[k] / np.sqrt(cn[k] * cq[k]) for k in cs}
-np.savez_compressed(a.out, wf=np.array(WF, np.float32), p=np.array(P, np.int16), ev=np.array(EV, np.int64), fi=np.array(FI, np.int8),
+np.savez_compressed(a.out, wf=np.array(WF, np.float32), wf_daq=np.array(WFD, np.float32), p=np.array(P, np.int16), ev=np.array(EV, np.int64), fi=np.array(FI, np.int8),
                     disp=np.array(DISP, np.float32), ped=ped, sig=sig, files=np.array(files), nquiet=nquiet,
                     corr_raw=corr['raw'], corr_cm=corr['cm'], corr_inj=corr['inj'])
 print('DONE', a.out, len(WF), {k: np.round(v[1:4], 3).tolist() for k, v in corr.items()})

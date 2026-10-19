@@ -1,0 +1,24 @@
+# X-VIEW OFFSET (2026-10-20, det3 X asymmetry): the v5a recipe (bG 0.45, feedback spread 150 um, wet gas, det3 wiring,
+# truth) at th00, with digitizer --x-view-offset-um D: the X band reads every avalanche at x + D, Y at x. D < 0 = toward
+# the data's DAQ n+1. x0 = bit-identity check against v5a_th00 (same seed, same clusters).
+# PRE-REGISTERED (from fwd_variants.py / fwd_session_fit.py, static fields): at D = -200 the narrow-cluster X-pad class
+# asymmetry goes to ~ -0.3..-0.4 and the wide X-pad to ~ +0.2, the Y-pad class positive (~ +0.1..+0.2), and the overall
+# a1 stays small (~0..+0.05) without an added copy. FALSIFIER: X-pad narrow bins >= -0.1 at D = -300.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/xoff.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4 MX17_GAS_TABLE=/afs/cern.ch/work/d/dneff/mx17_s1/src/design/gas/drift_velocity_Ar_iC4H10_95_5_H2O_1.0.json"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_xoff$(d)_th00.out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_xoff$(d)_th00.err
+arguments               = "rho5M xoff$(d)_th00 /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07_cmq.json /afs/cern.ch/work/d/dneff/mx17_s1/clusters_ang_e17/mx17_muons_3k_ang_th00_e17_t0.root '--ion-model reconstructed --ion-mobility K0=2.05 --drift-gap-mm 26.5 --feedback-bg 0.45 --feedback-spread-um 150 --shaper-tp-ns 166 --wiring connector-inverted --calib /afs/cern.ch/work/d/dneff/mx17_s1/calib/aval_calib_meshfield_nc1_pooled.json --x-view-offset-um $(dv)'"
+queue d, dv from (
+  0, 0
+  m100, -100
+  m200, -200
+  m300, -300
+)
