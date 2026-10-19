@@ -1,8 +1,10 @@
 # Handoff
 
-## Neighbour asymmetry + timing vs strip distance — 2026-10-19 (desktop, dumps on yoga)
+## Neighbour asymmetry + timing vs strip distance — updated 2026-10-19 (dylan-MS-7C84)
 
-**Resume:** read `scratchpad/2026-10-19/NB_ASYM.md`, its top "Update" sections A–D first (they supersede "det3-only" and
+**Resume:** det3 X copy + displaced-feedback sim (v5a); next: ±1/±2 timing and Y shares on top of v5a (NB_ASYM §E).
+
+Read `scratchpad/2026-10-19/NB_ASYM.md`, its top "Update" sections A–D first (they supersede "det3-only" and
 the bus-trace explanation of det3's size). `NB_FAR.md` has the ±1..±5 delay tables.
 **Findings:**
 - The det3 X −1/+1 asymmetry is a one-sided in-phase copy (channel n+1 gets a × channel n): signal only, not noise, and
@@ -19,6 +21,8 @@ the bus-trace explanation of det3's size). `NB_FAR.md` has the ±1..±5 delay ta
 **Next:** NB_ASYM §E. Gotcha: yoga's lxplus session had no AFS token today, so `kinit` there first, or pull through
 the desktop and run `SKIP_PULL=1 ./eval_v5.sh`. Dylan: does anyone know what differed in the June-15 bulk (process, drying,
 coverlay), and was det3's X cabling moved between slots? Tagged dumps: yoga `/media/dylan/data/claude_tmp/tmp/nb/{tagged,survey}/`.
+v5 points: AFS `mx17_s1/stageBC/v5{a,b,c}_<ang>` and yoga `/media/dylan/data/claude_tmp/v3wet/v5*_<ang>`. Nothing is still running.
+`scratchpad/2026-10-17/eval_v2.log` has a stray one-line local change from an old driver; it is deliberately left uncommitted.
 
 ## Reco truth study + wet gas / prompt anode spread — updated 2026-10-18 afternoon (dylan-Yoga)
 
