@@ -31,3 +31,7 @@ Reading:
   starts prompt and peaks late. The σ0 spread is not the data's mechanism at ±2.
 - Data X is side-asymmetric: −1/+1 peak 0.416/0.321, −2/+2 0.090/0.051 (5σ). Y is symmetric (0.416/0.401), sim symmetric.
   Not a track lean (selected mean ax 0.01°, ay 0.13°). Open.
+
+**Update later on 10-19 (`NB_ASYM.md`):** the X −1/+1 asymmetry is a one-sided in-phase copy (det3 X only, induced on the
+detector, not the beat). The X ±1 numbers above average it in. On the clean + side, X ±1 is +75 ± 18 ns (= v4c) with
+share 0.30 (v4c 0.39). The "prompt component" on the far strips is a symmetric exponential tail present on every board.

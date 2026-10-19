@@ -1,0 +1,28 @@
+g_det3_wknd X (FEU 7) 12000 samples:
+   directional b(n-1) - b(n+1) in channel number: mean +0.007  median -0.008  (n 496)
+g_det3_wknd Y (FEU 8) 12000 samples:
+   directional b(n-1) - b(n+1) in channel number: mean +0.009  median -0.003  (n 496)
+sat_det3 X (FEU 7) 12000 samples:
+   directional b(n-1) - b(n+1) in channel number: mean +0.001  median +0.004  (n 496)
+sat_det3 Y (FEU 8) 12000 samples:
+   directional b(n-1) - b(n+1) in channel number: mean -0.003  median +0.011  (n 496)
+g_det3 X (FEU 3) 12000 samples:
+   directional b(n-1) - b(n+1) in channel number: mean -0.004  median -0.000  (n 496)
+g_det3 Y (FEU 4) 12000 samples:
+   directional b(n-1) - b(n+1) in channel number: mean +0.001  median -0.002  (n 496)
+o23_long_det3 X (FEU 3) 12000 samples:
+   directional b(n-1) - b(n+1) in channel number: mean +0.003  median +0.000  (n 496)
+o23_long_det3 Y (FEU 4) 12000 samples:
+   directional b(n-1) - b(n+1) in channel number: mean +0.005  median +0.001  (n 496)
+g_det2 X (FEU 6) 12000 samples:
+   directional b(n-1) - b(n+1) in channel number: mean +0.033  median +0.011  (n 496)
+g_det2 Y (FEU 8) 12000 samples:
+   directional b(n-1) - b(n+1) in channel number: mean -0.002  median -0.022  (n 496)
+g_det4 X (FEU 6) 12000 samples:
+   directional b(n-1) - b(n+1) in channel number: mean +0.006  median +0.034  (n 496)
+g_det4 Y (FEU 8) 12000 samples:
+   directional b(n-1) - b(n+1) in channel number: mean -0.022  median -0.035  (n 496)
+g_det6_long X (FEU 3) 12000 samples:
+   directional b(n-1) - b(n+1) in channel number: mean +0.077  median +0.014  (n 496)
+g_det6_long Y (FEU 4) 12000 samples:
+   directional b(n-1) - b(n+1) in channel number: mean +0.024  median +0.004  (n 496)

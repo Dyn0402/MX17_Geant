@@ -1,5 +1,18 @@
 # Handoff
 
+## Neighbour asymmetry + timing vs strip distance — 2026-10-19 (desktop, dumps on yoga)
+
+**Resume:** read `scratchpad/2026-10-19/NB_ASYM.md` (and `NB_FAR.md` for the ±1..±5 delay tables).
+**Findings:** the det3 X −1/+1 asymmetry is not the ESL beat. It is a one-sided, linear, prompt in-phase copy
+(channel n+1 gets a = 0.09–0.21 of channel n). It is det3-only (other boards ≈ 0.01), X-only, absent from the noise, so
+induced on the detector, not the electronics. Candidate: the one-sided bus traces under the inter-pad gaps (gerbers);
+`channel_map.py` docstring corrected. On the copy-free + side, X ±1 delay = +75 ± 18 ns = v4c, but share 0.30 vs v4c
+0.39 (Y 0.41 vs 0.45): v4c's σ0 420 µm was tuned on copy-inflated X numbers. Every board has a symmetric exponential
+prompt tail at ±3..±5 (~1 % at ±3) that the sim lacks; Y far strips rise ~300 ns earlier and larger than the sim.
+**Next:** see NB_ASYM.md "Next" (copy-free X targets; bus-trace weighting solve; reduce late ±1 charge rather than add
+prompt; prompt tail as a readout term). Tagged dumps on yoga `/media/dylan/data/claude_tmp/tmp/nb/tagged/` (~70 MB);
+`run_dumps.sh` regenerates them.
+
 ## Reco truth study + wet gas / prompt anode spread — updated 2026-10-18 afternoon (dylan-Yoga)
 
 **Resume:** read `design/report/RECO_TRUTH_2026-10-18.md` (live: https://dylan-neff.web.cern.ch/notes/mx17-sim-reco-truth.html,

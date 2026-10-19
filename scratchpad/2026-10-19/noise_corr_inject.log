@@ -1,0 +1,19 @@
+g_det3_wknd X injected A = 0.00: b(n-1) - b(n+1) mean +0.007;  median corr d1 +0.176 d2 +0.140 d3 +0.150  -> d1 excess +0.031
+g_det3_wknd X injected A = 0.10: b(n-1) - b(n+1) mean -0.058;  median corr d1 +0.334 d2 +0.221 d3 +0.206  -> d1 excess +0.120
+g_det3_wknd X injected A = 0.20: b(n-1) - b(n+1) mean -0.072;  median corr d1 +0.520 d2 +0.318 d3 +0.275  -> d1 excess +0.223
+sat_det3 X injected A = 0.00: b(n-1) - b(n+1) mean +0.001;  median corr d1 +0.076 d2 +0.110 d3 +0.107  -> d1 excess -0.033
+sat_det3 X injected A = 0.10: b(n-1) - b(n+1) mean -0.030;  median corr d1 +0.186 d2 +0.132 d3 +0.120  -> d1 excess +0.060
+sat_det3 X injected A = 0.20: b(n-1) - b(n+1) mean -0.040;  median corr d1 +0.294 d2 +0.176 d3 +0.146  -> d1 excess +0.133
+g_det3 X injected A = 0.00: b(n-1) - b(n+1) mean -0.004;  median corr d1 +0.086 d2 +0.111 d3 +0.103  -> d1 excess -0.021
+g_det3 X injected A = 0.10: b(n-1) - b(n+1) mean -0.010;  median corr d1 +0.199 d2 +0.139 d3 +0.125  -> d1 excess +0.067
+g_det3 X injected A = 0.20: b(n-1) - b(n+1) mean -0.013;  median corr d1 +0.308 d2 +0.189 d3 +0.153  -> d1 excess +0.137
+g_det2 X injected A = 0.00: b(n-1) - b(n+1) mean +0.033;  median corr d1 +0.157 d2 +0.170 d3 +0.135  -> d1 excess +0.004
+g_det2 X injected A = 0.10: b(n-1) - b(n+1) mean -0.063;  median corr d1 +0.278 d2 +0.183 d3 +0.162  -> d1 excess +0.105
+g_det2 X injected A = 0.20: b(n-1) - b(n+1) mean -0.065;  median corr d1 +0.376 d2 +0.242 d3 +0.186  -> d1 excess +0.162
+g_det4 X injected A = 0.00: b(n-1) - b(n+1) mean +0.006;  median corr d1 +0.174 d2 +0.195 d3 +0.152  -> d1 excess +0.000
+g_det4 X injected A = 0.10: b(n-1) - b(n+1) mean -0.061;  median corr d1 +0.293 d2 +0.218 d3 +0.178  -> d1 excess +0.095
+g_det4 X injected A = 0.20: b(n-1) - b(n+1) mean -0.050;  median corr d1 +0.414 d2 +0.286 d3 +0.245  -> d1 excess +0.148
+g_det6_long X injected A = 0.00: b(n-1) - b(n+1) mean +0.077;  median corr d1 +0.314 d2 +0.304 d3 +0.145  -> d1 excess +0.090
+g_det6_long X injected A = 0.10: b(n-1) - b(n+1) mean -0.120;  median corr d1 +0.433 d2 +0.331 d3 +0.227  -> d1 excess +0.154
+g_det6_long X injected A = 0.20: b(n-1) - b(n+1) mean -0.127;  median corr d1 +0.584 d2 +0.409 d3 +0.312  -> d1 excess +0.223
+

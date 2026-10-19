@@ -43,6 +43,14 @@ layer 132248 are vertical and 1942 horizontal. So the Y layer busses along x
 (a channel is a ROW, measuring y) and the X layer busses along y (a channel is
 a COLUMN, measuring x).
 
+CORRECTION 2026-10-19 (scratchpad/2026-10-19/NB_ASYM.md): the 0.1 mm segments
+counted above are almost all the 390 um stubs, which run PERPENDICULAR to the bus.
+The long bus lines themselves run the other way: on L4-TrackX they are horizontal,
+at y = k * 0.78 mm, midway between pad rows, and every stub goes -0.39 mm in y; on
+L3-TrackY they are vertical, midway between pad columns, and every stub goes
++0.39 mm in x. So each bus lies under the inter-pad gap on ONE side of its pads.
+The checkerboard ownership above is unaffected.
+
 CONSEQUENCE FOR THE RESPONSE MODEL, and it is not a small one: a channel is
 every-OTHER pad along its line, 256 pads on a 1.56 mm pitch, not 512 pads on a
 0.78 mm pitch. Its weighting potential is a comb, not a solid strip. Any model
