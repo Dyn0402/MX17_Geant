@@ -1,0 +1,72 @@
+/home/dylan/CLionProjects/MX17_Geant/scratchpad/2026-10-19/nb_far.py:29: RuntimeWarning: Mean of empty slice
+  c = np.where(cov, np.nanmean(A[:, hw], 0), np.nan); n = np.where(cov, np.nanmean(np.nanmean(A[:, idx], 1), 0), np.nan)
+/home/dylan/PycharmProjects/nTof_x17/.venv/lib/python3.12/site-packages/numpy/lib/_nanfunctions_impl.py:2019: RuntimeWarning: Degrees of freedom <= 0 for slice.
+  var = nanvar(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+
+v3rw X  (data 287 ev, sim 1886 ev)   peak delay [ns] | peak/central | min/central | 50% edge delay [ns]
+   -1  delay data   +30± 12 (0% late) sim  +135±  9 (0% late) | peak data 0.416±0.012 sim 0.376±0.006 | edge data   -21±  9 sim   +23±  4
+   +1  delay data   +75± 25 (0% late) sim  +135±  9 (0% late) | peak data 0.321±0.015 sim 0.369±0.005 | edge data   -30± 15 sim   +21±  4
+   ±1  delay data   +45± 13 (0% late) sim  +135±  7 (0% late) | peak data 0.368±0.007 sim 0.372±0.003 | edge data   -25±  7 sim   +22±  3
+   -2  delay data  +270± 49 (0% late) sim  +225± 13 (0% late) | peak data 0.090±0.007 sim 0.105±0.003 | edge data    +6± 29 sim   +94± 10
+   +2  delay data  +390±127 (0% late) sim  +225± 19 (0% late) | peak data 0.051±0.005 sim 0.101±0.003 | edge data   -21± 89 sim   +89± 10
+   ±2  delay data  +315± 54 (0% late) sim  +225± 11 (0% late) | peak data 0.069±0.003 sim 0.103±0.002 | edge data    -7± 28 sim   +91±  7
+   -3  delay data  +360± 53 (0% late) sim  +345± 16 (0% late) | peak data 0.012±0.001 sim 0.009±0.001 | edge data   +32± 27 sim  +242± 19
+   +3  delay data  +435±171 (0% late) sim  +315± 18 (0% late) | peak data 0.012±0.003 sim 0.010±0.001 | edge data   +73±111 sim  +239± 19
+   ±3  delay data  +420± 94 (0% late) sim  +330± 13 (0% late) | peak data 0.012±0.002 sim 0.010±0.000 | edge data   +48± 31 sim  +240± 14
+   -4  delay data  +150±125 (0% late) sim  +255±265 (0% late) | peak data 0.003±0.000 sim 0.001±0.000 | edge data   +60± 26 sim  +186±180
+   +4  delay data  +390±144 (0% late) sim  +105±175 (0% late) | peak data 0.003±0.001 sim 0.001±0.000 | edge data  +109±108 sim   +60±195
+   ±4  delay data  +375±138 (0% late) sim  +255±139 (0% late) | peak data 0.003±0.000 sim 0.001±0.000 | edge data   +74± 24 sim   +86±135
+   -5  delay data   +30±329 (0% late) sim  +900±279 (20% late) | peak data 0.002±0.000 sim 0.000±0.000 | edge data  +124±337 sim +1048±278
+   +5  delay data  +285±347 (14% late) sim   -45±486 (3% late) | peak data 0.001±0.000 sim 0.000±0.000 | edge data  +308±432 sim   +44±553
+   ±5  delay data   +30±423 (10% late) sim  +inf±603 (14% late) | peak data 0.001±0.000 sim 0.000±0.000 | edge data  +108±488 sim +1419±660
+
+v3rw Y  (data 305 ev, sim 2149 ev)   peak delay [ns] | peak/central | min/central | 50% edge delay [ns]
+   -1  delay data   +60± 18 (0% late) sim  +135±  8 (0% late) | peak data 0.416±0.014 sim 0.433±0.005 | edge data    -1±  7 sim   +36±  3
+   +1  delay data   +45± 15 (0% late) sim  +120±  9 (0% late) | peak data 0.401±0.012 sim 0.436±0.005 | edge data   -22± 11 sim   +32±  3
+   ±1  delay data   +60± 12 (0% late) sim  +135±  7 (0% late) | peak data 0.408±0.008 sim 0.435±0.003 | edge data   -11±  5 sim   +34±  2
+   -2  delay data  +435± 26 (0% late) sim  +330±  8 (0% late) | peak data 0.158±0.006 sim 0.158±0.003 | edge data  +113± 29 sim  +184±  8
+   +2  delay data  +420± 31 (0% late) sim  +315±  7 (0% late) | peak data 0.154±0.007 sim 0.156±0.003 | edge data   +65± 25 sim  +173±  7
+   ±2  delay data  +420± 21 (0% late) sim  +330±  7 (0% late) | peak data 0.156±0.004 sim 0.157±0.002 | edge data   +88± 18 sim  +178±  6
+   -3  delay data  +600± 45 (0% late) sim  +600± 43 (0% late) | peak data 0.047±0.002 sim 0.031±0.001 | edge data  +323± 31 sim  +376± 13
+   +3  delay data  +630± 41 (0% late) sim  +585± 42 (0% late) | peak data 0.045±0.002 sim 0.032±0.001 | edge data  +226± 50 sim  +374± 12
+   ±3  delay data  +600± 29 (0% late) sim  +600± 24 (0% late) | peak data 0.046±0.001 sim 0.031±0.000 | edge data  +279± 32 sim  +375±  9
+   -4  delay data  +inf± 25 (78% late) sim  +inf±nan (100% late) | peak data 0.018±0.001 sim 0.012±0.000 | edge data  +549± 54 sim  +881± 13
+   +4  delay data  +inf± 19 (44% late) sim  +inf±  0 (96% late) | peak data 0.019±0.001 sim 0.012±0.000 | edge data  +626± 55 sim  +844± 15
+   ±4  delay data  +inf± 12 (66% late) sim  +inf±nan (100% late) | peak data 0.019±0.001 sim 0.012±0.000 | edge data  +579± 41 sim  +863± 10
+   -5  delay data +1170± 30 (41% late) sim  +inf±  7 (96% late) | peak data 0.004±0.000 sim 0.002±0.000 | edge data  +483±207 sim +1167± 36
+   +5  delay data  +inf±248 (56% late) sim  +inf±  0 (100% late) | peak data 0.004±0.000 sim 0.002±0.000 | edge data  +172±300 sim +1150± 23
+   ±5  delay data  +inf± 21 (50% late) sim  +inf±nan (100% late) | peak data 0.004±0.000 sim 0.002±0.000 | edge data  +473±183 sim +1156± 19
+
+v4c X  (data 287 ev, sim 1877 ev)   peak delay [ns] | peak/central | min/central | 50% edge delay [ns]
+   -1  delay data   +30± 15 (0% late) sim   +75±  9 (0% late) | peak data 0.416±0.012 sim 0.382±0.006 | edge data   -21±  9 sim    +3±  3
+   +1  delay data   +75± 21 (0% late) sim   +75±  9 (0% late) | peak data 0.321±0.013 sim 0.387±0.006 | edge data   -30± 13 sim    +2±  3
+   ±1  delay data   +45± 14 (0% late) sim   +75±  8 (0% late) | peak data 0.368±0.007 sim 0.385±0.003 | edge data   -25±  7 sim    +2±  2
+   -2  delay data  +270± 54 (0% late) sim   +75± 18 (0% late) | peak data 0.090±0.006 sim 0.094±0.003 | edge data    +6± 31 sim   +17±  6
+   +2  delay data  +390±158 (0% late) sim   +90± 19 (0% late) | peak data 0.051±0.005 sim 0.096±0.003 | edge data   -21± 65 sim   +16±  5
+   ±2  delay data  +315± 53 (0% late) sim   +90± 15 (0% late) | peak data 0.069±0.003 sim 0.095±0.002 | edge data    -7± 30 sim   +16±  4
+   -3  delay data  +360± 70 (0% late) sim  +300± 24 (0% late) | peak data 0.012±0.001 sim 0.006±0.001 | edge data   +32± 26 sim  +175± 23
+   +3  delay data  +435±163 (0% late) sim  +300± 40 (0% late) | peak data 0.012±0.003 sim 0.006±0.000 | edge data   +73± 98 sim  +152± 27
+   ±3  delay data  +420±113 (0% late) sim  +300± 24 (0% late) | peak data 0.012±0.002 sim 0.006±0.000 | edge data   +48± 31 sim  +164± 17
+   -4  delay data  +150±131 (0% late) sim  +975±426 (4% late) | peak data 0.003±0.000 sim 0.000±0.000 | edge data   +60± 24 sim +1167±432
+   +4  delay data  +390±123 (0% late) sim  -450±553 (2% late) | peak data 0.003±0.001 sim 0.000±0.000 | edge data  +109±106 sim  -272±594
+   ±4  delay data  +375±141 (0% late) sim +1155±656 (4% late) | peak data 0.003±0.000 sim 0.000±0.000 | edge data   +74± 35 sim +1189±587
+   -5  delay data   +30±304 (2% late) sim +1140±162 (8% late) | peak data 0.002±0.000 sim 0.000±0.000 | edge data  +124±334 sim +1321±108
+   +5  delay data  +285±351 (11% late) sim +1005±552 (0% late) | peak data 0.001±0.000 sim 0.000±0.000 | edge data  +308±409 sim +1191±583
+   ±5  delay data   +30±370 (14% late) sim +1080±404 (2% late) | peak data 0.001±0.000 sim 0.000±0.000 | edge data  +108±472 sim +1290±415
+
+v4c Y  (data 305 ev, sim 2188 ev)   peak delay [ns] | peak/central | min/central | 50% edge delay [ns]
+   -1  delay data   +60± 18 (0% late) sim   +60±  6 (0% late) | peak data 0.416±0.013 sim 0.461±0.005 | edge data    -1±  7 sim    -2±  2
+   +1  delay data   +45± 13 (0% late) sim   +60±  8 (0% late) | peak data 0.401±0.011 sim 0.451±0.005 | edge data   -22±  9 sim    +4±  2
+   ±1  delay data   +60± 10 (0% late) sim   +60±  6 (0% late) | peak data 0.408±0.008 sim 0.456±0.003 | edge data   -11±  5 sim    +1±  2
+   -2  delay data  +435± 24 (0% late) sim  +300± 11 (0% late) | peak data 0.158±0.007 sim 0.143±0.002 | edge data  +113± 27 sim  +104±  6
+   +2  delay data  +420± 31 (0% late) sim  +300± 11 (0% late) | peak data 0.154±0.007 sim 0.136±0.002 | edge data   +65± 26 sim  +115±  7
+   ±2  delay data  +420± 21 (0% late) sim  +300±  7 (0% late) | peak data 0.156±0.004 sim 0.140±0.001 | edge data   +88± 17 sim  +109±  5
+   -3  delay data  +600± 53 (0% late) sim  +780± 26 (0% late) | peak data 0.047±0.003 sim 0.033±0.000 | edge data  +323± 36 sim  +383± 13
+   +3  delay data  +630± 37 (0% late) sim  +840± 29 (0% late) | peak data 0.045±0.002 sim 0.032±0.000 | edge data  +226± 47 sim  +410± 14
+   ±3  delay data  +600± 29 (0% late) sim  +810± 27 (0% late) | peak data 0.046±0.001 sim 0.032±0.000 | edge data  +279± 31 sim  +395±  9
+   -4  delay data  +inf± 37 (67% late) sim  +inf±  6 (98% late) | peak data 0.018±0.001 sim 0.012±0.000 | edge data  +549± 52 sim  +869± 12
+   +4  delay data  +inf± 20 (45% late) sim  +inf±nan (100% late) | peak data 0.019±0.001 sim 0.012±0.000 | edge data  +626± 83 sim  +902± 10
+   ±4  delay data  +inf± 10 (64% late) sim  +inf±nan (100% late) | peak data 0.019±0.001 sim 0.012±0.000 | edge data  +579± 42 sim  +886±  7
+   -5  delay data +1170± 29 (40% late) sim  +inf±734 (98% late) | peak data 0.004±0.000 sim 0.002±0.000 | edge data  +483±192 sim +1195± 54
+   +5  delay data  +inf±251 (48% late) sim  +inf± 16 (84% late) | peak data 0.004±0.000 sim 0.002±0.000 | edge data  +172±295 sim +1183± 34
+   ±5  delay data  +inf± 22 (46% late) sim  +inf±nan (100% late) | peak data 0.004±0.000 sim 0.002±0.000 | edge data  +473±186 sim +1178± 34
