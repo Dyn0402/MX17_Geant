@@ -68,7 +68,7 @@ Verdict key: ✗ excluded · ~ partial / doesn't fit alone · ✓ supported · ?
 | 31 | Static relocation (strip charge spread across/along its stripe; gap charge stays, funnelled, or leaked to neighbour stripes) | Deterministic fast model on the prompt ESL-plane field (`r5/esl_fast.py`) | ≤ ±0.02 for every variant except funnel-all + 1.5 mm along-stripe smear (±0.10). It also misses the sim baseline (0 vs ±0.05), so it is not a calibrator | ~ direction only | Seventh round 1 |
 | 32 | Where the sim's a1(δ) comes from | Production X kernel, y-resolved clouds (`r5/kernel_delta.py`) | 0 at t = 0, builds over 100–300 ns of sheet transport; ±0.06 for σ 250 µm next to a strip edge, ±0.015 for σ 450 | ✓ late sheet transport | Seventh round 2 |
 | 33 | Is the sim's registration excess prompt like the data's? | Excess waveform vs central, sim \|δ\| ≥ 150 vs data (`r5/delta_timing.py`) | Sim excess leads the central by 70 ns (t50 −90); data by 10 ns (t50 −25); det2/May none | ~ wrong shape by ~1 sample | Seventh round 3 |
-| 34 | Cross-gap leak (conducting ESL gaps, σ_gap = f σ_strip) in the real solver | W2 X-box kernels with `--gap-frac` (`w2_production.py`); mini nx = 390 locally; nx = 1560 scan f = 0…0.3 on condor 4520685 | Mini, f = 0.03 at 5 MΩ: late ±2 across stripes ×10 (σ 250: 1.0 → 9.8 ×10⁻³), odd a1 unchanged at 300 ns (−0.029) and +30 % at 1 µs | ~ explains the June late leak, not (yet) the prompt 3× | Seventh round 4 |
+| 34 | Cross-gap leak (conducting ESL gaps, σ_gap = f σ_strip) in the real solver | W2 X-box kernels with `--gap-frac` (`w2_production.py`); nx = 1560 scan f = 0…0.3 (condor 4520685) | Registration odd amplitude ×1.9 at 1 µs for f ≈ 0.03–0.1 (5 MΩ), only ×1.25 by 300 ns; at 0.5 MΩ f = 0.03 gives ×2.2 by 300 ns; f = 0.3 kills it; late ±2 rises 0.7 → 2–130 ×10⁻³ | ✓ amplifier up to ~2×, prompt only at low ρ_s; full-sim arms running (4520810) | Seventh round 4, 10 |
 | 35 | Prompt funnelling of gap-landing electrons onto the strip edge | Digitizer `--gap-funnel F`, full v5a sim, 72 arms (condor 4520688) paired with the D = 0 seeds 7–12 (`r5/paired_odd.py`) | F = 1: odd amplitude ×1.40 (narrow ×1.54, +0.038 ± 0.003); F = 0.5: ×1.20; sharing unchanged; excess still leads the central by 90 ns | ~ real amplifier, ≤ 1.5×, wrong timing | Seventh round 7 |
 | 36 | Strip resistivity ρ_s | Mini kernels at 0.5/1/2/5 MΩ/sq | Registration term saturates at the same size (−0.033, σ 250); low ρ_s only makes it prompt (by 92 ns at 0.5 MΩ) | timing lever, not size | Seventh round 8 |
 
@@ -580,3 +580,28 @@ Scripts in `scratchpad/2026-10-20/r5/` (`esl_fast.py`, `kernel_delta.py`, `delta
    So a lower-resistivity June print would make the registration excess prompt without making it larger.
 9. Running: the strip-width scan (condor 4520736, insulating gaps, widths 410/690 µm, effective 420/700 on the 20 µm
    grid, vs 540 for the gap-0 job of 4520685), to see whether the gap/strip ratio sets the size.
+10. **Gap-conductivity scan at nx = 1560** (condor 4520685, products `/eos/user/d/dneff/tmp/gx/gap<f>_nx1560/`,
+    `r5/kernel_delta.py` → `r5/kernel_delta_gap1560.json`, log `r5/kd1560.log`). The f = 0 grid control reproduces the
+    production kernel (−0.024 at 300 ns, same as the 10 µm slice). Odd amplitude ⟨sgn δ · A⟩, σ = 250 µm:
+
+    | | 300 ns | 1 µs | late ±2 at 1 µs (×10⁻³, kernel metric) |
+    |---|---|---|---|
+    | f = 0 | −0.024 | −0.024 | 0.7 |
+    | f = 0.01 | −0.026 | −0.033 | 2.3 |
+    | f = 0.03 | −0.028 | −0.042 | 7.5 |
+    | f = 0.1 | −0.030 | −0.046 | 38 |
+    | f = 0.3 | −0.023 | −0.021 | 129 |
+    | 0.5 MΩ, f = 0 | −0.024 | −0.025 | 0.7 |
+    | 0.5 MΩ, f = 0.03 | −0.053 | −0.027 | 230 |
+    | 0.5 MΩ, f = 0.3 | −0.003 | −0.001 | 777 |
+
+    For σ = 450 µm the odd term stays ≤ 0.004 throughout. A moderate leak roughly doubles the registration asymmetry
+    for narrow clouds: it drains the gap charge onto the neighbouring strips, so more of the charge ends up
+    registered. Too much leak makes the sheet uniform and the asymmetry goes. At 5 MΩ the doubling arrives late; at
+    0.5 MΩ it is there by 300 ns. Doubling from the leak and ~1.4× from funnelling together reach the 2.5–5× the data
+    need. This is the first combination that gets there in size.
+    Full-sim test running: condor 4520810 (144 jobs). Hybrid kernels (`2026-10-21/build_hybrid.py`: production Y
+    kernels + the nx = 1560 X kernels upsampled to 10 µm) for f = 0 (grid control), 0.03, 0.1, and 0.1 + `--gap-funnel
+    1`, all at 5 MΩ, th00 + thy*, seeds 7–12, npz → `simgapleak_npz`. Score: `paired_odd.py glg0 … glg0.03 … glg0.1 …
+    glg0.1f1 …` and `delta_timing.py glg0.1 …`; also the late ±2 across-stripe content with `stripe_orient` metric
+    against data (June 12–31, May 1–9). The Y view keeps insulating-gap kernels, so this tests X only.
