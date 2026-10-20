@@ -15,13 +15,20 @@ channels noisier than 3x the median are masked and the isolation cut is applied 
 the peak search done in TRUE pad-column order (each 64-channel connector reversed); stores the column-order window
 (wf, physical neighbours) and the DAQ-order window around the same channel (wf_daq). At a connector edge the two
 differ: DAQ neighbours sit on another connector/chip 127 columns away, physical ones are 127 DAQ channels away.
-Usage: raw_asym.py DECODED_DIR FEU OUT.npz [--files 3] [--skip 0] [--cm] [--edge]"""
+--array (2026-10-20): read decoded_array / filtered_root files (amplitude uint16[512][32], channel-major), e.g. the
+April-24 build on EOS, which has no decoded_root. Filtered files hold M3-triggered events only; the first-1000-event
+pedestal is then a median over events that mostly carry a track in some chip, which the median tolerates.
+Usage: raw_asym.py DECODED_DIR FEU OUT.npz [--files 3] [--skip 0] [--cm] [--edge] [--array]"""
 import sys, glob, argparse, numpy as np, uproot, awkward as ak
 ap = argparse.ArgumentParser(); ap.add_argument('dec'); ap.add_argument('feu', type=int); ap.add_argument('out')
 ap.add_argument('--files', type=int, default=3); ap.add_argument('--skip', type=int, default=0)
 ap.add_argument('--cm', action='store_true'); ap.add_argument('--edge', action='store_true')
+ap.add_argument('--array', action='store_true')
 a = ap.parse_args()
-files = [f for f in sorted(glob.glob(f'{a.dec}/*_{a.feu:02d}.root')) if 'pedestal' not in f and 'decoded_array' not in f]
+if a.array:   # decoded_array / filtered_root files: amplitude is a fixed uint16[512][32] (channel, sample) per event
+    files = sorted(glob.glob(f'{a.dec}/*_{a.feu:02d}_decoded_array*.root'))
+else:
+    files = [f for f in sorted(glob.glob(f'{a.dec}/*_{a.feu:02d}.root')) if 'pedestal' not in f and 'decoded_array' not in f]
 files = files[a.skip:a.skip + a.files]
 HW, D, AINJ = 4, 6, 0.15
 WF, P, EV, FI, DISP, WFD = [], [], [], [], [], []
@@ -36,7 +43,11 @@ def corr_acc(x, key):
 for fi, f in enumerate(files):
     t = uproot.open(f)['nt']; ped = None
     for arr in t.iterate(['eventId', 'amplitude'], step_size=1500, library='ak'):
-        amp = arr['amplitude']; n = ak.num(amp); ns_mode = int(np.bincount(np.asarray(n) // 512).argmax())
+        if a.array:
+            amp = ak.Array(ak.to_numpy(arr['amplitude']).transpose(0, 2, 1).reshape(len(arr), -1))
+        else:
+            amp = arr['amplitude']
+        n = ak.num(amp); ns_mode = int(np.bincount(np.asarray(n) // 512).argmax())
         keep = np.asarray(n) == ns_mode * 512
         x = ak.to_numpy(amp[keep]).reshape(-1, ns_mode, 512).astype(np.float32); eid = np.asarray(arr['eventId'])[keep]
         if ped is None:

@@ -163,3 +163,52 @@ bulks; the date/field dependence is the cluster width acting on a fixed one-side
    matched isolated events per arm → too few. Statistics run condor 4505159: 4 offsets × 12 angle files × 2 seeds
    (`run_xoff_job.sh`, decoded ROOT to EOS `response_sim/stageB_w2/xoff/`, npz to AFS `simxoff_npz/`); evaluate with
    `sim_xoff_eval.py` against 6-27/28 1000 V (the v5a target) and all det3 June-15.
+
+## Fourth round (2026-10-20, dylan-Yoga): X-offset full sim read out; stripe direction on every pre-June board
+1. **X-offset full sim (condor 4505159, 96/96 done)**, `sim_xoff_eval.py` (now skips the empty steep-angle arms,
+   env `XOFF_ARMS`, `XOFF_COPIES`, `XOFF_SESSIONS`, `XOFF_OUT`) + `sim_xoff_rescore.py` (adds the Y-pad fraction fY per
+   Y-share bin to the χ²; the eval's χ² drops bins where the sim has no events of a class, so arms with no narrow X-pad
+   events never paid for the data's −0.40). Arms restricted to th00 + thy* (the thx/txy arms are one-signed in x and
+   give a −0.04 baseline a1 at zero offset). Absolute Y-share bins 0/.4/.55/.7/.85/1/1.3. Outputs
+   `sim_xoff_eval_{sym,sess}.json`, `sim_xoff_rescore_sess.txt`.
+   - **Pre-registered test passed:** narrow X-pad class at −300 µm = −0.49/−0.45 (falsifier was ≥ −0.1). At −200:
+     −0.51…−0.60/−0.44. At 0 µm there are no narrow X-pad events at any copy.
+   - **The offset is needed:** it is the only ingredient that makes the narrow X-pad flip and the pad-type migration.
+     Narrow-bin Y-pad fraction: data 0.87/0.74/0.67; offset −200: 0.91/0.78/0.77; plain copy 0.94/0.90/0.89.
+     fY χ² 16–27 with the offset vs 80–163 for any plain copy.
+   - **A rigid offset is not enough:** its asymmetry fades as clusters widen (−200 µm, Y-pad class +0.27 → −0.02 over
+     the Y-share bins), but the data's does not. On 6-23/24 the Y-pad class is +0.29 … +0.36 flat out to the widest
+     bin, and the X-pad class goes +0.13 … +0.28 there. That part is copy-like (a fixed fraction).
+   - Adding a copy on top overshoots the narrow Y-pad bins (+0.41 vs +0.26). No (offset, copy) on the grid fits any
+     session. Best totals: 6-22/23 −100 µm + 0.20 (χ² 74, ~20 bins); 6-23/24 −100 + 0.20 (195); 6-27/28 plain 0.25 ≈
+     −100 + 0.10 (36–40).
+   - **Reading:** det3 behaves like a shift at narrow widths and a copy at wide widths. Both fit a one-sided
+     pad-level coupling: X line n+1 senses a fixed fraction w of the charge over the Y pads on its bus side. That
+     looks like a shift when the cloud sits on one Y pad (n+1 can overtake n, so the peak migrates) and like a copy
+     for wide clouds. Next model: add that cross-kernel to the digitizer (X(n+1) += w × induced signal of bus-side Y
+     pads), not a rigid offset.
+2. **Stripe direction, every board** (`stripe_orient2.py` → `stripe_orient2.{txt,json}`). Charge spreads along the
+   stripes, so the slow view shows the direction. Metric: ±2 late content (600–960 ns after the central peak),
+   bootstrap errors. New extractions on yoga `/media/dylan/data/claude_tmp/tmp/nb/raw/orient/`:
+   - det0 4-1 He/ethane, 505/520 V.
+   - det4 May build ("Bulked 5-6-26", 5-7 Ar/CF4).
+   - The April-24 bulk ("Strip resist horizontal. Waves on mesh. Resist strips broken", EOS
+     `cosmic_bench/det_1_old/mx17_det1_Ar_CF4_HV_Scan_4-25-26`, 550 V only). It has no decoded_root, so it was read
+     from the M3-filtered arrays with the new `raw_asym.py --array`.
+
+   | build | n X/Y | ±2 late X / Y (×10⁻³) | slow view |
+   |---|---|---|---|
+   | det0 (4-1-26, He/ethane) | 4092/4335 | 23.6 / −0.8 | **X (−50 σ)** |
+   | det1 (Jan) | 5455/5066 | 37.0 / 9.4 | **X (−41 σ)** |
+   | Apr-24 bulk "horizontal" | 256/825 (60 ADC floor) | 4.0±3.3 / 6.2±2.0 | none (+0.6 σ) |
+   | det3 May "vertical" | 15123/16913 | 8.5 / 31.0 | Y (+75 σ) |
+   | det4 May (5-6 bulk) | 23069/23059 | 0.8 / 31.9 | Y (+183 σ) |
+   | det2, det3 June-15, det4, det6, det7 | | | Y (+9 … +130 σ) |
+
+   - "Vertical" (det3 May) = Y-slow. det0 (April 1) and det1 (January) are X-slow: their stripes run the other way.
+     Both sit under EOS `det_0_old`, so they are probably one PCB (not proven). Every May and June build runs the same way, so none of det2/3/4/6/7 is reversed.
+   - The April-24 re-bulk shows no slow spreading in either view, which fits its "resist strips broken" note. Its
+     cosmics are faint at 550 V (most below 200 ADC; σ_noise ≈ 10 ADC). It also has a fixed pulsing spot at X 487–494 /
+     Y 48–52, which the hot-channel veto removes. Its direction can't be read from data; the config says horizontal.
+   - None of this touches the det3 X asymmetry: det1 (reversed) has copy ≈ 0, and det3 June-15's direction is the
+     common one.

@@ -1,5 +1,33 @@
 # Handoff
 
+## det3 X asymmetry, fourth round: offset sim read out, stripe direction checked — updated 2026-10-20 (dylan-Yoga)
+
+**Resume:** FINDINGS.md "Fourth round"; next is a one-sided Y-pad → X(n+1) cross-kernel in the digitizer.
+
+**Done:**
+- Condor 4505159 evaluated (`sim_xoff_eval.py`, `sim_xoff_rescore.py`). Pre-registered test passed: −300 µm gives
+  narrow X-pad −0.49/−0.45 (falsifier ≥ −0.1).
+- The offset is the only ingredient that makes the narrow X-pad flip and the pad-type migration. A rigid offset still
+  fails: its asymmetry fades for wide clusters, while the data's stays at ~0.3 (6-23/24). No (offset, copy) on the grid
+  fits any session.
+- Reading: a fixed one-sided fraction of the bus-side Y-pad charge seen by X line n+1. That looks like a shift when
+  the cloud is narrow and like a copy when it is wide.
+- Stripe direction (`stripe_orient2.py`):
+  - det0 (4-1) and det1 (Jan) are X-slow, the reversed board (40–50σ).
+  - Every May/June build (det2, det3 May/June-15, det4 May/June, det6, det7) is Y-slow.
+  - The April-24 "horizontal, strips broken" re-bulk shows no spreading in either view.
+- `raw_asym.py --array` reads decoded_array/filtered_root files (Apr-24 board has no decoded_root).
+
+**Next steps:**
+1. Digitizer option: X(n+1) += w × induced signal of the bus-side Y pads (pad-level, one-sided). Fit w per session
+   with `sim_xoff_eval.py`-style class curves; does one w fit all sessions, with the width doing the rest?
+2. Deck slides for round four are not built yet (`make_asym_deck.py` + `deck_slides_1020.py`).
+
+**Gotchas:**
+- On yoga, run the evals with `NB_RAW=/media/dylan/data/claude_tmp/tmp/nb/raw`. The sim npz are in
+  `~/x17/nb_asym_raw/simxoff`, which is symlinked there.
+- The thx/txy sim arms are one-signed in x and bias the X a1 by −0.04, so use `XOFF_ARMS='_th00_|_thy'`.
+
 ## det3 X asymmetry, third round: readout excluded, X-offset sim running — updated 2026-10-19 night (dylan-MS-7C84)
 
 **Resume:** when condor 4505159 is done, pull `simxoff_npz/` and run `sim_xoff_eval.py`; deck slides 25–35, FINDINGS.md.

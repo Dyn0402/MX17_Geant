@@ -32,6 +32,9 @@ def data_sel(sel):
     return [np.concatenate(o) for o in out]
 REF = {'6-27/28 1000 V': data_sel(lambda r: r['build'] == 'det3 June-15' and r['feu'] in (7, 8) and r['drift'] == '1000'),
        'all det3 June-15': data_sel(lambda r: r['build'] == 'det3 June-15')}
+if os.environ.get('XOFF_SESSIONS'):   # the two narrow-cluster sessions on their own (fwd_session_fit.py SESS)
+    REF['6-22/23 1000 V'] = data_sel(lambda r: r['build'] == 'det3 June-15' and 'det2_det3_overnight_6-22' in r['run'])
+    REF['6-23/24 600 V'] = data_sel(lambda r: r['build'] == 'det3 June-15' and '6-23-26' in r['run'])
 REFS = {k: classes(*v) for k, v in REF.items()}
 fmt = lambda t, j: ' '.join('  -  ' if not np.isfinite(v) else f'{v:+.2f}' for v in t[j::3, 0])
 for k, (t, med, a, n) in REFS.items():
@@ -43,9 +46,12 @@ groups = {}
 for t in tags:
     if os.path.exists(f'{SRC}/{t}_y.npz'): groups.setdefault(t.split('_')[0] if t.startswith('xo') and not t.startswith('xoff') else t, []).append(t)
 for arm, members in sorted(groups.items()):
+    # steep arms (thx/thy 15-30 in the measured view) keep no isolated cluster and are written empty: skip them
+    members = [t for t in members if re.search(os.environ.get('XOFF_ARMS', '.'), t) and all(np.load(f'{SRC}/{t}_{v}.npz')['wf'].ndim == 3 for v in 'xy')]
+    if not members: continue
     parts = [from_pair(f'{SRC}/{t}_x.npz', f'{SRC}/{t}_y.npz') for t in members]
     Wx, px, py, ysh = [np.concatenate([q[i] for q in parts]) for i in range(4)]
-    for a in (0, .05, .1, .15, .2):
+    for a in [float(c) for c in os.environ.get('XOFF_COPIES', '0,.05,.1,.15,.2').split(',')]:
         W = Wx.copy()
         if a: W[:, 1:] += a * Wx[:, :-1]
         t, med, a1, n = classes(W, px, py, ysh)
@@ -56,5 +62,5 @@ for arm, members in sorted(groups.items()):
             chi[k] = float((((t[sel][ok, 0] - td[sel][ok, 0]) ** 2) / (t[sel][ok, 1] ** 2 + td[sel][ok, 1] ** 2 + .02 ** 2)).sum())
         OUT['sim'].append(dict(arm=arm, copy=a, t=t.tolist(), med=med, a1=a1, n=n, chi=chi))
         print(f'SIM {arm:10s} ({len(members)} files) +copy {a:.2f} n={n:5d} median Ysh {med:.2f} a1 {a1:+.3f} | Ypad [{fmt(t,0)}] Xpad [{fmt(t,1)}] fY [{fmt(t,2)}]'
-              f' | chi2 vs 6-27/28 {chi["6-27/28 1000 V"]:.0f}, vs all {chi["all det3 June-15"]:.0f}')
-json.dump(OUT, open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sim_xoff_eval.json'), 'w'), default=float)
+              ' | chi2 ' + ', '.join(f'{k} {v:.0f}' for k, v in chi.items()))
+json.dump(OUT, open(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.environ.get('XOFF_OUT', 'sim_xoff_eval.json')), 'w'), default=float)
