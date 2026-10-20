@@ -63,12 +63,12 @@ Verdict key: ✗ excluded · ~ partial / doesn't fit alone · ✓ supported · ?
 | 26 | Can stripe offset produce it (sim)? | a1 vs true δ in the sim (`sim_delta.py`, `sim_delta_fp.py`) | Odd in δ, ±0.05–0.10 (narrow ±0.10–0.24); det3's class pattern at +δ, det2-negative mirror at −δ; ~1/3 of data amplitude | ✓ shape, ~ size | Sixth round 1 |
 | 27 | Rotation of the print alone | Physics estimate | Lateral spread along a tilted stripe is µm; only the registration via a 780 pitch makes ~P/θ bands | rotation only via registration | Sixth round 1 |
 | 28 | Pin to stripes via reversed-stripe boards (det0, det1) | X and Y 2D maps, det0 He + Ar/iso, det1 all files | No field in either view (det1 weak fine-scale Y hint); May normal boards have none either | ? can't pin | Sixth round 2 |
-| 29 | Why only June builds | Along- and across-stripe late content per board | June: along 63–80, across 12–31; May/earlier: 24–37 / 1–9; sim: 64 / −2 | ? candidate: cross-gap leak | Sixth round 3 |
+| 29 | Why only June builds | Along- and across-stripe late content per board | June: along 63–80, across 12–31; May/earlier: 24–37 / 1–9; sim: 64 / −2 | the across-stripe part = gap conduction f ≈ 0.05–0.1 (#34), which does not itself make the asymmetry | Sixth round 3; Seventh 12 |
 | 30 | Earlier side threads | ±1/±2 neighbour timing vs v5a; far ±3..±5 halo (displaced photon feedback, H 150 µm) | v5a matches copy-free X; halo explained by feedback spread | separate threads | NB_ASYM §C–E, NB_FAR.md |
 | 31 | Static relocation (strip charge spread across/along its stripe; gap charge stays, funnelled, or leaked to neighbour stripes) | Deterministic fast model on the prompt ESL-plane field (`r5/esl_fast.py`) | ≤ ±0.02 for every variant except funnel-all + 1.5 mm along-stripe smear (±0.10). It also misses the sim baseline (0 vs ±0.05), so it is not a calibrator | ~ direction only | Seventh round 1 |
 | 32 | Where the sim's a1(δ) comes from | Production X kernel, y-resolved clouds (`r5/kernel_delta.py`) | 0 at t = 0, builds over 100–300 ns of sheet transport; ±0.06 for σ 250 µm next to a strip edge, ±0.015 for σ 450 | ✓ late sheet transport | Seventh round 2 |
 | 33 | Is the sim's registration excess prompt like the data's? | Excess waveform vs central, sim \|δ\| ≥ 150 vs data (`r5/delta_timing.py`) | Sim excess leads the central by 70 ns (t50 −90); data by 10 ns (t50 −25); det2/May none | ~ wrong shape by ~1 sample | Seventh round 3 |
-| 34 | Cross-gap leak (conducting ESL gaps, σ_gap = f σ_strip) in the real solver | W2 X-box kernels with `--gap-frac` (`w2_production.py`); nx = 1560 scan f = 0…0.3 (condor 4520685) | Registration odd amplitude ×1.9 at 1 µs for f ≈ 0.03–0.1 (5 MΩ), only ×1.25 by 300 ns; at 0.5 MΩ f = 0.03 gives ×2.2 by 300 ns; f = 0.3 kills it; late ±2 rises 0.7 → 2–130 ×10⁻³ | ✓ amplifier up to ~2×, prompt only at low ρ_s; full-sim arms running (4520810) | Seventh round 4, 10 |
+| 34 | Cross-gap leak (conducting ESL gaps, σ_gap = f σ_strip) | nx = 1560 X kernels f = 0…0.3 (4520685); full sim with hybrid kernels f = 0/0.03/0.1 (4520810), paired | Kernel: ×1.9 late for σ 250. Full sim: odd amplitude ×1.00 (f 0.03), ×0.90 (f 0.1). But X late ±2 −2.3 → +7.8 → +27.6 ×10⁻³ = the June boards' 12–31 | ✓ explains the June late cross-stripe leak (f ≈ 0.05–0.1); ✗ as the asymmetry amplifier | Seventh round 4, 10, 12 |
 | 35 | Prompt funnelling of gap-landing electrons onto the strip edge | Digitizer `--gap-funnel F`, full v5a sim, 72 arms (condor 4520688) paired with the D = 0 seeds 7–12 (`r5/paired_odd.py`) | F = 1: odd amplitude ×1.40 (narrow ×1.54, +0.038 ± 0.003); F = 0.5: ×1.20; sharing unchanged; excess still leads the central by 90 ns | ~ real amplifier, ≤ 1.5×, wrong timing | Seventh round 7 |
 | 36 | Strip resistivity ρ_s | Mini kernels at 0.5/1/2/5 MΩ/sq | Registration term saturates at the same size (−0.033, σ 250); low ρ_s only makes it prompt (by 92 ns at 0.5 MΩ) | timing lever, not size | Seventh round 8 |
 | 37 | Strip width / gap ratio | nx = 1560 X kernels, insulating gaps, width 410/550/690 µm (effective 420/540/700; condor 4520736) | Odd amplitude (σ 250) ×0.6 at 420, ×1.6 (300 ns) / ×2.4 (1 µs) at 700 | ✓ strong lever; the June print's width is measurable from the mask | Seventh round 11 |
@@ -619,3 +619,25 @@ Scripts in `scratchpad/2026-10-20/r5/` (`esl_fast.py`, `kernel_delta.py`, `delta
     print registers more of the cloud. If the June print's stripes are wider than 550 µm, that alone gives up to
     ~2.4× at 5 MΩ. **For the mask:** read the stripe width as well as the pitch and alignment. A June-vs-May
     difference in width or fill is the cleanest candidate yet for "why only the June builds".
+12. **Full sim with leaky gaps** (condor 4520810: hybrid kernels, production Y + nx = 1560 X upsampled; npz in yoga
+    `~/x17/nb_asym_raw/simgapleak/`, decoded ROOT on EOS `response_sim/stageB_w2/gapleak/`). Paired on the same 36
+    (angle, seed) sets (`paired_odd.py` → `paired_odd_gapleak.json`; `sim_late2.py`):
+
+    | arm | O all (vs grid control) | O narrow | X sharing | X late ±2 (×10⁻³) |
+    |---|---|---|---|---|
+    | glg0: f = 0 grid control (vs xo0: ×0.95) | +0.053 | +0.068 | 0.760 | −2.3 |
+    | glg0.03 | ×1.00 | ×1.02 | 0.784 | +7.8 |
+    | glg0.1 | ×0.90 (−0.005 ± 0.002) | ×1.04 | 0.828 | +27.6 |
+    | glg0.1f1 (+ funnel 1) | ×1.29 | ×1.49 | 0.844 | +27.9 |
+    | data: June builds / May and earlier | | | | 12–31 / 1–9 |
+
+    - A gap conductance of 5–10 % of the stripes' reproduces the June boards' late across-stripe content with the
+      data's own metric. That closes the "June boards leak across the stripes, the sim doesn't" item (#29).
+    - In the full sim it adds nothing to the asymmetry. The kernel's ×1.9 is late, and the in-phase peak estimator
+      doesn't see it; the extra sharing it brings dilutes a1 instead.
+    - With leak plus funnel, the funnel's ×1.3–1.5 is all there is.
+    - So the June builds differ in their gap surface (conducting), but that difference is not the asymmetry
+      mechanism. What remains are size levers acting at the peak: strip width (item 11) and prompt funnelling.
+    - Running: strip-width full-sim arms (condor 4520870: hybrid w410 / w690, insulating gaps, 36 pairs each, paired
+      with glg0). Score with `paired_odd.py glg0 ~/x17/nb_asym_raw/simgapleak w410 <dir> w690 <dir>`
+      (npz land in `simgapleak_npz` as `glw410_*` / `glw690_*`).

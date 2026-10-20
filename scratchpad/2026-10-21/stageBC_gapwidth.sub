@@ -1,0 +1,15 @@
+# Strip-width arms (2026-10-21): hybrid kernels, insulating gaps, strip width 410 / 690 um (eff. 420 / 700),
+# th00 + thy*, seeds 7-12, paired with the gap-0 nx1560 grid control glg0 (4520810).
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_gapleak_job.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/gapleak.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4 MX17_GAS_TABLE=/afs/cern.ch/work/d/dneff/mx17_s1/src/design/gas/drift_velocity_Ar_iC4H10_95_5_H2O_1.0.json"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/gapleak_$(t)_$(ang)_s$(seed).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/gapleak_$(t)_$(ang)_s$(seed).err
+arguments               = "gl$(t)_$(ang)_s$(seed) $(k) $(f) $(ang) $(seed)"
+queue t, k, f, ang, seed from gapwidth_list.txt
