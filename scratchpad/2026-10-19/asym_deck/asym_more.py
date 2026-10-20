@@ -12,7 +12,7 @@ HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
 import make_asym_deck as M, asym_lib as L
 
 def fidx(files):
-    return np.array([int(re.search(r'_(\d{3})_\d\d\.root$', str(f)).group(1)) for f in files])
+    return np.array([int(re.search(r'_(\d{3})_\d\d(?:_decoded_array\w*)?\.root$', str(f)).group(1)) for f in files])
 
 def matched(fx, fy):
     dx, dy = L.load(fx), L.load(fy)

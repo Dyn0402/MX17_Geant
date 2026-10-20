@@ -356,3 +356,58 @@ Scripts in `scratchpad/2026-10-20/r5/` (`r5lib.py` = matched X/Y events per buil
 - Not yet shown: a model that produces ±0.2 (the sim's stripes give ≲ 0.05).
 - Question for Dylan/Stephan: the stripe screen's actual pitch, and how it's aligned to the board.
 - Figure: `design/figures/asym_maps_2026-10-20.png` (`r5/fig_maps.py`).
+
+## Sixth round (2026-10-20 evening, dylan-Yoga): can stripe registration make it; the reversed-stripe boards
+Scripts in `scratchpad/2026-10-20/r5/`.
+1. **Sim asymmetry vs the true stripe offset** (`sim_delta.py`, `sim_delta_fp.py`; 36k X-only and 3.7k matched events,
+   xo0 th00 + thy*, seeds 5–16). δ is the distance from the peak column's centre (PAD_ORIGIN + c·780) to the nearest
+   stripe centre (stripes at k·800, `solver/kernels.py`). It changes 20 µm per column, so locally it acts as a
+   pitch-locked offset.
+   - a1(δ) is odd and monotonic: −0.16 (−325 µm, next to a gap) … −0.05 (−225) … 0 … +0.04 (+75) … +0.085 (+225).
+     The narrow-cloud half is ~2× larger (±0.10, −0.24 at −325). X sharing is lowest at δ ≈ 0 (0.63) and highest
+     near ±300 µm (0.85–1.1).
+   - At δ = +150…+350 the sim reproduces det3's class pattern:
+     - narrow → wide A_X: −0.19 → +0.12/+0.13 (det3 −0.12 → +0.20);
+     - n−1 below n+1 for narrow Y-pad events;
+     - δ = −350…−150 gives the mirror (A_X +0.40 → −0.17, like det2's negative bands).
+   - **Stripe registration does generate this asymmetry, with the right sign structure and width dependence, at
+     ~1/3 of the strength:** A_Y +0.02–0.07 vs det3 +0.25; matched a1 ±0.035 vs ±0.14.
+   - The earlier held-out phase test (`sim_phase_fp.py`) failed because ranking noisy phase means on a few seeds
+     selects noise.
+   - A rotation alone can't make it (a 2 mrad tilt moves charge sideways by µm). As registration, a rotation of a
+     780 µm print gives moiré bands ~P/θ ≈ 390 mm apart, running nearly perpendicular to the stripes, i.e. along x:
+     det2's horizontal bands. With an 800 µm pitch a rotation only shortens the 31 mm moiré.
+2. **Reversed-stripe boards** (`orient_maps.py`; det0 4-1 He all 17 sub-runs, det0 4-7 Ar/iso via `--array` on lxplus
+   (9 sub-runs), det1 Jan all 5 files, det4 May build). Field strength = noise-subtracted cell rms:
+
+   | board | stripes | across-stripe view field | X χ²/ndf (8×8) | Y χ²/ndf (8×8) |
+   |---|---|---|---|---|
+   | det0 He (10.8k) | along x | Y 0.004 | 50/61 | 49/61 |
+   | det0 Ar/iso (9.4k) | along x | Y ~0.016 | 80/61 | 72/61 |
+   | det1 all files (3.0k) | along x | Y 0.036 | 53/50 | **103/50** (p 1.6e-5; 4×4 p 0.11) |
+   | det4 May (16k) | along y | X 0.015 | 76/58 | 77/58 |
+   | det3 May (4.6k) | along y | X 0.020 | 78/56 | 76/56 |
+   | June boards | along y | X 0.05–0.15 | | flat |
+
+   - **These boards can't pin the field to the stripes.** The reversed boards show at most a weak, fine-grained Y
+     structure (det1), but the May boards with normal orientation show no X field either. The field belongs to the
+     June builds.
+   - 1D profiles along each view's own coordinate are dominated by single-block channel defects, so they are not
+     usable for this.
+3. **What distinguishes the June builds** (stripe_orient metric, late ±2 content ×10⁻³):
+
+   | | along the stripes (Y) | across the stripes (X) |
+   |---|---|---|
+   | June builds | 63–80 | 12–31 |
+   | May / earlier | 24–37 | 1–9 |
+   | sim (v5a) | 64 (+360 ns), June-like | −2: no cross-stripe leak at all |
+
+   - The sim's stripes are June-like along the stripes, so stripe conductivity is not why its pull is 1/3.
+   - The June boards also leak charge late ACROSS the kapton gaps between stripes, which the sim lacks. That's a
+     concrete candidate for the missing physics (gap surface conduction, plausibly humidity-dependent with ~1 % H2O
+     in the gas). It isn't yet shown to produce asymmetry.
+4. Next:
+   - A digitizer/kernel variant with a cross-gap leak (and/or electrons funnelled from gaps onto stripes), checked on
+     the sim's a1(δ) amplitude.
+   - A per-board a1(x, y) calibration map for analysis.
+   - The stripe mask from Dylan (pitch, alignment).

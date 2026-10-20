@@ -1,5 +1,27 @@
 # Handoff
 
+## det3 X asymmetry, sixth round: stripe registration makes it (at 1/3), reversed boards inconclusive — updated 2026-10-20 night (dylan-Yoga)
+
+**Resume:** FINDINGS.md "Sixth round". Dylan is fetching the stripe mask (pitch, alignment); don't wait for it.
+
+**Found:**
+- In the sim, a1 vs the true stripe offset δ is odd and monotonic (±0.05–0.10, narrow clouds 2×). At fixed +δ it
+  reproduces det3's class pattern; −δ gives det2's negative bands. Amplitude ≈ 1/3 of data.
+- Reversed-stripe boards (det0, det1) can't pin the field to the stripes: the May normal-orientation boards have no
+  field either. The field belongs to the June builds.
+- The June builds (and the sim) spread charge strongly along the stripes. Only the June data also leak late charge
+  ACROSS the stripes (X ±2 late 12–31 vs sim −2). Candidate missing physics: cross-gap leak.
+
+**Next steps:**
+1. Digitizer variant: a cross-gap leak (or gap→stripe funnelling); does a1(δ) grow toward the data's ±0.2?
+2. Per-board a1(x, y) calibration map (r5/map_fit.py cells) as the analysis correction.
+3. Deck slides for rounds 4–6.
+
+**Gotchas:**
+- det0 4-7 Ar/iso exists only as filtered arrays on EOS. Extracted on lxplus with `raw_asym.py --array` into
+  `/eos/user/d/dneff/tmp/d0ar/`; 3 Y sub-runs have no FEU-4 file.
+- `asym_more.fidx` now also parses `_decoded_array*` file names.
+
 ## det3 X asymmetry, fifth round: a two-signed X-only field on every board — updated 2026-10-20 evening (dylan-Yoga)
 
 **Resume:** read FINDINGS.md "Fifth round" (items 1–15 and the state summary) and look at
