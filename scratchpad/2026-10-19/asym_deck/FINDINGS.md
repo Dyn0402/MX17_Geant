@@ -541,3 +541,21 @@ Scripts in `scratchpad/2026-10-20/r5/` (`esl_fast.py`, `kernel_delta.py`, `delta
    better than a slow leak. The static model says funnelling only pays once the charge also spreads along the stripe.
    That is the next thing to put in the digitizer: move each avalanche that lands in a gap onto the nearer stripe
    edge before the kernel lookup (the existing kernel, no re-solve).
+6. **Analysis correction: X-centroid bias maps** (`r5/corr_maps.py` → `r5/corr_maps.json`; next step 2). The 3-strip X
+   centroid is pulled by dx = −(α₊₁ − α₋₁)/(1 + α₊₁ + α₋₁)·P along the true column axis. Per 8×8 cell (64 columns ×
+   64 rows), minus the symmetric reference (det3 May + det1, −0.7 µm):
+
+   | build | events | cells | mean dx (µm) | cell rms (µm) | χ²(dx = 0) |
+   |---|---|---|---|---|---|
+   | det3 June-15 | 14.6k | 64 | −74.5 | 76.6 | 3997/64 |
+   | det2 | 5.6k | 62 | −1.6 | 68.7 | 1090/62 |
+   | det4 | 0.9k | 13 | −31.7 | 43.5 | 46/13 |
+   | det6 | 1.4k | 26 | −7.4 | 31.6 | 56/26 |
+   | det7 | 0.7k | 9 | −23.1 | 48.2 | 27/9 |
+   | det3 May (control) | 4.6k | 57 | −0.1 | 22.5 | 83/57 |
+   | det1 (control) | 1.6k | 28 | +4.2 | 20.8 | 34/28 |
+
+   det3 sessions as a scale on the all-session map: 6-22/23 1000 V 0.96 (χ² 47/60), 6-23/24 600 V 1.57 (126/61),
+   6-27/28 1000 V 0.44 (47/59). So the correction is one fixed map per board times a per-run amplitude (from the
+   run's own board-mean a1, or its cloud width). det2's bias averages away but is ±70 µm locally. det4/6/7 need more
+   statistics than the bench has for a cell map.
