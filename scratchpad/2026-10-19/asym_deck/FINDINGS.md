@@ -733,3 +733,14 @@ Scripts in `scratchpad/2026-10-20/r5/` (`esl_fast.py`, `kernel_delta.py`, `delta
      allows at one ρ_s.
    - Running: condor 4520945, the same three arms at 2 MΩ/sq (`glr2*`): is there a ρ_s that keeps Y and gains some
      timing and size?
+5. **2 MΩ/sq arms** (condor 4520945, `glr2*`; `paired_odd_r2*.json`, `paired_odd_r05f1_vs_g0.json`):
+   - Size: 700 µm stripes ×1.56 (narrow ×1.96) vs glr2g0; + funnel ×1.77 / ×2.10; against the 5 MΩ grid control glg0,
+     ×2.26 / ×2.20 (0.5 MΩ: ×2.38 / ×2.11).
+   - Timing: glr2g0 +17 → −25…−37 ns; the wide-stripe arms are early (−40…−70 ns).
+   - Y/X kept for vertical tracks: 0.12. Excluded by the Y view like 0.5 MΩ.
+   - **The ρ_s lever is closed: only ≥ 5 MΩ/sq keeps the Y view as the data have it.** The best Y-compatible sim is
+     700 µm stripes + funnel at 5 MΩ: ×1.58 (narrow ×1.78).
+   - The pattern says the data want charge to spread fast ACROSS a stripe (prompt registration, size) but slowly ALONG
+     it (Y). That can't happen at one isotropic ρ_s. Candidates: an anisotropic or structured print (e.g. a
+     low-resistance edge or under-layer on each stripe), or a geometry that registers without transport.
+   - Deck: levers slide rows "… at 2 / 0.5 MΩ/sq (Y fails)", republished.

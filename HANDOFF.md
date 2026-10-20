@@ -34,15 +34,14 @@ been no detector access since 10-13.
 - Deck slides 34–42 for rounds 4–8, published: https://dylan-neff.web.cern.ch/notes/det3-x-asymmetry.html
   (`2026-10-21/deck_slides_1021.py`).
 
-**In progress:** condor 4520942, low-ρ arms at 0.5 MΩ/sq (`glr05g0`, `glr05w690`, `glr05w690f1`, 36 each), npz →
-lxplus `/afs/cern.ch/work/d/dneff/mx17_s1/simgapleak_npz/`. Score with:
-- `paired_odd.py glr05g0 <dir> glr05w690 <dir> glr05w690f1 <dir>`;
-- `timing_width.py`-style timing (is the excess late for short pulses?);
-- `paired_odd.py glg0 … glr05g0 …` (ρ effect at fixed geometry).
+**Low ρ_s (done):** 0.5 and 2 MΩ/sq arms (condor 4520942, 4520945) reach ×2.1–2.4 and, at 0.5 MΩ, the data's timing
+trend. But both fail the Y view: Y/X kept for vertical tracks is 0.001 and 0.12, against data ≈ 0.9 and 5 MΩ 0.92.
+The ρ_s lever is closed. The best Y-compatible sim is 700 µm stripes + funnel at 5 MΩ, ×1.58 (narrow ×1.78).
 
 **Next steps:**
-1. Read out 4520942.
-2. Mask (Dylan): stripe pitch, width, alignment, June vs May.
+1. Mask (Dylan): stripe pitch, width, alignment, June vs May.
+2. Model a print that spreads charge fast across a stripe but slowly along it (structured or anisotropic stripe),
+   or registration without transport. Uniform ρ_s can't do both.
 3. Analysis: apply `wft.xasym` to det2/det3 June-15 with a re-alignment; the det3 residual maps also keep an x-scale
    term the alignment doesn't fit.
 

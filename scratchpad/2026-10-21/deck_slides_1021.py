@@ -154,12 +154,16 @@ def s_levers(D):
         if j: R.update(j)
     fu = _j('paired_odd_funnel.json') or {}
     R.update({k: v for k, v in fu.items()})
+    for f in ('paired_odd_r2_vs_g0.json', 'paired_odd_r05f1_vs_g0.json'):
+        j = _j(f)
+        if j: R.update({k + '@g0': v for k, v in j.items()})
     if not R: return
     rows_def = [('fu0.5', 'funnel 50 % of gap electrons', GOLD), ('fu1', 'funnel all gap electrons', ORANGE),
                 ('glg0.03', 'gap leak f = 0.03', GREY), ('glg0.1', 'gap leak f = 0.1', GREY),
                 ('glw410', 'stripes 420 µm', PURPLE), ('glw690', 'stripes 700 µm', GREEN),
-                ('glg0.1f1', 'leak 0.1 + funnel all', ORANGE), ('glw690f1', 'stripes 700 µm + funnel all', RED)]
-    P = sd.Plot(1180, 640, x=(0, 3.2), y=(0, len(rows_def)), xlabel='odd asymmetry, variant / its paired baseline (narrow-cloud half)',
+                ('glg0.1f1', 'leak 0.1 + funnel all', ORANGE), ('glw690f1', 'stripes 700 µm + funnel all', RED),
+                ('glr2w690f1@g0', '… at 2 MΩ/sq (Y fails)', '#c9a5ab'), ('glr05w690f1@g0', '… at 0.5 MΩ/sq (Y fails)', '#c9a5ab')]
+    P = sd.Plot(1180, 680, x=(0, 3.2), y=(0, len(rows_def)), xlabel='odd asymmetry, variant / its paired baseline (narrow-cloud half)',
                 ylabel='', title='', margin=(30, 30, 90, 340))
     P.xticks([(v, f'×{v:g}') for v in (0, 0.5, 1, 1.5, 2, 2.5, 3)])
     P.band([2.5, 3.2], [0, 0], [len(rows_def), len(rows_def)], CJUN, 0.10, tip='What the data need: ×2.5–5 over the sim baseline')
@@ -182,6 +186,8 @@ def s_levers(D):
                      'Paired arms: same angles, seeds, noise and Y as the baseline; odd amplitude ⟨sgn δ · a1⟩, |δ| ≥ 50 µm')
             + sd.row(P.svg('levers'),
                      sd.col(sd.callout('The kernel’s late gain from a leak never reaches the peak-sample a1.', GREY, 25),
+                            sd.callout('A faster sheet (2 or 0.5 MΩ/sq) reaches ×2.1–2.4, but its charge runs along the stripes '
+                                       'over many Y rows: Y/X kept 0.12 / 0.001 against 0.9 in the data.', '#c9a5ab', 25),
                             sd.callout('Width and funnelling act at the peak, but they don’t multiply: narrow gaps leave '
                                        'little to funnel.', ORANGE, 25), w=420), gap=40))
     D.slide('levers', body, _det(
@@ -190,7 +196,11 @@ def s_levers(D):
         'arms: the grid). Error bars from the spread of the per-(angle, seed) paired differences.',
         'Funnel: <code>--gap-funnel F</code> moves a fraction F of the avalanches that land in an ESL gap onto the nearer strip edge '
         '(20 µm inside) before the kernel lookup, with its own rng stream so the pairing is exact.',
-        'All arms are at 5 MΩ/sq. The 0.5 MΩ/sq arms (condor 4520942) test whether a faster sheet changes the timing.',
+        'All arms are at 5 MΩ/sq except the two pale rows, which are against the 5 MΩ/sq control: 2 MΩ/sq (condor 4520945) '
+        'and 0.5 MΩ/sq (4520942). Both fail the Y view: for vertical tracks the fraction of Y events with a compact '
+        'cluster (≤ 12 channels over 5σ, within ±3) relative to X is 0.12 and 0.001, against 0.92 for the 5 MΩ/sq sim '
+        'and ≈ 0.9 in the data (det3 June-15, det2, det3 May). At 0.5 MΩ/sq the timing also follows the data’s trend '
+        '(+28 → −32 ns over the width quartiles).',
         _src('r5/paired_odd.py', 'r5/paired_odd_*.json', 'condor 4520688, 4520810, 4520870, 4520871')), short='Levers')
 
 
@@ -341,7 +351,7 @@ def s_close2(D):
                        sd.p('· Why only the June builds: their gaps conduct (shown), and their print?', 26, DMUT), gap=14),
                 sd.col(sd.p('Next', 30, DINK, 600),
                        sd.p('1. The mask: stripe pitch, width and alignment, June vs May. Predict δ(x, y) per board.', 26, DMUT),
-                       sd.p('2. Low-ρ_s arms (running): does a faster sheet make the excess late and keep its size?', 26, DMUT),
+                       sd.p('2. A faster sheet gives the size and the timing, but fails Y (2 and 0.5 MΩ/sq). Fast across a stripe, slow along it: what print does that?', 26, DMUT),
                        sd.p('3. For the analysis: wft.xasym on det2 and det3 June-15, with a re-alignment.', 26, DMUT),
                        sd.p('4. The det3 residual maps keep an x-scale term the alignment doesn’t fit.', 26, DMUT), gap=14),
                 gap=80))
