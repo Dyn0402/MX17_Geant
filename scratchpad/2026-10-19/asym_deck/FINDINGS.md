@@ -715,3 +715,21 @@ Scripts in `scratchpad/2026-10-20/r5/` (`esl_fast.py`, `kernel_delta.py`, `delta
    positions (the map has a board-mean part) and the run's scale (det3: 0.96 / 1.57 / 0.44 for the three measured
    sessions). The det3 residual maps keep ~100–140 µm of cell structure after the correction, mostly an x-scale-like
    term the alignment doesn't fit (+55…+79 µm/100 mm on det3); that's a separate alignment item.
+4. **0.5 MΩ/sq arms** (condor 4520942: hybrid kernels at 0.5 MΩ/sq, production 0.5 MΩ Y + nx = 1560 X; `glr05g0`,
+   `glr05w690`, `glr05w690f1`; `paired_odd_r05*.json`, `timing_width_glr05*.json`):
+
+   | arm | O all / narrow vs glr05g0 | vs the 5 MΩ grid control glg0 | timing, short → long pulses |
+   |---|---|---|---|
+   | glr05g0 | — | ×1.24 / ×1.02 | +28, +3, −2, −32 ns (the data's trend, half the swing) |
+   | glr05w690 | ×1.70 / ×1.99 | ≈ ×2.1 all | −3 … −22 ns |
+   | glr05w690f1 | ×1.92 / ×2.10 | ≈ ×2.4 all, ×2.2 narrow | +2 … −21 ns |
+
+   - **The Y view excludes it.** The extractor keeps an event when ≤ 12 channels are over 5σ, all within ±3 of the peak.
+     Y/X kept ratio for vertical tracks (th00): data ≈ 0.9 (det3 June-15 11.2k/12.2k, det2 0.89, det3 May 0.87);
+     5 MΩ sim 0.92; 0.5 MΩ sim 0.001.
+   - At 0.5 MΩ the charge runs along the stripes over many Y rows within the frame, which the June boards don't show.
+   - So the size and timing gains at 0.5 MΩ are not available as they stand. A faster sheet does move both the right
+     way, which points to the within-stripe (across-width) spreading being faster than the along-stripe spreading
+     allows at one ρ_s.
+   - Running: condor 4520945, the same three arms at 2 MΩ/sq (`glr2*`): is there a ρ_s that keeps Y and gains some
+     timing and size?
