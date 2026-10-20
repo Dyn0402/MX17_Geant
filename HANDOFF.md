@@ -26,18 +26,25 @@ been no detector access since 10-13.
   - digitizer `--gap-funnel/--gap-funnel-inset-um` (own rng stream);
   - `scratchpad/2026-10-21/build_hybrid.py`.
 
-**In progress:** nothing. Width + funnel (condor 4520871) gave ×1.58 (narrow ×1.78), not multiplicative. All runs are
-done and pulled:
-- funnel 4520688 → yoga `~/x17/nb_asym_raw/simfunnel/`;
-- leak 4520810 and width 4520870 → `~/x17/nb_asym_raw/simgapleak/`;
-- X-kernel products and hybrids → `/eos/user/d/dneff/tmp/gx/`.
+**Eighth round (2026-10-20 night):**
+- The excess timing depends on the pulse width: late (+52 ns) for short, near-vertical pulses; early (−52 ns) for long
+  ones. The sim is early in every width bin (`r5/timing_width.py`).
+- The production wft X position carries the field: K = −0.77 ± 0.13 against M3 (`2026-10-21/reco_resid_map.py`).
+- Correction shipped opt-in in nTof_x17 `wft/xasym.py` (commit 30198e4) for det2 and det3 June-15.
+- Deck slides 34–42 for rounds 4–8, published: https://dylan-neff.web.cern.ch/notes/det3-x-asymmetry.html
+  (`2026-10-21/deck_slides_1021.py`).
+
+**In progress:** condor 4520942, low-ρ arms at 0.5 MΩ/sq (`glr05g0`, `glr05w690`, `glr05w690f1`, 36 each), npz →
+lxplus `/afs/cern.ch/work/d/dneff/mx17_s1/simgapleak_npz/`. Score with:
+- `paired_odd.py glr05g0 <dir> glr05w690 <dir> glr05w690f1 <dir>`;
+- `timing_width.py`-style timing (is the excess late for short pulses?);
+- `paired_odd.py glg0 … glr05g0 …` (ρ effect at fixed geometry).
 
 **Next steps:**
-1. (done) Width + funnel ×1.58: the best sim is ~1.6–1.8× vs 2.5–5× needed.
-2. Timing: hybrid arms at 0.5 MΩ/sq. Does the excess become prompt at the same size?
-3. Mask (Dylan): stripe pitch, width and alignment, June print vs May. Width is now a measured lever.
-4. Put the `corr_maps.json` correction into the reconstruction (nTof_x17).
-5. Deck slides for rounds 4–7.
+1. Read out 4520942.
+2. Mask (Dylan): stripe pitch, width, alignment, June vs May.
+3. Analysis: apply `wft.xasym` to det2/det3 June-15 with a re-alignment; the det3 residual maps also keep an x-scale
+   term the alignment doesn't fit.
 
 **Gotchas / decisions:**
 - Score sim variants as paired arms (same angle and seed), never on unpaired sets. Funnel has its own rng, so pairing
