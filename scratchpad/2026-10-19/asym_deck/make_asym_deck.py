@@ -13,6 +13,8 @@ import slidedoc as sd
 import asym_lib as L
 sys.path.insert(0, os.path.join(HERE, '..', '..', '2026-10-20'))
 import deck_slides_1020 as R3
+sys.path.insert(0, os.path.join(HERE, '..', '..', '2026-10-21'))
+import deck_slides_1021 as R4
 from slidedoc import INK, MUT, RULE, BLUE, ORANGE, RED, GOLD, PURPLE, GREY, GREEN, BG, CARD
 from slidedoc import DBLUE, DRED, DGREY, DGREEN, DINK, DMUT
 
@@ -165,12 +167,12 @@ def s_cover(D):
                   size=72)])
     body = (sd.kicker('det3 June-15 build · X view · cosmic bench June 2026 · raw DREAM ADC')
             + '<h1 style="font-size:76px;font-weight:600;line-height:1.08;letter-spacing:-2px;width:1660px">'
-              'The X asymmetry is real and in the raw ADC: one neighbour carries a copy of the peak. '
-              'It belongs to one board, not to the readout or the code</h1>'
+              'The X asymmetry is real and in the raw ADC: every June-built board carries a smooth X field '
+              'of unequal neighbours, most likely from how its resistive stripes sit over the pads</h1>'
             + f'<p style="font-size:30px;color:{DMUT};width:1560px;line-height:1.35">On det3’s June-15 build the '
               f'channel above the peak is the bigger neighbour in {100 * fx:.0f} % of events; every other board and '
-              'view sits at 50 %. What makes it is still open: the board’s one known left/right asymmetry '
-              '(its bus traces) is ten times too weak.</p>'
+              'view through the same code sits at 50 %. Simulated stripe registration gives the right shape at 1/3–2/3 '
+              'of the size; the production reconstruction carries the field, and an opt-in correction now exists.</p>'
             + '<div style="flex:1"></div>'
             + f'<div style="display:flex;gap:56px">{nums}</div>')
     D.slide('cover', body, details(
@@ -1389,13 +1391,16 @@ def build(out):
     s_survey(D, rows); s_date(D, rows); s_time(D, rows)
     s_parity(D); s_axes(D); s_drifttime(D); s_gas(D); s_beamdrift(D); s_sims(D)
     R3.s_stripes(D); R3.s_inject(D); R3.s_flip(D); R3.s_inside(D); R3.s_readout(D); R3.s_edge(D); R3.s_sessions(D); R3.s_boards(D, more())
-    s_bus(D); s_verdict(D); s_close(D)
-    meta = dict(title='det3 X neighbour asymmetry: real, in the raw ADC, and det3’s own',
-                summary='From the rawest observable up: det3’s June-15 build copies ~0.1–0.2 of each X pulse into the next '
-                        'channel, only when the charge sits over a Y pad, at every Y pad; det4/det7 the same at a third. '
-                        'Its size follows the cluster width (gas, drift field). Not gas flow, not the resistive stripes; '
-                        'the parity split is partly peak selection; det3 fits a one-sided X reach on the bus side, ~20× '
-                        'the copper value.',
+    s_bus(D)
+    R4.s_fields(D); R4.s_simdelta(D); R4.s_kernel(D); R4.s_levers(D); R4.s_leak(D); R4.s_timing(D); R4.s_reco(D)
+    R4.s_verdict2(D); R4.s_close2(D)
+    meta = dict(title='det3 X neighbour asymmetry: a stripe-registration field on the June boards',
+                summary='From the raw ADC up: every June-built board carries a smooth, two-signed X-only field of unequal '
+                        '±1 neighbours (det2’s bands cancel), fixed per board and scaled by the cloud width. Excluded: code, '
+                        'electronics, connectors, copper, copies and offsets. Simulated resistive-stripe registration '
+                        'gives the shape at ~1/3 of the size; wider stripes and gap funnelling reach ×1.8, a leaky gap '
+                        'explains the June boards’ cross-stripe charge but not the asymmetry. The production position '
+                        'carries it (K −0.77); wft.xasym corrects det2 and det3.',
                 tags='MX17,detector,crosstalk', date=dt.date.today().isoformat())
     return D.write(out, meta, footer=f'Built {dt.datetime.now():%Y-%m-%d %H:%M} by '
                                      'MX17_Geant/scratchpad/2026-10-19/asym_deck/make_asym_deck.py with slidedoc.py.')
