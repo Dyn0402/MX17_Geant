@@ -1,0 +1,15 @@
+# Low-rho arms (2026-10-21): hybrid kernels at 0.5 MOhm/sq (production 0.5M Y + nx1560 X): gap-0 control, 700 um
+# stripes, 700 um + --gap-funnel 1; th00 + thy*, seeds 7-12. Question: does low rho make the excess prompt (data -10 ns)?
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_gapleak_job.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/gapleak.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4 MX17_GAS_TABLE=/afs/cern.ch/work/d/dneff/mx17_s1/src/design/gas/drift_velocity_Ar_iC4H10_95_5_H2O_1.0.json"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/gapleak_$(t)_$(ang)_s$(seed).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/gapleak_$(t)_$(ang)_s$(seed).err
+arguments               = "gl$(t)_$(ang)_s$(seed) $(k) $(f) $(ang) $(seed)"
+queue t, k, f, ang, seed from rho05_list.txt

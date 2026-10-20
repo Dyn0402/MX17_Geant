@@ -672,3 +672,46 @@ Scripts in `scratchpad/2026-10-20/r5/` (`esl_fast.py`, `kernel_delta.py`, `delta
    items 11/13.
 4. Analysis correction: `r5/corr_maps.json` per-board dx maps × per-run scale, into the reconstruction (nTof_x17).
 5. Deck slides for rounds 4–7.
+
+## Eighth round (2026-10-21, dylan-Yoga): timing by pulse width, low-ρ arms, the reconstruction correction
+1. **Excess timing depends on the pulse width (≈ track angle)** (`r5/timing_width.py`). The nTof_x17 cloud_basics
+   study (`sps_beam_test_26/analysis/cloud_basics/FINDINGS.md` §42) reads the det3 −1/+1 difference as 0.13 × the
+   centre "delayed 114 ns" for head-on tracks. Their estimator is a first-order fit D = a·W0 + b·W0′, delay = −b/a.
+   The same estimator on our all-angle det3 sample gives −14 ns. Split by the central pulse width (samples ≥ half max;
+   short = near-vertical):
+
+   | width quartile | det3 June-15 X: a, delay, excess peak vs central | sim xo0 \|δ\| ≥ 150: width, a, delay, peak |
+   |---|---|---|
+   | q0 | 4.8 smp: +0.096, **+52 ns**, +49 ns | 7.2 smp: +0.028, −97 ns, −67 ns |
+   | q1 | 6.2 smp: +0.152, −4 ns, −9 ns | 9.2 smp: +0.078, −75 ns, −70 ns |
+   | q2 | 7.8 smp: +0.150, −52 ns, −37 ns | 10.6 smp: +0.078, −106 ns, −80 ns |
+   | q3 | 11.8 smp: +0.166, −54 ns, −29 ns | 12.2 smp: +0.079, −110 ns, −67 ns |
+
+   - Route 21's "prompt" and §42's "delayed" are the same data under different angle selections. Near-vertical tracks
+     show a late excess, which is what sheet transport would give. Inclined ones show an early excess.
+   - The sim's registration excess is early in every width bin and never late. Its pulses are also longer (its
+     narrowest quartile is the data's q2), so there's no matched-width comparison for head-on tracks.
+   - At matched width (data q2/q3 vs sim q0/q3) the sim leads by about 50 ns more than the data.
+   - The timing target for any mechanism is therefore: late (+50 ns) for short pulses, early for long ones.
+   - Sim pulse length is its own known mismatch (central t50 −239 vs −167 ns).
+2. **Does the production reconstruction carry it?** (`2026-10-21/reco_resid_map.py`, `reco_transfer.py`,
+   `reco_correct_test.py`, run with the nTof_x17 venv on the wft bench caches: M3 truth + production
+   `events.parquet`, |tan_x| < 0.15, single-track quality events, 0.9–4.8k per run.)
+   - Frame: `pos_mm = 0.78 × true column` on both views, every board (`chpos_lookup.json`, read from the cache
+     windows). So the raw maps' cells are 49.92 mm cells of the wft frame with no flips.
+   - The M3 x residual per 8×8 cell, regressed on the raw-ADC centroid-bias map with the affine part removed from
+     both: det2 k = −0.88 ± 0.16 and −1.29 ± 0.39; det3 −0.80 ± 0.52, −0.37 ± 0.40, +0.02 ± 0.52; det4/6/7 large
+     errors. Weighted over all runs, K = −0.77 ± 0.13 (χ² 9.4/7). The forward-model position carries the field at
+     ~80 % of the centroid's size, with the opposite sign.
+   - The per-event regression gives k ≈ 0 on every board. That is the wrong estimator (the per-event b is dominated by
+     the sub-pad position), so it doesn't count against the cell result.
+   - The production alignment fits offsets, rotation and z, with no x-scale term.
+   - Leave-one-out correction x − K·dx·scale, with offset + rotation removed (what the alignment absorbs), cell χ²:
+     det2 136 → 108 / 55 and 34 → 23 / 25; det3 111 → 96 / 31, 99 → 94 / 54, 97 → 92 / 43; det4 162 → 174 (worse);
+     det6/det7 no change.
+3. **Shipped in nTof_x17 as an opt-in module** (`wft/xasym.py`, `wft/xasym_maps.json`, `wft/tests/test_xasym.py`;
+   commit 30198e4): `xasym.correct_x(x_p0, y_p0, build, scale)` for det2 and det3 June-15. det4/6/7 and the control
+   boards refuse. It writes a new column; no existing product changes. Using it needs a re-alignment on corrected
+   positions (the map has a board-mean part) and the run's scale (det3: 0.96 / 1.57 / 0.44 for the three measured
+   sessions). The det3 residual maps keep ~100–140 µm of cell structure after the correction, mostly an x-scale-like
+   term the alignment doesn't fit (+55…+79 µm/100 mm on det3); that's a separate alignment item.
