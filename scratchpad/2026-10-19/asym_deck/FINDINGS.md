@@ -69,6 +69,8 @@ Verdict key: ✗ excluded · ~ partial / doesn't fit alone · ✓ supported · ?
 | 32 | Where the sim's a1(δ) comes from | Production X kernel, y-resolved clouds (`r5/kernel_delta.py`) | 0 at t = 0, builds over 100–300 ns of sheet transport; ±0.06 for σ 250 µm next to a strip edge, ±0.015 for σ 450 | ✓ late sheet transport | Seventh round 2 |
 | 33 | Is the sim's registration excess prompt like the data's? | Excess waveform vs central, sim \|δ\| ≥ 150 vs data (`r5/delta_timing.py`) | Sim excess leads the central by 70 ns (t50 −90); data by 10 ns (t50 −25); det2/May none | ~ wrong shape by ~1 sample | Seventh round 3 |
 | 34 | Cross-gap leak (conducting ESL gaps, σ_gap = f σ_strip) in the real solver | W2 X-box kernels with `--gap-frac` (`w2_production.py`); mini nx = 390 locally; nx = 1560 scan f = 0…0.3 on condor 4520685 | Mini, f = 0.03 at 5 MΩ: late ±2 across stripes ×10 (σ 250: 1.0 → 9.8 ×10⁻³), odd a1 unchanged at 300 ns (−0.029) and +30 % at 1 µs | ~ explains the June late leak, not (yet) the prompt 3× | Seventh round 4 |
+| 35 | Prompt funnelling of gap-landing electrons onto the strip edge | Digitizer `--gap-funnel F`, full v5a sim, 72 arms (condor 4520688) paired with the D = 0 seeds 7–12 (`r5/paired_odd.py`) | F = 1: odd amplitude ×1.40 (narrow ×1.54, +0.038 ± 0.003); F = 0.5: ×1.20; sharing unchanged; excess still leads the central by 90 ns | ~ real amplifier, ≤ 1.5×, wrong timing | Seventh round 7 |
+| 36 | Strip resistivity ρ_s | Mini kernels at 0.5/1/2/5 MΩ/sq | Registration term saturates at the same size (−0.033, σ 250); low ρ_s only makes it prompt (by 92 ns at 0.5 MΩ) | timing lever, not size | Seventh round 8 |
 
 ## Next checks (in order)
 1. **Cross-gap leak / gap funnelling in the sim:** a digitizer variant giving late charge transfer between adjacent
@@ -559,3 +561,22 @@ Scripts in `scratchpad/2026-10-20/r5/` (`esl_fast.py`, `kernel_delta.py`, `delta
    6-27/28 1000 V 0.44 (47/59). So the correction is one fixed map per board times a per-run amplitude (from the
    run's own board-mean a1, or its cloud width). det2's bias averages away but is ±70 µm locally. det4/6/7 need more
    statistics than the bench has for a cell map.
+7. **Gap funnelling in the full sim** (condor 4520688: v5a recipe + `--gap-funnel` 1 and 0.5, th00 + thy05…30,
+   seeds 7–12, npz in yoga `~/x17/nb_asym_raw/simfunnel/`, decoded ROOT on EOS `response_sim/stageB_w2/funnel/`).
+   The funnel has its own rng stream, so each arm is paired event-for-event with the D = 0 arm of the same seed.
+   Odd amplitude O = ⟨sgn δ · a1⟩ over |δ| ≥ 50 µm (`paired_odd.py`, 36 pairs each):
+
+   | arm | O all | O narrow half | X sharing |
+   |---|---|---|---|
+   | D = 0 (4507242) | +0.056 | +0.071 | 0.760 |
+   | funnel 0.5 | +0.067 (×1.20, +0.011 ± 0.003) | +0.086 (×1.21) | 0.766 |
+   | funnel 1.0 | +0.078 (×1.40, +0.022 ± 0.004) | +0.108 (×1.54, +0.038 ± 0.003) | 0.765 |
+
+   Timing (`delta_timing.py fu1 …`): excess 0.109 (|δ| ≥ 150), peak −91 ns, t50 −131 ns vs the central; the
+   unfunnelled sim −71/−90, the data −10/−25. Funnelling strengthens the registration asymmetry by up to ~1.5× and
+   makes it no prompter, so funnelling alone doesn't close the 2.5–5× gap or the timing.
+8. **ρ_s** (mini kernels, insulating gaps): the registration term saturates at the same value at every ρ_s (odd
+   −0.033 for σ 250 µm at 0.5…5 MΩ/sq). Lower ρ_s only gets there sooner (by 92 ns at 0.5 MΩ, by ~500 ns at 5 MΩ).
+   So a lower-resistivity June print would make the registration excess prompt without making it larger.
+9. Running: the strip-width scan (condor 4520736, insulating gaps, widths 410/690 µm, effective 420/700 on the 20 µm
+   grid, vs 540 for the gap-0 job of 4520685), to see whether the gap/strip ratio sets the size.
