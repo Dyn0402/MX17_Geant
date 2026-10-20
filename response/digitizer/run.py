@@ -263,6 +263,14 @@ def main():
                          "offset; det3 X asymmetry, scratchpad/2026-10-20). Negative "
                          "= toward lower columns = the data's DAQ n+1 under "
                          "connector-inverted wiring. 0 = bit-identical.")
+    ap.add_argument("--gap-funnel", type=float, default=0.0,
+                    help="DIAGNOSIS: fraction of the avalanches landing in an ESL "
+                         "gap that are moved onto the nearer strip edge before "
+                         "the kernel lookup (prompt funnelling; det3 X asymmetry, "
+                         "scratchpad/2026-10-19/asym_deck/FINDINGS.md seventh "
+                         "round). 0 = bit-identical.")
+    ap.add_argument("--gap-funnel-inset-um", type=float, default=20.0,
+                    help="how far inside the strip edge funnelled avalanches land")
     ap.add_argument("--feedback-rmax-mm", type=float, default=10.0,
                     help="cap on the feedback displacement (redrawn beyond it); "
                          "stands in for UV absorption in the quencher.")
@@ -398,6 +406,8 @@ def main():
                     feedback_spread_um=a.feedback_spread_um,
                     feedback_rmax_mm=a.feedback_rmax_mm,
                     x_view_offset_um=a.x_view_offset_um,
+                    gap_funnel=a.gap_funnel,
+                    gap_funnel_inset_um=a.gap_funnel_inset_um,
                     z_aval_um=a.z_aval_um,
                     drift_gap_mm=a.drift_gap_mm,
                     kernel_t_max_ns=a.kernel_t_max,

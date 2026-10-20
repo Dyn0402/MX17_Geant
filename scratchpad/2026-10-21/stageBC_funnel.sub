@@ -1,0 +1,15 @@
+# Gap funnelling arms (2026-10-21): v5a recipe + --gap-funnel F (1, 0.5), th00 + thy*, seeds 7-12, paired with the
+# D = 0 arms of condor 4507242 (same seeds -> same clusters, noise and Y). Score: r5/sim_delta.py on simfunnel_npz.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_funnel_job.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/funnel.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4 MX17_GAS_TABLE=/afs/cern.ch/work/d/dneff/mx17_s1/src/design/gas/drift_velocity_Ar_iC4H10_95_5_H2O_1.0.json"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/funnel_f$(f)_$(ang)_s$(seed).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/funnel_f$(f)_$(ang)_s$(seed).err
+arguments               = "fu$(f)_$(ang)_s$(seed) $(f) $(ang) $(seed)"
+queue f, ang, seed from funnel_list.txt

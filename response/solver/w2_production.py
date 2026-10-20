@@ -77,14 +77,17 @@ def _git_hash():
         return "unknown"
 
 
-def make_solver(box, ny=None):
-    """ny override is for REDUCED-SIZE smoke jobs only — production is 512/16."""
+def make_solver(box, ny=None, nx=None, gap_frac=0.0):
+    """ny override is for REDUCED-SIZE smoke jobs only — production is 512/16.
+    nx / gap_frac: DIAGNOSIS variants (det3 X asymmetry, 2026-10-21): a coarser
+    x grid (must stay a multiple of 39) and conducting ESL gaps at gap_frac of
+    the strip conductivity. Defaults reproduce production exactly."""
+    kw = dict(nx=nx or NX, esl_phase_m=K.ESL_PHASE_CENTERED_M,
+              esl_gap_frac=gap_frac)
     if box == "y":
-        return W2Solver(RHO_REF, nx=NX, ny=ny or NY_Y, ly_m=K.Y_BOX_M,
-                        esl_phase_m=K.ESL_PHASE_CENTERED_M)
+        return W2Solver(RHO_REF, ny=ny or NY_Y, ly_m=K.Y_BOX_M, **kw)
     if box == "x":
-        return W2Solver(RHO_REF, nx=NX, ny=ny or NY_X, ly_m=K.X_BOX_M,
-                        esl_phase_m=K.ESL_PHASE_CENTERED_M)
+        return W2Solver(RHO_REF, ny=ny or NY_X, ly_m=K.X_BOX_M, **kw)
     raise ValueError(box)
 
 
@@ -248,9 +251,10 @@ def solve_family(s, drives, ifam, times, rhos=RHOS_OHM_SQ, verbose=True,
 
 def cmd_family(a):
     times = K.log_times(60)
-    s = make_solver(a.box, ny=a.ny)
+    s = make_solver(a.box, ny=a.ny, nx=a.nx, gap_frac=a.gap_frac)
     slab, IX, IY, meta = solve_family(s, drives_for(s, a.box), a.fam, times,
                                       label=f"box={a.box}")
+    meta.update(esl_gap_frac=a.gap_frac)
     os.makedirs(a.outdir, exist_ok=True)
     path = os.path.join(a.outdir, f"w2slab_{a.box}{a.fam:03d}.npz")
     np.savez_compressed(path, slab=slab, IX=IX, IY=IY, t=times,
@@ -322,6 +326,32 @@ def cmd_combine(a):
     return 0
 
 
+def cmd_combine_x(a):
+    """X-view products only, from the X-box slabs of a DIAGNOSIS variant
+    (--nx / --gap-frac as the family jobs were run). One npz per rho_s with
+    the production key names for the X part (t, x, y_X, G_X, x_cols)."""
+    times = K.log_times(60)
+    nt = len(times)
+    sx = make_solver("x", nx=a.nx, gap_frac=a.gap_frac)
+    n_x = len(sx.families())
+    os.makedirs(a.outdir, exist_ok=True)
+    for ri, rho in enumerate(RHOS_OHM_SQ):
+        gx = np.stack([_gather(a.slabdir, "x", n_x, ri, c, nt, sx.ny, sx.nx)
+                       for c in range(C.N_PAD_PER_SUPER)])
+        xtot = gx.sum(0)
+        res = {"rho_s_ohm_sq": rho, "d_kapton_m": D_K_M, "boundary_model": "W2",
+               "esl_gap_frac": a.gap_frac, "nx": sx.nx, "ny": sx.ny,
+               "x_view_total_prompt": float(xtot[0].mean()),
+               "x_view_total_late": float(xtot[-1].mean()), "git": _git_hash()}
+        path = os.path.join(a.outdir, f"gx_w2_rho{rho/1e6:g}M_gap{a.gap_frac:g}_nx{sx.nx}.npz")
+        np.savez_compressed(path, t=times, x=sx.x, y_X=sx.y, G_X=gx,
+                            x_cols=K.pad_x(np.arange(C.N_PAD_PER_SUPER)),
+                            meta=json.dumps(res))
+        print(f"rho {rho/1e6:g}M: X total prompt {res['x_view_total_prompt']:.4f} "
+              f"late {res['x_view_total_late']:.4f} -> {path}", flush=True)
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -331,11 +361,22 @@ def main():
     f.add_argument("--outdir", required=True)
     f.add_argument("--ny", type=int, default=None,
                    help="reduced-size smoke run (NOT for production slabs)")
+    f.add_argument("--nx", type=int, default=None,
+                   help="DIAGNOSIS: coarser x grid (multiple of 39)")
+    f.add_argument("--gap-frac", type=float, default=0.0,
+                   help="DIAGNOSIS: ESL gap conductivity / strip conductivity")
     g = sub.add_parser("combine", help="assemble products from all slabs")
     g.add_argument("--slabdir", required=True)
     g.add_argument("--outdir", required=True)
+    h = sub.add_parser("combine-x", help="X-view products of a diagnosis variant")
+    h.add_argument("--slabdir", required=True)
+    h.add_argument("--outdir", required=True)
+    h.add_argument("--nx", type=int, default=None)
+    h.add_argument("--gap-frac", type=float, default=0.0)
     a = ap.parse_args()
-    return cmd_family(a) if a.cmd == "family" else cmd_combine(a)
+    if a.cmd == "family":
+        return cmd_family(a)
+    return cmd_combine(a) if a.cmd == "combine" else cmd_combine_x(a)
 
 
 if __name__ == "__main__":

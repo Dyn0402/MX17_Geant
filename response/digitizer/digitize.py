@@ -248,7 +248,13 @@ class Digitizer:
                  feedback_spread_um=0.0, feedback_rmax_mm=10.0,
                  # DIAGNOSIS (2026-10-20, det3 X asymmetry): the X band reads the
                  # charge at x + offset, the Y band at x. 0 = bit-identical.
-                 x_view_offset_um=0.0):
+                 x_view_offset_um=0.0,
+                 # DIAGNOSIS (2026-10-21, det3 X asymmetry): a fraction of the
+                 # avalanches that land in an ESL gap is steered onto the
+                 # nearer strip edge (inset this far inside it) before the
+                 # kernel lookup -- prompt funnelling by a charged-up gap
+                 # surface. 0 = bit-identical (no rng draw).
+                 gap_funnel=0.0, gap_funnel_inset_um=20.0):
         # kernel_t_max_ns exists so the LUT window can be varied without
         # editing the default — the A1 before/after (test_window) and any
         # SPS-config run (64 x 60 ns frame -> 4200) both need it.
@@ -277,6 +283,10 @@ class Digitizer:
         self.n_side = n_chan_side
         self.packet = packet
         self.rng = np.random.default_rng(seed)
+        # its own stream, so a funnelled run shares every other draw (noise,
+        # diffusion, gain) with the unfunnelled run of the same seed
+        self.rng_funnel = np.random.default_rng(
+            [int(seed) if seed is not None else 0, 0x5F17])
         # Avalanches landing off the readout, counted for provenance (C14).
         self.n_outside = 0
         self.n_seen = 0
@@ -328,6 +338,11 @@ class Digitizer:
             raise ValueError(f"feedback bG must be in [0, 1), got {feedback_bg}")
         self.feedback_spread_um = float(feedback_spread_um)
         self.x_view_offset_um = float(x_view_offset_um)
+        self.gap_funnel = float(gap_funnel)
+        self.gap_funnel_inset_um = float(gap_funnel_inset_um)
+        if not 0.0 <= self.gap_funnel <= 1.0:
+            raise ValueError(f"gap_funnel must be in [0, 1], got {gap_funnel}")
+        self.n_funnelled = 0
         self.feedback_rmax_mm = float(feedback_rmax_mm)
         if self.feedback_spread_um < 0 or self.feedback_rmax_mm <= 0:
             raise ValueError("feedback spread must be >= 0 and rmax > 0")
@@ -578,6 +593,25 @@ class Digitizer:
         return (np.concatenate(xs), np.concatenate(ys), np.concatenate(ts),
                 np.concatenate(qs))
 
+    def funnel(self, x):
+        """Move a fraction gap_funnel of the gap-landing avalanches onto the
+        nearer strip edge, gap_funnel_inset_um inside it. The board frame has
+        a strip CENTRE at x = 0 mod the ESL pitch (kernels.esl_phase), the same
+        registration the kernel product was solved with."""
+        ph = K.esl_phase(x)
+        half = C.ESL_WIDTH_M / 2
+        gap = (ph >= half) & (ph < C.ESL_PITCH_M - half)
+        sel = gap & (self.rng_funnel.random(len(x)) < self.gap_funnel)
+        inset = self.gap_funnel_inset_um * 1e-6
+        # below the gap centre the nearer edge is the strip at -0 side (+half),
+        # above it the next strip's edge (pitch - half)
+        lo = ph < C.ESL_PITCH_M / 2
+        tgt = np.where(lo, half - inset, C.ESL_PITCH_M - half + inset)
+        x = np.array(x, dtype=float, copy=True)
+        x[sel] += (tgt - ph)[sel]
+        self.n_funnelled += int(sel.sum())
+        return x
+
     def induce(self, x, y, t, q, n_samp):
         """
         Sum the induced current of every avalanche onto the channel grid.
@@ -591,6 +625,8 @@ class Digitizer:
         pitch = C.PAD_PITCH_M
         ds = np.arange(-self.n_side, self.n_side + 1)
         nd, nt = len(ds), len(self.lut.t)
+        if self.gap_funnel:
+            x = self.funnel(x)
 
         # Channel index of the pad nearest each avalanche, on the 0.78 mm
         # lattice. The COLUMN comes from the LUT (lut.col_at), not from a second
@@ -709,6 +745,9 @@ class Digitizer:
             "gain_mean_with_feedback": self.gbar / (1.0 - self.feedback_bg),
             "feedback_spread_um": self.feedback_spread_um,
             "x_view_offset_um": self.x_view_offset_um,
+            "gap_funnel": self.gap_funnel,
+            "gap_funnel_inset_um": self.gap_funnel_inset_um,
+            "n_funnelled": self.n_funnelled,
             "feedback_rmax_mm": self.feedback_rmax_mm,
             "ion_speed_scale": self.ion_speed_scale,
             "aval_survival": self.aval_survival,

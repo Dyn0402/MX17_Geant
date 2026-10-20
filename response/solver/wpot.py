@@ -186,7 +186,8 @@ def stack_coeffs(k, gap_m, d_kapton_m, eps_r=C.KAPTON_EPS_R,
 # ── Conductivity pattern ─────────────────────────────────────────────────────
 
 def esl_sigma_profile(x_m, rho_s_ohm_sq, width_m=C.ESL_WIDTH_M,
-                      pitch_m=C.ESL_PITCH_M, phase_m=0.0, uniform=False):
+                      pitch_m=C.ESL_PITCH_M, phase_m=0.0, uniform=False,
+                      gap_frac=0.0):
     """
     Surface conductivity sigma_s(x) [S/sq] of the ESL strip pattern.
 
@@ -197,13 +198,17 @@ def esl_sigma_profile(x_m, rho_s_ohm_sq, width_m=C.ESL_WIDTH_M,
     `uniform=True` replaces the pattern with a uniform sheet of the SAME
     conductivity (not the same average) — that is the V1 reference case, where
     the closed form applies.
+
+    `gap_frac` gives the inter-strip gaps a surface conductivity of that
+    fraction of the strips' (DIAGNOSIS, det3 X asymmetry 2026-10-21: a
+    cross-gap leak). 0 = insulating gaps, bit-identical to before.
     """
     sig = 1.0 / rho_s_ohm_sq
     if uniform:
         return np.full_like(np.asarray(x_m, dtype=float), sig)
     u = np.mod(np.asarray(x_m, dtype=float) - phase_m, pitch_m)
     # Strip occupies [0, width); gap occupies [width, pitch).
-    return np.where(u < width_m, sig, 0.0)
+    return np.where(u < width_m, sig, sig * gap_frac)
 
 
 # ── The solver ───────────────────────────────────────────────────────────────

@@ -1,0 +1,14 @@
+# X-box W2 kernels with conducting ESL gaps (2026-10-21): gap conductivity fraction scan at nx=1560, incl. 0 baseline.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_gx_gap.sh
+arguments               = $(gf)
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/gxgap_$(gf).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/gxgap_$(gf).err
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/gxgap.log
+request_cpus            = 4
+request_memory          = 20000
+request_disk            = 6000000
++JobFlavour             = "tomorrow"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+queue gf in (0, 0.01, 0.03, 0.1, 0.3)

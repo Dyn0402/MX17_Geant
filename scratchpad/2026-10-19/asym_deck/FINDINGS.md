@@ -65,6 +65,10 @@ Verdict key: ✗ excluded · ~ partial / doesn't fit alone · ✓ supported · ?
 | 28 | Pin to stripes via reversed-stripe boards (det0, det1) | X and Y 2D maps, det0 He + Ar/iso, det1 all files | No field in either view (det1 weak fine-scale Y hint); May normal boards have none either | ? can't pin | Sixth round 2 |
 | 29 | Why only June builds | Along- and across-stripe late content per board | June: along 63–80, across 12–31; May/earlier: 24–37 / 1–9; sim: 64 / −2 | ? candidate: cross-gap leak | Sixth round 3 |
 | 30 | Earlier side threads | ±1/±2 neighbour timing vs v5a; far ±3..±5 halo (displaced photon feedback, H 150 µm) | v5a matches copy-free X; halo explained by feedback spread | separate threads | NB_ASYM §C–E, NB_FAR.md |
+| 31 | Static relocation (strip charge spread across/along its stripe; gap charge stays, funnelled, or leaked to neighbour stripes) | Deterministic fast model on the prompt ESL-plane field (`r5/esl_fast.py`) | ≤ ±0.02 for every variant except funnel-all + 1.5 mm along-stripe smear (±0.10). It also misses the sim baseline (0 vs ±0.05), so it is not a calibrator | ~ direction only | Seventh round 1 |
+| 32 | Where the sim's a1(δ) comes from | Production X kernel, y-resolved clouds (`r5/kernel_delta.py`) | 0 at t = 0, builds over 100–300 ns of sheet transport; ±0.06 for σ 250 µm next to a strip edge, ±0.015 for σ 450 | ✓ late sheet transport | Seventh round 2 |
+| 33 | Is the sim's registration excess prompt like the data's? | Excess waveform vs central, sim \|δ\| ≥ 150 vs data (`r5/delta_timing.py`) | Sim excess leads the central by 70 ns (t50 −90); data by 10 ns (t50 −25); det2/May none | ~ wrong shape by ~1 sample | Seventh round 3 |
+| 34 | Cross-gap leak (conducting ESL gaps, σ_gap = f σ_strip) in the real solver | W2 X-box kernels with `--gap-frac` (`w2_production.py`); mini nx = 390 locally; nx = 1560 scan f = 0…0.3 on condor 4520685 | Mini, f = 0.03 at 5 MΩ: late ±2 across stripes ×10 (σ 250: 1.0 → 9.8 ×10⁻³), odd a1 unchanged at 300 ns (−0.029) and +30 % at 1 µs | ~ explains the June late leak, not (yet) the prompt 3× | Seventh round 4 |
 
 ## Next checks (in order)
 1. **Cross-gap leak / gap funnelling in the sim:** a digitizer variant giving late charge transfer between adjacent
@@ -490,3 +494,50 @@ Scripts in `scratchpad/2026-10-20/r5/`.
      the sim's a1(δ) amplitude.
    - A per-board a1(x, y) calibration map for analysis.
    - The stripe mask from Dylan (pitch, alignment).
+
+## Seventh round (2026-10-20 afternoon, dylan-Yoga): cross-gap leak and funnelling, in the solver itself
+Scripts in `scratchpad/2026-10-20/r5/` (`esl_fast.py`, `kernel_delta.py`, `delta_timing.py`), condor files in
+`scratchpad/2026-10-21/`.
+1. **Static fast model** (`esl_fast.py`, deterministic clouds on the prompt X-line field at the ESL plane): moving strip
+   charge across or along its stripe, funnelling gap charge, or leaking 10–30 % to neighbour stripes all give
+   |a1| ≤ 0.02 at every offset. The one large case is all charge on stripes and spread ~1.5 mm along them (±0.10), but
+   the same model gives 0 for the sim's own case (insulating gaps), where the full sim gives ±0.05. So a static
+   picture can't stand in for the kernel; it only says that charge locked to the stripes carries the registration and
+   charge sitting in the gaps dilutes it.
+2. **The production kernel itself** (`kernel_delta.py` on a 9-time slice of G_X from
+   `greens_comb_w2_rho5M_dk50um_g19um.npz`, sliced on lxplus; slice in `/eos/user/d/dneff/tmp/gx/`): with y-resolved
+   gaussian clouds and the peak-column selection, A = (G[c+1] − G[c−1])/G[c] vs δ is zero at t = 0 and builds up over
+   100–300 ns. It is ±0.04–0.06 for σ = 250 µm next to the strip edges (|δ| 270–330) and ±0.015 for σ = 450 µm. The
+   registration asymmetry in the sim is a sheet-transport effect.
+3. **Timing** (`delta_timing.py`, same estimator on sim and data, X-only, aligned on the central peak):
+
+   | sample | n | excess amp | excess peak / t50 vs central (ns) |
+   |---|---|---|---|
+   | sim \|δ\| ≥ 150 (sign-folded) | 21.9k | 0.069 | −71 / −90 |
+   | data det3 June-15 X | 42.8k | 0.142 | −10 / −25 |
+   | data det2 X, det3 May X | | ≤ 0.005 | — |
+
+   The sim's registration excess leads the central by about one sample; the data's has nearly the central's shape.
+   So registration as the sim models it is not prompt enough. That isn't decisive (one sample, and the sim's pulses
+   rise ~70 ns slower overall), but a stronger mechanism has to be prompter, not later.
+4. **Conducting gaps in the W2 solver.** New, default-off: `wpot.esl_sigma_profile(gap_frac=)`,
+   `W2Solver(esl_gap_frac=)`, `w2_production.py family --nx --gap-frac` and `combine-x` (X-view products only).
+   Production is bit-identical at the defaults. A local mini pipeline at nx = 390 (80 µm; the pad edges fall off-grid,
+   so per-δ values carry ±0.03 lattice artefacts, but f = 0 and f > 0 share them):
+
+   | 5 MΩ/sq, σ 250 µm | odd a1 at 300 ns | at 1 µs | late ±2 across stripes (×10⁻³, 1 µs) |
+   |---|---|---|---|
+   | f = 0 | −0.029 | −0.033 | 1.0 |
+   | f = 0.03 | −0.029 | −0.043 | 9.8 (σ 450: 13 → 34) |
+   | f = 0.03 at 0.5 MΩ/sq | −0.047 | −0.021 | 252 |
+
+   A leaky gap reproduces the June boards' late across-stripe content. It does not make the prompt asymmetry 3×
+   stronger: what it adds comes late, which is the wrong timing for the data.
+   Running: condor 4520685, nx = 1560 (20 µm, exact pad edges), f = 0, 0.01, 0.03, 0.1, 0.3, one job per f (both
+   X families + combine-x); products → `/eos/user/d/dneff/tmp/gx/gap<f>_nx1560/gx_w2_rho*M_*.npz`. Score with
+   `python3 r5/kernel_delta.py <npz>…`.
+5. Reading: the candidate for the missing strength has to be prompt and stripe-locked. Prompt electron funnelling onto
+   the stripes (the gaps' kapton surface charged up, so arriving electrons are steered onto the stripes) fits that
+   better than a slow leak. The static model says funnelling only pays once the charge also spreads along the stripe.
+   That is the next thing to put in the digitizer: move each avalanche that lands in a gap onto the nearer stripe
+   edge before the kernel lookup (the existing kernel, no re-solve).
