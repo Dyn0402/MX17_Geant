@@ -1,0 +1,15 @@
+# X-box W2 kernels with a different ESL strip width (2026-10-21): does the gap/strip ratio set the registration
+# asymmetry's size? Insulating gaps, nx=1560; baseline is gap 0 of gx_gap.sub (550 um, effective 540 on the grid).
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_gx_gap.sh
+arguments               = 0 $(w)
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/gxwidth_$(w).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/gxwidth_$(w).err
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/gxgap.log
+request_cpus            = 4
+request_memory          = 20000
+request_disk            = 6000000
++JobFlavour             = "tomorrow"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+queue w in (410, 690)

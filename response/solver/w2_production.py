@@ -77,13 +77,16 @@ def _git_hash():
         return "unknown"
 
 
-def make_solver(box, ny=None, nx=None, gap_frac=0.0):
+def make_solver(box, ny=None, nx=None, gap_frac=0.0, esl_width_m=None):
     """ny override is for REDUCED-SIZE smoke jobs only — production is 512/16.
     nx / gap_frac: DIAGNOSIS variants (det3 X asymmetry, 2026-10-21): a coarser
     x grid (must stay a multiple of 39) and conducting ESL gaps at gap_frac of
-    the strip conductivity. Defaults reproduce production exactly."""
+    the strip conductivity; esl_width_m a different strip width, still centred
+    on x = 0 mod the pitch. Defaults reproduce production exactly."""
     kw = dict(nx=nx or NX, esl_phase_m=K.ESL_PHASE_CENTERED_M,
               esl_gap_frac=gap_frac)
+    if esl_width_m is not None:
+        kw.update(esl_width_m=esl_width_m, esl_phase_m=-esl_width_m / 2)
     if box == "y":
         return W2Solver(RHO_REF, ny=ny or NY_Y, ly_m=K.Y_BOX_M, **kw)
     if box == "x":
@@ -251,10 +254,11 @@ def solve_family(s, drives, ifam, times, rhos=RHOS_OHM_SQ, verbose=True,
 
 def cmd_family(a):
     times = K.log_times(60)
-    s = make_solver(a.box, ny=a.ny, nx=a.nx, gap_frac=a.gap_frac)
+    s = make_solver(a.box, ny=a.ny, nx=a.nx, gap_frac=a.gap_frac,
+                    esl_width_m=_w(a))
     slab, IX, IY, meta = solve_family(s, drives_for(s, a.box), a.fam, times,
                                       label=f"box={a.box}")
-    meta.update(esl_gap_frac=a.gap_frac)
+    meta.update(esl_gap_frac=a.gap_frac, esl_width_m=_w(a))
     os.makedirs(a.outdir, exist_ok=True)
     path = os.path.join(a.outdir, f"w2slab_{a.box}{a.fam:03d}.npz")
     np.savez_compressed(path, slab=slab, IX=IX, IY=IY, t=times,
@@ -326,13 +330,18 @@ def cmd_combine(a):
     return 0
 
 
+def _w(a):
+    """--esl-width-um as metres, None = production width."""
+    return None if getattr(a, "esl_width_um", None) is None else a.esl_width_um * 1e-6
+
+
 def cmd_combine_x(a):
     """X-view products only, from the X-box slabs of a DIAGNOSIS variant
     (--nx / --gap-frac as the family jobs were run). One npz per rho_s with
     the production key names for the X part (t, x, y_X, G_X, x_cols)."""
     times = K.log_times(60)
     nt = len(times)
-    sx = make_solver("x", nx=a.nx, gap_frac=a.gap_frac)
+    sx = make_solver("x", nx=a.nx, gap_frac=a.gap_frac, esl_width_m=_w(a))
     n_x = len(sx.families())
     os.makedirs(a.outdir, exist_ok=True)
     for ri, rho in enumerate(RHOS_OHM_SQ):
@@ -340,10 +349,12 @@ def cmd_combine_x(a):
                        for c in range(C.N_PAD_PER_SUPER)])
         xtot = gx.sum(0)
         res = {"rho_s_ohm_sq": rho, "d_kapton_m": D_K_M, "boundary_model": "W2",
-               "esl_gap_frac": a.gap_frac, "nx": sx.nx, "ny": sx.ny,
+               "esl_gap_frac": a.gap_frac, "esl_width_m": _w(a),
+               "nx": sx.nx, "ny": sx.ny,
                "x_view_total_prompt": float(xtot[0].mean()),
                "x_view_total_late": float(xtot[-1].mean()), "git": _git_hash()}
-        path = os.path.join(a.outdir, f"gx_w2_rho{rho/1e6:g}M_gap{a.gap_frac:g}_nx{sx.nx}.npz")
+        wtag = "" if _w(a) is None else f"_w{a.esl_width_um:g}"
+        path = os.path.join(a.outdir, f"gx_w2_rho{rho/1e6:g}M_gap{a.gap_frac:g}{wtag}_nx{sx.nx}.npz")
         np.savez_compressed(path, t=times, x=sx.x, y_X=sx.y, G_X=gx,
                             x_cols=K.pad_x(np.arange(C.N_PAD_PER_SUPER)),
                             meta=json.dumps(res))
@@ -365,6 +376,8 @@ def main():
                    help="DIAGNOSIS: coarser x grid (multiple of 39)")
     f.add_argument("--gap-frac", type=float, default=0.0,
                    help="DIAGNOSIS: ESL gap conductivity / strip conductivity")
+    f.add_argument("--esl-width-um", type=float, default=None,
+                   help="DIAGNOSIS: ESL strip width (production 550)")
     g = sub.add_parser("combine", help="assemble products from all slabs")
     g.add_argument("--slabdir", required=True)
     g.add_argument("--outdir", required=True)
@@ -373,6 +386,7 @@ def main():
     h.add_argument("--outdir", required=True)
     h.add_argument("--nx", type=int, default=None)
     h.add_argument("--gap-frac", type=float, default=0.0)
+    h.add_argument("--esl-width-um", type=float, default=None)
     a = ap.parse_args()
     if a.cmd == "family":
         return cmd_family(a)
