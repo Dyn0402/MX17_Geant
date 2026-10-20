@@ -1,207 +1,62 @@
 # Handoff
 
-## det3 X asymmetry, sixth round: stripe registration makes it (at 1/3), reversed boards inconclusive — updated 2026-10-20 night (dylan-Yoga)
+## det3 X asymmetry (all rounds) — updated 2026-10-20 (dylan-Yoga)
 
-**Resume:** FINDINGS.md "Sixth round". Dylan is fetching the stripe mask (pitch, alignment); don't wait for it.
+**Resume:** read the ledger at the top of `scratchpad/2026-10-19/asym_deck/FINDINGS.md`, then next step 1 (cross-gap-leak sim).
 
-**Found:**
-- In the sim, a1 vs the true stripe offset δ is odd and monotonic (±0.05–0.10, narrow clouds 2×). At fixed +δ it
-  reproduces det3's class pattern; −δ gives det2's negative bands. Amplitude ≈ 1/3 of data.
-- Reversed-stripe boards (det0, det1) can't pin the field to the stripes: the May normal-orientation boards have no
-  field either. The field belongs to the June builds.
-- The June builds (and the sim) spread charge strongly along the stripes. Only the June data also leak late charge
-  ACROSS the stripes (X ±2 late 12–31 vs sim −2). Candidate missing physics: cross-gap leak.
+**Goal:** explain det3 June-15's X n−1/n+1 asymmetry (and correct for it) from archive data and simulation; there has
+been no detector access since 10-13.
 
-**Next steps:**
-1. Digitizer variant: a cross-gap leak (or gap→stripe funnelling); does a1(δ) grow toward the data's ±0.2?
-2. Per-board a1(x, y) calibration map (r5/map_fit.py cells) as the analysis correction.
-3. Deck slides for rounds 4–6.
+**Done (full ledger of 30 routes with verdicts: FINDINGS.md top):**
+- The asymmetry is an X-only, smooth, two-signed field over every June board, not a det3 defect.
+- det2 has bands that cancel, so it isn't a clean control. Its positive band is a full "little det3", timing included.
+- Geometry is fixed per board; the amplitude is set by cloud width (gas, drift field). It is charge moved (n−1 → n+1),
+  prompt, and locked to the pad pitch (no 31.2 mm beat anywhere).
+- Excluded: code, electronics, connector/mixing, track angle, gas flow, copper bus/stubs, Y→X transfer, a plain copy,
+  rigid offset or mixtures alone, bus-side sensitivity regions, wrong stripe orientation.
+- The sim's a1 vs the true stripe offset δ reproduces the shape and both signs at ~1/3 amplitude.
+- Reversed-stripe boards (det0/det1) can't pin it: the May normal-orientation boards have no field either.
+- The June boards leak charge across the stripes; the sim doesn't.
+- Figure: `design/figures/asym_maps_2026-10-20.png`.
+- Dylan is fetching the ESL stripe mask (pitch, alignment); don't wait for it.
 
-**Gotchas:**
-- det0 4-7 Ar/iso exists only as filtered arrays on EOS. Extracted on lxplus with `raw_asym.py --array` into
-  `/eos/user/d/dneff/tmp/d0ar/`; 3 Y sub-runs have no FEU-4 file.
-- `asym_more.fidx` now also parses `_decoded_array*` file names.
-
-## det3 X asymmetry, fifth round: a two-signed X-only field on every board — updated 2026-10-20 evening (dylan-Yoga)
-
-**Resume:** read FINDINGS.md "Fifth round" (items 1–15 and the state summary) and look at
-`design/figures/asym_maps_2026-10-20.png`.
-
-**Found today:**
-- The X asymmetry varies smoothly over each board and takes both signs; the Y view is flat everywhere. det2 (the
-  old control) has bands in y of −0.29…+0.18 that cancel. Its positive band reproduces det3's full fingerprint, timing
-  included.
-- The geometry is fixed per board and the amplitude scales with narrower clouds. The structure repeats at the pad
-  pitch; there's no 800 µm beat anywhere. It is charge moved within X and prompt.
-- Excluded: fixed copper (one handedness), readout (no connector steps), Y→X transfer (ΣX/ΣY), track angle.
-- Stripe-print hypothesis (pitch 780, per-board registration) fits the geometry. The sim's stripes give only ≲ 0.05
-  (held-out phase test), so it is not modelled yet.
+**In progress / where it stopped:** nothing running. All condor runs are done and pulled: 4505159 (offsets 0…−300),
+4507004 (−450/−600/−780), 4507242 (D=0 seeds 7–16). Their npz are in yoga `~/x17/nb_asym_raw/simxoff/`; decoded ROOT
+is on EOS `response_sim/stageB_w2/xoff/`.
 
 **Next steps:**
-1. Ask Dylan/Stephan: the ESL screen pitch for the May/June prints, and how it's aligned (the data need a pitch
-   commensurate with 780 µm).
-2. If 780: a stripe-offset kernel set (S1 with stripe pitch = pad pitch, offsets 0…780), plus why the real pull is
-   ~4× the sim's: transverse equalisation strength, charge on the kapton gaps.
-3. Correction for analysis: a per-board a1(x, y) map (r5/map_fit.py cells) is the natural calibration, not one uncopy a.
-4. Deck slides for rounds 4–5 not built.
-
-**Gotchas:**
-- r5 scripts need `NB_RAW=/media/dylan/data/claude_tmp/tmp/nb/raw` on yoga (r5lib sets it by default).
-- Several r5 modules double as libraries; their mains are guarded.
-- Data disk `/media/dylan/data` is ~100 % full (9.5 GB free).
-
-## det3 X asymmetry, fourth round: offset sim read out, stripe direction checked — updated 2026-10-20 (dylan-Yoga)
-
-**Resume:** FINDINGS.md "Fourth round"; next is a one-sided Y-pad → X(n+1) cross-kernel in the digitizer.
-
-**Done:**
-- Condor 4505159 evaluated (`sim_xoff_eval.py`, `sim_xoff_rescore.py`). Pre-registered test passed: −300 µm gives
-  narrow X-pad −0.49/−0.45 (falsifier ≥ −0.1).
-- The offset is the only ingredient that makes the narrow X-pad flip and the pad-type migration. A rigid offset still
-  fails: its asymmetry fades for wide clusters, while the data's stays at ~0.3 (6-23/24). No (offset, copy) on the grid
-  fits any session.
-- Reading: a fixed one-sided fraction of the bus-side Y-pad charge seen by X line n+1. That looks like a shift when
-  the cloud is narrow and like a copy when it is wide.
-- Stripe direction (`stripe_orient2.py`):
-  - det0 (4-1) and det1 (Jan) are X-slow, the reversed board (40–50σ).
-  - Every May/June build (det2, det3 May/June-15, det4 May/June, det6, det7) is Y-slow.
-  - The April-24 "horizontal, strips broken" re-bulk shows no spreading in either view.
-- `raw_asym.py --array` reads decoded_array/filtered_root files (Apr-24 board has no decoded_root).
-
-**Next steps:**
-1. Digitizer option: X(n+1) += w × induced signal of the bus-side Y pads (pad-level, one-sided). Fit w per session
-   with `sim_xoff_eval.py`-style class curves; does one w fit all sessions, with the width doing the rest?
-2. Deck slides for round four are not built yet (`make_asym_deck.py` + `deck_slides_1020.py`).
-
-**Gotchas:**
-- On yoga, run the evals with `NB_RAW=/media/dylan/data/claude_tmp/tmp/nb/raw`. The sim npz are in
-  `~/x17/nb_asym_raw/simxoff`, which is symlinked there.
-- The thx/txy sim arms are one-signed in x and bias the X a1 by −0.04, so use `XOFF_ARMS='_th00_|_thy'`.
-
-## det3 X asymmetry, third round: readout excluded, X-offset sim running — updated 2026-10-19 night (dylan-MS-7C84)
-
-**Resume:** when condor 4505159 is done, pull `simxoff_npz/` and run `sim_xoff_eval.py`; deck slides 25–35, FINDINGS.md.
-
-**Goal:** find what on det3 June-15 (and det4/det7, weaker) puts ~0.2 of Y-pad charge into the DAQ n+1 X line, from
-archive data + simulation only (no detector access since 10-13).
-
-**Done (details + numbers in `scratchpad/2026-10-19/asym_deck/FINDINGS.md`, "Third round" and the two sections after it):**
-- Resistive stripes: copy flat over the 39:40 beat with TRUE columns; per-event stripe/gap unresolvable with cosmics.
-- Parity split is partly peak-migration selection (plain injected copy makes 0.20/0.05); det4/det7 look like a plain copy.
-- det3 June-15 is NOT a plain copy (narrow X-pad −0.40); no linear channel mixing of any sign reproduces it.
-- Readout (M1/connectors/cables/FEU) excluded: smooth through connector edges, flat along the line, and the
-  connector-edge re-extraction shows the excess on the physical neighbour across a connector (+0.21 ± 0.03, 6-23) and
-  nothing on the DAQ neighbour.
-- Bus side pinned from gerbers: each X line's bus sits on the n+1 side, on the shallow layer.
-- Static forward model: X-view offset ~100–250 µm + copy 0.10–0.15 per session; offset tracks cluster width.
-- run_config descriptions collected (slide "Boards"): May det3 "Bulked 5-5-26. Strip resist vertical. ESL no silver
-  paste"; beam mx17_A = det3 "Stephan June 15", mx17_B = det2 "Arnaud June 12, giant pillars". Stephan: nothing
-  different about the June bulks. Stripe direction (from data) same on det3 June-15 as det2/6/7. No shared dead line
-  between May and June-15 det3 (June-15 Y row 23 dead on both its FEU slots).
-- Digitizer `--x-view-offset-um` added (response/digitizer/{digitize,run}.py; synced to lxplus src; 0 = bit-identical,
-  verified against v5a_th00).
-
-**In progress:**
-- condor **4505159** on lxplus: 96 jobs = offsets 0/−100/−200/−300 µm × 12 angle files × seeds 5,6, v5a recipe,
-  `~/work/mx17_s1/run_xoff_job.sh`. Each writes `~/work/mx17_s1/simxoff_npz/xo<off>_<ang>_s<seed>_{x,y}.npz` (AFS) and
-  decoded ROOT to EOS `/eos/experiment/ntof/data/x17/response_sim/stageB_w2/xoff/`. ~35–40 min per job.
-- The local waiter that would have pulled them dies with this session. Pilot 4505153 (th00 only, ~190 matched
-  events/arm) was too thin to read.
-
-**Next steps:**
-1. `condor_q 4505159` on lxplus; when empty: `grep -L "=== done" ~/work/mx17_s1/logs/xoff2_*.out` (failures), then
-   `rsync -a 'lxplus:work/mx17_s1/simxoff_npz/xo*' ~/x17/nb_asym_raw/simxoff/` and
-   `~/PycharmProjects/nTof_x17/.venv/bin/python scratchpad/2026-10-20/sim_xoff_eval.py`.
-   Pre-registered: narrow X-pad class → ~−0.3 at −200…−300 µm; FALSIFIER: ≥ −0.1 at −300.
-2. If the offset survives: per-session (offset, copy) in the full sim with absolute Y-share bins → is ONE geometry
-   enough for the width curve? Then a deck slide.
-3. Why the bus side couples ~20× the copper value on June-15 (~6× det4/det7): stronger gap-coupling model.
-4. Ask Dylan: did the June-15 det3 reuse the May det3 PCB?
+1. Cross-gap leak (and/or gap→stripe funnelling) as a digitizer variant. Target: the sim's a1(δ) reaching ±0.15–0.25
+   for narrow clouds, and X late ±2 content 12–31 ×10⁻³ (`r5/sim_delta.py` is the scorer).
+2. Per-board a1(x, y) calibration map (`r5/map_fit.py` cells) as the analysis correction; det2 included.
+3. Deck slides for rounds 4–6 (`make_asym_deck.py` + `scratchpad/2026-10-20/deck_slides_1020.py`; then add-note
+   deploy, command in FINDINGS.md).
+4. With the mask: predict δ(x, y) per board and compare with the measured fields.
 
 **Gotchas / decisions:**
-- Dates: this session's files say "2026-10-20" (dir `scratchpad/2026-10-20/`, FINDINGS, deck) but the work was done on
-  2026-10-19 (shell clock). Left as is: the deck and scripts refer to the directory.
-- Re-centring after an uncopy with the wrong a fakes +0.1 on controls; use injection + closure (`uncopy_parity.py`).
-- `fwd_variants.py`: 'shift −d' = toward the data's n+1. Digitizer offset < 0 = toward lower columns = data's n+1.
-- At col%64 == 63 every board reads +0.04…+0.14 (cross-connector neighbour low): use the col%64 == 0 case.
-- `raw_asym.py --edge` does isolation/peak search in column order and stores `wf` (column) + `wf_daq` windows.
-- Bench tests are moot (no detector access): the deck's Open slide lists archive/sim items only.
+- Score models on effects vs controls: the sim's X-central fraction is flat in Y share, while every board's falls.
+- Rank-then-measure on the same noisy phase bins selects noise. Use the true stripe offset δ (`sim_delta.py`) instead.
+- Per-event periodogram significance is inflated by per-channel offsets: use per-column means plus permutations
+  (`beat_col.py`).
+- 1D profiles along a view's own coordinate are dominated by single dead/hot blocks. Use 2D X×Y cell maps.
+- The sim arms of one seed share noise and Y exactly, so X mixing at decoded level is exact (`raw_asym.py --mix-with`).
+- Many r5 modules double as libraries with guarded mains. On yoga `NB_RAW=/media/dylan/data/claude_tmp/tmp/nb/raw`
+  (r5lib sets it).
+- `r5/fp_data.pkl` is a local cache; not committed.
+- yoga data disk `/media/dylan/data` is ~100 % full (≈ 9.5 GB free).
+- det0 4-7 Ar/iso exists only as filtered arrays. It was extracted on lxplus (`--array`) into
+  `/eos/user/d/dneff/tmp/d0ar/`.
 
 **Key files & commands:**
-- `scratchpad/2026-10-20/`: analysis scripts + JSON (`edge_test.py`, `mix_fit.py`, `mix_reach2.py`, `m1_profile.py`,
-  `fwd_session_fit.py`, `stripe_orient.py`, `pcb_fingerprint.py`, `sim_xoff_eval.py`, `run_xoff_job.sh`,
-  `stageBC_xoff*.sub`, `deck_slides_1020.py`, ...).
-- Deck: `~/PycharmProjects/nTof_x17/.venv/bin/python scratchpad/2026-10-19/asym_deck/make_asym_deck.py` then
-  `python3 ~/PycharmProjects/dylan-cern-site/scripts/add-note.py det3-x-asymmetry.html --slug det3-x-asymmetry --force --deploy`
-  (from the asym_deck dir).
-- Desktop-only derived data: `~/x17/nb_asym_raw/{esl_cache.npz,edge/,simxoff/}`; edge extraction also on yoga
-  `/media/dylan/data/claude_tmp/tmp/nb/edge/`.
-
-## det3 X asymmetry, second round: it lives at the Y pads — updated 2026-10-19 late (dylan-MS-7C84)
-
-**Resume:** deck slides 19–27 (https://dylan-neff.web.cern.ch/notes/det3-x-asymmetry.html), `asym_deck/FINDINGS.md`
-"Second round". Mechanism at the Y pad still open; Dylan to pick bench tests (deck "Open").
-
-**Done:**
-- Copy only for charge over a Y pad (X/Y matched parity split): det3 June-15 0.22, det4/det7 0.08, det6 0.02, others 0;
-  every Y pad alike (no pillar, no stripe-beat pattern). Electronics/cable excluded by this.
-- Date + drift-field dependence collapse onto cluster width (Y ±1 share): gas state of the night + field. Gas circulation
-  ruled out as the cause (X only, pad-level, flat top-bottom, non-monotonic). Varies along the X-chip axis only.
-- Beam drift scans (condor 4502894) of det2/det6/det7: inconclusive (det6 0, det7 too noisy, det2 beam-angle).
-- Sims: copper/dielectric/displacement give < 0.02 on the data estimator; floating stripes have the wrong fingerprint.
-
-**Next steps:**
-1. Bench: same HV, two gas states; collimated Fe-55 on one Y pad vs X pad; det4/det7 drift scan; ask Stephan about the
-   June recipe; microscope det3 Y pads; same PCB/resistive print for det3 May vs June-15?
-2. Model candidates not yet built: a partly floating Y pad, a conductive/charged residue at the Y-pad edge on the bus side.
-3. Analysis correction: uncopy on Y-pad events only (parity from the Y view).
-
-**Gotchas:** `fwd_parity.py` Y-line placement had a half-pitch bug (fixed; it made ±0.15 per class from symmetric
-geometry). Beam needs `raw_asym.py --cm` (flash). Desktop-only derived data: `~/x17/nb_asym_raw/{extra,beam}/`; beam
-npz also on EOS `/eos/user/d/dneff/asym_beam/`.
-
-**Key files:** `asym_deck/asym_more.py`, `asym_deck/beam/{beam_drift.py,beamjob.sh,beam.sub,mkjobs.py}`,
-`bus_wpot.py`, `bus_float.py`, `fwd_parity.py`, `bus_par/`, `fwd_out/`.
-
-## det3 X asymmetry, raw-ADC deck — updated 2026-10-19 (dylan-MS-7C84)
-
-**Resume:** det3 X copy is real (raw ADC, follows the board); next: the discriminating tests (bus side, cable swap, HV-off pulser).
-
-**Goal:** convince Dylan (sceptical) whether the det3 X left/right neighbour asymmetry is real, from the rawest data up.
-
-**Done:**
-- Deck https://dylan-neff.web.cern.ch/notes/det3-x-asymmetry.html (20 slides), built by
-  `scratchpad/2026-10-19/asym_deck/make_asym_deck.py`; findings and numbers in `asym_deck/FINDINGS.md`.
-- New independent extractor `raw_asym.py` (raw ADC − per-channel pedestal, channel numbers, no map/CMS/clustering) over 16
-  detector views + every cosmic-bench sub-run (`run_raw*.sh`, yoga). det3 June-15 X: p+1 bigger in 84 % of events; other 13
-  views 50 %. Copy a ≈ 0.19 balances ±1 and ±2; in phase; linear; noise not copied; same FEU 3 clean on det3-May/det6.
-- Centre-peaked across the board (chips 2–5 ~0.25, edges ~0.1; 2D map too); rises reversibly at low drift field; flat in mesh HV ≤ 500 V.
-- det4/det7 X (Stephan June-22 batch) 0.05–0.06; det1/det2/det6 ≈ 0.
-
-- **By date** (slide 17, added 10-19 evening): centre-chip copy 6-18 0.26 → 6-19/20 0.03 → 6-22 0.16 → 6-24 (600 V) 0.26 →
-  6-27/28 0.10 → beam 0.06. Session-stable, jumps between sessions. 6-19 = only run with det3 drift HV sparking (4–9 µA).
-  Details in `asym_deck/FINDINGS.md` "By date"; extra npz in desktop `~/x17/nb_asym_raw/extra/`.
-
-**Next steps:**
-0. Decode 6-19 HV scan + long_run (raw_daq_data only, EOS june_tests) to see if the copy returns within 6-19/20; ask Dylan
-   whether det3 cables/HV were moved on 6-19 (config swapped the boards' HV channels vs 6-17).
-1. Pin gerber → channel orientation: does the one-sided bus side predict p+1 receiving the copy? (wrong side ⇒ bus excluded)
-2. Ask Dylan/Stephan: cable/adapter swap test; same PCB for det3 May vs June-15?; what differed in the June-15 bulk.
-3. HV-off pulser into one det3 X pad (static coupling vs field-dependent bulk effect).
-4. Add the hot-channel veto (`asym_lib.hot`) to `../nb_copy_survey.py`/copy_survey.csv; beam rows still need a raw re-check
-   (raw_asym's isolation cut rejects every beam event: flash).
-
-**Gotchas / decisions:**
-- The old survey's 6-23 "turn-on" (0.035→0.17) was hot channel 492 (97 % of short-run events). Always veto hot channels.
-- Junk (flat, no-pulse) events: the pulse-shape cut in `asym_lib.good` is needed.
-- `pkill -f <pattern>` over ssh kills the ssh shell itself when the pattern is in the command line (lost run_raw3 once).
-- 2D map: X and Y files must be matched by file number + eventId (file lists differ between FEUs).
-
-**Key files & commands:**
-- `asym_deck/raw_asym.py`, `run_raw.sh`, `run_raw2.sh`, `run_raw3.sh` — yoga extraction → `/media/dylan/data/claude_tmp/tmp/nb/raw/`
-  (copied to desktop `~/x17/nb_asym_raw/`, incl. `survey/`).
-- `~/PycharmProjects/nTof_x17/.venv/bin/python make_asym_deck.py` then
-  `python3 ~/PycharmProjects/dylan-cern-site/scripts/add-note.py det3-x-asymmetry.html --slug det3-x-asymmetry --force --deploy`.
+- `scratchpad/2026-10-19/asym_deck/FINDINGS.md`: ledger and all rounds.
+- `scratchpad/2026-10-19/asym_deck/raw_asym.py`: extractor (`--edge`, `--cm`, `--array`, `--mix-with/--mix-w`).
+- `scratchpad/2026-10-20/r5/`: round 5–6 scripts.
+  - `r5lib.py`: matched events.
+  - `fingerprint.py`, `timing.py`, `xpos_probe.py`: observables.
+  - `map_fit.py`, `map_y.py`, `orient_maps.py`, `det2_regions.py`: field maps.
+  - `sim_delta*.py`: the sim vs stripe offset.
+  - `fwd_xpos.py`, `fwd_region.py`: the fast static model.
+  - `fig_maps.py`: the figure.
+- `scratchpad/2026-10-20/stageBC_xoff{2,3,4}.sub` + `run_xoff_job.sh` (lxplus `~/work/mx17_s1/`): sim arms.
 
 ## Neighbour asymmetry + timing vs strip distance — updated 2026-10-19 (dylan-MS-7C84)
 

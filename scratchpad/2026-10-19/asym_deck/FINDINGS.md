@@ -1,3 +1,82 @@
+# det3 X neighbour asymmetry: ledger of every route tried (2026-10-18 → 2026-10-20)
+
+Read this first; the round-by-round detail follows below it (and in `../NB_ASYM.md`, `../NB_FAR.md`).
+Data: raw-ADC survey of every cosmic-bench sub-run (`raw_asym.py`, yoga `/media/dylan/data/claude_tmp/tmp/nb/raw/`).
+Sim: v5a recipe on condor (4505153/4505159/4507004/4507242), npz in `~/x17/nb_asym_raw/simxoff/` on yoga.
+a1 = α(n+1) − α(n−1) in DAQ order (det3 June-15's excess side positive).
+
+## Current picture (end of 2026-10-20)
+
+**What the asymmetry is:**
+- Not a det3 defect. Every June build (det2, det3 June-15, det4, det6, det7) carries an X-only neighbour-asymmetry field.
+- The field varies smoothly over each board and takes both signs. The Y view is flat everywhere.
+- det2's field comes as bands in y (−0.29…+0.18) that cancel, so det2 looked symmetric. det3 June-15 is positive over
+  most of its area (mean +0.14, with a tilted ridge).
+- Per board, the geometry is fixed; the amplitude scales with narrower clouds (gas, drift field). That is why det3
+  varies between nights.
+- It is charge moved within X (n−1 → n+1), prompt, and repeats at the pad pitch (no 31.2 mm beat on any board).
+
+**Leading explanation (partly supported):**
+- Resistive-stripe registration: stripe centres offset from the pad columns, with the offset varying across the board
+  through print scale and rotation.
+- In the sim, a1 vs the true stripe offset reproduces the shape and both signs at ~1/3 of the amplitude.
+- This requires a 780 µm-commensurate stripe pitch, which contradicts the 800 µm quote. Dylan is fetching the mask.
+- Candidate for the missing strength: the June boards leak charge ACROSS the stripes (late X ±2 content), the sim
+  doesn't.
+
+**Open:**
+- The size gap (sim ±0.05–0.10 vs data ±0.14–0.29).
+- Why only the June builds have it.
+- The stripe pitch.
+
+## Routes
+
+Verdict key: ✗ excluded · ~ partial / doesn't fit alone · ✓ supported · ? open.
+
+| # | Hypothesis / route | Test | Result | Verdict | Where |
+|---|---|---|---|---|---|
+| 1 | Artefact of our code (maps, clustering, CM subtraction) | Independent raw-ADC extractor, DAQ channels, pedestal only | Asymmetry is in the raw ADC: P(n+1>n−1) 0.85 on det3 June-15 X, 0.50 elsewhere | ✗ | top of this file, deck slides 4–8 |
+| 2 | Hot channel / selection trap | Hot-channel veto, pulse-shape cut | One evening's "turn-on" was ch 492; the effect survives the veto | ✗ (trap found) | finding 3 above |
+| 3 | 39:40 resistive beat (800 vs 780 µm) | a1 vs column mod 40, DAQ then true columns; per-column-means periodogram, permutation null | Flat on every board (det3 sine 0.007 ± 0.004; 1/40 p 0.12–0.86). The sim predicts s1 0.12 / d1 0.07: absent in data | ✗ as a beat | NB_ASYM §1; Third round 1; Fifth round 2 |
+| 4 | Electronics copy (FEU, ADC mux, cable) | Noise correlation d=1 vs d=2 with injection; same FEU slot on other boards | Noise not copied; same FEU clean on det3 May/det6 | ✗ | NB_ASYM §1; deck "Noise", "Follows the board" |
+| 5 | Connector / M1 card / channel mixing | Linear-mixing fits (any sign, ±1/±2); connector-edge re-extraction (`--edge`) | No mixing fits (χ² 410–750/28); the excess follows the physical neighbour across connectors (+0.21 ± 0.03), DAQ n+1 gets 0 | ✗ | Third round; "Connector edges" |
+| 6 | Track angle / tilt | a1 vs M3 angle; vertical-only maps | −0.0085/° on det2: det3 would need ~20°; maps hold for vertical tracks; an x-tilt can't make y-structure | ✗ | NB_ASYM §1; Fifth round 9 |
+| 7 | Gas-flow pattern | Map vs inlet→exhaust, X-only, time behaviour | Flat top–bottom, X only, non-monotonic in time | ✗ as cause | deck "Gas idea" |
+| 8 | One-sided copper (bus traces under the gap, stubs) | 3D weighting solve (`bus_wpot.py`) at any bus depth, dielectric variants | ≤ 0.01 nominal, 0.085 even touching the pads; fixed handedness | ✗ (also killed by #22) | NB_ASYM §B; deck "Bus traces" |
+| 9 | Floating stripes (static conductors) | `bus_float.py` + forward model | Copy in both pad classes, growing with cloud size | ✗ (static version) | Second round 6 |
+| 10 | Plain one-step copy x(n+1) += a x(n) | Uncopy closure; parity split with injection; bookkeeping | Uncopy balances ±1/±2 board-wide. But det3 isn't a plain copy: narrow X-pad −0.40, which no copy makes | ~ | NB_ASYM §A; Third round 2–3 |
+| 11 | Charge over Y pads coupled into X n+1 ("lives at the Y pads") | X/Y parity split | Split is partly peak-migration selection (injected copy makes 0.20/0.05) | ~ (selection) | Second round; Third round 2 |
+| 12 | Rigid X-view offset (X reads the avalanche at x + D) | Static forward fits; full sim condor 4505159 (D 0…−300) | Pre-registered narrow X-pad flip passed (−0.45…−0.51). But zero marginal a1 and fading for wide clouds | ~ needed, not sufficient | Fourth round 1 |
+| 13 | Mixed response (1−w)R(x) + wR(x+D) | Exact event-level mixing of offset arms (`raw_asym.py --mix-with`); fingerprint scoring | a1 ≈ 0.00–0.03 for every (D, w): can't make the marginal | ✗ alone | Fifth round 4, 6 |
+| 14 | Y→X transfer (floating or cracked-via Y pad, Y-line crosstalk, bus pickup from Y) | ΣX/ΣY by pad class and session | ΣX/ΣY not raised (det3 0.907/0.925 vs det2 0.932/0.944) | ✗ | Fifth round 1 |
+| 15 | Extra sensitivity regions on the bus side (gap strip, next-column Y pad or its half, next or skip X line, whole column) | Fast static model (`fwd_region.py`) | All send narrow A_X positive and keep A_Y small (χ² 700–3400/24) | ✗ | Fifth round 7 |
+| 16 | Skip transfer n−1 → n+1 (channel level) | Fast model | Right x-conditional trend, wrong class pattern | ✗ | Fifth round 7 |
+| 17 | Shift/mix + copy combinations | Fast model, full sim | Best χ² ≈ 240–260/24 (fast), no session fit (full) | ~ | Fourth round 1; Fifth round 7 |
+| 18 | Stripe orientation wrong on det3 | Late ±2 content X vs Y per board | det3 June-15 = Y-slow like every June/May board. det0/det1 (Jan/Apr) reversed. Apr-24 "horizontal, broken" shows no spreading | ✗ for det3 | Fourth round 2 |
+| 19 | Same PCB for det3 May and June-15 | Dead-line fingerprint | No shared defects; not supported | ? | "Connector edges" 4 |
+| 20 | Charge bookkeeping: moved or added? | Integrals per Y-share bin vs det2/det3 May and vs injection | n+1 gains ≈ what n−1 loses; Xc and the sum unchanged; a copy would raise n−1 and Xc | ✓ moved | Fifth round 1 |
+| 21 | Timing of the excess | Mean waveforms aligned on the Y central | Excess peaks with the central (+3…+25 ns), not like neighbour charge (+90…+120 for offsets) | ✓ prompt, direct-like | Fifth round 3 |
+| 22 | Is it board-uniform? | Per-chip, 16-col, 8×8 maps; connector steps; Y-view maps | Smooth two-signed X fields (det4 −0.16 → +0.19, det6 + → −, det2 bands), no connector steps, Y flat | ✓ X-only field | Fifth round 8–9 |
+| 23 | det2 a clean control? | det2 by region; both runs | Positive band = det3's full fingerprint incl. timing; negative bands its mirror; same rows on FEU 3 and 6, amplitude ×2.5 with narrower clouds | ✗ not clean; ✓ fixed geometry | Fifth round 10, 13 |
+| 24 | Pitch of whatever causes it | a1 inside det2's positive band in 8-col blocks; 1/40 harmonic | Positive across all 512 columns, no 1/40 (p 0.57): commensurate with 780 µm | ✓ pad-pitch locked | Fifth round 11 |
+| 25 | Stripe-registration field (print scale/rotation) | Map fits A sin(φ0 + kx x + ky y); quadrature (sharing ∝ cos φ) | Fits det3/det2 geometry, stable across det3 sessions; sharing quadrature not detected (−0.007 ± 0.009) | ~ geometry yes, quadrature no | Fifth round 12; `quad_test.py` |
+| 26 | Can stripe offset produce it (sim)? | a1 vs true δ in the sim (`sim_delta.py`, `sim_delta_fp.py`) | Odd in δ, ±0.05–0.10 (narrow ±0.10–0.24); det3's class pattern at +δ, det2-negative mirror at −δ; ~1/3 of data amplitude | ✓ shape, ~ size | Sixth round 1 |
+| 27 | Rotation of the print alone | Physics estimate | Lateral spread along a tilted stripe is µm; only the registration via a 780 pitch makes ~P/θ bands | rotation only via registration | Sixth round 1 |
+| 28 | Pin to stripes via reversed-stripe boards (det0, det1) | X and Y 2D maps, det0 He + Ar/iso, det1 all files | No field in either view (det1 weak fine-scale Y hint); May normal boards have none either | ? can't pin | Sixth round 2 |
+| 29 | Why only June builds | Along- and across-stripe late content per board | June: along 63–80, across 12–31; May/earlier: 24–37 / 1–9; sim: 64 / −2 | ? candidate: cross-gap leak | Sixth round 3 |
+| 30 | Earlier side threads | ±1/±2 neighbour timing vs v5a; far ±3..±5 halo (displaced photon feedback, H 150 µm) | v5a matches copy-free X; halo explained by feedback spread | separate threads | NB_ASYM §C–E, NB_FAR.md |
+
+## Next checks (in order)
+1. **Cross-gap leak / gap funnelling in the sim:** a digitizer variant giving late charge transfer between adjacent
+   stripes (and/or electrons over the kapton gaps moved onto the nearest stripe). Score: the sim's a1(δ) amplitude
+   (target ±0.15–0.25 at narrow clouds) and the X late ±2 content (target 12–31 ×10⁻³).
+2. **Per-board a1(x, y) calibration map** (`r5/map_fit.py` cells) as the analysis correction, replacing a single
+   uncopy a; det2 needs one too.
+3. Deck slides for rounds 4–6 (the 2D maps figure `design/figures/asym_maps_2026-10-20.png`, det2 regions, sim a1(δ)).
+4. When the mask arrives: stripe pitch and alignment → predicted δ(x, y) per board vs the measured fields.
+
+---
+
 # Raw-ADC check of the X asymmetry (2026-10-19)
 
 Deck: https://dylan-neff.web.cern.ch/notes/det3-x-asymmetry.html, built by `make_asym_deck.py` (observables in
