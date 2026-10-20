@@ -18,18 +18,25 @@ differ: DAQ neighbours sit on another connector/chip 127 columns away, physical 
 --array (2026-10-20): read decoded_array / filtered_root files (amplitude uint16[512][32], channel-major), e.g. the
 April-24 build on EOS, which has no decoded_root. Filtered files hold M3-triggered events only; the first-1000-event
 pedestal is then a median over events that mostly carry a track in some chip, which the median tolerates.
-Usage: raw_asym.py DECODED_DIR FEU OUT.npz [--files 3] [--skip 0] [--cm] [--edge] [--array]"""
+--mix-with DIR2 --mix-w W (2026-10-20): sim only. Reads the same events from a second arm that differs only in the
+X response (digitizer --x-view-offset-um; same seed, so identical noise and Y) and uses (1-W)*A + W*A2 sample by
+sample: a fraction W of each avalanche's X induction read at the shifted position (linear induction, linear DAQ).
+Usage: raw_asym.py DECODED_DIR FEU OUT.npz [--files 3] [--skip 0] [--cm] [--edge] [--array] [--mix-with DIR2 --mix-w W]"""
 import sys, glob, argparse, numpy as np, uproot, awkward as ak
 ap = argparse.ArgumentParser(); ap.add_argument('dec'); ap.add_argument('feu', type=int); ap.add_argument('out')
 ap.add_argument('--files', type=int, default=3); ap.add_argument('--skip', type=int, default=0)
 ap.add_argument('--cm', action='store_true'); ap.add_argument('--edge', action='store_true')
 ap.add_argument('--array', action='store_true')
+ap.add_argument('--mix-with', default=None); ap.add_argument('--mix-w', type=float, default=0.0)
 a = ap.parse_args()
 if a.array:   # decoded_array / filtered_root files: amplitude is a fixed uint16[512][32] (channel, sample) per event
     files = sorted(glob.glob(f'{a.dec}/*_{a.feu:02d}_decoded_array*.root'))
 else:
     files = [f for f in sorted(glob.glob(f'{a.dec}/*_{a.feu:02d}.root')) if 'pedestal' not in f and 'decoded_array' not in f]
 files = files[a.skip:a.skip + a.files]
+if a.mix_with:   # same files (same events, same noise) of another sim arm, matched by sorted order
+    files2 = [f for f in sorted(glob.glob(f'{a.mix_with}/*_{a.feu:02d}.root')) if 'pedestal' not in f and 'decoded_array' not in f]
+    files2 = files2[a.skip:a.skip + a.files]; assert len(files2) == len(files)
 HW, D, AINJ = 4, 6, 0.15
 WF, P, EV, FI, DISP, WFD = [], [], [], [], [], []
 COL = np.array([64 * (c // 64) + 63 - c % 64 for c in range(512)])   # DAQ ch -> column; its own inverse
@@ -42,8 +49,12 @@ def corr_acc(x, key):
         cs[key][d] += (u * v).sum(); cn[key][d] += (u * u).sum(); cq[key][d] += (v * v).sum()
 for fi, f in enumerate(files):
     t = uproot.open(f)['nt']; ped = None
+    it2 = uproot.open(files2[fi])['nt'].iterate(['eventId', 'amplitude'], step_size=1500, library='ak') if a.mix_with else None
     for arr in t.iterate(['eventId', 'amplitude'], step_size=1500, library='ak'):
-        if a.array:
+        if it2 is not None:
+            arr2 = next(it2); assert np.array_equal(np.asarray(arr['eventId']), np.asarray(arr2['eventId']))
+            amp = (1 - a.mix_w) * arr['amplitude'] + a.mix_w * arr2['amplitude']
+        elif a.array:
             amp = ak.Array(ak.to_numpy(arr['amplitude']).transpose(0, 2, 1).reshape(len(arr), -1))
         else:
             amp = arr['amplitude']

@@ -1,5 +1,33 @@
 # Handoff
 
+## det3 X asymmetry, fifth round: a two-signed X-only field on every board — updated 2026-10-20 evening (dylan-Yoga)
+
+**Resume:** read FINDINGS.md "Fifth round" (items 1–15 and the state summary) and look at
+`design/figures/asym_maps_2026-10-20.png`.
+
+**Found today:**
+- The X asymmetry varies smoothly over each board and takes both signs; the Y view is flat everywhere. det2 (the
+  old control) has bands in y of −0.29…+0.18 that cancel. Its positive band reproduces det3's full fingerprint, timing
+  included.
+- The geometry is fixed per board and the amplitude scales with narrower clouds. The structure repeats at the pad
+  pitch; there's no 800 µm beat anywhere. It is charge moved within X and prompt.
+- Excluded: fixed copper (one handedness), readout (no connector steps), Y→X transfer (ΣX/ΣY), track angle.
+- Stripe-print hypothesis (pitch 780, per-board registration) fits the geometry. The sim's stripes give only ≲ 0.05
+  (held-out phase test), so it is not modelled yet.
+
+**Next steps:**
+1. Ask Dylan/Stephan: the ESL screen pitch for the May/June prints, and how it's aligned (the data need a pitch
+   commensurate with 780 µm).
+2. If 780: a stripe-offset kernel set (S1 with stripe pitch = pad pitch, offsets 0…780), plus why the real pull is
+   ~4× the sim's: transverse equalisation strength, charge on the kapton gaps.
+3. Correction for analysis: a per-board a1(x, y) map (r5/map_fit.py cells) is the natural calibration, not one uncopy a.
+4. Deck slides for rounds 4–5 not built.
+
+**Gotchas:**
+- r5 scripts need `NB_RAW=/media/dylan/data/claude_tmp/tmp/nb/raw` on yoga (r5lib sets it by default).
+- Several r5 modules double as libraries; their mains are guarded.
+- Data disk `/media/dylan/data` is ~100 % full (9.5 GB free).
+
 ## det3 X asymmetry, fourth round: offset sim read out, stripe direction checked — updated 2026-10-20 (dylan-Yoga)
 
 **Resume:** FINDINGS.md "Fourth round"; next is a one-sided Y-pad → X(n+1) cross-kernel in the digitizer.

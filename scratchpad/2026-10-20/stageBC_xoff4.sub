@@ -1,0 +1,15 @@
+# More D = 0 statistics (2026-10-20 day): v5a recipe, th00 + thy*, seeds 7-16 (60 jobs), for the fingerprint per
+# stripe phase (col mod 40): does the phase with the largest X asymmetry also reproduce det3 June-15's class pattern?
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_xoff_job.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/xoff4.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4 MX17_GAS_TABLE=/afs/cern.ch/work/d/dneff/mx17_s1/src/design/gas/drift_velocity_Ar_iC4H10_95_5_H2O_1.0.json"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/xoff4_xo$(o)_$(ang)_s$(seed).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/xoff4_xo$(o)_$(ang)_s$(seed).err
+arguments               = "xo$(o)_$(ang)_s$(seed) $(ov) $(ang) $(seed)"
+queue o, ov, ang, seed from xoff4_list.txt

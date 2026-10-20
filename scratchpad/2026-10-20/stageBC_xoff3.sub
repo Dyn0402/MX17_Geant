@@ -1,0 +1,16 @@
+# X-VIEW OFFSET, large offsets (2026-10-20 day): -450/-600/-780 um x th00+thy* x seeds 5,6 (36 jobs), same recipe.
+# Purpose: mixed responses (1-w) X(0) + w X(D) up to a full pitch; tests whether the det3 n+1 excess is a direct-like
+# signal (D ~ -780 makes the moved part prompt) or a neighbour-like one (|D| <= 300 leaves it late).
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_xoff_job.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/xoff3.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4 MX17_GAS_TABLE=/afs/cern.ch/work/d/dneff/mx17_s1/src/design/gas/drift_velocity_Ar_iC4H10_95_5_H2O_1.0.json"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/xoff3_xo$(o)_$(ang)_s$(seed).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/xoff3_xo$(o)_$(ang)_s$(seed).err
+arguments               = "xo$(o)_$(ang)_s$(seed) $(ov) $(ang) $(seed)"
+queue o, ov, ang, seed from xoff3_list.txt

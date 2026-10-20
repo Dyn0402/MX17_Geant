@@ -212,3 +212,147 @@ bulks; the date/field dependence is the cluster width acting on a fixed one-side
      Y 48–52, which the hot-channel veto removes. Its direction can't be read from data; the config says horizontal.
    - None of this touches the det3 X asymmetry: det1 (reversed) has copy ≈ 0, and det3 June-15's direction is the
      common one.
+
+## Fifth round (2026-10-20 day, dylan-Yoga): bookkeeping, stripe pitch, timing, mixed responses
+Scripts in `scratchpad/2026-10-20/r5/` (`r5lib.py` = matched X/Y events per build from the raw survey).
+1. **Charge bookkeeping** (`probe_charge.py`, `probe_charge_bins.py`, `charge_sessions.py`). Integrals of positive
+   samples, per Y-share bin, Y-pad events, relative to ΣY:
+   - Against det2 at matched Y share, det3 June-15's n+1 gains about what its n−1 loses (Ysh 0.55–1.0:
+     +0.061/−0.052, +0.067/−0.056, +0.048/−0.041), and Xc and the ±1 sum are unchanged.
+   - An injected plain copy raises n−1 and Xc too, because each channel gets its lower neighbour's share.
+   - ΣX/ΣY is not raised on det3 (Y-pad 0.907, X-pad 0.925; det2 0.932/0.944) and doesn't rise with the copy
+     between sessions on the same FEUs (6-22/23 vs 6-23/24).
+   - **Reading:** the excess is charge moved inside X, not added, and not taken from Y. That excludes any Y→X
+     transfer: bus pickup, a floating or cracked-via Y pad, and Y-line crosstalk.
+   - Caveat: the gas changes the X-vs-Y width relation between sessions (Xc at fixed Y share 0.38 → 0.50), so matched
+     Y share is not a perfect control.
+2. **Stripe pitch from the data** (`periodogram.py`, `beat_sig.py`, `beat_col.py`). Per-event statistics overstate the
+   significance. Because of per-channel gain and sharing offsets the noise unit is the column, so the test uses
+   per-column means, detrended at σ = 30 columns, against a column-permutation null.
+   - **No board shows a stripe beat in X** at 1/40 or anywhere in 0.015–0.04 (det3 June-15: s1 p = 0.12, d1 p = 0.86).
+     Y-view controls look the same.
+   - The asymmetry has a 5-column (and 2.5) line on several boards (det2 too): common to the readout, not the stripes.
+   - So the stripes leave no measurable imprint at pad scale. A stripe mechanism strong enough to make 0.2 on det3
+     would make a large beat on every 800 µm board, unless the det3 June-15 print alone had a pitch locked to 780 µm.
+3. **Timing of the excess** (`timing.py`, `run_timing.py`). Y-pad events, aligned on the Y central:
+
+   | sample | excess peak | excess t50 | Xc peak / t50 |
+   |---|---|---|---|
+   | 6-22/23 | +21 ns | −151 | +18 / −181 |
+   | 6-23/24 | +25 | −130 | 0 / −165 |
+   | 6-27/28 | +3 | −165 | +22 / −199 |
+   | plain copy (det2 + 0.25) | +8 | −168 | +10 / −175 |
+   | sim offset −200 / −300 µm | +120 / +88 | −121 / −124 | +21 / −265 |
+
+   The data's excess peaks with the central (a direct-like signal), not late like the neighbour charge that a
+   ≤ 300 µm offset moves. Its rise is ~30 ns behind the central's.
+4. **Mixed responses**: X = (1 − w)·X(D = 0) + w·X(D). The condor 4505159 arms share seeds: Y is bit-identical and X
+   differs only in signal, so the mix is exact. Closure is bit-exact (w = 0 → xo0, w = 1 → xom200).
+   - `raw_asym.py --mix-with/--mix-w`, `run_mix.sh` (D = −100/−200/−300 × w 0.2–0.8), `eval_mix.py` + `fingerprint.py`
+     (one score: A_Y, A_X absolute; fY and the m1/p1 bookkeeping as effects, det3 − det2 vs model − sim D0).
+   - The effects form is needed because the sim's X central fraction is flat in Y share (~0.5) while every board's
+     falls 0.5 → 0.32: a baseline sim/data difference unrelated to the asymmetry.
+   - Condor **4507004**: D = −450/−600/−780 µm, th00 + thy*, seeds 5/6 (36 jobs), to reach a one-pitch mix.
+5. **x-position conditional** (`xpos_probe.py`). For Y-pad events, E[α(n+1) | α(n−1)] at matched Y share:
+   - Copy-free boards: it falls with α(n−1) (0.37 → 0.24), as geometry requires.
+   - det3: it stays flat (~0.45–0.5). The excess is ≈ 0 when the charge sits on the n+1 side and grows to ≈ 0.2
+     on the n−1 side. A plain copy is flat (+0.24).
+   - So n+1 takes a share of what n−1 should get.
+   - The full sim has too few events per (Y share, u) bin to trace this (`eval_xpos.py`).
+6. **Mixed responses in the full sim** (`eval_mix.py`; D −100/−200/−300 × w 0.2–0.8). Every mixture gives a1 ≈ 0.00–0.03
+   and a coin flip ≈ 0.5; data a1 0.14, coin flip 0.63–0.81. A position-level effect alone can't make the X marginal.
+   The sim's narrow X-pad bins are empty, so the class test is weak there. On the bins it has, copy 0.2 scores best
+   on 6-22/23, and copy 0.1 or mixtures on 6-27/28.
+7. **Fast static model** (`fwd_xpos.py`, `fwd_region.py`). Every candidate is scored on all fingerprints at once
+   (Y-share quantiles: the static model's sharing scale differs).
+   - Extra sensitivity regions on the bus side (gap strip, Y pad of the next column, its near half, the next or
+     skip X line, the whole next column), each with its donor, all fail. They send the narrow X-pad asymmetry
+     positive and leave A_Y small.
+   - Only displacement-type models (shift, or mix with D ≈ −400…−600) reproduce A_Y and the narrow A_X. Best χ²
+     ≈ 240 on 24 bins, so no static model fits.
+   - The Y-pad fraction is ~0.10 low on det3 at every width (0.551 vs 0.63); an injected copy doesn't change it.
+
+### The asymmetry is a smooth, two-signed, X-only field over every board (2026-10-20 afternoon)
+8. **Across-board profiles** (`chip_profile.py`, `block_profile.py`, true column order):
+   - det4 changes sign: −0.12/−0.16 in chips 0–1, +0.13 in chips 4–5, smooth through chips 2–4.
+   - det6 changes sign too: +0.04 → −0.04.
+   - det7 rises from 0.01 to 0.12.
+   - det3 is a smooth bump: 0.09 → 0.18 (chip 3) → 0.07.
+   - No step at any connector boundary (det3: every step ≤ 0.02 ± 0.03), so not wiring.
+   - A fixed-layout coupling (bus, stubs, vias) has one sign everywhere: **excluded**.
+9. **2-D maps** (`map2d.py`, `map_fit.py`, `map_y.py`; 8 × 8 cells, matched X column × Y row). Constant-model χ²:
+
+   | board | X | Y |
+   |---|---|---|
+   | det3 | 332/63 | 74/63 |
+   | det2 | **736/61** | 59/61 |
+   | det6 | 47/25 | 37/25 |
+   | det7 | 21/8 | 3.5/8 |
+   | det3 May | 78/56 | 76/56 |
+   | det1 | 34/27 | 46/27 |
+
+   - **The Y view has no structure anywhere: the field is X-only.** That excludes vector misregistrations (via
+     drill offsets, inner-layer scale/rotation); only something running along y and acting across x can do it.
+   - det3: a tilted ridge, max at x-quarter 1 at the bottom and x-quarter 2 at the top. Its two FEU-3 sessions give
+     the same geometry and phase (−123° / −153°), with amplitude 0.048 vs 0.124.
+   - **det2, the old "copy-free control", carries a local asymmetry as large as det3's**:
+     - By y quarter: −0.06 / +0.14 / +0.01 / −0.06; cells up to ±0.18 at 8σ.
+     - It is in both det2 runs on two FEU slots (6-17 FEU 3: −0.087/+0.166/+0.010/−0.078; 6-22 FEU 6:
+       −0.008/+0.079/−0.003/−0.033).
+     - It averages to zero over the board.
+   - det1 and det3 May are quiet.
+   - Track angle can't do it: the tagged dumps' M3 angles are < 1° per cell, and an x-tilt can only follow x, while
+     det2's field follows y.
+10. **det2's positive band is a little det3** (`det2_regions.py`, rows 128–255):
+    - a1 +0.142, coin flip 0.714.
+    - A_Y +0.16…+0.27; narrow → wide A_X −0.18 → +0.12; n−1 depleted, n+1 enriched.
+    - Excess timing +27 / −126 ns (det3 +20 / −145).
+    - Its rows 0–127 and 384–511 are the mirror image (a1 −0.058, coin flip 0.395, A_Y −0.10…−0.17, narrow A_X
+      +0.31); the middle rows are flat.
+    - **The det3 mechanism is generic; det3 June-15 is a board where its sign is positive over most of the area.**
+11. **Pitch-locked.** Inside det2's positive band, a1 is positive in every 8-column block across all 512 columns,
+    with no 1/40 harmonic (p = 0.57).
+    - An 800 µm stripe pattern would flip it every 40 columns (31.2 mm), and det2's band means would average to
+      zero. So the structure repeats at the pad pitch (780 µm) to ≲ 0.1 %.
+    - No board shows the beat the sim predicts (sim s1 0.12, d1 0.07 at 1/40; data ≤ 0.03 / ≤ 0.011,
+      `beat_col.py`, `beat_sim.py`).
+12. **Working hypothesis: resistive stripes printed at the pad pitch, with per-board registration.**
+    - Charge evens out across a stripe's width (fast), which pulls narrow clouds toward the stripe centre. If the
+      centres sit at an offset δ(x, y) from the pad columns, the X view sees n+1 ≠ n−1 ∝ sin(2πδ/P).
+    - It explains: X only; charge moved, not added; prompt; larger for narrow clouds (gas, drift field); a smooth
+      two-signed field from the print's scale and rotation errors (det3 ~0.07 % scale + ~0.25 mrad; det2 ~2 mrad
+      rotation); and the absence of the 31.2 mm beat on every board.
+    - Against it so far:
+      - The stripe pitch was given as 800 µm (memory, 2026-08-06, "borrowed from another detector").
+      - The sim's stripe pull at its strongest phase is ±0.065 vs data ±0.17–0.2.
+      - The predicted X-sharing modulation (∝ cos φ) isn't detected (`quad_test.py`: det3 −0.007 ± 0.009); only
+        an in-phase anti-correlation (−0.031 ± 0.005).
+    - Pending: the sim's fingerprint per stripe phase (condor 4507242, 60 jobs).
+13. **Same bands in both det2 runs** (6-17 FEU 3, 6-22 FEU 6), by 64-row band:
+    - 6-17: −0.29 / +0.02 / +0.18 / +0.15 / +0.03 / −0.01 / −0.05 / −0.13
+    - 6-22: −0.07 / +0.02 / +0.07 / +0.09 / +0.03 / −0.01 / −0.02 / −0.08
+    - The geometry is fixed. The amplitude is ~2.5× larger in the run with narrower clouds (median Y share 0.35 vs
+      1.07). det3's session-to-session swings fit the same picture: fixed geometry, width-set amplitude.
+14. **Sim, phase-resolved (condor 4507242, 60 jobs, `sim_phase_fp.py`): the stripe hypothesis is NOT reproduced by
+    the sim's stripe physics.**
+    - Ranking phases on seeds 5–10 and measuring on held-out seeds 11–16, the "most positive" phases give
+      a1 +0.016 (ranked +0.11…+0.17: mostly noise); the negative set −0.057. So the sim's stripe pull is ≲ 0.03–0.05,
+      against ±0.2 in data, and its class pattern isn't det3's.
+    - The sim never fills phases 12–19 (the gun covers ~50 columns).
+    - Either the real stripes act more strongly or differently than the S1 kernels (transverse equalisation, charge
+      on the kapton gaps, a different print), or the cause is another pad-pitch structure running along y.
+15. Pure large offsets (condor 4507004, −450/−600/−780 µm) swap the pad-class labels (−450, −600) or look like no
+    offset (−780). They add nothing on their own; the decoded-level mixtures were not built, since the stripe
+    picture replaced them.
+
+**State at the end of 2026-10-20 (dylan-Yoga):**
+- Established:
+  - The det3 X asymmetry is one instance of an X-only, smooth, two-signed field that every board with a resistive
+    print carries in some form (det2 as strongly as det3; det1 and det3 May quietly).
+  - Its geometry is fixed per board, its amplitude is set by the cloud width (gas, drift field), it repeats at the
+    pad pitch along x, it is charge moved within X, and it is prompt.
+  - Excluded: copper, bus and vias, readout/connectors, Y→X transfer, track angle, and an 800 µm beat.
+- Working hypothesis: the resistive-stripe print, at the pad pitch, registered differently on each board.
+- Not yet shown: a model that produces ±0.2 (the sim's stripes give ≲ 0.05).
+- Question for Dylan/Stephan: the stripe screen's actual pitch, and how it's aligned to the board.
+- Figure: `design/figures/asym_maps_2026-10-20.png` (`r5/fig_maps.py`).
