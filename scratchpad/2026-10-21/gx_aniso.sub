@@ -1,0 +1,20 @@
+# Anisotropic ESL X kernels (2026-10-21): sigma_xx = A sigma_yy inside the stripes (fast across, nominal 5 MOhm along),
+# the hypothesis left by the low-rho arms (size and timing want fast across-stripe spreading, the Y view wants slow
+# along-stripe spreading). nx=1560, insulating gaps; A = 3, 10, and 10 with 690 um stripes.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_gx_gap.sh
+arguments               = 0 $(w) $(ax)
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/gxaniso_$(w)_$(ax).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/gxaniso_$(w)_$(ax).err
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/gxgap.log
+request_cpus            = 4
+request_memory          = 20000
+request_disk            = 6000000
++JobFlavour             = "tomorrow"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+queue w, ax from (
+-, 3
+-, 10
+690, 10
+)

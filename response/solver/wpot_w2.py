@@ -135,7 +135,7 @@ class W2Solver:
                  eps_r=C.KAPTON_EPS_R, d_glue_m=None, glue_eps_r=C.GLUE_EPS_R,
                  lx_m=C.SUPERPERIOD_M, nx=3120, ly_m=None, ny=512,
                  esl_pitch_m=C.ESL_PITCH_M, esl_width_m=C.ESL_WIDTH_M,
-                 esl_phase_m=0.0, esl_gap_frac=0.0,
+                 esl_phase_m=0.0, esl_gap_frac=0.0, esl_aniso_x=1.0,
                  pad_pitch_m=C.PAD_PITCH_M, pad_size_m=C.PAD_SIZE_UM * 1e-6,
                  pad_x0_m=None, pad_y0_m=0.0,
                  sub_layers=None, sub_terminated=True,
@@ -171,6 +171,9 @@ class W2Solver:
                                     pitch_m=esl_pitch_m, phase_m=esl_phase_m,
                                     gap_frac=esl_gap_frac)
         self.esl_gap_frac = esl_gap_frac
+        # DIAGNOSIS (2026-10-21, det3 X asymmetry): sigma_xx = esl_aniso_x * sigma_yy
+        # (fast across a stripe, nominal along it). 1 = isotropic, bit-identical.
+        self.esl_aniso_x = float(esl_aniso_x)
         self.sigma_x = sig_x
         self.sigma_hat = np.fft.fft(sig_x) / nx
 
@@ -306,7 +309,7 @@ class W2Solver:
         # M_sheet: sigma couples same-ky modes across the ESL x lattice
         dIX = (IX[:, None] - IX[None, :]) % self.nx
         same_iy = (IY[:, None] == IY[None, :])
-        M = self.sigma_hat[dIX] * same_iy * (np.outer(kx, kx) + np.outer(ky, ky))
+        M = self.sigma_hat[dIX] * same_iy * (self.esl_aniso_x * np.outer(kx, kx) + np.outer(ky, ky))
         M = 0.5 * (M + M.conj().T)
         del dIX, same_iy
 

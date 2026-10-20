@@ -2,18 +2,19 @@
 # Condor job (2026-10-21, det3 X asymmetry): X-box W2 kernel with conducting ESL gaps (cross-gap leak).
 # Both X Bloch families at nx=1560 (20 um) + combine-x, for one gap conductivity fraction GF.
 # Products (G_X per rho_s) -> EOS /eos/user/d/dneff/tmp/gx/gap<GF>/; scratch deleted before exit.
-# Args: GF [WIDTH_UM]  (optional ESL strip width; production 550)
+# Args: GF [WIDTH_UM|-] [ANISO_X]  (optional ESL strip width, "-" = production 550; sigma_xx/sigma_yy)
 set -euo pipefail
-GF="$1"; WID="${2:-}"; NX=1560
+GF="$1"; WID="${2:-}"; AX="${3:-}"; NX=1560
 WARG=""; WTAG=""
-if [ -n "$WID" ]; then WARG="--esl-width-um $WID"; WTAG="_w$WID"; fi
+if [ -n "$WID" ] && [ "$WID" != "-" ]; then WARG="--esl-width-um $WID"; WTAG="_w$WID"; fi
+if [ -n "$AX" ] && [ "$AX" != "1" ]; then WARG="$WARG --aniso-x $AX"; WTAG="${WTAG}_ax$AX"; fi
 SRC=/afs/cern.ch/work/d/dneff/mx17_s1/src
 EOSOUT=/eos/user/d/dneff/tmp/gx/gap${GF}${WTAG}_nx${NX}
 WORK="${TMPDIR:-/tmp}/gxgap_$$"; mkdir -p "$WORK"; cd "$SRC"
 export MX17_SKIP_HEADER_CHECK=1
 set +u; source /cvmfs/sft.cern.ch/lcg/views/LCG_105/x86_64-el9-gcc12-opt/setup.sh; set -u
 export OMP_NUM_THREADS=${OMP_NUM_THREADS:-4} OPENBLAS_NUM_THREADS=${OMP_NUM_THREADS:-4} MKL_NUM_THREADS=${OMP_NUM_THREADS:-4}
-echo "host $(hostname) gap_frac $GF width ${WID:-550} nx $NX"
+echo "host $(hostname) gap_frac $GF width ${WID:-550} aniso ${AX:-1} nx $NX"
 for fam in 0 1; do
     python3 -u -m response.solver.w2_production family --box x --fam $fam --nx $NX --gap-frac "$GF" $WARG --outdir "$WORK/slabs" 2>&1 | grep -v "propagated"
 done

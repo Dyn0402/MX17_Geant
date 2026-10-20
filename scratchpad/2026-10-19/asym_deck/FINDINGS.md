@@ -744,3 +744,19 @@ Scripts in `scratchpad/2026-10-20/r5/` (`esl_fast.py`, `kernel_delta.py`, `delta
      it (Y). That can't happen at one isotropic ρ_s. Candidates: an anisotropic or structured print (e.g. a
      low-resistance edge or under-layer on each stripe), or a geometry that registers without transport.
    - Deck: levers slide rows "… at 2 / 0.5 MΩ/sq (Y fails)", republished.
+6. **wft.xasym after a full re-alignment** (`2026-10-21/realign_xasym.sh`: production `mx_june_wft/01_alignment.py` on
+   the production table and on a corrected copy, both into scratch; production outputs untouched). X / Y resolution
+   (mm):
+
+   | run | original | corrected |
+   |---|---|---|
+   | g_det3 (6-22, scale 0.96) | 0.457 / 0.491 | 0.453 / 0.492 |
+   | g_det3_wknd (6-27, 0.44) | 0.542 / – | 0.542 / – |
+   | sat_det3 (6-27, 0.44) | 0.553 / 0.564 | 0.554 / 0.563 |
+   | g_det2 (6-22 long) | 0.563 / 0.589 | 0.563 / 0.583 |
+   | o22_long_det2 (6-22 longer) | 0.546 / 0.538 | 0.546 / 0.528 |
+
+   The board-wide resolution doesn't move. A 30–80 µm cell-level bias adds in quadrature to 450–560 µm, so ≤ 5 µm.
+   What the correction removes is a position-dependent systematic offset (up to ±70 µm on det2, a tilt on det3). That
+   matters for anything that compares positions across the board or across chambers (vertexing, alignment between
+   detectors), not for the resolution. Using it in production remains a choice.

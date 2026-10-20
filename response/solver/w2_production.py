@@ -77,14 +77,14 @@ def _git_hash():
         return "unknown"
 
 
-def make_solver(box, ny=None, nx=None, gap_frac=0.0, esl_width_m=None):
+def make_solver(box, ny=None, nx=None, gap_frac=0.0, esl_width_m=None, aniso_x=1.0):
     """ny override is for REDUCED-SIZE smoke jobs only — production is 512/16.
     nx / gap_frac: DIAGNOSIS variants (det3 X asymmetry, 2026-10-21): a coarser
     x grid (must stay a multiple of 39) and conducting ESL gaps at gap_frac of
     the strip conductivity; esl_width_m a different strip width, still centred
     on x = 0 mod the pitch. Defaults reproduce production exactly."""
     kw = dict(nx=nx or NX, esl_phase_m=K.ESL_PHASE_CENTERED_M,
-              esl_gap_frac=gap_frac)
+              esl_gap_frac=gap_frac, esl_aniso_x=aniso_x)
     if esl_width_m is not None:
         kw.update(esl_width_m=esl_width_m, esl_phase_m=-esl_width_m / 2)
     if box == "y":
@@ -206,7 +206,7 @@ def solve_family(s, drives, ifam, times, rhos=RHOS_OHM_SQ, verbose=True,
     sre = np.ascontiguousarray(s.sigma_hat.real)
     for i0 in range(0, N, 2048):
         dx = (IX[i0:i0 + 2048, None] - IX[None, :]) % s.nx
-        Mc = sre[dx] * (kx[i0:i0 + 2048, None] * kx[None, :]
+        Mc = sre[dx] * (s.esl_aniso_x * kx[i0:i0 + 2048, None] * kx[None, :]
                         + ky[i0:i0 + 2048, None] * ky[None, :])
         Mc[IY[i0:i0 + 2048, None] != IY[None, :]] = 0.0
         M[i0:i0 + 2048] = Mc
@@ -255,10 +255,10 @@ def solve_family(s, drives, ifam, times, rhos=RHOS_OHM_SQ, verbose=True,
 def cmd_family(a):
     times = K.log_times(60)
     s = make_solver(a.box, ny=a.ny, nx=a.nx, gap_frac=a.gap_frac,
-                    esl_width_m=_w(a))
+                    esl_width_m=_w(a), aniso_x=a.aniso_x)
     slab, IX, IY, meta = solve_family(s, drives_for(s, a.box), a.fam, times,
                                       label=f"box={a.box}")
-    meta.update(esl_gap_frac=a.gap_frac, esl_width_m=_w(a))
+    meta.update(esl_gap_frac=a.gap_frac, esl_width_m=_w(a), esl_aniso_x=a.aniso_x)
     os.makedirs(a.outdir, exist_ok=True)
     path = os.path.join(a.outdir, f"w2slab_{a.box}{a.fam:03d}.npz")
     np.savez_compressed(path, slab=slab, IX=IX, IY=IY, t=times,
@@ -341,7 +341,7 @@ def cmd_combine_x(a):
     the production key names for the X part (t, x, y_X, G_X, x_cols)."""
     times = K.log_times(60)
     nt = len(times)
-    sx = make_solver("x", nx=a.nx, gap_frac=a.gap_frac, esl_width_m=_w(a))
+    sx = make_solver("x", nx=a.nx, gap_frac=a.gap_frac, esl_width_m=_w(a), aniso_x=a.aniso_x)
     n_x = len(sx.families())
     os.makedirs(a.outdir, exist_ok=True)
     for ri, rho in enumerate(RHOS_OHM_SQ):
@@ -349,11 +349,11 @@ def cmd_combine_x(a):
                        for c in range(C.N_PAD_PER_SUPER)])
         xtot = gx.sum(0)
         res = {"rho_s_ohm_sq": rho, "d_kapton_m": D_K_M, "boundary_model": "W2",
-               "esl_gap_frac": a.gap_frac, "esl_width_m": _w(a),
+               "esl_gap_frac": a.gap_frac, "esl_width_m": _w(a), "esl_aniso_x": a.aniso_x,
                "nx": sx.nx, "ny": sx.ny,
                "x_view_total_prompt": float(xtot[0].mean()),
                "x_view_total_late": float(xtot[-1].mean()), "git": _git_hash()}
-        wtag = "" if _w(a) is None else f"_w{a.esl_width_um:g}"
+        wtag = ("" if _w(a) is None else f"_w{a.esl_width_um:g}") + ("" if a.aniso_x == 1 else f"_ax{a.aniso_x:g}")
         path = os.path.join(a.outdir, f"gx_w2_rho{rho/1e6:g}M_gap{a.gap_frac:g}{wtag}_nx{sx.nx}.npz")
         np.savez_compressed(path, t=times, x=sx.x, y_X=sx.y, G_X=gx,
                             x_cols=K.pad_x(np.arange(C.N_PAD_PER_SUPER)),
@@ -378,6 +378,8 @@ def main():
                    help="DIAGNOSIS: ESL gap conductivity / strip conductivity")
     f.add_argument("--esl-width-um", type=float, default=None,
                    help="DIAGNOSIS: ESL strip width (production 550)")
+    f.add_argument("--aniso-x", type=float, default=1.0,
+                   help="DIAGNOSIS: sigma_xx / sigma_yy of the ESL (1 = isotropic)")
     g = sub.add_parser("combine", help="assemble products from all slabs")
     g.add_argument("--slabdir", required=True)
     g.add_argument("--outdir", required=True)
@@ -387,6 +389,7 @@ def main():
     h.add_argument("--nx", type=int, default=None)
     h.add_argument("--gap-frac", type=float, default=0.0)
     h.add_argument("--esl-width-um", type=float, default=None)
+    h.add_argument("--aniso-x", type=float, default=1.0)
     a = ap.parse_args()
     if a.cmd == "family":
         return cmd_family(a)
