@@ -27,7 +27,8 @@ a1 = α(n+1) − α(n−1) in DAQ order (det3 June-15's excess side positive).
 - Wider stripes: 700 µm ×1.45 (narrow ×1.54); 420 µm ×0.77.
 - Prompt funnelling of gap-landing electrons onto the strip edges: ×1.40 (narrow ×1.54).
 - Cross-gap leak: ×0.9–1.0. It is not a size lever.
-- Wide stripes + funnel together: condor 4520871, pending.
+- Wide stripes + funnel together: ×1.58 (narrow ×1.78). They don't multiply: with 100 µm gaps there is little left to
+  funnel.
 
 **Why only June builds (partly):**
 - The June boards' late across-stripe content (12–31 ×10⁻³) is reproduced by gap conduction at 5–10 % of the
@@ -658,12 +659,13 @@ Scripts in `scratchpad/2026-10-20/r5/` (`esl_fast.py`, `kernel_delta.py`, `delta
     | 700 µm stripes | ×1.45 (+0.024 ± 0.003) | ×1.54 | 0.808 | +0.2 | −82 / −129 |
 
     Width is a real size lever and it survives the full sim, which the leak did not. It is independent of the late ±2
-    content, so width and gap conduction are separate observables on the boards. Width + funnel together: condor
-    4520871 (36 arms `glw690f1`), pending.
+    content, so width and gap conduction are separate observables on the boards.
+    Width + funnel together (condor 4520871, `glw690f1`, `paired_odd_w690f1.json`): ×1.58 (+0.031 ± 0.004), narrow
+    ×1.78 (+0.053 ± 0.004), X sharing 0.812, excess peak/t50 −76/−132 ns. Not multiplicative (1.45 × 1.40 would be
+    2.0): narrow gaps leave little charge to funnel. The best sim so far is ~1.6–1.8×, against 2.5–5× in the data.
 
 ## Next checks after the seventh round (in order)
-1. Read out condor 4520871 (w690 + funnel 1): `scp 'lxplus:/afs/cern.ch/work/d/dneff/mx17_s1/simgapleak_npz/glw690f1*'
-   ~/x17/nb_asym_raw/simgapleak/`, then `paired_odd.py glg0 ~/x17/nb_asym_raw/simgapleak glw690f1 ~/x17/nb_asym_raw/simgapleak`.
+1. (done: w690 + funnel ×1.58, narrow ×1.78)
 2. The timing mismatch: hybrid kernels at 0.5 MΩ/sq (the production 0.5 MΩ product and the nx = 1560 X kernels at
    0.5 MΩ both exist). Does a lower ρ_s make the sim excess prompt (−10 ns) while keeping its size?
 3. The mask: stripe pitch, width and alignment for the June print vs May. Then predict δ(x, y) and the size from

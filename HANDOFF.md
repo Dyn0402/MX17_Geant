@@ -26,14 +26,14 @@ been no detector access since 10-13.
   - digitizer `--gap-funnel/--gap-funnel-inset-um` (own rng stream);
   - `scratchpad/2026-10-21/build_hybrid.py`.
 
-**In progress:** condor 4520871 (36 arms `glw690f1`: 700 µm stripes + funnel 1), npz → lxplus
-`/afs/cern.ch/work/d/dneff/mx17_s1/simgapleak_npz/`. Everything else is done and pulled:
+**In progress:** nothing. Width + funnel (condor 4520871) gave ×1.58 (narrow ×1.78), not multiplicative. All runs are
+done and pulled:
 - funnel 4520688 → yoga `~/x17/nb_asym_raw/simfunnel/`;
 - leak 4520810 and width 4520870 → `~/x17/nb_asym_raw/simgapleak/`;
 - X-kernel products and hybrids → `/eos/user/d/dneff/tmp/gx/`.
 
 **Next steps:**
-1. Read out 4520871 with `paired_odd.py glg0 … glw690f1 …`: do width and funnel multiply (~2×)?
+1. (done) Width + funnel ×1.58: the best sim is ~1.6–1.8× vs 2.5–5× needed.
 2. Timing: hybrid arms at 0.5 MΩ/sq. Does the excess become prompt at the same size?
 3. Mask (Dylan): stripe pitch, width and alignment, June print vs May. Width is now a measured lever.
 4. Put the `corr_maps.json` correction into the reconstruction (nTof_x17).
