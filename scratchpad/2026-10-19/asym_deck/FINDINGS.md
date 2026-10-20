@@ -5,7 +5,7 @@ Data: raw-ADC survey of every cosmic-bench sub-run (`raw_asym.py`, yoga `/media/
 Sim: v5a recipe on condor (4505153/4505159/4507004/4507242), npz in `~/x17/nb_asym_raw/simxoff/` on yoga.
 a1 = α(n+1) − α(n−1) in DAQ order (det3 June-15's excess side positive).
 
-## Current picture (end of 2026-10-20)
+## Current picture (2026-10-20 evening, after the seventh round)
 
 **What the asymmetry is:**
 - Not a det3 defect. Every June build (det2, det3 June-15, det4, det6, det7) carries an X-only neighbour-asymmetry field.
@@ -13,21 +13,33 @@ a1 = α(n+1) − α(n−1) in DAQ order (det3 June-15's excess side positive).
 - det2's field comes as bands in y (−0.29…+0.18) that cancel, so det2 looked symmetric. det3 June-15 is positive over
   most of its area (mean +0.14, with a tilted ridge).
 - Per board, the geometry is fixed; the amplitude scales with narrower clouds (gas, drift field). That is why det3
-  varies between nights.
+  varies between nights; a fixed map times one per-session scale fits every det3 session (`r5/corr_maps.py`).
 - It is charge moved within X (n−1 → n+1), prompt, and repeats at the pad pitch (no 31.2 mm beat on any board).
 
 **Leading explanation (partly supported):**
 - Resistive-stripe registration: stripe centres offset from the pad columns, with the offset varying across the board
   through print scale and rotation.
 - In the sim, a1 vs the true stripe offset reproduces the shape and both signs at ~1/3 of the amplitude.
+- In the kernel this is a sheet-transport effect: zero at t = 0, built over 100–300 ns at 5 MΩ/sq (sooner at lower ρ_s).
 - This requires a 780 µm-commensurate stripe pitch, which contradicts the 800 µm quote. Dylan is fetching the mask.
-- Candidate for the missing strength: the June boards leak charge ACROSS the stripes (late X ±2 content), the sim
-  doesn't.
+
+**Size levers measured in the full sim (paired arms, seventh round):**
+- Wider stripes: 700 µm ×1.45 (narrow ×1.54); 420 µm ×0.77.
+- Prompt funnelling of gap-landing electrons onto the strip edges: ×1.40 (narrow ×1.54).
+- Cross-gap leak: ×0.9–1.0. It is not a size lever.
+- Wide stripes + funnel together: condor 4520871, pending.
+
+**Why only June builds (partly):**
+- The June boards' late across-stripe content (12–31 ×10⁻³) is reproduced by gap conduction at 5–10 % of the
+  stripes' (+7.8 / +27.6 in the sim). So the June gaps conduct.
+- That doesn't make the asymmetry itself. The June-vs-May difference that does should be in the print: stripe width,
+  pitch and registration. That is the mask question.
 
 **Open:**
-- The size gap (sim ±0.05–0.10 vs data ±0.14–0.29).
-- Why only the June builds have it.
-- The stripe pitch.
+- The size gap: the best single lever is ~1.5×, while the data need 2.5–5×.
+- The timing: the sim's registration excess leads the central by 70–90 ns, the data's by 10 ns. Lower ρ_s makes it
+  prompter.
+- The stripe pitch and width of the June print.
 
 ## Routes
 
@@ -71,16 +83,11 @@ Verdict key: ✗ excluded · ~ partial / doesn't fit alone · ✓ supported · ?
 | 34 | Cross-gap leak (conducting ESL gaps, σ_gap = f σ_strip) | nx = 1560 X kernels f = 0…0.3 (4520685); full sim with hybrid kernels f = 0/0.03/0.1 (4520810), paired | Kernel: ×1.9 late for σ 250. Full sim: odd amplitude ×1.00 (f 0.03), ×0.90 (f 0.1). But X late ±2 −2.3 → +7.8 → +27.6 ×10⁻³ = the June boards' 12–31 | ✓ explains the June late cross-stripe leak (f ≈ 0.05–0.1); ✗ as the asymmetry amplifier | Seventh round 4, 10, 12 |
 | 35 | Prompt funnelling of gap-landing electrons onto the strip edge | Digitizer `--gap-funnel F`, full v5a sim, 72 arms (condor 4520688) paired with the D = 0 seeds 7–12 (`r5/paired_odd.py`) | F = 1: odd amplitude ×1.40 (narrow ×1.54, +0.038 ± 0.003); F = 0.5: ×1.20; sharing unchanged; excess still leads the central by 90 ns | ~ real amplifier, ≤ 1.5×, wrong timing | Seventh round 7 |
 | 36 | Strip resistivity ρ_s | Mini kernels at 0.5/1/2/5 MΩ/sq | Registration term saturates at the same size (−0.033, σ 250); low ρ_s only makes it prompt (by 92 ns at 0.5 MΩ) | timing lever, not size | Seventh round 8 |
-| 37 | Strip width / gap ratio | nx = 1560 X kernels, insulating gaps, width 410/550/690 µm (effective 420/540/700; condor 4520736) | Odd amplitude (σ 250) ×0.6 at 420, ×1.6 (300 ns) / ×2.4 (1 µs) at 700 | ✓ strong lever; the June print's width is measurable from the mask | Seventh round 11 |
+| 37 | Strip width / gap ratio | nx = 1560 X kernels (4520736); full sim with hybrid kernels w410/w690 (4520870), paired | Kernel ×0.6 / ×1.6–2.4. Full sim: 700 µm ×1.45 (narrow ×1.54), 420 µm ×0.77; late ±2 unchanged; excess still leads by 82 ns | ✓ size lever that survives the full sim; the width of the June print is measurable from the mask | Seventh round 11, 13 |
 
 ## Next checks (in order)
-1. **Cross-gap leak / gap funnelling in the sim:** a digitizer variant giving late charge transfer between adjacent
-   stripes (and/or electrons over the kapton gaps moved onto the nearest stripe). Score: the sim's a1(δ) amplitude
-   (target ±0.15–0.25 at narrow clouds) and the X late ±2 content (target 12–31 ×10⁻³).
-2. **Per-board a1(x, y) calibration map** (`r5/map_fit.py` cells) as the analysis correction, replacing a single
-   uncopy a; det2 needs one too.
-3. Deck slides for rounds 4–6 (the 2D maps figure `design/figures/asym_maps_2026-10-20.png`, det2 regions, sim a1(δ)).
-4. When the mask arrives: stripe pitch and alignment → predicted δ(x, y) per board vs the measured fields.
+See "Next checks after the seventh round" at the end of the Seventh round section (the sixth-round list is done:
+the cross-gap leak sim is items 4/10/12, the per-board map item 6).
 
 ---
 
@@ -641,3 +648,25 @@ Scripts in `scratchpad/2026-10-20/r5/` (`esl_fast.py`, `kernel_delta.py`, `delta
     - Running: strip-width full-sim arms (condor 4520870: hybrid w410 / w690, insulating gaps, 36 pairs each, paired
       with glg0). Score with `paired_odd.py glg0 ~/x17/nb_asym_raw/simgapleak w410 <dir> w690 <dir>`
       (npz land in `simgapleak_npz` as `glw410_*` / `glw690_*`).
+13. **Strip width in the full sim** (condor 4520870, hybrid kernels with insulating gaps, paired with glg0;
+    `paired_odd_width.json`):
+
+    | arm | O all | O narrow | X sharing | X late ±2 (×10⁻³) | excess peak / t50 vs central (ns) |
+    |---|---|---|---|---|---|
+    | 420 µm stripes | ×0.77 (−0.012 ± 0.003) | ×0.69 | 0.738 | −2.8 | |
+    | 540 µm (glg0) | +0.053 | +0.068 | 0.760 | −2.3 | −71 / −90 (xo0) |
+    | 700 µm stripes | ×1.45 (+0.024 ± 0.003) | ×1.54 | 0.808 | +0.2 | −82 / −129 |
+
+    Width is a real size lever and it survives the full sim, which the leak did not. It is independent of the late ±2
+    content, so width and gap conduction are separate observables on the boards. Width + funnel together: condor
+    4520871 (36 arms `glw690f1`), pending.
+
+## Next checks after the seventh round (in order)
+1. Read out condor 4520871 (w690 + funnel 1): `scp 'lxplus:/afs/cern.ch/work/d/dneff/mx17_s1/simgapleak_npz/glw690f1*'
+   ~/x17/nb_asym_raw/simgapleak/`, then `paired_odd.py glg0 ~/x17/nb_asym_raw/simgapleak glw690f1 ~/x17/nb_asym_raw/simgapleak`.
+2. The timing mismatch: hybrid kernels at 0.5 MΩ/sq (the production 0.5 MΩ product and the nx = 1560 X kernels at
+   0.5 MΩ both exist). Does a lower ρ_s make the sim excess prompt (−10 ns) while keeping its size?
+3. The mask: stripe pitch, width and alignment for the June print vs May. Then predict δ(x, y) and the size from
+   items 11/13.
+4. Analysis correction: `r5/corr_maps.json` per-board dx maps × per-run scale, into the reconstruction (nTof_x17).
+5. Deck slides for rounds 4–7.
