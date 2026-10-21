@@ -55,9 +55,30 @@ both compared the sharing at large |a1| with the sharing at delta = 0 *inside th
   ±2 odd / ±1 odd = 0.01–0.14 (σ 450 µm: 0.10–0.14) and a small negative ±2 even part (−0.03 … −0.07 per a1). det2: 0.12 and −0.07.
 - Representative point (30 % of the charge pulled onto lines 300 µm off the pad centres, σ 450 µm, 200 µm induction): per unit a1
   −0.09 / −0.49 / +0.51 / +0.01 at k = −2 / −1 / +1 / +2, against det2's −0.08 / −0.54 / +0.47 / +0.04; a1 0.16, Δs1 +0.003.
-- So a pull toward the strips (offsets toward the pad boundaries) fits every data fingerprint in the toy, including the size,
-  if ~20–30 % of the charge is pulled promptly. The full resistive-spreading sim's effective pull is much weaker; the
+- **Caveat (found next, §5):** this toy pulls a fraction of the WHOLE cloud to the line nearest the cloud centre, a cloud-level
+  (non-local) pull that a linear detector can't make. The physical, per-electron version is far weaker unless the electron
+  cloud is narrow; see §5. The full resistive-spreading sim's effective pull is much weaker; the
   open question is the physics of a prompt pull that strong (electrostatic focusing by charged gaps is the candidate).
+
+## 5. What a physical pull needs (`loop/toy_local.py`, `toy_local_narrow.py`, `toy_funnel*.py`)
+- A linear detector responds electron by electron, so any pull must be per-electron (each electron moved by where it lands).
+  Per-electron pulls with σ 300–450 µm Gaussian clouds and 100–200 µm induction give a1 ≤ 0.04–0.07 at |Δs1| ≤ 0.03.
+- **Electrostatics of charged gaps:** insulating gaps saturate at σ = ε0E0 ≈ 3.5 nC/cm² (39 kV/cm), after which no field line
+  ends on a gap and every gap electron lands on the nearer strip edge. With 540–700 µm strips this funnel alone gives a1 ≈ 0 (each
+  gap feeds both its edges); with spreading across a wide strip it widens the cluster (Δs1 +0.2–0.4).
+- **The regime that works:** the observed sharing fixes only cloud width ⊗ induction. With a narrow electron cloud
+  (σ 100–200 µm) and wide induction (300–350 µm; no-pull s1 0.5–0.67, in the data's range), the saturated funnel onto narrow
+  strips gives at |Δs1| ≤ 0.03: 100 µm strips a1 0.13–0.24, 200 µm 0.11–0.22, 300 µm 0.07–0.18, 400 µm 0.03–0.10 (≈ 0 at 540).
+  Per-electron pulls onto narrow lines behave the same (f 0.3–0.6: a1 0.1–0.2).
+- Why a narrow cloud is plausible: a vertical track's electrons are a depth mixture (30 mm gap, each primary diffused by its own
+  depth), whose pitch-scale Fourier content is ~10× that of a Gaussian of the same rms; attachment in the ~1 % H2O gas at low
+  drift field removes deep electrons, which is why the Y share narrows at low drift field (0.98 → 0.56, 1100 → 100 V) as a1 rises.
+- **Prediction:** the June prints have narrow strips (≲ 300 µm) and wide gaps at a 780 µm pitch; the May prints wider strips.
+  A photo decides it. Mechanism is prompt, X-only, gain-independent (saturated), the same over both pad types, bigger for
+  narrow clouds.
+- **Full-sim test running:** X kernels with 190 / 290 µm strips (condor 4526243), then paired arms w190, w190f1, w290, w290f1
+  (`narrow_chain.sh`; funnel width matched with the new `--gap-funnel-width-um`). Note the earlier w690f1 arms funnelled onto
+  550 µm edges (the funnel used the production width regardless of the kernel's); fixed by the new option.
 
 ## What this leaves
 - The fingerprint (audit §4.1) gains: (2) the transfer is n−1 → n+1 direct, ±2 odd ≈ 12 % of ±1; (5) gain- and
