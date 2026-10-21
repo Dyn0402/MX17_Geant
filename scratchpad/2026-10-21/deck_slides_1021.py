@@ -154,6 +154,8 @@ def s_levers(D):
         if j: R.update(j)
     fu = _j('paired_odd_funnel.json') or {}
     R.update({k: v for k, v in fu.items()})
+    ja = _j('paired_odd_aniso.json')
+    if ja: R.update(ja)
     for f in ('paired_odd_r2_vs_g0.json', 'paired_odd_r05f1_vs_g0.json'):
         j = _j(f)
         if j: R.update({k + '@g0': v for k, v in j.items()})
@@ -162,8 +164,9 @@ def s_levers(D):
                 ('glg0.03', 'gap leak f = 0.03', GREY), ('glg0.1', 'gap leak f = 0.1', GREY),
                 ('glw410', 'stripes 420 µm', PURPLE), ('glw690', 'stripes 700 µm', GREEN),
                 ('glg0.1f1', 'leak 0.1 + funnel all', ORANGE), ('glw690f1', 'stripes 700 µm + funnel all', RED),
-                ('glr2w690f1@g0', '… at 2 MΩ/sq (Y fails)', '#c9a5ab'), ('glr05w690f1@g0', '… at 0.5 MΩ/sq (Y fails)', '#c9a5ab')]
-    P = sd.Plot(1180, 680, x=(0, 3.2), y=(0, len(rows_def)), xlabel='odd asymmetry, variant / its paired baseline (narrow-cloud half)',
+                ('glax10w690', 'σxx = 10 σyy + 700 µm', PURPLE), ('glax10w690f1', 'σxx = 10 σyy + 700 µm + funnel', '#7a1f2b'),
+                ('glr2w690f1@g0', '700 µm + funnel at 2 MΩ/sq (Y fails)', '#c9a5ab'), ('glr05w690f1@g0', '… at 0.5 MΩ/sq (Y fails)', '#c9a5ab')]
+    P = sd.Plot(1180, 720, x=(0, 3.2), y=(0, len(rows_def)), xlabel='odd asymmetry, variant / its paired baseline (narrow-cloud half)',
                 ylabel='', title='', margin=(30, 30, 90, 340))
     P.xticks([(v, f'×{v:g}') for v in (0, 0.5, 1, 1.5, 2, 2.5, 3)])
     P.band([2.5, 3.2], [0, 0], [len(rows_def), len(rows_def)], CJUN, 0.10, tip='What the data need: ×2.5–5 over the sim baseline')
@@ -182,7 +185,7 @@ def s_levers(D):
         P.raw(sd.line(P.X(o['ratio'] - rel), P.Y(y), P.X(o['ratio'] + rel), P.Y(y), INK, 2.5))
         P.raw(sd.T(P.X(o['ratio']) + 14, P.Y(y) + 8, f'×{o["ratio"]:.2f}', 22, INK, 'start', 600))
     P.text(2.56, len(rows_def) - 0.55, 'data need', 22, CJUN, weight=600); P.text(2.56, len(rows_def) - 0.95, '×2.5–5', 22, CJUN, weight=600)
-    body = (sd.title('In the full sim, wider stripes and funnelling raise it up to ×1.8; a leaky gap adds nothing',
+    body = (sd.title('In the full sim, wide stripes, funnelling and fast across-stripe spreading reach ×2.2; a leak adds nothing',
                      'Paired arms: same angles, seeds, noise and Y as the baseline; odd amplitude ⟨sgn δ · a1⟩, |δ| ≥ 50 µm')
             + sd.row(P.svg('levers'),
                      sd.col(sd.callout('The kernel’s late gain from a leak never reaches the peak-sample a1.', GREY, 25),
@@ -244,6 +247,7 @@ def s_timing(D):
     tw = _j('timing_width.json')
     if not tw: return
     d = tw['data det3 June-15 X']; s = tw['sim xo0 |delta|>=150']
+    ta = (_j('timing_width_glax10_glax10w690f1.json') or {}).get('sim glax10 |delta|>=150')
     P = sd.Plot(1080, 620, x=(4, 13), y=(-140, 80), xlabel='central pulse width (samples ≥ half max, 60 ns each)',
                 ylabel='excess vs central: first-order delay (ns)', title='Width quartiles; short pulses ≈ near-vertical tracks')
     P.xticks([(v, str(v)) for v in (4, 6, 8, 10, 12)]); P.yticks([(v, f'{v:+d}' if v else '0') for v in (-120, -80, -40, 0, 40, 80)])
@@ -252,12 +256,15 @@ def s_timing(D):
            tips=[f'data q{r["q"]}: width {r["wid"]:.1f}, delay {r["delay"]:+.0f} ns, a {r["a"]:+.3f}, peak {r["epk"]:+.0f} ns, n {r["n"]}' for r in d])
     P.line([r['wid'] for r in s], [r['delay'] for r in s], BLUE, 3.5,
            tips=[f'sim q{r["q"]}: width {r["wid"]:.1f}, delay {r["delay"]:+.0f} ns, a {r["a"]:+.3f}, peak {r["epk"]:+.0f} ns, n {r["n"]}' for r in s])
-    P.text(4.3, 62, 'late for short pulses (the beam study’s +114 ns)', 22, CJUN, weight=600)
-    P.text(8.2, -125, 'the sim is early everywhere', 23, BLUE, weight=600)
-    body = (sd.title('The excess is late for near-vertical tracks and early for inclined ones; the sim is always early',
+    if ta:
+        P.line([r['wid'] for r in ta], [r['delay'] for r in ta], PURPLE, 3.5, dash='8 6',
+               tips=[f'sim σxx = 10 σyy, q{r["q"]}: width {r["wid"]:.1f}, delay {r["delay"]:+.0f} ns, a {r["a"]:+.3f}, n {r["n"]}' for r in ta])
+    P.text(8.6, 62, 'data: late for short pulses', 22, CJUN, weight=600)
+    P.text(8.2, -125, 'isotropic sim: early everywhere', 23, BLUE, weight=600)
+    body = (sd.title('Late for near-vertical tracks, early for inclined ones: only fast across-stripe spreading reproduces it',
                      'Fit D = a·W0 + b·W0′ to the mean (n+1 − n−1) waveform, delay = −b/a (the cloud_basics §42 estimator)')
             + sd.row(P.svg('timing by width'),
-                     sd.col(sd.legend([('det3 June-15 X (data)', CJUN), ('sim, |δ| ≥ 150 µm', BLUE)], 24),
+                     sd.col(sd.legend([('det3 June-15 X (data)', CJUN), ('sim, isotropic 5 MΩ/sq', BLUE), ('sim, σxx = 10 σyy', PURPLE, 'dash')], 24),
                             sd.callout('“Prompt” (this deck) and “delayed 114 ns” (beam study) are one result under '
                                        'different angle mixes.', GREY, 25),
                             sd.callout('The sim’s pulses are longer too: its shortest quartile is the data’s third. '
@@ -322,15 +329,15 @@ def s_verdict2(D):
         dict(label='Copy, offset, mixtures', sub='no fit to the class pattern', color=GREY, strike=True),
         dict(label='Gap leak', sub='explains late cross-stripe charge, not a1', color=GOLD),
         dict(label='Stripe registration', sub='right shape, both signs; ~1/3 size', color=RED),
-        dict(label='+ wide stripes, funnelling', sub='×1.5–1.8 in the full sim', color=RED),
+        dict(label='+ wide, funnelled, anisotropic', sub='×1.8 (narrow ×2.2) and the timing', color=RED),
     ]
-    body = (sd.title('Where it stands: stripe registration on the June print, still ~1.5–3× short in size',
+    body = (sd.title('Where it stands: stripe registration on a June print that spreads charge fast across its stripes',
                      'Struck: excluded · gold: real but not the asymmetry · red: what makes it, so far')
             + sd.flow(steps, size=23)
             + sd.row(sd.callout('What it is: a fixed, smooth, two-signed X-only field on every June board, scaled by the cloud '
                                 'width. It is charge moved n−1 → n+1, locked to the pad pitch.', BLUE, 26),
-                     sd.callout('What is missing: the last factor in size, and the timing: late for vertical tracks in the data, '
-                                'always early in the sim.', CJUN, 26), gap=56)
+                     sd.callout('Best model so far: wide stripes, funnelled gap charge, σxx ≈ 10 σyy. It gives the timing '
+                                'pattern and ×1.8–2.2 of the size, keeping Y; the data need ×2.5–5.', CJUN, 26), gap=56)
             + sd.callout('For the analysis now: the production X position carries the field (K ≈ −0.8 of the centroid bias); '
                          '<code>wft.xasym</code> corrects det2 and det3 June-15 (opt-in, new column, re-align after).', GREEN, 26))
     D.slide('verdict2', body, _det(
@@ -345,13 +352,13 @@ def s_close2(D):
               'decides the pitch, the width and the offsets</h2>'
             + sd.row(
                 sd.col(sd.p('Open', 30, DINK, 600),
-                       sd.p('· Size: the best sim is ×1.6–1.8; the data need ×2.5–5.', 26, DMUT),
-                       sd.p('· Timing: late for vertical tracks in data, early in every sim variant.', 26, DMUT),
+                       sd.p('· Size: the best Y-compatible sim is ×1.8 (narrow ×2.2); the data need ×2.5–5.', 26, DMUT),
+                       sd.p('· The anisotropic model’s Y view: needs a Y-box solve (the production Y kernels were kept).', 26, DMUT),
                        sd.p('· The pitch: registration needs a 780 µm-commensurate print, the quote says 800.', 26, DMUT),
                        sd.p('· Why only the June builds: their gaps conduct (shown), and their print?', 26, DMUT), gap=14),
                 sd.col(sd.p('Next', 30, DINK, 600),
                        sd.p('1. The mask: stripe pitch, width and alignment, June vs May. Predict δ(x, y) per board.', 26, DMUT),
-                       sd.p('2. A faster sheet gives the size and the timing, but fails Y (2 and 0.5 MΩ/sq). Fast across a stripe, slow along it: what print does that?', 26, DMUT),
+                       sd.p('2. Ask what the June paste/print could make fast across a stripe (σxx ≈ 10 σyy): an under-layer, edges, grain?', 26, DMUT),
                        sd.p('3. For the analysis: wft.xasym on det2 and det3 June-15, with a re-alignment.', 26, DMUT),
                        sd.p('4. The det3 residual maps keep an x-scale term the alignment doesn’t fit.', 26, DMUT), gap=14),
                 gap=80))

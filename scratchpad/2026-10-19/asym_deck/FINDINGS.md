@@ -68,7 +68,7 @@ Verdict key: ✗ excluded · ~ partial / doesn't fit alone · ✓ supported · ?
 | 18 | Stripe orientation wrong on det3 | Late ±2 content X vs Y per board | det3 June-15 = Y-slow like every June/May board. det0/det1 (Jan/Apr) reversed. Apr-24 "horizontal, broken" shows no spreading | ✗ for det3 | Fourth round 2 |
 | 19 | Same PCB for det3 May and June-15 | Dead-line fingerprint | No shared defects; not supported | ? | "Connector edges" 4 |
 | 20 | Charge bookkeeping: moved or added? | Integrals per Y-share bin vs det2/det3 May and vs injection | n+1 gains ≈ what n−1 loses; Xc and the sum unchanged; a copy would raise n−1 and Xc | ✓ moved | Fifth round 1 |
-| 21 | Timing of the excess | Mean waveforms aligned on the Y central | Excess peaks with the central (+3…+25 ns), not like neighbour charge (+90…+120 for offsets) | ✓ prompt, direct-like | Fifth round 3 |
+| 21 | Timing of the excess | Mean waveforms aligned on the Y central | Excess peaks with the central (+3…+25 ns), not like neighbour charge (+90…+120 for offsets) | ✓ prompt on average; by pulse width late/early (#39) | Fifth round 3 |
 | 22 | Is it board-uniform? | Per-chip, 16-col, 8×8 maps; connector steps; Y-view maps | Smooth two-signed X fields (det4 −0.16 → +0.19, det6 + → −, det2 bands), no connector steps, Y flat | ✓ X-only field | Fifth round 8–9 |
 | 23 | det2 a clean control? | det2 by region; both runs | Positive band = det3's full fingerprint incl. timing; negative bands its mirror; same rows on FEU 3 and 6, amplitude ×2.5 with narrower clouds | ✗ not clean; ✓ fixed geometry | Fifth round 10, 13 |
 | 24 | Pitch of whatever causes it | a1 inside det2's positive band in 8-col blocks; 1/40 harmonic | Positive across all 512 columns, no 1/40 (p 0.57): commensurate with 780 µm | ✓ pad-pitch locked | Fifth round 11 |
@@ -83,8 +83,11 @@ Verdict key: ✗ excluded · ~ partial / doesn't fit alone · ✓ supported · ?
 | 33 | Is the sim's registration excess prompt like the data's? | Excess waveform vs central, sim \|δ\| ≥ 150 vs data (`r5/delta_timing.py`) | Sim excess leads the central by 70 ns (t50 −90); data by 10 ns (t50 −25); det2/May none | ~ wrong shape by ~1 sample | Seventh round 3 |
 | 34 | Cross-gap leak (conducting ESL gaps, σ_gap = f σ_strip) | nx = 1560 X kernels f = 0…0.3 (4520685); full sim with hybrid kernels f = 0/0.03/0.1 (4520810), paired | Kernel: ×1.9 late for σ 250. Full sim: odd amplitude ×1.00 (f 0.03), ×0.90 (f 0.1). But X late ±2 −2.3 → +7.8 → +27.6 ×10⁻³ = the June boards' 12–31 | ✓ explains the June late cross-stripe leak (f ≈ 0.05–0.1); ✗ as the asymmetry amplifier | Seventh round 4, 10, 12 |
 | 35 | Prompt funnelling of gap-landing electrons onto the strip edge | Digitizer `--gap-funnel F`, full v5a sim, 72 arms (condor 4520688) paired with the D = 0 seeds 7–12 (`r5/paired_odd.py`) | F = 1: odd amplitude ×1.40 (narrow ×1.54, +0.038 ± 0.003); F = 0.5: ×1.20; sharing unchanged; excess still leads the central by 90 ns | ~ real amplifier, ≤ 1.5×, wrong timing | Seventh round 7 |
-| 36 | Strip resistivity ρ_s | Mini kernels at 0.5/1/2/5 MΩ/sq | Registration term saturates at the same size (−0.033, σ 250); low ρ_s only makes it prompt (by 92 ns at 0.5 MΩ) | timing lever, not size | Seventh round 8 |
+| 36 | Strip resistivity ρ_s | Mini kernels 0.5–5 MΩ/sq; full-sim arms at 2 and 0.5 MΩ/sq (4520945, 4520942) | Kernel: timing only. Full sim: ×2.1–2.4 and, at 0.5 MΩ, the data's timing trend; but Y/X compact clusters 0.12 / 0.001 vs data 0.9 | ✗ excluded by the Y view | Eighth round 4–5 |
 | 37 | Strip width / gap ratio | nx = 1560 X kernels (4520736); full sim with hybrid kernels w410/w690 (4520870), paired | Kernel ×0.6 / ×1.6–2.4. Full sim: 700 µm ×1.45 (narrow ×1.54), 420 µm ×0.77; late ±2 unchanged; excess still leads by 82 ns | ✓ size lever that survives the full sim; the width of the June print is measurable from the mask | Seventh round 11, 13 |
+| 38 | Anisotropic stripe: fast across, nominal along (σ_xx = A σ_yy) | `--aniso-x`; X kernels 4520948, hybrid arms 4520959 | A = 10 alone ×1.06 but timing +74 → −47…−74 ns (data +52 → −54); with 700 µm + funnel ×1.79 (narrow ×2.22); Y kept (production Y kernels) | ✓ best model: timing pattern + biggest Y-compatible size | Eighth round 7 |
+| 39 | Excess timing vs pulse width (track angle) | `timing_width.py`, cloud_basics §42 estimator | Data: late (+52 ns) for short pulses, early (−54) for long; isotropic sims early everywhere | ✓ resolves "prompt" vs "delayed 114 ns" | Eighth round 1 |
+| 40 | Does the production wft position carry it? | M3 residual cell maps vs raw bias map, 8 bench runs | K = −0.77 ± 0.13; leave-one-out correction lowers the det2/det3 residual-map χ²; resolution unchanged after re-alignment | ✓ carried; `wft.xasym` (nTof_x17) corrects det2/det3 | Eighth round 2, 3, 6 |
 
 ## Next checks (in order)
 See "Next checks after the seventh round" at the end of the Seventh round section (the sixth-round list is done:
@@ -760,3 +763,27 @@ Scripts in `scratchpad/2026-10-20/r5/` (`esl_fast.py`, `kernel_delta.py`, `delta
    What the correction removes is a position-dependent systematic offset (up to ±70 µm on det2, a tilt on det3). That
    matters for anything that compares positions across the board or across chambers (vertexing, alignment between
    detectors), not for the resolution. Using it in production remains a choice.
+7. **Anisotropic stripes: fast across, nominal along** (`--aniso-x A`: σ_xx = A·σ_yy inside the stripes, σ_yy = 5 MΩ/sq;
+   X kernels condor 4520948, hybrid arms 4520959 `glax*`, paired with glg0; `paired_odd_aniso.json`,
+   `timing_width_glax10_glax10w690f1.json`, `kd_aniso.log`):
+
+   | arm | O all / narrow | Y/X kept, th00 | timing, short → long pulses |
+   |---|---|---|---|
+   | glax3 (A = 3) | ×1.07 / ×1.04 | 0.92 | |
+   | glax10 (A = 10) | ×1.06 / ×1.01 | 0.92 | **+74, −74, −59, −47 ns** |
+   | glax10w690 (+ 700 µm stripes) | ×1.58 / ×1.98 | 0.84 | |
+   | glax10w690f1 (+ funnel) | **×1.79 / ×2.22** | 0.84 | +64, −24, −83, −86 ns |
+   | isotropic glw690f1, for comparison | ×1.58 / ×1.78 | 0.92 | −39 … −70 ns |
+   | data, det3 June-15 | (needs ×2.5–5) | ≈ 0.9 | +52, −4, −52, −54 ns |
+
+   - Kernel: anisotropy builds the registration term faster (−0.022 by 92 ns vs −0.014; peak −0.027 vs −0.024 at
+     200 ns), much as 0.5 MΩ/sq did, but leaves the along-stripe term as it is.
+   - **This is the first Y-compatible model with the data's timing pattern, about the right swing included:** late
+     for near-vertical tracks, early for inclined ones. Together with wide stripes and funnelling it is also the
+     biggest Y-compatible size, ×1.8 (narrow ×2.2), near the lower end of what the data need.
+   - Caveat: the hybrids keep the production (isotropic) Y kernels. The anisotropy acts on across-stripe (x)
+     transport, which moves charge between Y-row pads little, but a Y-box anisotropic solve (64 families, the
+     expensive box) would be needed to confirm that the Y view is untouched.
+   - Physically, an effective σ_xx > σ_yy means charge equalises across a stripe faster than it travels along it. A
+     printed stripe with a conductive under-layer or edges, a granular paste with transverse paths, or a thinner
+     central line would all do that.
