@@ -1,11 +1,11 @@
 # Handoff
 
-## det3 X asymmetry (all rounds) — updated 2026-10-21 ~21:30 (dylan-MS-7C84)
+## det3 X asymmetry (all rounds) — updated 2026-10-21 ~23:00 (dylan-MS-7C84)
 
-**Resume:** narrow strips FAILED (FOLLOWUP §6); skewed induction is already in the sim and ion return paths are closed (§7).
-Next: prompt sharing, data vs sim (step 1 below).
+**Resume:** narrow strips FAILED (§6); skewed induction already in the sim, ion paths closed (§7); prompt sharing (§8): no
+strip route covers both det2 and det3 June. Next: is det3 June's flat, prompt-wide X sharing a coupling? (step 1 below).
 
-**Read first:** `scratchpad/2026-10-21/FOLLOWUP.md` (§1–7, supersedes the older picture below), then `audit/AUDIT.md`.
+**Read first:** `scratchpad/2026-10-21/FOLLOWUP.md` (§1–8, supersedes the older picture below), then `audit/AUDIT.md`.
 Deck (rebuilt from `scratchpad/2026-10-21/audit/make_audit_deck.py`, 23 slides): https://dylan-neff.web.cern.ch/notes/det3-x-asymmetry.html
 
 **Where it stands (2026-10-21 ~20:00):**
@@ -24,15 +24,21 @@ Deck (rebuilt from `scratchpad/2026-10-21/audit/make_audit_deck.py`, 23 slides):
   O ≈ 0.04 (sim 0.053): the sim sits at the conducting-strip limit. Funnel ion return paths: −5…−10 % (closed).
   The floating limit shrinks with cloud width and has ±2/±1 = 1/8–1/4 at σ 250–330 µm (data-like), but is too small at
   the data's sharing.
+- **Prompt sharing (§8, `prompt/prompt_share.py`, near-vertical cut `SEL=vert DTN_MAX=80 FW_PCT=25`):** det3 May = sim;
+  det2 narrow-prompt / late-wide (the strip regime); det3 June-15 wide BEFORE the peak and flat in time (r@25 % 0.36 vs
+  sim 0.12 at s1 0.37), which none of 8 sim arms makes. Data cosmics are mostly x-inclined (neighbour Δt 134–199 ns vs
+  sim 69 ns): always cut on it when comparing data and sim timing/sharing.
 
-**In progress:** nothing running (`float_psi_w550.npz` deleted: regenerate in 9 s with `skew/float_psi.py`). Narrow arm npz on the desktop `~/x17/nb_asym_raw/simnarrow/` (also lxplus
+**In progress:** nothing running. Extra sim arm npz copied to the desktop `~/x17/nb_asym_raw/simother/` (glax10, glax3,
+glax10w690f1, glr05g0, glr2g0, glw690f1). (`float_psi_w550.npz` deleted: regenerate in 9 s with `skew/float_psi.py`). Narrow arm npz on the desktop `~/x17/nb_asym_raw/simnarrow/` (also lxplus
 `mx17_s1/simgapleak_npz/glw{190,290}*`); glg0 control npz now also on the desktop `~/x17/nb_asym_raw/simgapleak/`.
 
 **Next steps:**
-1. Prompt sharing, data vs sim at the same in-phase s1 (FOLLOWUP "What this leaves"): every strip route needs a cloud the
-   strip pins while narrow, widened later. Early-sample (pre-spreading) X sharing in det3 June / det2 vs glg0; also det3 May.
-   If the data's prompt sharing is narrower than the sim's, rebuild Stage A/B clouds there; if not, strip mechanisms are out
-   and only the board/detector tests remain (strip photo; collimated scan, HV ramps, dry gas).
+1. det3 June's flat, prompt-wide X sharing: detector physics or an instantaneous symmetric pad-to-pad coupling
+   (~0.15 per neighbour)? Archive checks: r(f) down to 5–10 % of the rise (a coupling stays flat to the onset); connector
+   edges (does it follow pads or DAQ channels? cf. the 10-19 connector-edge test); the det3 June Y view with the same cut;
+   other det3 June sessions (survey/). If it is a coupling, det3 June's s1 overstates its cloud width by ~0.3 at low s1,
+   which moves it into the narrow-cloud regime and changes every 'size vs cloud width' statement for that board.
 2. Open for the record: route 9's 3-D note said the floating effect GROWS with σ; the 2-D toy says it shrinks. Check with
    `2026-10-19/bus_float.py` + the data's α estimator if strips come back.
 3. Keep the deck current (`make_audit_deck.py`, publish with add-note.py --slug det3-x-asymmetry --force --deploy).

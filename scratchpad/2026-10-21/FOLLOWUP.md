@@ -134,6 +134,39 @@ both compared the sharing at large |a1| with the sharing at delta = 0 *inside th
     §5 narrow-cloud regime again, which §6 showed the sim does not have).
 - Sign: the toy's O is negative in the +x / sim_delta convention; magnitudes are what compare (the data's δ is unknown).
 
+## 8. Prompt vs in-phase sharing, data vs sim (`prompt/prompt_share.py`, 2026-10-21 night)
+- r(f) = (W₊₁ + W₋₁)/W_c at the central's 25/50/75 % rising crossings, its peak and 50 % falling (ratio of sums, bootstrap
+  errors), in bins of in-phase s1. Data `d3jun/d2/d3may_x.npz`, sim glg0 (all 36 arms).
+- **All events are dominated by x-inclination.** Data |t(n+1) − t(n−1)| median 134–199 ns vs the sim's 69 ns (the arms are
+  th00 + thy only, no x tilt): inclined tracks give one neighbour early and the other late, so the data's neighbour sum is
+  wider in time than the central at both ends. Any data/sim timing or sharing comparison must cut on it.
+- Near-vertical (`SEL=vert DTN_MAX=80 FW_PCT=25`: |Δt_nb| < 80 ns, central FWHM above its 25th percentile; 380–790 data
+  events per board; `prompt_share_vert_80_25.json`), r@25 % vs sim at the same s1:
+
+  | s1 | sim | det3 May | det2 | det3 June-15 |
+  |---|---|---|---|---|
+  | 0.38 | 0.12 | 0.16 ± 0.02 | 0.28 ± 0.09 | 0.36 ± 0.02 |
+  | 0.52 | 0.24 | 0.23 ± 0.02 | 0.23 ± 0.06 | 0.56 ± 0.03 |
+  | 0.68 | 0.50 | 0.40 ± 0.03 | 0.34 ± 0.05 | 0.73 ± 0.05 |
+  | 0.82 | 0.72 | 0.75 ± 0.08 | 0.58 ± 0.06 | 0.81 ± 0.07 |
+  | 0.99 | 0.93 | 0.87 ± 0.06 | 0.62 ± 0.06 | 0.79 ± 0.10 |
+
+  - det3 May (no asymmetry) matches the sim: the method is sound.
+  - det2 has the strip routes' regime: prompt sharing narrower than the sim at s1 ≥ 0.68 (by 0.15–0.3), late wider (fall50
+    1.12–1.36 vs 0.80–0.85).
+  - det3 June-15, the board with the largest asymmetry, has the opposite: prompt sharing wider than the sim by 6–14σ at
+    s1 ≤ 0.68, and nearly flat through the pulse (s1 0.37: 0.36 / 0.34 / 0.34 / 0.35 / 0.46 from 25 % rise to 50 % fall),
+    with less late content than the sim. Its pulses are also the shortest (FWHM median 318 ns vs 400 det2/May, 598 sim).
+    Not neighbour crosstalk on its FEU: injection nearest-neighbour correlation excess 0.08 (det3 May 0.11).
+- **Verdict:** the narrow-prompt / late-spreading regime is not common to the asymmetric boards, so it cannot be what
+  enables the asymmetry; strip routes that need it fail on det3 June. New fingerprint: the det3 June bulk spreads its X
+  charge wide BEFORE the peak (same chamber as det3 May, different bulk), like a fast (low-ρ_s) X spreading; uniform low
+  ρ_s failed the Y view (round 8), so this would have to be X-only.
+- **No sim arm makes it** (`prompt_share_vert_arms.json`; SIMS=glax10,glax3,glax10w690f1,glr05g0,glr2g0,glw690f1,glg0.1):
+  at s1 0.37 / 0.52 det3 June r@25 % = 0.36 / 0.56 vs 0.10–0.17 / 0.14–0.34 across anisotropic strips (σ_xx = 3, 10 σ_yy,
+  with 690 µm + funnel), uniform 0.5 and 2 MΩ/sq, 690 µm + funnel and the 10 % gap leak. Every arm's r(f) rises through the
+  pulse at low s1; det3 June's is flat.
+
 ## What this leaves
 - The fingerprint (audit §4.1) gains: (2) the transfer is n−1 → n+1 direct, ±2 odd ≈ 12 % of ±1; (5) gain- and
   time-independent at fixed width; no session outlier. The even term is not a usable discriminator at the ±0.1 level.
@@ -143,9 +176,11 @@ both compared the sharing at large |a1| with the sharing at delta = 0 *inside th
 - Strip-induction routes are now exhausted at the data's sharing (§6, §7): offset resistive strips are in the full sim and
   sit at the conducting-strip limit; ion return paths subtract; a lateral field from strips at different potentials would
   need ~kV between neighbours (E_z ≈ 33 V/µm) to tilt the ions by 0.1, implausible for cosmic-rate currents.
-- What every strip route needs and the sim lacks: a cloud whose centroid the strip fixes while it is narrow, with the
-  sharing widened afterwards (late spreading), so that s1 is in the data's range while a1 keeps the narrow-cloud size.
-  Testable on archive data: compare the data's PROMPT sharing (early samples, before resistive spreading) with the sim's
-  at the same in-phase s1. Narrower prompt sharing in the data than in the sim would put the data in that regime.
+- Every strip route needs a cloud the strip pins while narrow, widened later; §8 tested it on archive data: det2 has that
+  regime, det3 June-15 has the opposite (prompt-wide, flat in time). So no strip route covers both asymmetric boards.
+- New fingerprint (§8): det3 June's X sharing is in place before the peak and flat in time; no existing sim arm makes it
+  (§8, last bullet). Open whether it is detector physics (prompt-wide induction on the June bulk) or an instantaneous
+  symmetric pad-to-pad coupling of ~0.15 per neighbour. If the latter, det3 June's s1 overstates its cloud width by ~0.3
+  at low s1, and its true clouds are narrow: which would put det3 June in the narrow-cloud regime after all.
 - Otherwise the remaining classes need the board or the detector: the strip photo (registration, width, gap) and
   the detector tests (collimated scan across a pad, HV ramps and dwell, dry gas).
