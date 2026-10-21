@@ -721,7 +721,7 @@ FP = [('X view only; Y flat in both pad classes', Y_, Y_, Q_),
       ('Late on short pulses, early on long', '✓ anisotropic only', Q_, Q_),
       ('June builds only', 'needs a print difference', Q_, 'June material')]
 s18 = sd.title('The fingerprint any explanation must reproduce', 'Rows: data facts from the previous slides. Columns: the candidates still standing')
-s18 += table(['fact', 'strip registration (as simulated)', 'skewed X response (in the sim; ion paths: ✗)', 'surface charging (untested)'], [list(r) for r in FP], 23,
+s18 += table(['fact', 'strip registration (as simulated)', 'skewed X response (in the sim; ion paths, fast strips, gradients: ✗)', 'surface charging (untested)'], [list(r) for r in FP], 23,
              widths=[640, 380, 330, 320], align=['left', 'center', 'center', 'center'])
 sl('fingerprint', s18, '<p><b>Skewed X response</b>: with uniform illumination, a1 ≠ 0 needs a response that is not mirror-symmetric about the pad. Registration gets there by '
    'attracting the charge (and pays with the even term). The other way is a weighting field that leans toward one neighbour, without moving the charge: the centroid '
@@ -741,8 +741,9 @@ WF = [('done', 'Even term vs a no-pull baseline; transfer shape; a1 vs gain and 
       ('done', 'Narrow strips (190 / 290 µm) + saturated-gap funnel in the full sim: odd amplitude ×0.2–0.9 of the 550 µm control, not ×2.5–5', 'sim', 'the toy’s size does not survive the real kernels'),
       ('done', 'Skewed induction: the W2 kernels already carry offset resistive strips at every δ (31.2 mm box) and sit at the conducting-strip limit (2-D toy: O ≈ 0.04 at the sim’s sharing); funnel ion return paths subtract 5–10 %', 'sim + toy', 'no strip-induction route reaches ×2.5–5 at the data’s sharing'),
       ('done', 'Prompt sharing, data vs sim at matched s1 (near-vertical tracks): det3 May = sim; det2 narrow-prompt / late-wide (the strip regime); det3 June-15 the opposite, wide before the peak and flat in time, which no sim arm makes', 'archive + sim', 'no strip route covers both asymmetric boards'),
-      ('done', 'det3 June’s flat X sharing is response, not coupling: flat from 5 % of the rise, s1 floor allows ≤ 0.06 per neighbour, same in every session; it looks like strips that equalise across their width before the first sample', 'archive', 'leading hypothesis: fast-equalising June strips'),
-      ('3', 'Full sim with strips that equalise ≪ 60 ns across their width but keep the Y view (σ_xx ≈ 100 σ_yy), ± funnel', 'sim (condor, ~2 h)', 'flat r(f), ×2.5–5, Y view: the June print?'),
+      ('done', 'det3 June’s flat X sharing is response, not coupling: flat from 5 % of the rise, s1 floor allows ≤ 0.06 per neighbour, same in every session; it looks like strips that equalise across their width before the first sample', 'archive', 'fast-equalising strips proposed; refuted by the full sim (next row)'),
+      ('done', 'Fast-equalising strips (σ_xx = 100 σ_yy) in the full sim: ×1.04 (×1.41 with funnel), r(f) still rising; a resistivity gradient across the strip (19:1) changes a1 by ≤ 0.012', 'sim + toy', 'neither; det3 June X instead lacks LATE X spreading'),
+      ('3', 'Sim early-cloud width: data’s early sharing is flat to the onset in both views on every board, the sim’s rises 2–3× before the peak; fix before scoring timing-based mechanisms', 'sim (Stage A / diffusion / avalanche spread)', 'a sim that matches the data’s time structure'),
       ('4', 'Per-session, width-matched maps for det3; decode 6-19/20 FEU 3 for more events', 'archive', 'is the geometry really fixed'),
       ('5', 'Photograph the strips (or get the mask) on det2 rows 0–63 vs 128–255, and on det3 May', 'needs the board', 'strip width and gap; opposite δ there, 780 µm pitch'),
       ('6', 'Collimated source across one pad; HV ramps and dwell; dry-gas flush', 'needs the detector', 'attractor vs displacement; charging; humidity')]

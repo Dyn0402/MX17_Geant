@@ -190,6 +190,27 @@ Near-vertical cut (|Δt_nb| < 80 ns, FWHM ≥ its 25th pct), `coupling_checks.js
   anisotropic sheet far beyond round 8's σ_xx = 10 σ_yy (glax10 still has rising r(f): r25 0.14 at s1 0.38), e.g. σ_xx
   = 100 σ_yy, with and without the funnel. Pass: flat r(f) like det3 June, O ×2.5–5 of glg0, Y view intact.
 
+## 10. Fast-equalising strips fail in the full sim; a strip resistivity gradient does nothing; §9's toy argument was flawed (2026-10-22 ~01:00)
+- **σ_xx = 100 σ_yy** (condor 4526340 kernel, 4526745 arms; `paired_odd_ax100.json`, `prompt/prompt_share_vert_ax100.json`):
+  glax100 vs glg0 O ×1.04 (diff +0.002 ± 0.002), narrow ×0.99, s1 unchanged; glax100f1 ×1.41 / narrow ×1.71. Identical to
+  glax10 (×1.06): across-width equalisation was already fast enough at ×10 and is not what limits the sim. r(f) still rises
+  (s1 0.38: 0.14 at 25 % rise → 0.33 peak). Fails size and shape.
+- **§9's interpretation was flawed:** the 2-D toys deposit every electron at t = 0, so a static (floating) response is flat in
+  time by construction. In the full sim electrons arrive over the drift time, later ones from deeper and wider, and the
+  sharing grows through the pulse whatever the strips do.
+- **Where the sim's growth comes from, and what the data show instead** (near-vertical, s1 0.2–0.45; r at 5 % rise / 25 % /
+  peak / 50 % fall): sim X 0.08 / 0.10 / 0.29 / 0.82, sim Y (th00) 0.05 / 0.10 / 0.25 / 0.89; det3 May X 0.17 / 0.15 / 0.26 /
+  0.60, det3 May Y 0.23 / 0.20 / 0.25 / 0.63, det3 June Y 0.20 / 0.22 / 0.29 / 0.57, det3 June X 0.36 / 0.31 / 0.31 / 0.41.
+  - General data/sim mismatch, both views, every board: the data's early sharing is flat to the onset, the sim's rises
+    2–3× before the peak (the sim's early clouds too narrow, or its width too dependent on arrival time / drift depth).
+  - Specific to det3 June X (the asymmetric board and view): late growth suppressed (peak → fall +0.10, vs det3 May X +0.34
+    and det3 June's own Y +0.28) on top of a higher early level. Less late X spreading, not faster.
+- **Resistivity gradient across the strip (Dylan's idea; `skew/grad_strip_toy.py`, `grad_strip_toy.json`):** 1-D RC
+  spreading across a 550 µm strip with σ(x) = σ̄ (1 + g x/(w/2)), insulating gaps, same weighting / shaper / α as the toys,
+  12 k clouds per point. g = 0.9 (19:1 across the strip) vs g = 0: |ΔA| ≤ 0.011 ± 0.006, |ΔO| ≤ 0.012, r(f) unchanged, at
+  5 MΩ/sq and ×100, σ 150/300, with and without the funnel (toy floor ~0.01–0.02 from the asymmetric δ set). A strip settles
+  to one potential whatever its profile, so only the transient acts, and it is < 1/10 of the data. Closed.
+
 ## What this leaves
 - The fingerprint (audit §4.1) gains: (2) the transfer is n−1 → n+1 direct, ±2 odd ≈ 12 % of ±1; (5) gain- and
   time-independent at fixed width; no session outlier. The even term is not a usable discriminator at the ±0.1 level.
@@ -201,8 +222,10 @@ Near-vertical cut (|Δt_nb| < 80 ns, FWHM ≥ its 25th pct), `coupling_checks.js
   need ~kV between neighbours (E_z ≈ 33 V/µm) to tilt the ions by 0.1, implausible for cosmic-rate currents.
 - Every strip route needs a cloud the strip pins while narrow, widened later; §8 tested it on archive data: det2 has that
   regime, det3 June-15 has the opposite (prompt-wide, flat in time). So no strip route covers both asymmetric boards.
-- New fingerprint (§8–9): det3 June's X sharing is in place from the onset and flat in time; not a coupling (s1 floor), stable
-  over all sessions. Leading hypothesis: June strips equalise across their width ≪ 60 ns (floating-strip limit), which in
-  the 2-D toy gives the data's size, width dependence and ±2/±1. Test: a strongly anisotropic (σ_xx ≈ 100 σ_yy) full-sim arm.
+- Fingerprints (§8–10): det3 June X has a high, flat early sharing and suppressed late X growth, stable over all sessions,
+  not a coupling. Fast-equalising strips (σ_xx = 100 σ_yy) and strip resistivity gradients are excluded (§10).
+- A general sim problem found on the way (§10): the data's early sharing is flat to the onset in both views on every
+  board; the sim's rises 2–3× before the peak. Fixing the sim's early-cloud width / drift-depth dependence (Stage A
+  clouds, diffusion, avalanche/feedback spread) comes before any further mechanism scoring that relies on timing.
 - Otherwise the remaining classes need the board or the detector: the strip photo (registration, width, gap) and
   the detector tests (collimated scan across a pad, HV ramps and dwell, dry gas).

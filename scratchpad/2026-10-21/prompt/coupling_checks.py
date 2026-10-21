@@ -57,28 +57,29 @@ def show(name, n, nsel, fl, pr):
     for b, row in pr.items():
         print(f'   {b:9s} {row["n"]:5d}  ' + '  '.join(f'{row[k][0]:5.3f}±{row[k][1]:.3f}' if k in row else '     -     ' for k in keys))
 
-R = {'views': {}, 'sessions': {}}
-SETS = {'det3 June-15': 'd3jun', 'det3 May': 'd3may', 'det2': 'd2'}
-for view in ('x', 'y'):
-    for name, tag in SETS.items():
-        W, s1, n = events([f'{RAW}/{tag}_{view}.npz']); fl = floor(s1); pr = profile(W, s1)
-        R['views'][f'{name} {view.upper()}'] = dict(n=n, n_sel=len(s1), floor=fl, profile=pr); show(f'{name} {view.upper()}', n, len(s1), fl, pr)
-    W, s1, n = events(sorted(glob.glob(f'{RAW}/simgapleak/glg0_th*_{view}.npz'))) if view == 'x' else (None, None, 0)
-    if W is not None:
-        fl = floor(s1); pr = profile(W, s1); R['views'][f'sim glg0 {view.upper()}'] = dict(n=n, n_sel=len(s1), floor=fl, profile=pr)
-        show(f'sim glg0 {view.upper()}', n, len(s1), fl, pr)
+if __name__ == '__main__':
+    R = {'views': {}, 'sessions': {}}
+    SETS = {'det3 June-15': 'd3jun', 'det3 May': 'd3may', 'det2': 'd2'}
+    for view in ('x', 'y'):
+        for name, tag in SETS.items():
+            W, s1, n = events([f'{RAW}/{tag}_{view}.npz']); fl = floor(s1); pr = profile(W, s1)
+            R['views'][f'{name} {view.upper()}'] = dict(n=n, n_sel=len(s1), floor=fl, profile=pr); show(f'{name} {view.upper()}', n, len(s1), fl, pr)
+        W, s1, n = events(sorted(glob.glob(f'{RAW}/simgapleak/glg0_th*_{view}.npz'))) if view == 'x' else (None, None, 0)
+        if W is not None:
+            fl = floor(s1); pr = profile(W, s1); R['views'][f'sim glg0 {view.upper()}'] = dict(n=n, n_sel=len(s1), floor=fl, profile=pr)
+            show(f'sim glg0 {view.upper()}', n, len(s1), fl, pr)
 
-# per session (survey), X view: s1 floor and the prompt ratio at 10 % and 25 % in the 0.2-0.45 bin
-import r5lib
-print('\nPer session, X view (survey), near-vertical: s1 p5 / p25 / p50, r10 and r25 in s1 0.2-0.45')
-for r in r5lib.rows():
-    if r['build'] not in SETS or r['view'] != 'X': continue
-    try: W, s1, n = events([r['f']])
-    except Exception as e: continue
-    if len(s1) < 60: continue
-    fl = floor(s1); pr = profile(W, s1)['0.2-0.45']
-    key = f"{r['build']} | {r['run'][-14:]} {r['sub'][:24]} | mesh {r['mesh']} drift {r['drift']}"
-    R['sessions'][key] = dict(n=len(s1), floor=fl, r10=pr.get('r10'), r25=pr.get('r25'), a=r['a'])
-    g = lambda k: f'{pr[k][0]:.3f}±{pr[k][1]:.3f}' if k in pr else '     -     '
-    print(f'  {key:80s} n {len(s1):4d}  s1 {fl["p5"]:.2f}/{fl["p25"]:.2f}/{fl["p50"]:.2f}  r10 {g("r10")}  r25 {g("r25")}  a {r["a"]:+.3f}')
-json.dump(R, open(sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, 'coupling_checks.json'), 'w'), indent=1, default=float)
+    # per session (survey), X view: s1 floor and the prompt ratio at 10 % and 25 % in the 0.2-0.45 bin
+    import r5lib
+    print('\nPer session, X view (survey), near-vertical: s1 p5 / p25 / p50, r10 and r25 in s1 0.2-0.45')
+    for r in r5lib.rows():
+        if r['build'] not in SETS or r['view'] != 'X': continue
+        try: W, s1, n = events([r['f']])
+        except Exception as e: continue
+        if len(s1) < 60: continue
+        fl = floor(s1); pr = profile(W, s1)['0.2-0.45']
+        key = f"{r['build']} | {r['run'][-14:]} {r['sub'][:24]} | mesh {r['mesh']} drift {r['drift']}"
+        R['sessions'][key] = dict(n=len(s1), floor=fl, r10=pr.get('r10'), r25=pr.get('r25'), a=r['a'])
+        g = lambda k: f'{pr[k][0]:.3f}±{pr[k][1]:.3f}' if k in pr else '     -     '
+        print(f'  {key:80s} n {len(s1):4d}  s1 {fl["p5"]:.2f}/{fl["p25"]:.2f}/{fl["p50"]:.2f}  r10 {g("r10")}  r25 {g("r25")}  a {r["a"]:+.3f}')
+    json.dump(R, open(sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, 'coupling_checks.json'), 'w'), indent=1, default=float)
