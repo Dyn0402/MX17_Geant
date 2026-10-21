@@ -1,8 +1,17 @@
 # Handoff
 
-## det3 X asymmetry (all rounds) — updated 2026-10-21 (dylan-Yoga)
+## det3 X asymmetry (all rounds) — updated 2026-10-21 evening (dylan-MS-7C84)
 
-**Resume:** read "Current picture" + ledger (routes 1–40) at the top of `scratchpad/2026-10-19/asym_deck/FINDINGS.md`; next: Y-box anisotropic check.
+**Resume:** read `scratchpad/2026-10-21/audit/AUDIT.md` (independent audit; deck remade at the same URL) and then
+`scratchpad/2026-10-21/FOLLOWUP.md` (supersedes the "leading explanation" below). Key changes:
+- The asymmetry is the same over X and Y pads (Y-share label, `m3class/`); the Y-pad story was peak migration.
+- Every simulated attractor arm (registration, width, funnel, leak, rho_s, anisotropy) fails the even term by ~20×; on the
+  same PCB (det3 May vs June-15) the X sharing at matched width is unchanged to 0.02 while a1 goes 0 → 0.14.
+- The transfer is direct n−1 → n+1 (±2 odd ≈ 12 % of ±1), slightly narrowing; not a copy or a linear coupling.
+- a1 is gain- and time-independent at fixed width; the 6-19/20 outlier was det2 (noise fingerprint).
+Next: score a skewed-induction model (offset partly conducting strip / tilted ion drift) on the ±1/±2 odd shape and the
+even term first; the strip photo/mask (det2 rows 0–63 vs 128–255, det3 May) is still the decisive measurement.
+The text below (rounds 7–8) is kept for reference.
 
 **Goal:** explain det3 June-15's X n−1/n+1 asymmetry (and correct for it) from archive data and simulation; there has
 been no detector access since 10-13 and there is no strip mask.
