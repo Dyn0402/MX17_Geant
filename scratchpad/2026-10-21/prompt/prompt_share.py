@@ -74,16 +74,17 @@ def one(files):
         out['bins'].append(row)
     return out
 
-R = {}
-for name, files in SETS.items():
-    if not files: continue
-    R[name] = r = one(files); print(f'\n{name}  ({r["n"]} events, {r["n_sel"]} selected [{SEL}]; |dt_nb| q25/50/75 '
-          f'{np.round(r["dtn_q"])} ns, FWHM q25/50/75 {np.round(r["fwhm_q"])} ns)')
-    print('  s1 bin      n     <s1>   r@25%         r@50%  r@75%  peak  fall50        rise25-75(ns)')
-    for b in r['bins']:
-        f = lambda v: f'{v:6.3f}' if v is not None else '   -  '
-        e = lambda k: f'±{b[k + "_err"]:.3f}' if b.get(k + '_err') is not None else '      '
-        print(f'  {b["s1"][0]:.2f}-{b["s1"][1]:.2f} {b["n"]:6d}  {f(b["s1_mean"])} {f(b["r25"])}{e("r25")} {f(b["r50"])} {f(b["r75"])} '
-              f'{f(b["peak"])} {f(b["fall50"])}{e("fall50")}  {b["rise_ns"] if b["rise_ns"] is None else round(b["rise_ns"])}')
-out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(os.path.abspath(__file__)), 'prompt_share.json')
-json.dump(R, open(out, 'w'), indent=1)
+if __name__ == '__main__':
+    R = {}
+    for name, files in SETS.items():
+        if not files: continue
+        R[name] = r = one(files); print(f'\n{name}  ({r["n"]} events, {r["n_sel"]} selected [{SEL}]; |dt_nb| q25/50/75 '
+              f'{np.round(r["dtn_q"])} ns, FWHM q25/50/75 {np.round(r["fwhm_q"])} ns)')
+        print('  s1 bin      n     <s1>   r@25%         r@50%  r@75%  peak  fall50        rise25-75(ns)')
+        for b in r['bins']:
+            f = lambda v: f'{v:6.3f}' if v is not None else '   -  '
+            e = lambda k: f'±{b[k + "_err"]:.3f}' if b.get(k + '_err') is not None else '      '
+            print(f'  {b["s1"][0]:.2f}-{b["s1"][1]:.2f} {b["n"]:6d}  {f(b["s1_mean"])} {f(b["r25"])}{e("r25")} {f(b["r50"])} {f(b["r75"])} '
+                  f'{f(b["peak"])} {f(b["fall50"])}{e("fall50")}  {b["rise_ns"] if b["rise_ns"] is None else round(b["rise_ns"])}')
+    out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(os.path.abspath(__file__)), 'prompt_share.json')
+    json.dump(R, open(out, 'w'), indent=1)

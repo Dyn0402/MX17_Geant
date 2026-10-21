@@ -1,11 +1,11 @@
 # Handoff
 
-## det3 X asymmetry (all rounds) — updated 2026-10-21 ~23:00 (dylan-MS-7C84)
+## det3 X asymmetry (all rounds) — updated 2026-10-21 ~23:45 (dylan-MS-7C84)
 
-**Resume:** narrow strips FAILED (§6); skewed induction already in the sim, ion paths closed (§7); prompt sharing (§8): no
-strip route covers both det2 and det3 June. Next: is det3 June's flat, prompt-wide X sharing a coupling? (step 1 below).
+**Resume:** §6–9 of FOLLOWUP. det3 June's X sharing is complete from the onset and flat in time; it is response, not a
+coupling (§9). Leading hypothesis: June strips equalise across their width ≪ 60 ns. Next: the σ_xx ≈ 100 σ_yy full-sim arm.
 
-**Read first:** `scratchpad/2026-10-21/FOLLOWUP.md` (§1–8, supersedes the older picture below), then `audit/AUDIT.md`.
+**Read first:** `scratchpad/2026-10-21/FOLLOWUP.md` (§1–9, supersedes the older picture below), then `audit/AUDIT.md`.
 Deck (rebuilt from `scratchpad/2026-10-21/audit/make_audit_deck.py`, 23 slides): https://dylan-neff.web.cern.ch/notes/det3-x-asymmetry.html
 
 **Where it stands (2026-10-21 ~20:00):**
@@ -28,17 +28,21 @@ Deck (rebuilt from `scratchpad/2026-10-21/audit/make_audit_deck.py`, 23 slides):
   det2 narrow-prompt / late-wide (the strip regime); det3 June-15 wide BEFORE the peak and flat in time (r@25 % 0.36 vs
   sim 0.12 at s1 0.37), which none of 8 sim arms makes. Data cosmics are mostly x-inclined (neighbour Δt 134–199 ns vs
   sim 69 ns): always cut on it when comparing data and sim timing/sharing.
+- **Not a coupling (§9, `prompt/coupling_checks.py`):** det3 June X r(f) flat from 5 % of the rise (0.36 → 0.31 at the peak,
+  0.41 at 50 % fall; det3 May 0.17 → 0.26 → 0.60; sim 0.09 → 0.31 → 0.78); s1 floor allows ≤ 0.06/neighbour coupling;
+  same in every det3 June session. The 2-D floating-strip toy (instant equalisation) matches det3 June's size vs s1
+  (suggestive: survey `a` vs toy O).
 
 **In progress:** nothing running. Extra sim arm npz copied to the desktop `~/x17/nb_asym_raw/simother/` (glax10, glax3,
 glax10w690f1, glr05g0, glr2g0, glw690f1). (`float_psi_w550.npz` deleted: regenerate in 9 s with `skew/float_psi.py`). Narrow arm npz on the desktop `~/x17/nb_asym_raw/simnarrow/` (also lxplus
 `mx17_s1/simgapleak_npz/glw{190,290}*`); glg0 control npz now also on the desktop `~/x17/nb_asym_raw/simgapleak/`.
 
 **Next steps:**
-1. det3 June's flat, prompt-wide X sharing: detector physics or an instantaneous symmetric pad-to-pad coupling
-   (~0.15 per neighbour)? Archive checks: r(f) down to 5–10 % of the rise (a coupling stays flat to the onset); connector
-   edges (does it follow pads or DAQ channels? cf. the 10-19 connector-edge test); the det3 June Y view with the same cut;
-   other det3 June sessions (survey/). If it is a coupling, det3 June's s1 overstates its cloud width by ~0.3 at low s1,
-   which moves it into the narrow-cloud regime and changes every 'size vs cloud width' statement for that board.
+1. Fast-equalising strips in the full sim: X kernel with `run_gx_gap.sh 0 - 100` (σ_xx = 100 σ_yy; check the solver
+   handles it: --aniso-x 100), 5 MΩ hybrid, paired arms ax100 / ax100f1 (th00 + thy*, seeds 7–12) vs glg0 as in
+   `aniso_chain.sh`. Score: `paired_odd.py` (need ×2.5–5), `prompt/coupling_checks.py` / `prompt_share.py SIMS=...`
+   (flat r(f) like det3 June), Y view. Not yet submitted (awaiting Dylan's go).
+2. If it passes: a lower-resistivity / anisotropic June print is the answer; ask the producer for the June paste spec.
 2. Open for the record: route 9's 3-D note said the floating effect GROWS with σ; the 2-D toy says it shrinks. Check with
    `2026-10-19/bus_float.py` + the data's α estimator if strips come back.
 3. Keep the deck current (`make_audit_deck.py`, publish with add-note.py --slug det3-x-asymmetry --force --deploy).

@@ -167,6 +167,29 @@ both compared the sharing at large |a1| with the sharing at delta = 0 *inside th
   with 690 µm + funnel), uniform 0.5 and 2 MΩ/sq, 690 µm + funnel and the 10 % gap leak. Every arm's r(f) rises through the
   pulse at low s1; det3 June's is flat.
 
+## 9. det3 June's flat X sharing is response, not coupling; it looks like fast-equalising strips (`prompt/coupling_checks.py`)
+Near-vertical cut (|Δt_nb| < 80 ns, FWHM ≥ its 25th pct), `coupling_checks.json`:
+- **Rise profile, s1 0.2–0.45** (r = (W₊₁+W₋₁)/W_c at 5/10/15/25/50/75 % rise, peak, 75/50 % fall):
+  det3 June X 0.36 / 0.34 / 0.33 / 0.31 / 0.30 / 0.30 / 0.31 / 0.35 / 0.41 (flat from the onset, little late growth);
+  det3 May X 0.17 / 0.16 / 0.15 / 0.15 / 0.18 / 0.20 / 0.26 / 0.41 / 0.60; sim glg0 0.09 / 0.10 / … / 0.31 / 0.54 / 0.78.
+  At equal in-phase sharing, det3 June's X sharing is all prompt; det3 May's (same chamber, other bulk) and the sim's grow late.
+- **s1 floor:** det3 June X p1/p5 = 0.125/0.19, 6 % of events below 0.2 (det3 May 0.04/0.09, 12 %). A uniform pad-to-pad
+  coupling is therefore ≤ ~0.06 per neighbour, not the ~0.15 the flat level would need: the flat sharing scales with the
+  event, so it is detector response, not crosstalk (and the FEU noise/injection correlations were not elevated, §8).
+- **Every det3 June session** with statistics (mesh 465–525 V, drift 100–1000 V, 6-22 / 6-23 / 6-27) has r10 ≈ r25
+  ≈ 0.26–0.40 in the s1 0.2–0.45 bin: a stable property of the bulk. Y view: det3 June and det3 May alike (flat-ish early).
+- **Interpretation (hypothesis):** a time-flat neighbour shape is what strips that equalise across their width before the
+  first samples give: the floating-strip limit of §7 (instant, so r(f) flat by construction). That limit also shrinks with
+  cloud width and has data-like ±2/±1, and its size tracks det3 June's per-session survey `a`:
+  data (s1 p50 → a) ≈ (0.38 → 0.19–0.21), (0.6 → 0.12–0.15), (0.8 → 0.07–0.10); toy floating (0.37 → 0.16), (0.63 → 0.06),
+  (0.88 → 0.03); floating + funnel (0.43 → 0.22), (0.55 → 0.15), (0.68 → 0.11), (0.91 → 0.05). (`a` is the survey's board
+  estimator, not the toy's sgn(δ)-weighted O, and the toy is 2-D: suggestive, not a fit.) The sim's 5 MΩ/sq strips
+  spread slowly (late-growing r(f), O ≈ 0.05), like det3 May. With audit fact 7 (June builds conduct across their gaps), a
+  lower-resistivity June print is a consistent story.
+- **The test:** a full-sim arm whose strips equalise across their width in ≪ 60 ns while keeping the Y view: an
+  anisotropic sheet far beyond round 8's σ_xx = 10 σ_yy (glax10 still has rising r(f): r25 0.14 at s1 0.38), e.g. σ_xx
+  = 100 σ_yy, with and without the funnel. Pass: flat r(f) like det3 June, O ×2.5–5 of glg0, Y view intact.
+
 ## What this leaves
 - The fingerprint (audit §4.1) gains: (2) the transfer is n−1 → n+1 direct, ±2 odd ≈ 12 % of ±1; (5) gain- and
   time-independent at fixed width; no session outlier. The even term is not a usable discriminator at the ±0.1 level.
@@ -178,9 +201,8 @@ both compared the sharing at large |a1| with the sharing at delta = 0 *inside th
   need ~kV between neighbours (E_z ≈ 33 V/µm) to tilt the ions by 0.1, implausible for cosmic-rate currents.
 - Every strip route needs a cloud the strip pins while narrow, widened later; §8 tested it on archive data: det2 has that
   regime, det3 June-15 has the opposite (prompt-wide, flat in time). So no strip route covers both asymmetric boards.
-- New fingerprint (§8): det3 June's X sharing is in place before the peak and flat in time; no existing sim arm makes it
-  (§8, last bullet). Open whether it is detector physics (prompt-wide induction on the June bulk) or an instantaneous
-  symmetric pad-to-pad coupling of ~0.15 per neighbour. If the latter, det3 June's s1 overstates its cloud width by ~0.3
-  at low s1, and its true clouds are narrow: which would put det3 June in the narrow-cloud regime after all.
+- New fingerprint (§8–9): det3 June's X sharing is in place from the onset and flat in time; not a coupling (s1 floor), stable
+  over all sessions. Leading hypothesis: June strips equalise across their width ≪ 60 ns (floating-strip limit), which in
+  the 2-D toy gives the data's size, width dependence and ±2/±1. Test: a strongly anisotropic (σ_xx ≈ 100 σ_yy) full-sim arm.
 - Otherwise the remaining classes need the board or the detector: the strip photo (registration, width, gap) and
   the detector tests (collimated scan across a pad, HV ramps and dwell, dry gas).
