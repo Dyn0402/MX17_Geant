@@ -1,0 +1,17 @@
+# Fast-equalising strips (2026-10-21 night, FOLLOWUP §9): X kernel with sigma_xx = 100 sigma_yy (550 um strips, insulating
+# gaps), so a strip equalises across its width in < 1 ns; det3 June-15 X sharing is flat in time from the onset.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_gx_gap.sh
+arguments               = 0 $(w) $(ax)
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/gxaniso_$(w)_$(ax).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/gxaniso_$(w)_$(ax).err
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/gxgap.log
+request_cpus            = 4
+request_memory          = 20000
+request_disk            = 6000000
++JobFlavour             = "tomorrow"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4"
+queue w, ax from (
+-, 100
+)
