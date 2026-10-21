@@ -339,7 +339,7 @@ sim 17 % brighter: less diffusion concentrates the charge); wet σ0 420 µm 1.04
   The other candidate is a wider avalanche than the 94 µm Garfield calib.
 - **Y is not fixed.** Y's ±1/central overshoots (0.461 vs 0.408, v3 already 0.435), the vertical Y width is a little
   narrow (0.79 vs 0.84), and inclined Y gets dimmer (saturates 0.19 vs 0.33). One knob cannot fix Y's core and wings
-  together. ρ_s acts only on Y (the stripes run along y), and on both in the same direction. The Y open problem
+  together. ρ_s acts only on Y (the strips run along y), and on both in the same direction. The Y open problem
   (§21.9) stands, with this baseline as the better starting point.
 - Amplitude: the σ0 420 µm arm wants bG ≈ 0.48–0.49 instead of 0.45 (≈ 2 % per 0.01, §21.10).
 

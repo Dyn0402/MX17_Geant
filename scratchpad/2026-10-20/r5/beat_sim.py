@@ -1,4 +1,4 @@
-"""Predicted stripe beat in the sim (v5a recipe, xo0 arms, all 24 files incl. tilted) vs data, same estimator as
+"""Predicted strip beat in the sim (v5a recipe, xo0 arms, all 24 files incl. tilted) vs data, same estimator as
 beat_col.py but folded on column mod 40 (the sim draws x over one 31.2 mm superperiod, so columns repeat).
 Amplitude of the 1/40 harmonic of per-(col mod 40) means of s1 and d1, null from permuting the 40 phase means.
 Usage: beat_sim.py"""

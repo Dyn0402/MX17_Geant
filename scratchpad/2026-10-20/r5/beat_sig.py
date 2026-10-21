@@ -1,4 +1,4 @@
-"""Single-frequency significance of the stripe beat (2026-10-20), from periodogram.py's inputs.
+"""Single-frequency significance of the strip beat (2026-10-20), from periodogram.py's inputs.
 For o with std s over N events, a Fourier amplitude 2|sum o e^{i phi}|/N is Rayleigh with scale s*sqrt(2/N) under no
 signal; z = A / (s sqrt(2/N)). Reports z and phase at f = 1/40 (P = 800 um) and the best f in 0.015..0.040
 (P ~ 792..812 um), for s1 (sharing) and d1 (asymmetry), per build, X view (and Y view for a control: the Y view should

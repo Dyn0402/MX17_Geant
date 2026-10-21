@@ -1,4 +1,4 @@
-5070 clouds; columns: a1 / narrow (sig<=350) / wide (sig>=550) / sharing, per stripe offset s (um)
+5070 clouds; columns: a1 / narrow (sig<=350) / wide (sig>=550) / sharing, per strip offset s (um)
                              -325   -225   -150    -75     +0    +75   +150   +225   +325
 prompt (no ESL move)   a1   -0.001 -0.001 -0.001 -0.001 -0.001 -0.001 -0.001 -0.001 -0.001
                        nar  -0.003 -0.003 -0.003 -0.003 -0.003 -0.003 -0.003 -0.003 -0.003

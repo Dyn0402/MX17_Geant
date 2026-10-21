@@ -1,6 +1,6 @@
 """Does the Y view carry its own smooth asymmetry field? (2026-10-20) Same 8 x 8 cells as map_fit.py (position from the
 matched X column and Y row), a1Y = alphaY(+1) - alphaY(-1). Reports the constant-model chi2 of the cell map for X and
-Y side by side (X structure vs Y structure), and the 4 x 4 Y map. Stripes along y can only make X structure; a vector
+Y side by side (X structure vs Y structure), and the 4 x 4 Y map. Strips along y can only make X structure; a vector
 misregistration (via/drill or inner-layer offsets) would make both. Usage: map_y.py"""
 import json, os, numpy as np
 import r5lib as R

@@ -172,7 +172,7 @@ class W2Solver:
                                     gap_frac=esl_gap_frac)
         self.esl_gap_frac = esl_gap_frac
         # DIAGNOSIS (2026-10-21, det3 X asymmetry): sigma_xx = esl_aniso_x * sigma_yy
-        # (fast across a stripe, nominal along it). 1 = isotropic, bit-identical.
+        # (fast across a strip, nominal along it). 1 = isotropic, bit-identical.
         self.esl_aniso_x = float(esl_aniso_x)
         self.sigma_x = sig_x
         self.sigma_hat = np.fft.fft(sig_x) / nx

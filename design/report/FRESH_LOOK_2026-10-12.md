@@ -1279,7 +1279,7 @@ instead of 340 ns raises the peak by ×1.08 (vertical), ×1.23–1.26 (10.7°) a
 ### 13.4 What SPS det4 can and cannot add
 
 - **Its gain ladders cannot be used.** det4 is the chamber where 62 % of the area does not
-  amplify, in fixed stripes. Its run_66 Ar/CF₄/iso resist scan moves the leading-strip
+  amplify, in fixed strips. Its run_66 Ar/CF₄/iso resist scan moves the leading-strip
   amplitude only ×1.2 over 780 → 580 V (EXTRACTION_2026-08-05b §11a), and every amplitude is
   ZS-censored. No slope or curvature can be read from it.
 - **Its shapes are consistent with 13.3.** In both H4 gases the drifting ion is not Ar⁺:
@@ -2178,10 +2178,10 @@ with the data at 26.5 mm. Ledger Y/X at p25, far from the rail, agrees with p50 
 and not a saturation artefact.
 
 Leads, none tested yet:
-- **Resistive stripes.** The kernels (`response/solver/kernels.py`) model the resistive layer as stripes along y (550/250 µm
+- **Resistive strips.** The kernels (`response/solver/kernels.py`) model the resistive layer as strips along y (550/250 µm
   line/gap, insulating gaps) over a checkerboard of pads read out as combs: a Y channel is a pad row, an X channel a pad column,
-  both on a 1.56 mm pitch (from the gerbers). All lateral spread on the stripes therefore crosses Y rows and stays inside an X
-  column. So the stripe geometry and ρ_s act on Y far more than on X. ρ_s itself is pinned at 4–5.6 MΩ/sq by the Y wings; the
+  both on a 1.56 mm pitch (from the gerbers). All lateral spread on the strips therefore crosses Y rows and stays inside an X
+  column. So the strip geometry and ρ_s act on Y far more than on X. ρ_s itself is pinned at 4–5.6 MΩ/sq by the Y wings; the
   printed line/gap has not been measured on a board.
 - **Shape.** The data Y central falls faster after its peak than the sim's (−0.08..−0.10 of the peak at +360..+540 ns) and undershoots more
   (−0.125 vs X −0.02). The X tail is slower than the sim's. A per-view shaping difference in the data that the chain lacks

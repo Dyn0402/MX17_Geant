@@ -1,7 +1,7 @@
-"""Late +-2 neighbour content of sim arms with the data's metric (stripe_orient2.py: mean waveforms normalised to the
+"""Late +-2 neighbour content of sim arms with the data's metric (strip_orient2.py: mean waveforms normalised to the
 central, aligned on its peak sample; +-2 mean over samples 10..15 after the peak = 600-960 ns), X view (across the
-stripes). Data: June builds 12-31 x1e-3, May/earlier 1-9, the v5a sim -2. (2026-10-21)
-Usage: sim_late2.py <dir> <prefix> [<prefix> ...]   (SIM_VIEW=y: the Y view = along the stripes; data June 63-80, May 24-37)"""
+strips). Data: June builds 12-31 x1e-3, May/earlier 1-9, the v5a sim -2. (2026-10-21)
+Usage: sim_late2.py <dir> <prefix> [<prefix> ...]   (SIM_VIEW=y: the Y view = along the strips; data June 63-80, May 24-37)"""
 import os, sys, glob, re, json, numpy as np
 import r5lib as R
 L = R.L

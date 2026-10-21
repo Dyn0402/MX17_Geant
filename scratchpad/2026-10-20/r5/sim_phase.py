@@ -1,5 +1,5 @@
-"""Stripe-offset hypothesis tested in the full sim (2026-10-20). The sim's ESL stripes (800 um) beat against the
-780 um pads, so each column phase (col mod 40) is a 'board' whose stripe centres sit at a fixed offset from the pad
+"""Strip-offset hypothesis tested in the full sim (2026-10-20). The sim's ESL strips (800 um) beat against the
+780 um pads, so each column phase (col mod 40) is a 'board' whose strip centres sit at a fixed offset from the pad
 columns. Group the sim's events (xo0 arms, all 24 files; tilted ones included for statistics) by phase and compute
 the X-only marginals (a1, coin) per group of 5 phases, plus the matched X/Y class asymmetries in two Y-share halves.
 If some phase reproduces det3 June-15 (a1 ~ +0.14, A_Y ~ +0.25, narrow A_X < 0), a pitch-locked print at that

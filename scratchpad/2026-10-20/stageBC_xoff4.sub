@@ -1,5 +1,5 @@
 # More D = 0 statistics (2026-10-20 day): v5a recipe, th00 + thy*, seeds 7-16 (60 jobs), for the fingerprint per
-# stripe phase (col mod 40): does the phase with the largest X asymmetry also reproduce det3 June-15's class pattern?
+# strip phase (col mod 40): does the phase with the largest X asymmetry also reproduce det3 June-15's class pattern?
 universe                = vanilla
 executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_xoff_job.sh
 log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/xoff4.log

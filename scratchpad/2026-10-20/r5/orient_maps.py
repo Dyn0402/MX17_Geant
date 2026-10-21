@@ -1,6 +1,6 @@
-"""Pin the field to the resistive stripes (2026-10-20 evening). det0 (4-1 He/ethane HV scan) and det1 (Jan) have their
-stripes along x (X-slow, stripe_orient2.py); every other board along y. Stripe-induced => the asymmetry field lives in
-the view that measures ACROSS the stripes: Y on det0/det1, X elsewhere. Board/readout-induced => X on all.
+"""Pin the field to the resistive strips (2026-10-20 evening). det0 (4-1 He/ethane HV scan) and det1 (Jan) have their
+strips along x (X-slow, strip_orient2.py); every other board along y. Strip-induced => the asymmetry field lives in
+the view that measures ACROSS the strips: Y on det0/det1, X elsewhere. Board/readout-induced => X on all.
 Per board: 8 x 8 cell maps (matched X true column x Y true row) of a1X and a1Y, constant-model chi2, weighted cell rms.
 Usage: orient_maps.py"""
 import os, glob, json, numpy as np
@@ -30,11 +30,11 @@ def cmap(E, key, nc=8):
 def main():
     S = {}
     pairs = sorted(glob.glob(f'{ORIENT}/d0all_*_x.npz'))
-    S['det0 (stripes along x)'] = from_pairs([(f, f[:-6] + '_y.npz') for f in pairs if os.path.exists(f[:-6] + '_y.npz')])
-    S['det1 (stripes along x)'] = from_build('det1')
-    S['det1 all 5 files (stripes along x)'] = from_pairs([(f'{ORIENT}/d1all_x.npz', f'{ORIENT}/d1all_y.npz')])
+    S['det0 (strips along x)'] = from_pairs([(f, f[:-6] + '_y.npz') for f in pairs if os.path.exists(f[:-6] + '_y.npz')])
+    S['det1 (strips along x)'] = from_build('det1')
+    S['det1 all 5 files (strips along x)'] = from_pairs([(f'{ORIENT}/d1all_x.npz', f'{ORIENT}/d1all_y.npz')])
     q = sorted(glob.glob(f'{ORIENT}/d0ar/d0ar_*_x.npz'))
-    S['det0 Ar/iso 4-7 (stripes along x)'] = from_pairs([(f, f[:-6] + '_y.npz') for f in q if os.path.exists(f[:-6] + '_y.npz')])
+    S['det0 Ar/iso 4-7 (strips along x)'] = from_pairs([(f, f[:-6] + '_y.npz') for f in q if os.path.exists(f[:-6] + '_y.npz')])
     if os.path.exists(f'{ORIENT}/a24_x.npz'): S['Apr-24 bulk ("horizontal", broken)'] = from_pairs([(f'{ORIENT}/a24_x.npz', f'{ORIENT}/a24_y.npz')])
     for b in ('det3 June-15', 'det2', 'det3 May', 'det4 May'):
         if b == 'det4 May': S[b + ' (along y)'] = from_pairs([(f'{ORIENT}/{t}_x.npz', f'{ORIENT}/{t}_y.npz') for t in ('d4m_490', 'd4m_510')])

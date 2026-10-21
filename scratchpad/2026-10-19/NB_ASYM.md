@@ -45,7 +45,7 @@ candidate for det3's size (the solve gives ~0.01, not 0.1–0.2).
 ### B. What the board geometry gives (`bus_wpot.py`, `bus_scan/`)
 
 - **Stack thickness:**
-  - The gerbers carry no stack-up. "top-resist" is the print area plus labels; the stripes are printed after
+  - The gerbers carry no stack-up. "top-resist" is the print area plus labels; the strips are printed after
     fabrication (RESPONSE_SIM_PLAN §3 row 3).
   - The Geant4 stack (`shared/MX17ModuleGeometry.hh`, NEEDED_INPUTS §6): five 26 µm copper layers, 50 µm kapton
     coverlay, ~19 µm glue over the pads, and the CAD 1.70 mm board.
@@ -145,8 +145,8 @@ v5c's extent is too wide (0.81).
      in X). The data's neighbours carry less late charge at ±1 and more slow charge at ±2. This is the remaining timing
      question, now isolated from the copy and the halo.
   2. Y shares are low in v5a (0.39 vs 0.44; ±2 0.08 vs 0.12). v5b is closer in Y (0.46/0.10) but wider than the data
-     in X. A Y-only spread (the resistive stripes along y) is the natural lever (§21.9).
-- **Candidate next arms:** v5a + Y-side lateral spread (ρ_s or stripe line/gap); v5a with H 100/200; v5a + bG refit
+     in X. A Y-only spread (the resistive strips along y) is the natural lever (§21.9).
+- **Candidate next arms:** v5a + Y-side lateral spread (ρ_s or strip line/gap); v5a with H 100/200; v5a + bG refit
   (amplitude), since the spread lowers the peak strip.
 
 Follow-up to `NB_FAR.md` (same day). Question: is the X −1/+1 asymmetry a beat with the resistive strips, and what does
@@ -246,6 +246,6 @@ The + side in X is clean (to first order a·s2). The folded ±1 used up to now a
 - Model the bus traces in the weighting field (a 3D solve: pads + one-sided buses at L5/L6 under the gaps) to see whether
   the copy size comes out at ~0.01 (other boards) or needs a det3 defect. The PCB stack-up (dielectric thickness to
   L5/L6) is unknown and is the main input.
-- Sim: try reducing the late neighbour charge (not adding prompt) at ±1: diffusion (wet), ρ_s, stripe line/gap. Add a
+- Sim: try reducing the late neighbour charge (not adding prompt) at ±1: diffusion (wet), ρ_s, strip line/gap. Add a
   symmetric prompt exponential tail (λ ≈ 0.4–0.5 per strip, ~1 % at ±3) as a readout term and check the ladder.
 - Ask whether det3's X cabling/adapter moved with it between slots (6-22/23 vs 6-27/28).

@@ -853,7 +853,7 @@ def build(R, out):
     nb = LEDGER['nb_delay']
     rows = [
         ['<b>Y/X amplitude</b>', f'sim Y {(min(v3_yx) - 1) * 100:.0f}–{(max(v3_yx) - 1) * 100:.0f} % low vs X',
-         'inclined Y; Y rails 0.33 vs 0.16–0.22', 'Y-direction spread on the resistive stripes'],
+         'inclined Y; Y rails 0.33 vs 0.16–0.22', 'Y-direction spread on the resistive strips'],
         ['<b>Y wings vs ρ_s</b>', f'need {wing_lo:.0f}–{wing_hi:.1f} MΩ/sq', f'T2b says {LEDGER["t2b"][0]}–{LEDGER["t2b"][1]}', 'ρ_s of det3 itself, or the stack-up'],
         ['<b>±1 neighbour delay</b>', '+105 vs +45/+60 ns', 'with coupling k 0.05, τ 15', 'ρ_s × coupling, fit jointly'],
         ['<b>Inclined rise</b>', f'+{min(v3_rise)}…+{max(v3_rise)} ns', 'Y 20° is the largest', 'coupling takes 4 ns off X 20°'],
@@ -880,10 +880,10 @@ def build(R, out):
 
     # 12 ideas ---------------------------------------------------------------
     rows = [
-        ['<b>As-built resistive stripes</b>: the kernel has them running along y (550/250 µm line/gap), so all lateral '
+        ['<b>As-built resistive strips</b>: the kernel has them running along y (550/250 µm line/gap), so all lateral '
          'spread crosses Y rows; measure the printed line/gap on a board and rebuild the kernel if it differs',
          'inclined Y, Y wings', 'microscope + kernel build',
-         'The stripe geometry acts on Y far more than on X; ρ_s alone is pinned at 4–5.6 MΩ/sq by the Y wings.'],
+         'The strip geometry acts on Y far more than on X; ρ_s alone is pinned at 4–5.6 MΩ/sq by the Y wings.'],
         ['<b>Non-conserving in-phase coupling</b> (neighbours get k·i, the central keeps all): one condor scan',
          '±1 delay', 'code + condor',
          'ρ_s cannot close the delay without breaking the Y wings, and glue/diffusion are ruled out (§21.11).'],
@@ -921,7 +921,7 @@ def build(R, out):
                                 '(<code>recipes/det3_v3.args</code>).',
                                 'Adopt the inter-strip coupling (k 0.05, τ 15 ns) as a fitted electronics term, or wait for '
                                 'Irakli\'s protection values?',
-                                'Spend the next kernel build on an anisotropic ρ_s (along vs across the stripes)?'],
+                                'Spend the next kernel build on an anisotropic ρ_s (along vs across the strips)?'],
                                DGREEN), gap=18), gap=72),
             dark=True, short='Open questions')
 

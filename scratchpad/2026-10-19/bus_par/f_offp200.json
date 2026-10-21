@@ -8,13 +8,13 @@
   "nrow": 4,
   "bottom": 1400.0,
   "out": "bus_par/f_offp200.json",
-  "stripes": "float",
+  "strips": "float",
   "w": 550.0,
   "off": 200.0
  },
- "n_stripes": 9,
+ "n_strips": 9,
  "N": 1764000,
- "stripe_V": [
+ "strip_V": [
   0.0,
   0.0,
   0.0002,
@@ -25,7 +25,7 @@
   0.0,
   0.0
  ],
- "stripe_y": [
+ "strip_y": [
   -2920.0,
   -2140.0,
   -1360.0,

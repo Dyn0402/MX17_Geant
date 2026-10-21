@@ -26,53 +26,53 @@ def _err(P, x, v, e, c=INK):
     P.raw(sd.line(P.X(x), P.Y(v - e), P.X(x), P.Y(v + e), c, 2))
 
 
-def s_stripes(D):
+def s_strips(D):
     e = _j('esl_bins.json')
     if not e: return
     j = e['det3 June-15']; offs = np.arange(10) * 80 + 40
-    P = sd.Plot(800, 540, x=(0, 800), y=(0, 0.4), xlabel='stripe offset under the pad column (µm, 4 columns per bin)',
-                ylabel='copy, Y-pad events', title='The copy against the stripe position')
+    P = sd.Plot(800, 540, x=(0, 800), y=(0, 0.4), xlabel='strip offset under the pad column (µm, 4 columns per bin)',
+                ylabel='copy, Y-pad events', title='The copy against the strip position')
     P.xticks([(v, str(v)) for v in (0, 200, 400, 600, 800)]); P.yticks([(v, f'{v:.1f}') for v in (0, .1, .2, .3, .4)])
     xs = np.linspace(0, 800, 81); m = j['ypad']['mean']
     P.band(list(xs), [m - 0.1] * len(xs), [m + 0.1] * len(xs), GOLD, 0.12,
-           tip='Swing a floating-stripe coupling would give over one beat (±0.1, fwd_out/f_off±200)')
+           tip='Swing a floating-strip coupling would give over one beat (±0.1, fwd_out/f_off±200)')
     P.line(list(xs), list(m + 0.1 * np.sin(2 * np.pi * xs / 800)), GOLD, 2.5, dash='8 6', markers=False,
-           tip='Floating-stripe model, ±200 µm offset gives ±0.10 (phase arbitrary): what a stripe-mediated copy would look like')
+           tip='Floating-strip model, ±200 µm offset gives ±0.10 (phase arbitrary): what a strip-mediated copy would look like')
     v = [c[0] for c in j['ypad']['copy']]; s = [c[1] for c in j['ypad']['copy']]
     for x_, a, b in zip(offs, v, s): _err(P, x_, a, b, CJUN)
     P.line(list(offs), v, CJUN, 3, r=7, tips=[f'columns {4*k}–{4*k+3} mod 40: copy {a:+.3f} ± {b:.3f}' for k, (a, b) in enumerate(zip(v, s))])
-    P2 = sd.Plot(640, 540, x=(0, 800), y=(0.4, 1.1), xlabel='stripe offset (µm)', ylabel='Y ±1 share', title='Charge sharing too')
+    P2 = sd.Plot(640, 540, x=(0, 800), y=(0.4, 1.1), xlabel='strip offset (µm)', ylabel='Y ±1 share', title='Charge sharing too')
     P2.xticks([(v_, str(v_)) for v_ in (0, 400, 800)]); P2.yticks([(v_, f'{v_:.1f}') for v_ in (.4, .6, .8, 1.0)])
     for cls, c, nm in (('ypad', CJUN, 'Y-pad events'), ('xpad', GREY, 'X-pad events')):
         v = [q[0] for q in j[cls]['ysh']]; s = [q[1] for q in j[cls]['ysh']]
         for x_, a, b in zip(offs, v, s): _err(P2, x_, a, b, c)
         P2.line(list(offs), v, c, 3, r=6, tips=[f'{nm}, bin {k}: Y share {a:.3f} ± {b:.3f}' for k, (a, b) in enumerate(zip(v, s))])
     amp, ea = j['ypad']['sine_copy']
-    body = (sd.title('Strip or kapton gap? The resistive stripes leave no mark',
-                     'det3 June-15 · true pad columns (each 64-ch connector reversed) · 39 stripes on 40 columns: the stripe '
+    body = (sd.title('Strip or kapton gap? The resistive strips leave no mark',
+                     'det3 June-15 · true pad columns (each 64-ch connector reversed) · 39 strips on 40 columns: the strip '
                      'slides 20 µm per column')
-            + sd.row(P.svg('stripe copy'), P2.svg('stripe share'), gap=30)
-            + sd.row(sd.callout(f'Over the full beat the copy is flat: sine amplitude {amp:.3f} ± {ea:.3f} on {m:.2f}. A stripe-mediated '
+            + sd.row(P.svg('strip copy'), P2.svg('strip share'), gap=30)
+            + sd.row(sd.callout(f'Over the full beat the copy is flat: sine amplitude {amp:.3f} ± {ea:.3f} on {m:.2f}. A strip-mediated '
                                 'coupling (gold) would swing by ±0.1.', CJUN, 24),
-                     sd.callout('Which one a given event hit, stripe or gap, can’t be told: the cloud (σ ≈ 450 µm) covers more than '
+                     sd.callout('Which one a given event hit, strip or gap, can’t be told: the cloud (σ ≈ 450 µm) covers more than '
                                 'one 800 µm period, and the peak pad fixes x only to ±390 µm.', BLUE, 24), gap=36))
-    D.slide('stripes', body, _det(
-        'Geometry: ESL stripes 550 µm wide with 250 µm kapton gaps, 800 µm pitch, running along y; pads 680 µm on 780 µm. '
-        'Pad column k sits at stripe phase (k·780 + x0) mod 800, so 40 columns sweep the stripe once under every pad. The '
-        'column phase is exact per pad, so this tests every mechanism tied to how the stripes sit over the pads (a stripe '
-        'over the Y pad vs over the gap next to it, a stripe over the bus gap, a floating stripe).',
+    D.slide('strips', body, _det(
+        'Geometry: ESL strips 550 µm wide with 250 µm kapton gaps, 800 µm pitch, running along y; pads 680 µm on 780 µm. '
+        'Pad column k sits at strip phase (k·780 + x0) mod 800, so 40 columns sweep the strip once under every pad. The '
+        'column phase is exact per pad, so this tests every mechanism tied to how the strips sit over the pads (a strip '
+        'over the Y pad vs over the gap next to it, a strip over the bus gap, a floating strip).',
         f'The earlier “no 40-channel period” check binned DAQ channel numbers, which are reversed inside each 64-channel '
         f'connector and so mix the phases between connectors. Redone with true columns: Y-pad class sine amplitude '
         f'{amp:.3f} ± {ea:.3f}, X-pad class {j["xpad"]["sine_copy"][0]:.3f} ± {j["xpad"]["sine_copy"][1]:.3f}; Y share '
         f'{j["ypad"]["sine_ysh"][0]:.3f} ± {j["ypad"]["sine_ysh"][1]:.3f}. det3 May and det2 are flat as well. Not even '
-        'the sharing shows the stripes.',
+        'the sharing shows the strips.',
         'Why the per-event question has no handle: the charge cloud of a cosmic track has σ ≈ 450 µm (the forward model '
         'matches the data’s Y share 0.65 at σ 450), and inside the peak pad the landing point is uniform over ±390 µm, '
-        'about one stripe period. The 800 µm harmonic is attenuated by exp(−2π²σ²/P²) ≈ 0.002 and again by the pad '
-        'window. Every event covers stripes and gaps in about the 550:250 ratio. A per-event test needs a point source '
+        'about one strip period. The 800 µm harmonic is attenuated by exp(−2π²σ²/P²) ≈ 0.002 and again by the pad '
+        'window. Every event covers strips and gaps in about the 550:250 ratio. A per-event test needs a point source '
         'and short drift (collimated Fe-55, or X-rays converting near the mesh).',
         _src('../../2026-10-20/esl_cache.py', '../../2026-10-20/esl_bins.py', '../../2026-10-20/esl_share.py',
-             '../../2026-10-20/esl_phase.py', 'fwd_out/f_off*.json')), short='Stripes')
+             '../../2026-10-20/esl_phase.py', 'fwd_out/f_off*.json')), short='Strips')
 
 
 def s_inject(D):
@@ -341,7 +341,7 @@ def s_edge(D):
         _src('asym_deck/raw_asym.py --edge', '../../2026-10-20/edge_test.py', 'edge_test.json')), short='Connector edge')
 
 
-BOARDS = [  # (build, run_config description, Y-pad copy (asym_more), stripe orientation from data)
+BOARDS = [  # (build, run_config description, Y-pad copy (asym_more), strip orientation from data)
     ('det3 June-15', '“Bulked by Stephan June 15” (beam: mx17_A)', 'Y slow (+420 ns at ±2)'),
     ('det4', '“Stephan batch of 3, June 22. Was board C. A few bubbles … just no caps”', 'Y slow'),
     ('det7', '“Stephan batch of 3, June 22. Was board B. One or two bubbles”', 'Y slow (+240 ns)'),
@@ -367,9 +367,9 @@ def s_boards(D, more_json):
         return '; '.join(out) or '—'
     rows = [[bu, desc, f'{cp[bu][0]:+.2f}' if bu in cp else '—', ori, dead(bu)] for bu, desc, ori in BOARDS]
     body = (sd.title('The boards: what the run configs say, and what the copy does',
-                     'Descriptions verbatim from run_config.json · Y-pad-class copy · stripe direction read from the slow sharing · '
+                     'Descriptions verbatim from run_config.json · Y-pad-class copy · strip direction read from the slow sharing · '
                      'dead lines (true order) on the board’s own FEU slot(s)')
-            + sd.table(['board', 'run_config.json', 'Y-pad copy', 'stripes (from data)', 'dead lines'], rows, size=19)
+            + sd.table(['board', 'run_config.json', 'Y-pad copy', 'strips (from data)', 'dead lines'], rows, size=19)
             + sd.row(sd.callout('Stephan: nothing different about the June bulks. The copy is per board: 0.22 on det3 June-15, '
                                 '0.07–0.08 on the June-22 batch, ~0 on det2, det6, det3 May and det1.', CJUN, 23),
                      sd.callout('No shared dead line between det3 May and det3 June-15 (its Y row 23 is dead on both of its FEU '
@@ -378,10 +378,10 @@ def s_boards(D, more_json):
         'Bulk dates for the July/August beam: mx17_A = det3, “Bulked by Stephan June 15”; mx17_B = det2, “Bulked by Arnaud '
         'June 12. Giant pillars on parts of the detector.” (all 162 beam run configs). mx17_C = det6, mx17_D = det7. The May det3 '
         '(bench 5-5 to 5-6, and “Det3 from May beam test” in the 6-6 to 6-17 runs) was “Bulked 5-5-26”.',
-        'Stripe direction (<code>stripe_orient.py</code>): charge spreads along the stripes, so the view measuring along them '
+        'Strip direction (<code>strip_orient.py</code>): charge spreads along the strips, so the view measuring along them '
         'gets the slow, late sharing; at ±2, the late content is larger in Y than in X on every board but det1, with Y peaking '
         '240–420 ns late on the June boards. det3 June-15 looks like the others: orientation is not what singles it out.',
         'Dead lines (<code>pcb_fingerprint.py</code>): a line that is the peak < 15 % as often as its neighbours. X 112 is dead '
         'on every board read through FEU 3 (an electronics channel), so only lines that follow a board across slots, or a '
         'board’s only slot, are listed. A PCB-level break would survive a re-bulk; bulk-level ones would not.',
-        _src('run_config.json (local + EOS)', '../../2026-10-20/stripe_orient.py', '../../2026-10-20/pcb_fingerprint.py')), short='Boards')
+        _src('run_config.json (local + EOS)', '../../2026-10-20/strip_orient.py', '../../2026-10-20/pcb_fingerprint.py')), short='Boards')

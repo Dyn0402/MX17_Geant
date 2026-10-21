@@ -1,4 +1,4 @@
-"""Stripe beat with the right noise unit (2026-10-20): per-column means (detrended, sigma 30 columns), Fourier amplitude
+"""Strip beat with the right noise unit (2026-10-20): per-column means (detrended, sigma 30 columns), Fourier amplitude
 at f, null = the same with the column means permuted (1000 permutations). Reports p-value at f = 1/40 and the max over
 f in 0.015..0.040 (look-elsewhere included via the permutation max). X and Y views; Y is the control.
 Usage: beat_col.py"""

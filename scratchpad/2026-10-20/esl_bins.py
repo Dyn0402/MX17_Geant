@@ -1,5 +1,5 @@
-"""ESL stripe phase, binned for the deck (2026-10-20): Y-pad / X-pad class copy and the Y +-1 share vs true pad column
-mod 40 (connector-reversed map), in 10 bins of 4 columns = 80 um steps of the stripe offset under the pad.
+"""ESL strip phase, binned for the deck (2026-10-20): Y-pad / X-pad class copy and the Y +-1 share vs true pad column
+mod 40 (connector-reversed map), in 10 bins of 4 columns = 80 um steps of the strip offset under the pad.
 Plus the sine-fit amplitude over all 40 phases. Writes esl_bins.json."""
 import os, json, numpy as np
 z = np.load(os.path.expanduser('~/x17/nb_asym_raw/esl_cache.npz'), allow_pickle=True)

@@ -1,9 +1,9 @@
-"""a1 vs stripe offset straight from an X kernel (2026-10-21).
+"""a1 vs strip offset straight from an X kernel (2026-10-21).
 Inputs: the production slice (gx_slice_rho5M.npz from lxplus: G (40, 9 times, 16 y, 3120 x)) or an X-only diagnosis
 product (w2_production.py combine-x: G_X (40, 61 times, ny, nx)). Gaussian clouds of width sigma (x and y, y periodic
 over the 1.56 mm comb box) centred over a column, kept where that column is the peak; A = (G[c+1] - G[c-1]) / G[c] in
 +x order, averaged over centres, per column c (40 phases) -> vs delta(c) = ((x_c + 400) % 800) - 400 um
-(sim_delta.py's definition, stripes centred at k 800 um in the kernel frame). Also the across-stripe late content:
+(sim_delta.py's definition, strips centred at k 800 um in the kernel frame). Also the across-strip late content:
 (G[c+-2](t) - G[c+-2](0)) / G[c](t) for a cloud at the column centre, mean over columns (late minus prompt, x 1e3).
 Usage: kernel_delta.py <npz> [<npz> ...]"""
 import sys, os, json, numpy as np

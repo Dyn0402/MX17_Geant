@@ -17,30 +17,30 @@ a1 = α(n+1) − α(n−1) in DAQ order (det3 June-15's excess side positive).
 - It is charge moved within X (n−1 → n+1), prompt, and repeats at the pad pitch (no 31.2 mm beat on any board).
 
 **Leading explanation (partly supported):**
-- Resistive-stripe registration: stripe centres offset from the pad columns, with the offset varying across the board
+- Resistive-strip registration: strip centres offset from the pad columns, with the offset varying across the board
   through print scale and rotation.
-- In the sim, a1 vs the true stripe offset reproduces the shape and both signs at ~1/3 of the amplitude.
+- In the sim, a1 vs the true strip offset reproduces the shape and both signs at ~1/3 of the amplitude.
 - In the kernel this is a sheet-transport effect: zero at t = 0, built over 100–300 ns at 5 MΩ/sq (sooner at lower ρ_s).
-- This requires a 780 µm-commensurate stripe pitch, which contradicts the 800 µm quote. Dylan is fetching the mask.
+- This requires a 780 µm-commensurate strip pitch, which contradicts the 800 µm quote. Dylan is fetching the mask.
 
 **Size levers measured in the full sim (paired arms, seventh round):**
-- Wider stripes: 700 µm ×1.45 (narrow ×1.54); 420 µm ×0.77.
+- Wider strips: 700 µm ×1.45 (narrow ×1.54); 420 µm ×0.77.
 - Prompt funnelling of gap-landing electrons onto the strip edges: ×1.40 (narrow ×1.54).
 - Cross-gap leak: ×0.9–1.0. It is not a size lever.
-- Wide stripes + funnel together: ×1.58 (narrow ×1.78). They don't multiply: with 100 µm gaps there is little left to
+- Wide strips + funnel together: ×1.58 (narrow ×1.78). They don't multiply: with 100 µm gaps there is little left to
   funnel.
 
 **Why only June builds (partly):**
-- The June boards' late across-stripe content (12–31 ×10⁻³) is reproduced by gap conduction at 5–10 % of the
-  stripes' (+7.8 / +27.6 in the sim). So the June gaps conduct.
-- That doesn't make the asymmetry itself. The June-vs-May difference that does should be in the print: stripe width,
+- The June boards' late across-strip content (12–31 ×10⁻³) is reproduced by gap conduction at 5–10 % of the
+  strips' (+7.8 / +27.6 in the sim). So the June gaps conduct.
+- That doesn't make the asymmetry itself. The June-vs-May difference that does should be in the print: strip width,
   pitch and registration. That is the mask question.
 
 **Open:**
 - The size gap: the best single lever is ~1.5×, while the data need 2.5–5×.
 - The timing: the sim's registration excess leads the central by 70–90 ns, the data's by 10 ns. Lower ρ_s makes it
   prompter.
-- The stripe pitch and width of the June print.
+- The strip pitch and width of the June print.
 
 ## Routes
 
@@ -56,7 +56,7 @@ Verdict key: ✗ excluded · ~ partial / doesn't fit alone · ✓ supported · ?
 | 6 | Track angle / tilt | a1 vs M3 angle; vertical-only maps | −0.0085/° on det2: det3 would need ~20°; maps hold for vertical tracks; an x-tilt can't make y-structure | ✗ | NB_ASYM §1; Fifth round 9 |
 | 7 | Gas-flow pattern | Map vs inlet→exhaust, X-only, time behaviour | Flat top–bottom, X only, non-monotonic in time | ✗ as cause | deck "Gas idea" |
 | 8 | One-sided copper (bus traces under the gap, stubs) | 3D weighting solve (`bus_wpot.py`) at any bus depth, dielectric variants | ≤ 0.01 nominal, 0.085 even touching the pads; fixed handedness | ✗ (also killed by #22) | NB_ASYM §B; deck "Bus traces" |
-| 9 | Floating stripes (static conductors) | `bus_float.py` + forward model | Copy in both pad classes, growing with cloud size | ✗ (static version) | Second round 6 |
+| 9 | Floating strips (static conductors) | `bus_float.py` + forward model | Copy in both pad classes, growing with cloud size | ✗ (static version) | Second round 6 |
 | 10 | Plain one-step copy x(n+1) += a x(n) | Uncopy closure; parity split with injection; bookkeeping | Uncopy balances ±1/±2 board-wide. But det3 isn't a plain copy: narrow X-pad −0.40, which no copy makes | ~ | NB_ASYM §A; Third round 2–3 |
 | 11 | Charge over Y pads coupled into X n+1 ("lives at the Y pads") | X/Y parity split | Split is partly peak-migration selection (injected copy makes 0.20/0.05) | ~ (selection) | Second round; Third round 2 |
 | 12 | Rigid X-view offset (X reads the avalanche at x + D) | Static forward fits; full sim condor 4505159 (D 0…−300) | Pre-registered narrow X-pad flip passed (−0.45…−0.51). But zero marginal a1 and fading for wide clouds | ~ needed, not sufficient | Fourth round 1 |
@@ -65,27 +65,27 @@ Verdict key: ✗ excluded · ~ partial / doesn't fit alone · ✓ supported · ?
 | 15 | Extra sensitivity regions on the bus side (gap strip, next-column Y pad or its half, next or skip X line, whole column) | Fast static model (`fwd_region.py`) | All send narrow A_X positive and keep A_Y small (χ² 700–3400/24) | ✗ | Fifth round 7 |
 | 16 | Skip transfer n−1 → n+1 (channel level) | Fast model | Right x-conditional trend, wrong class pattern | ✗ | Fifth round 7 |
 | 17 | Shift/mix + copy combinations | Fast model, full sim | Best χ² ≈ 240–260/24 (fast), no session fit (full) | ~ | Fourth round 1; Fifth round 7 |
-| 18 | Stripe orientation wrong on det3 | Late ±2 content X vs Y per board | det3 June-15 = Y-slow like every June/May board. det0/det1 (Jan/Apr) reversed. Apr-24 "horizontal, broken" shows no spreading | ✗ for det3 | Fourth round 2 |
+| 18 | Strip orientation wrong on det3 | Late ±2 content X vs Y per board | det3 June-15 = Y-slow like every June/May board. det0/det1 (Jan/Apr) reversed. Apr-24 "horizontal, broken" shows no spreading | ✗ for det3 | Fourth round 2 |
 | 19 | Same PCB for det3 May and June-15 | Dead-line fingerprint | No shared defects; not supported | ? | "Connector edges" 4 |
 | 20 | Charge bookkeeping: moved or added? | Integrals per Y-share bin vs det2/det3 May and vs injection | n+1 gains ≈ what n−1 loses; Xc and the sum unchanged; a copy would raise n−1 and Xc | ✓ moved | Fifth round 1 |
 | 21 | Timing of the excess | Mean waveforms aligned on the Y central | Excess peaks with the central (+3…+25 ns), not like neighbour charge (+90…+120 for offsets) | ✓ prompt on average; by pulse width late/early (#39) | Fifth round 3 |
 | 22 | Is it board-uniform? | Per-chip, 16-col, 8×8 maps; connector steps; Y-view maps | Smooth two-signed X fields (det4 −0.16 → +0.19, det6 + → −, det2 bands), no connector steps, Y flat | ✓ X-only field | Fifth round 8–9 |
 | 23 | det2 a clean control? | det2 by region; both runs | Positive band = det3's full fingerprint incl. timing; negative bands its mirror; same rows on FEU 3 and 6, amplitude ×2.5 with narrower clouds | ✗ not clean; ✓ fixed geometry | Fifth round 10, 13 |
 | 24 | Pitch of whatever causes it | a1 inside det2's positive band in 8-col blocks; 1/40 harmonic | Positive across all 512 columns, no 1/40 (p 0.57): commensurate with 780 µm | ✓ pad-pitch locked | Fifth round 11 |
-| 25 | Stripe-registration field (print scale/rotation) | Map fits A sin(φ0 + kx x + ky y); quadrature (sharing ∝ cos φ) | Fits det3/det2 geometry, stable across det3 sessions; sharing quadrature not detected (−0.007 ± 0.009) | ~ geometry yes, quadrature no | Fifth round 12; `quad_test.py` |
-| 26 | Can stripe offset produce it (sim)? | a1 vs true δ in the sim (`sim_delta.py`, `sim_delta_fp.py`) | Odd in δ, ±0.05–0.10 (narrow ±0.10–0.24); det3's class pattern at +δ, det2-negative mirror at −δ; ~1/3 of data amplitude | ✓ shape, ~ size | Sixth round 1 |
-| 27 | Rotation of the print alone | Physics estimate | Lateral spread along a tilted stripe is µm; only the registration via a 780 pitch makes ~P/θ bands | rotation only via registration | Sixth round 1 |
-| 28 | Pin to stripes via reversed-stripe boards (det0, det1) | X and Y 2D maps, det0 He + Ar/iso, det1 all files | No field in either view (det1 weak fine-scale Y hint); May normal boards have none either | ? can't pin | Sixth round 2 |
-| 29 | Why only June builds | Along- and across-stripe late content per board | June: along 63–80, across 12–31; May/earlier: 24–37 / 1–9; sim: 64 / −2 | the across-stripe part = gap conduction f ≈ 0.05–0.1 (#34), which does not itself make the asymmetry | Sixth round 3; Seventh 12 |
+| 25 | Strip-registration field (print scale/rotation) | Map fits A sin(φ0 + kx x + ky y); quadrature (sharing ∝ cos φ) | Fits det3/det2 geometry, stable across det3 sessions; sharing quadrature not detected (−0.007 ± 0.009) | ~ geometry yes, quadrature no | Fifth round 12; `quad_test.py` |
+| 26 | Can strip offset produce it (sim)? | a1 vs true δ in the sim (`sim_delta.py`, `sim_delta_fp.py`) | Odd in δ, ±0.05–0.10 (narrow ±0.10–0.24); det3's class pattern at +δ, det2-negative mirror at −δ; ~1/3 of data amplitude | ✓ shape, ~ size | Sixth round 1 |
+| 27 | Rotation of the print alone | Physics estimate | Lateral spread along a tilted strip is µm; only the registration via a 780 pitch makes ~P/θ bands | rotation only via registration | Sixth round 1 |
+| 28 | Pin to strips via reversed-strip boards (det0, det1) | X and Y 2D maps, det0 He + Ar/iso, det1 all files | No field in either view (det1 weak fine-scale Y hint); May normal boards have none either | ? can't pin | Sixth round 2 |
+| 29 | Why only June builds | Along- and across-strip late content per board | June: along 63–80, across 12–31; May/earlier: 24–37 / 1–9; sim: 64 / −2 | the across-strip part = gap conduction f ≈ 0.05–0.1 (#34), which does not itself make the asymmetry | Sixth round 3; Seventh 12 |
 | 30 | Earlier side threads | ±1/±2 neighbour timing vs v5a; far ±3..±5 halo (displaced photon feedback, H 150 µm) | v5a matches copy-free X; halo explained by feedback spread | separate threads | NB_ASYM §C–E, NB_FAR.md |
-| 31 | Static relocation (strip charge spread across/along its stripe; gap charge stays, funnelled, or leaked to neighbour stripes) | Deterministic fast model on the prompt ESL-plane field (`r5/esl_fast.py`) | ≤ ±0.02 for every variant except funnel-all + 1.5 mm along-stripe smear (±0.10). It also misses the sim baseline (0 vs ±0.05), so it is not a calibrator | ~ direction only | Seventh round 1 |
+| 31 | Static relocation (strip charge spread across/along its strip; gap charge stays, funnelled, or leaked to neighbour strips) | Deterministic fast model on the prompt ESL-plane field (`r5/esl_fast.py`) | ≤ ±0.02 for every variant except funnel-all + 1.5 mm along-strip smear (±0.10). It also misses the sim baseline (0 vs ±0.05), so it is not a calibrator | ~ direction only | Seventh round 1 |
 | 32 | Where the sim's a1(δ) comes from | Production X kernel, y-resolved clouds (`r5/kernel_delta.py`) | 0 at t = 0, builds over 100–300 ns of sheet transport; ±0.06 for σ 250 µm next to a strip edge, ±0.015 for σ 450 | ✓ late sheet transport | Seventh round 2 |
 | 33 | Is the sim's registration excess prompt like the data's? | Excess waveform vs central, sim \|δ\| ≥ 150 vs data (`r5/delta_timing.py`) | Sim excess leads the central by 70 ns (t50 −90); data by 10 ns (t50 −25); det2/May none | ~ wrong shape by ~1 sample | Seventh round 3 |
-| 34 | Cross-gap leak (conducting ESL gaps, σ_gap = f σ_strip) | nx = 1560 X kernels f = 0…0.3 (4520685); full sim with hybrid kernels f = 0/0.03/0.1 (4520810), paired | Kernel: ×1.9 late for σ 250. Full sim: odd amplitude ×1.00 (f 0.03), ×0.90 (f 0.1). But X late ±2 −2.3 → +7.8 → +27.6 ×10⁻³ = the June boards' 12–31 | ✓ explains the June late cross-stripe leak (f ≈ 0.05–0.1); ✗ as the asymmetry amplifier | Seventh round 4, 10, 12 |
+| 34 | Cross-gap leak (conducting ESL gaps, σ_gap = f σ_strip) | nx = 1560 X kernels f = 0…0.3 (4520685); full sim with hybrid kernels f = 0/0.03/0.1 (4520810), paired | Kernel: ×1.9 late for σ 250. Full sim: odd amplitude ×1.00 (f 0.03), ×0.90 (f 0.1). But X late ±2 −2.3 → +7.8 → +27.6 ×10⁻³ = the June boards' 12–31 | ✓ explains the June late cross-strip leak (f ≈ 0.05–0.1); ✗ as the asymmetry amplifier | Seventh round 4, 10, 12 |
 | 35 | Prompt funnelling of gap-landing electrons onto the strip edge | Digitizer `--gap-funnel F`, full v5a sim, 72 arms (condor 4520688) paired with the D = 0 seeds 7–12 (`r5/paired_odd.py`) | F = 1: odd amplitude ×1.40 (narrow ×1.54, +0.038 ± 0.003); F = 0.5: ×1.20; sharing unchanged; excess still leads the central by 90 ns | ~ real amplifier, ≤ 1.5×, wrong timing | Seventh round 7 |
 | 36 | Strip resistivity ρ_s | Mini kernels 0.5–5 MΩ/sq; full-sim arms at 2 and 0.5 MΩ/sq (4520945, 4520942) | Kernel: timing only. Full sim: ×2.1–2.4 and, at 0.5 MΩ, the data's timing trend; but Y/X compact clusters 0.12 / 0.001 vs data 0.9 | ✗ excluded by the Y view | Eighth round 4–5 |
 | 37 | Strip width / gap ratio | nx = 1560 X kernels (4520736); full sim with hybrid kernels w410/w690 (4520870), paired | Kernel ×0.6 / ×1.6–2.4. Full sim: 700 µm ×1.45 (narrow ×1.54), 420 µm ×0.77; late ±2 unchanged; excess still leads by 82 ns | ✓ size lever that survives the full sim; the width of the June print is measurable from the mask | Seventh round 11, 13 |
-| 38 | Anisotropic stripe: fast across, nominal along (σ_xx = A σ_yy) | `--aniso-x`; X kernels 4520948, hybrid arms 4520959 | A = 10 alone ×1.06 but timing +74 → −47…−74 ns (data +52 → −54); with 700 µm + funnel ×1.79 (narrow ×2.22); Y kept (production Y kernels) | ✓ best model: timing pattern + biggest Y-compatible size | Eighth round 7 |
+| 38 | Anisotropic strip: fast across, nominal along (σ_xx = A σ_yy) | `--aniso-x`; X kernels 4520948, hybrid arms 4520959 | A = 10 alone ×1.06 but timing +74 → −47…−74 ns (data +52 → −54); with 700 µm + funnel ×1.79 (narrow ×2.22); Y kept (production Y kernels) | ✓ best model: timing pattern + biggest Y-compatible size | Eighth round 7 |
 | 39 | Excess timing vs pulse width (track angle) | `timing_width.py`, cloud_basics §42 estimator | Data: late (+52 ns) for short pulses, early (−54) for long; isotropic sims early everywhere | ✓ resolves "prompt" vs "delayed 114 ns" | Eighth round 1 |
 | 40 | Does the production wft position carry it? | M3 residual cell maps vs raw bias map, 8 bench runs | K = −0.77 ± 0.13; leave-one-out correction lowers the det2/det3 residual-map χ²; resolution unchanged after re-alignment | ✓ carried; `wft.xasym` (nTof_x17) corrects det2/det3 | Eighth round 2, 3, 6 |
 
@@ -164,7 +164,7 @@ Numbers from `asym_more.py` → `asym_more.json`, `beam/beam_drift.py` → `beam
 1. **Parity split.** X/Y matched by (file index, eventId); (p_x + p_y) % 2 = pad type under the charge; the Y-pad class is
    the one with the smaller Y ±1 share and A_x/A_y. Copy (X-pad / Y-pad): det3 June-15 0.020 / **0.221**; det4 0.000 /
    **0.078**; det7 0.018 / **0.078**; det6 −0.004 / 0.017; det3 May, det1, det2 ≈ 0 / ≈ 0. Same phenomenon on all three.
-   Flat mod 3/4/6/12 (pillars 4.68 mm = 6 pads excluded), no 40-ch period (stripe beat excluded), X channel parity alone flat.
+   Flat mod 3/4/6/12 (pillars 4.68 mm = 6 pads excluded), no 40-ch period (strip beat excluded), X channel parity alone flat.
    For Y-pad events it is a redistribution between the two X neighbours (α+1 ≈ 0.43, α−1 ≈ 0.18 of the central).
 2. **One curve.** For Y-pad events, excess on n+1 / Y signal vs the Y ±1 share falls on one curve for all sessions and
    drift voltages (0.32 at Ysh 0.47 → 0.12 at 0.9). Date + drift-field dependence = cluster width (gas of the night via
@@ -178,20 +178,20 @@ Numbers from `asym_more.py` → `asym_more.json`, `beam/beam_drift.py` → `beam
 5. **Beam drift scans** (condor 4502894, runs 58/61/64 90/10 etc., raw_asym.py --cm): det6 ≈ 0 at all fields; det7
    unmeasurable (noisy X FEU, Y fails); det2 0.03–0.12 (≈ 0 on bench: beam angle); det3 0.05–0.14 flat in 90/10.
    No bench drift scan of any board but det3.
-6. **Simulations.** `bus_wpot.py` (now with parity fold, --eps-gap/--eps-kap), `bus_float.py` (stripes as floating
+6. **Simulations.** `bus_wpot.py` (now with parity fold, --eps-gap/--eps-kap), `bus_float.py` (strips as floating
    conductors), `fwd_parity.py` (uniform clouds, data's estimator). Copper at any bus depth, wet gaps, kapton ε, a 60 µm
    displacement over Y pads: |a| < 0.02 in both classes. The old 0.010 was a kernel asymmetry that peak selection absorbs.
-   Floating stripes offset ±200 µm: ±0.06–0.15 but equal in both classes and growing with σ: wrong fingerprint.
+   Floating strips offset ±200 µm: ±0.06–0.15 but equal in both classes and growing with σ: wrong fingerprint.
 7. Electronics/cable excluded: they cannot know the pad type under the charge; copy linear.
 Open: what at a Y pad couples ~30 % of its charge signal into the n+1 X line on Stephan's June bulks.
 
-## Third round (2026-10-20): stripes, a selection caveat, and the bus side (deck slides "Stripes" .. "Inside", "Bus traces")
+## Third round (2026-10-20): strips, a selection caveat, and the bus side (deck slides "Strips" .. "Inside", "Bus traces")
 Scripts and JSON in `scratchpad/2026-10-20/`; event cache `~/x17/nb_asym_raw/esl_cache.npz` (desktop, derived; `esl_cache.py`).
-1. **Resistive stripes: no mark.** With TRUE pad columns (col = 64·(ch//64) + 63 − ch%64; the old mod-40 check used DAQ
+1. **Resistive strips: no mark.** With TRUE pad columns (col = 64·(ch//64) + 63 − ch%64; the old mod-40 check used DAQ
    channels, which mixes phases between connectors), Y-pad copy vs column mod 40: sine amp 0.007 ± 0.004 on 0.221; X-pad
-   0.006 ± 0.009; Y share 0.007 ± 0.005; det3 May / det2 flat too. A floating-stripe coupling (fwd_out/f_off±200) would
-   swing ±0.10 over the beat. So no mechanism tied to how the stripes sit over the pads/bus gap.
-   Per-event "landed on stripe vs kapton gap" has no handle with cosmics: cloud σ ≈ 450 µm (fwd model matches Ysh 0.65)
+   0.006 ± 0.009; Y share 0.007 ± 0.005; det3 May / det2 flat too. A floating-strip coupling (fwd_out/f_off±200) would
+   swing ±0.10 over the beat. So no mechanism tied to how the strips sit over the pads/bus gap.
+   Per-event "landed on strip vs kapton gap" has no handle with cosmics: cloud σ ≈ 450 µm (fwd model matches Ysh 0.65)
    and the peak pad fixes x only to ±390 µm ≈ one 800 µm period → harmonic attenuated to ~0.002. Needs a point source.
 2. **Caveat on the parity split** (`inject_parity.py`): injecting a plain channel copy x(n+1) += a·x(n) into copy-free
    boards and running the same analysis gives det2 + 0.3 → Y-pad 0.20 / X-pad 0.05 (det1 0.18/0.10, det3 May 0.16/0.09).
@@ -249,7 +249,7 @@ bulks; the date/field dependence is the cluster width acting on a fixed one-side
    by Stephan June 15", mx17_B = det2 "Bulked by Arnaud June 12. Giant pillars on parts of the detector", mx17_C = det6
    (Stephan June 24, board D), mx17_D = det7 (Stephan June 22 batch, board B); det4 = June 22 batch, board C. Stephan
    (via Dylan, 10-20): nothing different about the June bulks.
-3. **Stripe direction from data** (`stripe_orient.py`, ±2 late content): Y > X on every board except det1 (Jan build,
+3. **Strip direction from data** (`strip_orient.py`, ±2 late content): Y > X on every board except det1 (Jan build,
    reversed); June boards' Y ±2 peaks 240–420 ns late. det3 June-15 looks like det2/det6/det7: orientation does not
    single it out.
 4. **PCB fingerprint** (`pcb_fingerprint.py`): det3 June-15 Y row 23 dead on both FEU 4 and FEU 8 (follows the board);
@@ -261,7 +261,7 @@ bulks; the date/field dependence is the cluster width acting on a fixed one-side
    (`run_xoff_job.sh`, decoded ROOT to EOS `response_sim/stageB_w2/xoff/`, npz to AFS `simxoff_npz/`); evaluate with
    `sim_xoff_eval.py` against 6-27/28 1000 V (the v5a target) and all det3 June-15.
 
-## Fourth round (2026-10-20, dylan-Yoga): X-offset full sim read out; stripe direction on every pre-June board
+## Fourth round (2026-10-20, dylan-Yoga): X-offset full sim read out; strip direction on every pre-June board
 1. **X-offset full sim (condor 4505159, 96/96 done)**, `sim_xoff_eval.py` (now skips the empty steep-angle arms,
    env `XOFF_ARMS`, `XOFF_COPIES`, `XOFF_SESSIONS`, `XOFF_OUT`) + `sim_xoff_rescore.py` (adds the Y-pad fraction fY per
    Y-share bin to the χ²; the eval's χ² drops bins where the sim has no events of a class, so arms with no narrow X-pad
@@ -284,8 +284,8 @@ bulks; the date/field dependence is the cluster width acting on a fixed one-side
      looks like a shift when the cloud sits on one Y pad (n+1 can overtake n, so the peak migrates) and like a copy
      for wide clouds. Next model: add that cross-kernel to the digitizer (X(n+1) += w × induced signal of bus-side Y
      pads), not a rigid offset.
-2. **Stripe direction, every board** (`stripe_orient2.py` → `stripe_orient2.{txt,json}`). Charge spreads along the
-   stripes, so the slow view shows the direction. Metric: ±2 late content (600–960 ns after the central peak),
+2. **Strip direction, every board** (`strip_orient2.py` → `strip_orient2.{txt,json}`). Charge spreads along the
+   strips, so the slow view shows the direction. Metric: ±2 late content (600–960 ns after the central peak),
    bootstrap errors. New extractions on yoga `/media/dylan/data/claude_tmp/tmp/nb/raw/orient/`:
    - det0 4-1 He/ethane, 505/520 V.
    - det4 May build ("Bulked 5-6-26", 5-7 Ar/CF4).
@@ -302,7 +302,7 @@ bulks; the date/field dependence is the cluster width acting on a fixed one-side
    | det4 May (5-6 bulk) | 23069/23059 | 0.8 / 31.9 | Y (+183 σ) |
    | det2, det3 June-15, det4, det6, det7 | | | Y (+9 … +130 σ) |
 
-   - "Vertical" (det3 May) = Y-slow. det0 (April 1) and det1 (January) are X-slow: their stripes run the other way.
+   - "Vertical" (det3 May) = Y-slow. det0 (April 1) and det1 (January) are X-slow: their strips run the other way.
      Both sit under EOS `det_0_old`, so they are probably one PCB (not proven). Every May and June build runs the same way, so none of det2/3/4/6/7 is reversed.
    - The April-24 re-bulk shows no slow spreading in either view, which fits its "resist strips broken" note. Its
      cosmics are faint at 550 V (most below 200 ADC; σ_noise ≈ 10 ADC). It also has a fixed pulsing spot at X 487–494 /
@@ -310,7 +310,7 @@ bulks; the date/field dependence is the cluster width acting on a fixed one-side
    - None of this touches the det3 X asymmetry: det1 (reversed) has copy ≈ 0, and det3 June-15's direction is the
      common one.
 
-## Fifth round (2026-10-20 day, dylan-Yoga): bookkeeping, stripe pitch, timing, mixed responses
+## Fifth round (2026-10-20 day, dylan-Yoga): bookkeeping, strip pitch, timing, mixed responses
 Scripts in `scratchpad/2026-10-20/r5/` (`r5lib.py` = matched X/Y events per build from the raw survey).
 1. **Charge bookkeeping** (`probe_charge.py`, `probe_charge_bins.py`, `charge_sessions.py`). Integrals of positive
    samples, per Y-share bin, Y-pad events, relative to ΣY:
@@ -323,13 +323,13 @@ Scripts in `scratchpad/2026-10-20/r5/` (`r5lib.py` = matched X/Y events per buil
      transfer: bus pickup, a floating or cracked-via Y pad, and Y-line crosstalk.
    - Caveat: the gas changes the X-vs-Y width relation between sessions (Xc at fixed Y share 0.38 → 0.50), so matched
      Y share is not a perfect control.
-2. **Stripe pitch from the data** (`periodogram.py`, `beat_sig.py`, `beat_col.py`). Per-event statistics overstate the
+2. **Strip pitch from the data** (`periodogram.py`, `beat_sig.py`, `beat_col.py`). Per-event statistics overstate the
    significance. Because of per-channel gain and sharing offsets the noise unit is the column, so the test uses
    per-column means, detrended at σ = 30 columns, against a column-permutation null.
-   - **No board shows a stripe beat in X** at 1/40 or anywhere in 0.015–0.04 (det3 June-15: s1 p = 0.12, d1 p = 0.86).
+   - **No board shows a strip beat in X** at 1/40 or anywhere in 0.015–0.04 (det3 June-15: s1 p = 0.12, d1 p = 0.86).
      Y-view controls look the same.
-   - The asymmetry has a 5-column (and 2.5) line on several boards (det2 too): common to the readout, not the stripes.
-   - So the stripes leave no measurable imprint at pad scale. A stripe mechanism strong enough to make 0.2 on det3
+   - The asymmetry has a 5-column (and 2.5) line on several boards (det2 too): common to the readout, not the strips.
+   - So the strips leave no measurable imprint at pad scale. A strip mechanism strong enough to make 0.2 on det3
      would make a large beat on every 800 µm board, unless the det3 June-15 print alone had a pitch locked to 780 µm.
 3. **Timing of the excess** (`timing.py`, `run_timing.py`). Y-pad events, aligned on the Y central:
 
@@ -409,37 +409,37 @@ Scripts in `scratchpad/2026-10-20/r5/` (`r5lib.py` = matched X/Y events per buil
     - **The det3 mechanism is generic; det3 June-15 is a board where its sign is positive over most of the area.**
 11. **Pitch-locked.** Inside det2's positive band, a1 is positive in every 8-column block across all 512 columns,
     with no 1/40 harmonic (p = 0.57).
-    - An 800 µm stripe pattern would flip it every 40 columns (31.2 mm), and det2's band means would average to
+    - An 800 µm strip pattern would flip it every 40 columns (31.2 mm), and det2's band means would average to
       zero. So the structure repeats at the pad pitch (780 µm) to ≲ 0.1 %.
     - No board shows the beat the sim predicts (sim s1 0.12, d1 0.07 at 1/40; data ≤ 0.03 / ≤ 0.011,
       `beat_col.py`, `beat_sim.py`).
-12. **Working hypothesis: resistive stripes printed at the pad pitch, with per-board registration.**
-    - Charge evens out across a stripe's width (fast), which pulls narrow clouds toward the stripe centre. If the
+12. **Working hypothesis: resistive strips printed at the pad pitch, with per-board registration.**
+    - Charge evens out across a strip's width (fast), which pulls narrow clouds toward the strip centre. If the
       centres sit at an offset δ(x, y) from the pad columns, the X view sees n+1 ≠ n−1 ∝ sin(2πδ/P).
     - It explains: X only; charge moved, not added; prompt; larger for narrow clouds (gas, drift field); a smooth
       two-signed field from the print's scale and rotation errors (det3 ~0.07 % scale + ~0.25 mrad; det2 ~2 mrad
       rotation); and the absence of the 31.2 mm beat on every board.
     - Against it so far:
-      - The stripe pitch was given as 800 µm (memory, 2026-08-06, "borrowed from another detector").
-      - The sim's stripe pull at its strongest phase is ±0.065 vs data ±0.17–0.2.
+      - The strip pitch was given as 800 µm (memory, 2026-08-06, "borrowed from another detector").
+      - The sim's strip pull at its strongest phase is ±0.065 vs data ±0.17–0.2.
       - The predicted X-sharing modulation (∝ cos φ) isn't detected (`quad_test.py`: det3 −0.007 ± 0.009); only
         an in-phase anti-correlation (−0.031 ± 0.005).
-    - Pending: the sim's fingerprint per stripe phase (condor 4507242, 60 jobs).
+    - Pending: the sim's fingerprint per strip phase (condor 4507242, 60 jobs).
 13. **Same bands in both det2 runs** (6-17 FEU 3, 6-22 FEU 6), by 64-row band:
     - 6-17: −0.29 / +0.02 / +0.18 / +0.15 / +0.03 / −0.01 / −0.05 / −0.13
     - 6-22: −0.07 / +0.02 / +0.07 / +0.09 / +0.03 / −0.01 / −0.02 / −0.08
     - The geometry is fixed. The amplitude is ~2.5× larger in the run with narrower clouds (median Y share 0.35 vs
       1.07). det3's session-to-session swings fit the same picture: fixed geometry, width-set amplitude.
-14. **Sim, phase-resolved (condor 4507242, 60 jobs, `sim_phase_fp.py`): the stripe hypothesis is NOT reproduced by
-    the sim's stripe physics.**
+14. **Sim, phase-resolved (condor 4507242, 60 jobs, `sim_phase_fp.py`): the strip hypothesis is NOT reproduced by
+    the sim's strip physics.**
     - Ranking phases on seeds 5–10 and measuring on held-out seeds 11–16, the "most positive" phases give
-      a1 +0.016 (ranked +0.11…+0.17: mostly noise); the negative set −0.057. So the sim's stripe pull is ≲ 0.03–0.05,
+      a1 +0.016 (ranked +0.11…+0.17: mostly noise); the negative set −0.057. So the sim's strip pull is ≲ 0.03–0.05,
       against ±0.2 in data, and its class pattern isn't det3's.
     - The sim never fills phases 12–19 (the gun covers ~50 columns).
-    - Either the real stripes act more strongly or differently than the S1 kernels (transverse equalisation, charge
+    - Either the real strips act more strongly or differently than the S1 kernels (transverse equalisation, charge
       on the kapton gaps, a different print), or the cause is another pad-pitch structure running along y.
 15. Pure large offsets (condor 4507004, −450/−600/−780 µm) swap the pad-class labels (−450, −600) or look like no
-    offset (−780). They add nothing on their own; the decoded-level mixtures were not built, since the stripe
+    offset (−780). They add nothing on their own; the decoded-level mixtures were not built, since the strip
     picture replaced them.
 
 **State at the end of 2026-10-20 (dylan-Yoga):**
@@ -449,16 +449,16 @@ Scripts in `scratchpad/2026-10-20/r5/` (`r5lib.py` = matched X/Y events per buil
   - Its geometry is fixed per board, its amplitude is set by the cloud width (gas, drift field), it repeats at the
     pad pitch along x, it is charge moved within X, and it is prompt.
   - Excluded: copper, bus and vias, readout/connectors, Y→X transfer, track angle, and an 800 µm beat.
-- Working hypothesis: the resistive-stripe print, at the pad pitch, registered differently on each board.
-- Not yet shown: a model that produces ±0.2 (the sim's stripes give ≲ 0.05).
-- Question for Dylan/Stephan: the stripe screen's actual pitch, and how it's aligned to the board.
+- Working hypothesis: the resistive-strip print, at the pad pitch, registered differently on each board.
+- Not yet shown: a model that produces ±0.2 (the sim's strips give ≲ 0.05).
+- Question for Dylan/Stephan: the strip screen's actual pitch, and how it's aligned to the board.
 - Figure: `design/figures/asym_maps_2026-10-20.png` (`r5/fig_maps.py`).
 
-## Sixth round (2026-10-20 evening, dylan-Yoga): can stripe registration make it; the reversed-stripe boards
+## Sixth round (2026-10-20 evening, dylan-Yoga): can strip registration make it; the reversed-strip boards
 Scripts in `scratchpad/2026-10-20/r5/`.
-1. **Sim asymmetry vs the true stripe offset** (`sim_delta.py`, `sim_delta_fp.py`; 36k X-only and 3.7k matched events,
+1. **Sim asymmetry vs the true strip offset** (`sim_delta.py`, `sim_delta_fp.py`; 36k X-only and 3.7k matched events,
    xo0 th00 + thy*, seeds 5–16). δ is the distance from the peak column's centre (PAD_ORIGIN + c·780) to the nearest
-   stripe centre (stripes at k·800, `solver/kernels.py`). It changes 20 µm per column, so locally it acts as a
+   strip centre (strips at k·800, `solver/kernels.py`). It changes 20 µm per column, so locally it acts as a
    pitch-locked offset.
    - a1(δ) is odd and monotonic: −0.16 (−325 µm, next to a gap) … −0.05 (−225) … 0 … +0.04 (+75) … +0.085 (+225).
      The narrow-cloud half is ~2× larger (±0.10, −0.24 at −325). X sharing is lowest at δ ≈ 0 (0.63) and highest
@@ -467,17 +467,17 @@ Scripts in `scratchpad/2026-10-20/r5/`.
      - narrow → wide A_X: −0.19 → +0.12/+0.13 (det3 −0.12 → +0.20);
      - n−1 below n+1 for narrow Y-pad events;
      - δ = −350…−150 gives the mirror (A_X +0.40 → −0.17, like det2's negative bands).
-   - **Stripe registration does generate this asymmetry, with the right sign structure and width dependence, at
+   - **Strip registration does generate this asymmetry, with the right sign structure and width dependence, at
      ~1/3 of the strength:** A_Y +0.02–0.07 vs det3 +0.25; matched a1 ±0.035 vs ±0.14.
    - The earlier held-out phase test (`sim_phase_fp.py`) failed because ranking noisy phase means on a few seeds
      selects noise.
    - A rotation alone can't make it (a 2 mrad tilt moves charge sideways by µm). As registration, a rotation of a
-     780 µm print gives moiré bands ~P/θ ≈ 390 mm apart, running nearly perpendicular to the stripes, i.e. along x:
+     780 µm print gives moiré bands ~P/θ ≈ 390 mm apart, running nearly perpendicular to the strips, i.e. along x:
      det2's horizontal bands. With an 800 µm pitch a rotation only shortens the 31 mm moiré.
-2. **Reversed-stripe boards** (`orient_maps.py`; det0 4-1 He all 17 sub-runs, det0 4-7 Ar/iso via `--array` on lxplus
+2. **Reversed-strip boards** (`orient_maps.py`; det0 4-1 He all 17 sub-runs, det0 4-7 Ar/iso via `--array` on lxplus
    (9 sub-runs), det1 Jan all 5 files, det4 May build). Field strength = noise-subtracted cell rms:
 
-   | board | stripes | across-stripe view field | X χ²/ndf (8×8) | Y χ²/ndf (8×8) |
+   | board | strips | across-strip view field | X χ²/ndf (8×8) | Y χ²/ndf (8×8) |
    |---|---|---|---|---|
    | det0 He (10.8k) | along x | Y 0.004 | 50/61 | 49/61 |
    | det0 Ar/iso (9.4k) | along x | Y ~0.016 | 80/61 | 72/61 |
@@ -486,37 +486,37 @@ Scripts in `scratchpad/2026-10-20/r5/`.
    | det3 May (4.6k) | along y | X 0.020 | 78/56 | 76/56 |
    | June boards | along y | X 0.05–0.15 | | flat |
 
-   - **These boards can't pin the field to the stripes.** The reversed boards show at most a weak, fine-grained Y
+   - **These boards can't pin the field to the strips.** The reversed boards show at most a weak, fine-grained Y
      structure (det1), but the May boards with normal orientation show no X field either. The field belongs to the
      June builds.
    - 1D profiles along each view's own coordinate are dominated by single-block channel defects, so they are not
      usable for this.
-3. **What distinguishes the June builds** (stripe_orient metric, late ±2 content ×10⁻³):
+3. **What distinguishes the June builds** (strip_orient metric, late ±2 content ×10⁻³):
 
-   | | along the stripes (Y) | across the stripes (X) |
+   | | along the strips (Y) | across the strips (X) |
    |---|---|---|
    | June builds | 63–80 | 12–31 |
    | May / earlier | 24–37 | 1–9 |
-   | sim (v5a) | 64 (+360 ns), June-like | −2: no cross-stripe leak at all |
+   | sim (v5a) | 64 (+360 ns), June-like | −2: no cross-strip leak at all |
 
-   - The sim's stripes are June-like along the stripes, so stripe conductivity is not why its pull is 1/3.
-   - The June boards also leak charge late ACROSS the kapton gaps between stripes, which the sim lacks. That's a
+   - The sim's strips are June-like along the strips, so strip conductivity is not why its pull is 1/3.
+   - The June boards also leak charge late ACROSS the kapton gaps between strips, which the sim lacks. That's a
      concrete candidate for the missing physics (gap surface conduction, plausibly humidity-dependent with ~1 % H2O
      in the gas). It isn't yet shown to produce asymmetry.
 4. Next:
-   - A digitizer/kernel variant with a cross-gap leak (and/or electrons funnelled from gaps onto stripes), checked on
+   - A digitizer/kernel variant with a cross-gap leak (and/or electrons funnelled from gaps onto strips), checked on
      the sim's a1(δ) amplitude.
    - A per-board a1(x, y) calibration map for analysis.
-   - The stripe mask from Dylan (pitch, alignment).
+   - The strip mask from Dylan (pitch, alignment).
 
 ## Seventh round (2026-10-20 afternoon, dylan-Yoga): cross-gap leak and funnelling, in the solver itself
 Scripts in `scratchpad/2026-10-20/r5/` (`esl_fast.py`, `kernel_delta.py`, `delta_timing.py`), condor files in
 `scratchpad/2026-10-21/`.
 1. **Static fast model** (`esl_fast.py`, deterministic clouds on the prompt X-line field at the ESL plane): moving strip
-   charge across or along its stripe, funnelling gap charge, or leaking 10–30 % to neighbour stripes all give
-   |a1| ≤ 0.02 at every offset. The one large case is all charge on stripes and spread ~1.5 mm along them (±0.10), but
+   charge across or along its strip, funnelling gap charge, or leaking 10–30 % to neighbour strips all give
+   |a1| ≤ 0.02 at every offset. The one large case is all charge on strips and spread ~1.5 mm along them (±0.10), but
    the same model gives 0 for the sim's own case (insulating gaps), where the full sim gives ±0.05. So a static
-   picture can't stand in for the kernel; it only says that charge locked to the stripes carries the registration and
+   picture can't stand in for the kernel; it only says that charge locked to the strips carries the registration and
    charge sitting in the gaps dilutes it.
 2. **The production kernel itself** (`kernel_delta.py` on a 9-time slice of G_X from
    `greens_comb_w2_rho5M_dk50um_g19um.npz`, sliced on lxplus; slice in `/eos/user/d/dneff/tmp/gx/`): with y-resolved
@@ -539,21 +539,21 @@ Scripts in `scratchpad/2026-10-20/r5/` (`esl_fast.py`, `kernel_delta.py`, `delta
    Production is bit-identical at the defaults. A local mini pipeline at nx = 390 (80 µm; the pad edges fall off-grid,
    so per-δ values carry ±0.03 lattice artefacts, but f = 0 and f > 0 share them):
 
-   | 5 MΩ/sq, σ 250 µm | odd a1 at 300 ns | at 1 µs | late ±2 across stripes (×10⁻³, 1 µs) |
+   | 5 MΩ/sq, σ 250 µm | odd a1 at 300 ns | at 1 µs | late ±2 across strips (×10⁻³, 1 µs) |
    |---|---|---|---|
    | f = 0 | −0.029 | −0.033 | 1.0 |
    | f = 0.03 | −0.029 | −0.043 | 9.8 (σ 450: 13 → 34) |
    | f = 0.03 at 0.5 MΩ/sq | −0.047 | −0.021 | 252 |
 
-   A leaky gap reproduces the June boards' late across-stripe content. It does not make the prompt asymmetry 3×
+   A leaky gap reproduces the June boards' late across-strip content. It does not make the prompt asymmetry 3×
    stronger: what it adds comes late, which is the wrong timing for the data.
    Running: condor 4520685, nx = 1560 (20 µm, exact pad edges), f = 0, 0.01, 0.03, 0.1, 0.3, one job per f (both
    X families + combine-x); products → `/eos/user/d/dneff/tmp/gx/gap<f>_nx1560/gx_w2_rho*M_*.npz`. Score with
    `python3 r5/kernel_delta.py <npz>…`.
-5. Reading: the candidate for the missing strength has to be prompt and stripe-locked. Prompt electron funnelling onto
-   the stripes (the gaps' kapton surface charged up, so arriving electrons are steered onto the stripes) fits that
-   better than a slow leak. The static model says funnelling only pays once the charge also spreads along the stripe.
-   That is the next thing to put in the digitizer: move each avalanche that lands in a gap onto the nearer stripe
+5. Reading: the candidate for the missing strength has to be prompt and strip-locked. Prompt electron funnelling onto
+   the strips (the gaps' kapton surface charged up, so arriving electrons are steered onto the strips) fits that
+   better than a slow leak. The static model says funnelling only pays once the charge also spreads along the strip.
+   That is the next thing to put in the digitizer: move each avalanche that lands in a gap onto the nearer strip
    edge before the kernel lookup (the existing kernel, no re-solve).
 6. **Analysis correction: X-centroid bias maps** (`r5/corr_maps.py` → `r5/corr_maps.json`; next step 2). The 3-strip X
    centroid is pulled by dx = −(α₊₁ − α₋₁)/(1 + α₊₁ + α₋₁)·P along the true column axis. Per 8×8 cell (64 columns ×
@@ -614,7 +614,7 @@ Scripts in `scratchpad/2026-10-20/r5/` (`esl_fast.py`, `kernel_delta.py`, `delta
     Full-sim test running: condor 4520810 (144 jobs). Hybrid kernels (`2026-10-21/build_hybrid.py`: production Y
     kernels + the nx = 1560 X kernels upsampled to 10 µm) for f = 0 (grid control), 0.03, 0.1, and 0.1 + `--gap-funnel
     1`, all at 5 MΩ, th00 + thy*, seeds 7–12, npz → `simgapleak_npz`. Score: `paired_odd.py glg0 … glg0.03 … glg0.1 …
-    glg0.1f1 …` and `delta_timing.py glg0.1 …`; also the late ±2 across-stripe content with `stripe_orient` metric
+    glg0.1f1 …` and `delta_timing.py glg0.1 …`; also the late ±2 across-strip content with `strip_orient` metric
     against data (June 12–31, May 1–9). The Y view keeps insulating-gap kernels, so this tests X only.
 11. **Strip width** (condor 4520736, insulating gaps, products `/eos/user/d/dneff/tmp/gx/gap0_w<w>_nx1560/`,
     `r5/kd_width.log`, `r5/kernel_delta_width.json`). Odd amplitude, σ = 250 µm, 5 MΩ/sq:
@@ -625,10 +625,10 @@ Scripts in `scratchpad/2026-10-20/r5/` (`esl_fast.py`, `kernel_delta.py`, `delta
     | 540 µm (260), production | −0.024 | −0.024 | 10.3 |
     | 700 µm (100) | −0.037 | −0.056 | 25.7 |
 
-    Wider stripes (narrower gaps) raise the registration asymmetry strongly, and the late ±2 grows with them. That is
+    Wider strips (narrower gaps) raise the registration asymmetry strongly, and the late ±2 grows with them. That is
     the opposite of "more gap charge, more asymmetry". It's the registered (strip) charge that carries it, so a fuller
-    print registers more of the cloud. If the June print's stripes are wider than 550 µm, that alone gives up to
-    ~2.4× at 5 MΩ. **For the mask:** read the stripe width as well as the pitch and alignment. A June-vs-May
+    print registers more of the cloud. If the June print's strips are wider than 550 µm, that alone gives up to
+    ~2.4× at 5 MΩ. **For the mask:** read the strip width as well as the pitch and alignment. A June-vs-May
     difference in width or fill is the cleanest candidate yet for "why only the June builds".
 12. **Full sim with leaky gaps** (condor 4520810: hybrid kernels, production Y + nx = 1560 X upsampled; npz in yoga
     `~/x17/nb_asym_raw/simgapleak/`, decoded ROOT on EOS `response_sim/stageB_w2/gapleak/`). Paired on the same 36
@@ -642,8 +642,8 @@ Scripts in `scratchpad/2026-10-20/r5/` (`esl_fast.py`, `kernel_delta.py`, `delta
     | glg0.1f1 (+ funnel 1) | ×1.29 | ×1.49 | 0.844 | +27.9 |
     | data: June builds / May and earlier | | | | 12–31 / 1–9 |
 
-    - A gap conductance of 5–10 % of the stripes' reproduces the June boards' late across-stripe content with the
-      data's own metric. That closes the "June boards leak across the stripes, the sim doesn't" item (#29).
+    - A gap conductance of 5–10 % of the strips' reproduces the June boards' late across-strip content with the
+      data's own metric. That closes the "June boards leak across the strips, the sim doesn't" item (#29).
     - In the full sim it adds nothing to the asymmetry. The kernel's ×1.9 is late, and the in-phase peak estimator
       doesn't see it; the extra sharing it brings dilutes a1 instead.
     - With leak plus funnel, the funnel's ×1.3–1.5 is all there is.
@@ -657,9 +657,9 @@ Scripts in `scratchpad/2026-10-20/r5/` (`esl_fast.py`, `kernel_delta.py`, `delta
 
     | arm | O all | O narrow | X sharing | X late ±2 (×10⁻³) | excess peak / t50 vs central (ns) |
     |---|---|---|---|---|---|
-    | 420 µm stripes | ×0.77 (−0.012 ± 0.003) | ×0.69 | 0.738 | −2.8 | |
+    | 420 µm strips | ×0.77 (−0.012 ± 0.003) | ×0.69 | 0.738 | −2.8 | |
     | 540 µm (glg0) | +0.053 | +0.068 | 0.760 | −2.3 | −71 / −90 (xo0) |
-    | 700 µm stripes | ×1.45 (+0.024 ± 0.003) | ×1.54 | 0.808 | +0.2 | −82 / −129 |
+    | 700 µm strips | ×1.45 (+0.024 ± 0.003) | ×1.54 | 0.808 | +0.2 | −82 / −129 |
 
     Width is a real size lever and it survives the full sim, which the leak did not. It is independent of the late ±2
     content, so width and gap conduction are separate observables on the boards.
@@ -671,7 +671,7 @@ Scripts in `scratchpad/2026-10-20/r5/` (`esl_fast.py`, `kernel_delta.py`, `delta
 1. (done: w690 + funnel ×1.58, narrow ×1.78)
 2. The timing mismatch: hybrid kernels at 0.5 MΩ/sq (the production 0.5 MΩ product and the nx = 1560 X kernels at
    0.5 MΩ both exist). Does a lower ρ_s make the sim excess prompt (−10 ns) while keeping its size?
-3. The mask: stripe pitch, width and alignment for the June print vs May. Then predict δ(x, y) and the size from
+3. The mask: strip pitch, width and alignment for the June print vs May. Then predict δ(x, y) and the size from
    items 11/13.
 4. Analysis correction: `r5/corr_maps.json` per-board dx maps × per-run scale, into the reconstruction (nTof_x17).
 5. Deck slides for rounds 4–7.
@@ -730,22 +730,22 @@ Scripts in `scratchpad/2026-10-20/r5/` (`esl_fast.py`, `kernel_delta.py`, `delta
    - **The Y view excludes it.** The extractor keeps an event when ≤ 12 channels are over 5σ, all within ±3 of the peak.
      Y/X kept ratio for vertical tracks (th00): data ≈ 0.9 (det3 June-15 11.2k/12.2k, det2 0.89, det3 May 0.87);
      5 MΩ sim 0.92; 0.5 MΩ sim 0.001.
-   - At 0.5 MΩ the charge runs along the stripes over many Y rows within the frame, which the June boards don't show.
+   - At 0.5 MΩ the charge runs along the strips over many Y rows within the frame, which the June boards don't show.
    - So the size and timing gains at 0.5 MΩ are not available as they stand. A faster sheet does move both the right
-     way, which points to the within-stripe (across-width) spreading being faster than the along-stripe spreading
+     way, which points to the within-strip (across-width) spreading being faster than the along-strip spreading
      allows at one ρ_s.
    - Running: condor 4520945, the same three arms at 2 MΩ/sq (`glr2*`): is there a ρ_s that keeps Y and gains some
      timing and size?
 5. **2 MΩ/sq arms** (condor 4520945, `glr2*`; `paired_odd_r2*.json`, `paired_odd_r05f1_vs_g0.json`):
-   - Size: 700 µm stripes ×1.56 (narrow ×1.96) vs glr2g0; + funnel ×1.77 / ×2.10; against the 5 MΩ grid control glg0,
+   - Size: 700 µm strips ×1.56 (narrow ×1.96) vs glr2g0; + funnel ×1.77 / ×2.10; against the 5 MΩ grid control glg0,
      ×2.26 / ×2.20 (0.5 MΩ: ×2.38 / ×2.11).
-   - Timing: glr2g0 +17 → −25…−37 ns; the wide-stripe arms are early (−40…−70 ns).
+   - Timing: glr2g0 +17 → −25…−37 ns; the wide-strip arms are early (−40…−70 ns).
    - Y/X kept for vertical tracks: 0.12. Excluded by the Y view like 0.5 MΩ.
    - **The ρ_s lever is closed: only ≥ 5 MΩ/sq keeps the Y view as the data have it.** The best Y-compatible sim is
-     700 µm stripes + funnel at 5 MΩ: ×1.58 (narrow ×1.78).
-   - The pattern says the data want charge to spread fast ACROSS a stripe (prompt registration, size) but slowly ALONG
+     700 µm strips + funnel at 5 MΩ: ×1.58 (narrow ×1.78).
+   - The pattern says the data want charge to spread fast ACROSS a strip (prompt registration, size) but slowly ALONG
      it (Y). That can't happen at one isotropic ρ_s. Candidates: an anisotropic or structured print (e.g. a
-     low-resistance edge or under-layer on each stripe), or a geometry that registers without transport.
+     low-resistance edge or under-layer on each strip), or a geometry that registers without transport.
    - Deck: levers slide rows "… at 2 / 0.5 MΩ/sq (Y fails)", republished.
 6. **wft.xasym after a full re-alignment** (`2026-10-21/realign_xasym.sh`: production `mx_june_wft/01_alignment.py` on
    the production table and on a corrected copy, both into scratch; production outputs untouched). X / Y resolution
@@ -763,7 +763,7 @@ Scripts in `scratchpad/2026-10-20/r5/` (`esl_fast.py`, `kernel_delta.py`, `delta
    What the correction removes is a position-dependent systematic offset (up to ±70 µm on det2, a tilt on det3). That
    matters for anything that compares positions across the board or across chambers (vertexing, alignment between
    detectors), not for the resolution. Using it in production remains a choice.
-7. **Anisotropic stripes: fast across, nominal along** (`--aniso-x A`: σ_xx = A·σ_yy inside the stripes, σ_yy = 5 MΩ/sq;
+7. **Anisotropic strips: fast across, nominal along** (`--aniso-x A`: σ_xx = A·σ_yy inside the strips, σ_yy = 5 MΩ/sq;
    X kernels condor 4520948, hybrid arms 4520959 `glax*`, paired with glg0; `paired_odd_aniso.json`,
    `timing_width_glax10_glax10w690f1.json`, `kd_aniso.log`):
 
@@ -771,19 +771,19 @@ Scripts in `scratchpad/2026-10-20/r5/` (`esl_fast.py`, `kernel_delta.py`, `delta
    |---|---|---|---|
    | glax3 (A = 3) | ×1.07 / ×1.04 | 0.92 | |
    | glax10 (A = 10) | ×1.06 / ×1.01 | 0.92 | **+74, −74, −59, −47 ns** |
-   | glax10w690 (+ 700 µm stripes) | ×1.58 / ×1.98 | 0.84 | |
+   | glax10w690 (+ 700 µm strips) | ×1.58 / ×1.98 | 0.84 | |
    | glax10w690f1 (+ funnel) | **×1.79 / ×2.22** | 0.84 | +64, −24, −83, −86 ns |
    | isotropic glw690f1, for comparison | ×1.58 / ×1.78 | 0.92 | −39 … −70 ns |
    | data, det3 June-15 | (needs ×2.5–5) | ≈ 0.9 | +52, −4, −52, −54 ns |
 
    - Kernel: anisotropy builds the registration term faster (−0.022 by 92 ns vs −0.014; peak −0.027 vs −0.024 at
-     200 ns), much as 0.5 MΩ/sq did, but leaves the along-stripe term as it is.
+     200 ns), much as 0.5 MΩ/sq did, but leaves the along-strip term as it is.
    - **This is the first Y-compatible model with the data's timing pattern, about the right swing included:** late
-     for near-vertical tracks, early for inclined ones. Together with wide stripes and funnelling it is also the
+     for near-vertical tracks, early for inclined ones. Together with wide strips and funnelling it is also the
      biggest Y-compatible size, ×1.8 (narrow ×2.2), near the lower end of what the data need.
-   - Caveat: the hybrids keep the production (isotropic) Y kernels. The anisotropy acts on across-stripe (x)
+   - Caveat: the hybrids keep the production (isotropic) Y kernels. The anisotropy acts on across-strip (x)
      transport, which moves charge between Y-row pads little, but a Y-box anisotropic solve (64 families, the
      expensive box) would be needed to confirm that the Y view is untouched.
-   - Physically, an effective σ_xx > σ_yy means charge equalises across a stripe faster than it travels along it. A
-     printed stripe with a conductive under-layer or edges, a granular paste with transverse paths, or a thinner
+   - Physically, an effective σ_xx > σ_yy means charge equalises across a strip faster than it travels along it. A
+     printed strip with a conductive under-layer or edges, a granular paste with transverse paths, or a thinner
      central line would all do that.

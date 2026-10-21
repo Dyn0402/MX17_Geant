@@ -1,6 +1,6 @@
-"""Stripe pitch from the data (2026-10-20). Resistive stripes of pitch P over pads of pitch 780 um modulate the X
+"""Strip pitch from the data (2026-10-20). Resistive strips of pitch P over pads of pitch 780 um modulate the X
 response with frequency f = frac(780/P) cycles per pad column (aliased into 0..0.5). The design value P = 800 gives
-f = 0.025 (40 columns); a stripe pitch locked to the pads gives f = 0 (a constant). Per build, X view, every survey
+f = 0.025 (40 columns); a strip pitch locked to the pads gives f = 0 (a constant). Per build, X view, every survey
 sub-run: per-event observables against the TRUE column (col = 64*(p//64) + 63 - p%64):
   s1 = alpha(+1) + alpha(-1) (sharing), d1 = alpha(+1) - alpha(-1) (asymmetry, the copy estimator).
 Amplitude spectrum |sum (o - mean) exp(2 pi i f col)| * 2/N for f = 0.002..0.5 (step 0.0005), and its noise level from

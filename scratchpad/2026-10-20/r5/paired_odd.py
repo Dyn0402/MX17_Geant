@@ -1,4 +1,4 @@
-"""Paired comparison of sim arms on the stripe-registration odd amplitude (2026-10-21).
+"""Paired comparison of sim arms on the strip-registration odd amplitude (2026-10-21).
 For every (angle, seed) present in the baseline arm AND each variant arm: X-only events, delta per peak column as in
 sim_delta.py ('col' orientation), odd amplitude O = <sgn(delta) a1> over |delta| >= 50 um, all events and the narrow
 half (s1 below the baseline's median). Same seeds share clusters, diffusion, gain and noise draws (the funnel has its

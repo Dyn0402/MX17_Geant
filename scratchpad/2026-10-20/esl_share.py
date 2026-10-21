@@ -1,5 +1,5 @@
-"""Do the ESL stripes show up AT ALL? Shares (X +-1, Y +-1, A_x/A_y) vs true column phase mod 40, per build/class.
-If the shares show a 40-column modulation the stripe/gap position is resolved and the copy test has power."""
+"""Do the ESL strips show up AT ALL? Shares (X +-1, Y +-1, A_x/A_y) vs true column phase mod 40, per build/class.
+If the shares show a 40-column modulation the strip/gap position is resolved and the copy test has power."""
 import os, numpy as np
 z = np.load(os.path.expanduser('~/x17/nb_asym_raw/esl_cache.npz'), allow_pickle=True)
 col = lambda ch: 64 * (ch % 512 // 64) + 63 - ch % 64

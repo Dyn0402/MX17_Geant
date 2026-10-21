@@ -1,14 +1,14 @@
-"""Copy vs ESL stripe phase, with TRUE pad columns (each 64-ch connector reversed), 2026-10-20.
-ESL: 550 um stripes, 250 um gaps, 800 um pitch, along y; pads 780 um -> column k sits at stripe phase
+"""Copy vs ESL strip phase, with TRUE pad columns (each 64-ch connector reversed), 2026-10-20.
+ESL: 550 um strips, 250 um gaps, 800 um pitch, along y; pads 780 um -> column k sits at strip phase
 phi_k = (k*780 + x0) mod 800, i.e. 20 um per column backwards; 40 columns = one beat. x0 unknown -> scan.
-Model: copy = a + b * f(phi), f = fraction of a Gaussian cloud (sigma) over the stripe at the Y pad's x."""
+Model: copy = a + b * f(phi), f = fraction of a Gaussian cloud (sigma) over the strip at the Y pad's x."""
 import os, numpy as np
 from scipy.special import erf
 z = np.load(os.path.expanduser('~/x17/nb_asym_raw/esl_cache.npz'), allow_pickle=True)
 col = lambda ch: 64 * (ch % 512 // 64) + 63 - ch % 64
 a1 = z['ax'][:, 5] - z['ax'][:, 3]
 def frac(xc, sig, x0):
-    # fraction of N(xc, sig) on stripes centred at x0 + 800 m (width 550)
+    # fraction of N(xc, sig) on strips centred at x0 + 800 m (width 550)
     t = 0
     for m in range(-3, 4):
         c = x0 + 800 * m; lo, hi = c - 275, c + 275

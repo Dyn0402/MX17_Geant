@@ -5,18 +5,18 @@
 **Resume:** read "Current picture" + ledger (routes 1–40) at the top of `scratchpad/2026-10-19/asym_deck/FINDINGS.md`; next: Y-box anisotropic check.
 
 **Goal:** explain det3 June-15's X n−1/n+1 asymmetry (and correct for it) from archive data and simulation; there has
-been no detector access since 10-13 and there is no stripe mask.
+been no detector access since 10-13 and there is no strip mask.
 
 **Where it stands (end of rounds 7–8):**
 - The asymmetry is a fixed, smooth, two-signed, X-only field on every June board, scaled by the cloud width.
-- Leading explanation: resistive-stripe registration (stripe offset vs pad column, varying over the board).
-- Best model so far, at 5 MΩ/sq along the stripes, which keeps the Y view: 700 µm stripes + gap electrons funnelled
-  onto the stripe edges + anisotropic stripes σ_xx = 10·σ_yy.
+- Leading explanation: resistive-strip registration (strip offset vs pad column, varying over the board).
+- Best model so far, at 5 MΩ/sq along the strips, which keeps the Y view: 700 µm strips + gap electrons funnelled
+  onto the strip edges + anisotropic strips σ_xx = 10·σ_yy.
   - Size ×1.79 overall, ×2.22 for narrow clouds, against the data's ×2.5–5.
   - Reproduces the data's timing pattern: excess late (+64/+74 ns) for near-vertical (short) pulses, early for
     inclined ones; data +52 → −54 ns.
 - Closed this round:
-  - Cross-gap leak: explains the June boards' late cross-stripe charge (f ≈ 0.05–0.1) but adds no asymmetry.
+  - Cross-gap leak: explains the June boards' late cross-strip charge (f ≈ 0.05–0.1) but adds no asymmetry.
   - Uniform low ρ_s (2 and 0.5 MΩ/sq): gives size and timing, but fails the Y view (Y/X compact clusters 0.12 /
     0.001 vs data 0.9).
 - "Prompt" (route 21) vs the beam study's "delayed 114 ns": the same data under different angle mixes (#39).
@@ -33,9 +33,9 @@ decoded ROOT on EOS `response_sim/stageB_w2/{funnel,gapleak}/`; X-kernel product
    - `w2_production.py family --box y --aniso-x 10` needs 64 families at 30 GB each: a full campaign like the
      W2 grid (`run_w2_family.sh` pattern).
    - Or argue it from a reduced-ny Y solve (`--ny 64`) first.
-2. Close the remaining size gap (×2.2 vs ×2.5–5): scan A (20, 50) together with wider stripes (750 µm) and the
+2. Close the remaining size gap (×2.2 vs ×2.5–5): scan A (20, 50) together with wider strips (750 µm) and the
    funnel inset. Paired arms vs `glg0` with `paired_odd.py`; timing with `timing_width.py`.
-3. When a mask or print spec exists: stripe pitch, width and alignment → predicted δ(x, y) per board vs the measured
+3. When a mask or print spec exists: strip pitch, width and alignment → predicted δ(x, y) per board vs the measured
    fields (`r5/corr_maps.json`).
 4. Analysis: decide on adopting `wft.xasym` (needs a re-alignment and the run's scale). The det3 residual maps also
    keep an x-scale term (+55…+79 µm/100 mm) the alignment doesn't fit.
@@ -146,13 +146,13 @@ Dylan to decide: adopt the inter-strip coupling (k 0.05, τ 15 ns, then bG 0.47)
 - **Systematics** (4480074): K0 1.80 / 2.25 → amplitude +3.2 / −1.7 %, rise +11 / −6 ns; 27.9 mm → −1.5 %, extent +4–5 %.
 - **Y/X, sharpened (§21.9):** X saturates as often in the sim as in the data at every angle, but inclined-Y tracks rail 0.33 in the
   data vs 0.16–0.22 in the sim. The sim's Y peak strip is too dim on inclined Y. Strip C / FEU gain are excluded (sums agree).
-  The kernels already model the resistive stripes along y. The open lever is the as-built stripe line/gap (never measured).
+  The kernels already model the resistive strips along y. The open lever is the as-built strip line/gap (never measured).
 - Slide note republished (dylan-cern-site 613de81). Evaluation drivers: `scratchpad/2026-10-18/eval_v3*.sh` (yoga).
 
 **Next steps:**
 1. Dylan: coupling in or out (above). If in, add `--strip-coupling 0.05,15 --feedback-bg 0.47` to a det3_v3c recipe.
 2. Fit ρ_s × (k, τ) jointly on the Y wings + neighbour shape. That needs the Y-wing profile, which needs T14 outputs (not made since 10-16).
-3. Inclined-Y peak: measure the printed stripe line/gap on a board (microscope); if it differs, rebuild the kernel at CERN.
+3. Inclined-Y peak: measure the printed strip line/gap on a board (microscope); if it differs, rebuild the kernel at CERN.
 4. FEU 7/8 vs 3/4 central pulse shapes: `central_shape_feu_swap.py` is NOT usable yet. The 6-22 run's waveforms plateau at ~0.57
    of the peak after FeuReader's pedestal (mixed 32/37-sample events or ZS?). Sort out that format first, then select by M3 slope.
 5. ρ_s × coupling (condor 4480075, §21.11): ρ2M shortens the delay 30 ns but breaks the Y profile (vertical Y rms 1.05 vs 0.85).

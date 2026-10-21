@@ -1,5 +1,5 @@
 """Per-chip (true-column order) X-only asymmetry a1 for every board (2026-10-20). A copper/bus mechanism has one sign
-everywhere; a stripe-registration offset that drifts across the board (pitch/scale error of the print) can change
+everywhere; a strip-registration offset that drifts across the board (pitch/scale error of the print) can change
 sign. Chips in true-column order (chip = col // 64), all X sub-runs of each build pooled, edge channels excluded.
 Also per 16-column block for det3 June-15. Usage: chip_profile.py"""
 import json, os, numpy as np

@@ -1,5 +1,5 @@
 """2-D map of the X asymmetry a1 over the board (2026-10-20): X position from the X peak's true column, Y position from
-the matched Y peak's true row, in 4 x 4 cells (128 columns/rows each). A print scale error moves the stripe offset along
+the matched Y peak's true row, in 4 x 4 cells (128 columns/rows each). A print scale error moves the strip offset along
 x only; a rotation moves it along y. Usage: map2d.py"""
 import json, os, numpy as np
 import r5lib as R

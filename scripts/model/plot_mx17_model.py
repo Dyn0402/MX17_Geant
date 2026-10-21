@@ -508,7 +508,7 @@ def fig_peel(outdir, zoom=False, bare=False):
 
     zoom=False (default): the original 88x44 mm close-up — legible on a
     monitor, but at that scale the 0.78 mm pad/strip pitch and the 0.8 mm
-    ESL stripe pitch render as a near-solid texture, illegible from the
+    ESL strip pitch render as a near-solid texture, illegible from the
     back of a conference room.
 
     zoom=True: the same four peeled bands over a 25x25 mm patch of board,
@@ -674,7 +674,7 @@ def fig_peel(outdir, zoom=False, bare=False):
             # Full-board figure only. Dropped from the zoom 2026-08-10: at this
             # magnification only ~5 of them fall in the band, they carry none
             # of the figure's message (which is the two pitches and the strip
-            # directions) and they read as noise on the resist stripes.
+            # directions) and they read as noise on the resist strips.
             if not zoom:
                 gb = parse(os.path.join(REPO, "design", "gerbers",
                                         "readout_pcb", "3498A_bulk.gbr"))
@@ -712,7 +712,7 @@ def fig_peel(outdir, zoom=False, bare=False):
     if zoom:
         # Quantitative calipers burned into the render so the numbers survive
         # projection. Both pitches are shown because they are DIFFERENT and
-        # that is a real feature of the board: the ESL resist stripes are on
+        # that is a real feature of the board: the ESL resist strips are on
         # 0.80 mm (550 um wide / 250 um gaps) while the readout is on 0.78 mm,
         # so the two beat a slow moire. A single-period caliper is too small to
         # read from 10 m, so each spans 5 periods and is labelled as such.

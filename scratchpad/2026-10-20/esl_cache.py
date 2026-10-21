@@ -1,4 +1,4 @@
-"""Event-level cache of X/Y-matched events for the ESL-stripe study (2026-10-20).
+"""Event-level cache of X/Y-matched events for the ESL-strip study (2026-10-20).
 Per build: X and Y alpha_k (k=-4..4), DAQ peak channels, parity, sub-run index, Y-pad flag (per sub-run, smaller Y share).
 Writes ~/x17/nb_asym_raw/esl_cache.npz (derived data, desktop)."""
 import os, sys, numpy as np

@@ -1,4 +1,4 @@
-"""Is the sim's stripe-registration asymmetry prompt, like the data's? (2026-10-21)
+"""Is the sim's strip-registration asymmetry prompt, like the data's? (2026-10-21)
 The production kernel's registration asymmetry builds up over 200-300 ns of sheet transport (kernel_delta.py), while
 the data's excess peaks with the central (timing.py, route 21). Same X-only estimator on both: per event, waveforms
 normalised by the central amplitude and aligned on the central's peak sample; mean excess e = W(n+1) - W(n-1) and

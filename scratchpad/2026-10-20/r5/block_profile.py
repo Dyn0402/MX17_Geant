@@ -1,6 +1,6 @@
 """Across-board profiles in 16-column blocks (true column order), per board (2026-10-20):
-  a1   X asymmetry (alpha(+1) - alpha(-1))       -- stripe-offset model: A sin(phi(c))
-  s1X  X sharing (alpha(+1) + alpha(-1))         -- stripe-offset model: B cos(phi(c)) on top of width/gain trends
+  a1   X asymmetry (alpha(+1) - alpha(-1))       -- strip-offset model: A sin(phi(c))
+  s1X  X sharing (alpha(+1) + alpha(-1))         -- strip-offset model: B cos(phi(c)) on top of width/gain trends
   s1Y  Y sharing of the same matched events      -- control for gas/gain-driven width trends
   Edge test: a1 in the 8 columns either side of every connector boundary (a wiring flip would step there).
 Fits a1(c) = A sin(2 pi (c - c0)/N) + b over N in 300..3000 columns (grid), reports best N, A, c0, b, chi2,

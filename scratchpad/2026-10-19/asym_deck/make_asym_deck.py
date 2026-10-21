@@ -168,10 +168,10 @@ def s_cover(D):
     body = (sd.kicker('det3 June-15 build · X view · cosmic bench June 2026 · raw DREAM ADC')
             + '<h1 style="font-size:76px;font-weight:600;line-height:1.08;letter-spacing:-2px;width:1660px">'
               'The X asymmetry is real and in the raw ADC: every June-built board carries a smooth X field '
-              'of unequal neighbours, most likely from how its resistive stripes sit over the pads</h1>'
+              'of unequal neighbours, most likely from how its resistive strips sit over the pads</h1>'
             + f'<p style="font-size:30px;color:{DMUT};width:1560px;line-height:1.35">On det3’s June-15 build the '
               f'channel above the peak is the bigger neighbour in {100 * fx:.0f} % of events; every other board and '
-              'view through the same code sits at 50 %. Simulated stripe registration gives the right shape at 1/3–2/3 '
+              'view through the same code sits at 50 %. Simulated strip registration gives the right shape at 1/3–2/3 '
               'of the size; the production reconstruction carries the field, and an opt-in correction now exists.</p>'
             + '<div style="flex:1"></div>'
             + f'<div style="display:flex;gap:56px">{nums}</div>')
@@ -1084,7 +1084,7 @@ def s_parity(D):
         '0.20 / 0.05), so the contrast here is partly selection. det3 June-15 still differs from a plain copy (slide “Not a copy”).',
         'Within the Y-pad class the copy is the same at every Y pad: flat in (X ch mod k, Y ch mod k) for k = 3, 4, 6 (the '
         'pillar grid is 6 pads) and 12 (χ²/ndf 1.0–1.6). So it is not the pillars. The 40-channel (ESL beat) check here used '
-        'DAQ channels; redone with true columns on slide “Stripes”: still flat.',
+        'DAQ channels; redone with true columns on slide “Strips”: still flat.',
         'Reading: for a Y pad its left and right neighbours are X pads of the central X line and the pads above and below '
         'belong to the two X neighbours; the copy is an imbalance between those two, about 0.43/0.18 of the central instead '
         'of 0.31/0.31. For an X pad the X neighbours are diagonal and the direct signal dominates.',
@@ -1115,8 +1115,8 @@ def s_axes(D):
         'the Y-chip axis it is flat within ~±0.03.',
         'The local pulse width (a drift-time proxy, in the tooltips) does not follow the X-chip profile: on 6-22/23 it is '
         '1080 ns on every chip while the copy halves. So the spatial profile is not local gas transport.',
-        'What varies along one axis only and per build: anything printed or laminated in stripes along the X lines (the '
-        'resistive stripes run parallel to the X lines), or the X lines themselves (length to the connector, routing).',
+        'What varies along one axis only and per build: anything printed or laminated in strips along the X lines (the '
+        'resistive strips run parallel to the X lines), or the X lines themselves (length to the connector, routing).',
         sources('asym_more.py')), short='Board axes')
 
 
@@ -1227,7 +1227,7 @@ def s_sims(D):
     fo = {os.path.basename(f)[:-5]: json.load(open(f)) for f in _g.glob(os.path.join(HERE, '..', 'fwd_out', '*.json'))}
     nm = [('d20_nobus', 'pads and vias only (symmetric)'), ('d20_nominal', 'one-sided bus, nominal depth'),
           ('d20_h15', 'bus touching the pads (15 µm)'), ('shift60', 'charge over Y pads displaced 60 µm'),
-          ('f_offm200', 'stripes floating, offset −200 µm'), ('f_offp200', 'stripes floating, offset +200 µm')]
+          ('f_offm200', 'strips floating, offset −200 µm'), ('f_offp200', 'strips floating, offset +200 µm')]
     rows = []
     for k, lab in nm:
         if k not in fo: continue
@@ -1240,13 +1240,13 @@ def s_sims(D):
                      '3D weighting-field solves (bus_wpot.py, bus_float.py) + a forward model on uniform clouds with the data’s own estimator')
             + sd.table(['geometry', 'Y-pad, σ 300', 'X-pad, σ 300', 'Y-pad, σ 450', 'X-pad, σ 450'], rows, size=24)
             + sd.row(sd.callout('The copper alone (any bus depth, wet gap fill, kapton ε) gives |a| < 0.02 on the data’s estimator.', BLUE, 24),
-                     sd.callout('Floating stripes do make a real copy, but in both pad classes and growing with cloud size: the wrong fingerprint.', GOLD, 24), gap=40))
+                     sd.callout('Floating strips do make a real copy, but in both pad classes and growing with cloud size: the wrong fingerprint.', GOLD, 24), gap=40))
     D.slide('sims', body, details(
         'Why the old 0.010 is not the data’s number: the old solve took the asymmetry of one channel’s kernel. The data pick '
         'the peak channel per event; a kernel that is only lopsided (the bus) is then absorbed by relabelling, and the '
         'forward model returns ~0. A copy that survives the peak selection needs line n+1 to receive a share of line n’s own '
         'signal.',
-        'Displacing the charge over Y pads also averages away (it only moves where the charge lands). Floating stripes '
+        'Displacing the charge over Y pads also averages away (it only moves where the charge lands). Floating strips '
         '(fast transverse equalisation, ~26 ns at 2 MΩ/sq) offset from the rows give 0.06–0.15, but equally for X- and '
         'Y-pad events and more for wider clouds; the data are the opposite on both counts.',
         'Static dielectric variants (bus_wpot.py --eps-gap 20/80, --eps-kap 10): a wet gap fill lowers the bus pickup, the '
@@ -1323,9 +1323,9 @@ def s_verdict(D):
         dict(label='Track, our code', sub='Y clean; raw, symmetric', color=GREY, strike=True),
         dict(label='Gas flow', sub='pad-level, X only, flat top-bottom', color=GREY, strike=True),
         dict(label='FEU, cable, connector', sub='noise is not copied', color=GREY, strike=True),
-        dict(label='Pillars, resistive stripes', sub='flat mod 6; flat over the stripe beat', color=GREY, strike=True),
+        dict(label='Pillars, resistive strips', sub='flat mod 6; flat over the strip beat', color=GREY, strike=True),
         dict(label='Copper (bus, vias)', sub='< 0.02 on the data estimator', color=GREY, strike=True),
-        dict(label='Floating stripes', sub='wrong fingerprint', color=GOLD),
+        dict(label='Floating strips', sub='wrong fingerprint', color=GOLD),
         dict(label='X lines’ bus side, June bulks', sub='right side; ~20× the copper', color=RED),
     ]
     body = (sd.title('Verdict: a one-sided reach of the X lines toward their bus, ~20× too strong on the June bulks',
@@ -1334,7 +1334,7 @@ def s_verdict(D):
             + sd.row(sd.callout('Real: in raw ADC, in phase, linear, one-sided, signal-only, X only, '
                                 'largest for charge over a Y pad, the same at every Y pad.', BLUE, 27),
                      sd.callout('Boards: det3 June-15 0.22, det4 and det7 0.08 (Y-pad events); det6 0.02; det3 May, det1, det2 0.', CJUN, 27), gap=56)
-            + sd.callout('10-20: the stripes play no part; the parity split is partly peak selection; det3 behaves like an X '
+            + sd.callout('10-20: the strips play no part; the parity split is partly peak selection; det3 behaves like an X '
                          'sensitivity reaching ~200 µm toward n+1, the side where each X line’s bus runs. The bus would need '
                          '~20× its copper coupling.', RED, 27))
     D.slide('verdict', body, details(
@@ -1342,11 +1342,11 @@ def s_verdict(D):
         'New: any cable, connector or electronics cause. The copy appears only when the charge sits over a Y pad, which the X '
         'electronics cannot know (it is read only by matching with the Y view), and the copy is linear in amplitude.',
         'Excluded by simulation (3D weighting fields + forward model with the data’s own estimator): the one-sided bus at any '
-        'depth, wet gap fills, kapton ε, a displacement of the charge over Y pads. Floating resistive stripes offset from the '
+        'depth, wet gap fills, kapton ε, a displacement of the charge over Y pads. Floating resistive strips offset from the '
         'rows do make a copy, but in both pad classes and growing with cloud size: the data show neither.',
         'Excluded as the cause: gas circulation (see “Gas idea”). The gas still matters as a modulator: the copy follows the '
         'cluster width, which the gas composition and the drift field set.',
-        'Third round (10-20): the resistive stripes leave no mark (slide “Stripes”). A plain channel copy also makes a '
+        'Third round (10-20): the resistive strips leave no mark (slide “Strips”). A plain channel copy also makes a '
         'parity split (slide “Caution”), so det4/det7 are not shown to be pad-local. det3 June-15 is not a plain copy; it '
         'fits better as a one-sided extension of the X lines’ sensitivity toward n+1, and the gerbers put every X line’s bus '
         'on exactly that side (slide “Bus traces”). The open question becomes: what makes the bus side ~20× more sensitive '
@@ -1390,16 +1390,16 @@ def build(out):
     s_copy_shape(D); s_copy_model(D); s_noise(D); s_follow(D); s_map(D); s_amp(D); s_hot(D)
     s_survey(D, rows); s_date(D, rows); s_time(D, rows)
     s_parity(D); s_axes(D); s_drifttime(D); s_gas(D); s_beamdrift(D); s_sims(D)
-    R3.s_stripes(D); R3.s_inject(D); R3.s_flip(D); R3.s_inside(D); R3.s_readout(D); R3.s_edge(D); R3.s_sessions(D); R3.s_boards(D, more())
+    R3.s_strips(D); R3.s_inject(D); R3.s_flip(D); R3.s_inside(D); R3.s_readout(D); R3.s_edge(D); R3.s_sessions(D); R3.s_boards(D, more())
     s_bus(D)
     R4.s_fields(D); R4.s_simdelta(D); R4.s_kernel(D); R4.s_levers(D); R4.s_leak(D); R4.s_timing(D); R4.s_reco(D)
     R4.s_verdict2(D); R4.s_close2(D)
-    meta = dict(title='det3 X neighbour asymmetry: a stripe-registration field on the June boards',
+    meta = dict(title='det3 X neighbour asymmetry: a strip-registration field on the June boards',
                 summary='From the raw ADC up: every June-built board carries a smooth, two-signed X-only field of unequal '
                         '±1 neighbours (det2’s bands cancel), fixed per board and scaled by the cloud width. Excluded: code, '
-                        'electronics, connectors, copper, copies and offsets. Simulated resistive-stripe registration '
-                        'gives the shape at ~1/3 of the size; wider stripes and gap funnelling reach ×1.8, a leaky gap '
-                        'explains the June boards’ cross-stripe charge but not the asymmetry. The production position '
+                        'electronics, connectors, copper, copies and offsets. Simulated resistive-strip registration '
+                        'gives the shape at ~1/3 of the size; wider strips and gap funnelling reach ×1.8, a leaky gap '
+                        'explains the June boards’ cross-strip charge but not the asymmetry. The production position '
                         'carries it (K −0.77); wft.xasym corrects det2 and det3.',
                 tags='MX17,detector,crosstalk', date=dt.date.today().isoformat())
     return D.write(out, meta, footer=f'Built {dt.datetime.now():%Y-%m-%d %H:%M} by '

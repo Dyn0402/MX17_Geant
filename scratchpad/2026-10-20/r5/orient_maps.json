@@ -1,5 +1,5 @@
 {
- "det0 (stripes along x)": {
+ "det0 (strips along x)": {
   "n": 10760,
   "X": [
    49.90766664555948,
@@ -178,7 +178,7 @@
    ]
   ]
  },
- "det1 (stripes along x)": {
+ "det1 (strips along x)": {
   "n": 1646,
   "X": [
    34.16562613795934,

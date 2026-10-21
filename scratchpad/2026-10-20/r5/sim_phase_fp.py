@@ -1,5 +1,5 @@
-"""Stripe-offset hypothesis in the full sim, phase-resolved (2026-10-20). The sim's 800 um stripes over 780 um pads make
-each X column phase (col mod 40) a fixed stripe-to-column offset. Rank the 40 phases by their X-only a1 on seeds
+"""Strip-offset hypothesis in the full sim, phase-resolved (2026-10-20). The sim's 800 um strips over 780 um pads make
+each X column phase (col mod 40) a fixed strip-to-column offset. Rank the 40 phases by their X-only a1 on seeds
 5..10 (+ the original 5/6), then measure the fingerprints on the held-out seeds 11..16 for:
   sim POS = the 10 phases with the most positive a1, sim NEG = the 10 most negative, sim MID = the 10 nearest zero.
 Fingerprints as for det2's regions (det2_regions.py): fingerprint.py classes + bookkeeping, timing.py, x-position

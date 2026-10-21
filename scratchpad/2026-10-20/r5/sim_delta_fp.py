@@ -1,5 +1,5 @@
-"""Sim fingerprint at fixed stripe offset (2026-10-20 evening): matched X/Y sim events (xo0, th00 + thy*, seeds 5..16)
-grouped by the X peak column's stripe offset delta (sim_delta.py, orientation 'col'): POS = delta in [+150, +350],
+"""Sim fingerprint at fixed strip offset (2026-10-20 evening): matched X/Y sim events (xo0, th00 + thy*, seeds 5..16)
+grouped by the X peak column's strip offset delta (sim_delta.py, orientation 'col'): POS = delta in [+150, +350],
 NEG = [-350, -150], ZERO = [-75, +75]. Same fingerprints as det2_regions.py (classes, bookkeeping, timing).
 Usage: sim_delta_fp.py"""
 import os, glob, re, json, numpy as np

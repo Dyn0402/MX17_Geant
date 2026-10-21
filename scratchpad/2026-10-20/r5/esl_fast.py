@@ -1,14 +1,14 @@
-"""Fast stripe-registration model (2026-10-21): can a cross-gap leak or gap funnelling raise the sim's a1(delta) from
+"""Fast strip-registration model (2026-10-21): can a cross-gap leak or gap funnelling raise the sim's a1(delta) from
 ~1/3 of the data to the data's size?  Static X-line weighting at the ESL plane (bus_par/d20_nobus_esl.npy, the
 fwd_xpos.py field). Deterministic: gaussian clouds of width sig on a grid of centres (cx over one column, cy over the
-2P comb period). Locally pitch-locked stripes (780 um pitch, the 550/800 fill) at offset s from the column centres.
+2P comb period). Locally pitch-locked strips (780 um pitch, the 550/800 fill) at offset s from the column centres.
 Charge relocation at peak time:
-  strip charge   spread uniformly across its stripe's width (fast across-width equalisation)
-  gap charge     stays where it lands (the sim: sigma_gap = 0) ... or a fraction f is funnelled onto the nearer stripe
-  leak eps       a fraction eps of every stripe's charge moves to its two neighbour stripes (eps/2 each)
-  sy             optional along-stripe (y) gaussian smear of stripe charge [um]
+  strip charge   spread uniformly across its strip's width (fast across-width equalisation)
+  gap charge     stays where it lands (the sim: sigma_gap = 0) ... or a fraction f is funnelled onto the nearer strip
+  leak eps       a fraction eps of every strip's charge moves to its two neighbour strips (eps/2 each)
+  sy             optional along-strip (y) gaussian smear of strip charge [um]
 a1 = mean(alpha(k-1) - alpha(k+1)) over clouds whose X peak is line 0 (k-1 = data's DAQ n+1, the fwd_xpos.py
-convention). s > 0 puts the stripe on the k+1 side of the column centre.
+convention). s > 0 puts the strip on the k+1 side of the column centre.
 Usage: esl_fast.py"""
 import os, json, numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -16,7 +16,7 @@ B = os.path.join(HERE, '..', '..', '2026-10-19', 'bus_par')
 P = 780.; dg = 20.; EX = np.load(f'{B}/d20_nobus_esl.npy').astype(float)
 nx, ny = EX.shape; nrow = int(round(ny * dg / P / 2))
 X0 = P / 2; WS = 550. * P / 800.
-# strip-averaged map: unit charge spread over a stripe centred at x (boxcar of WS along x, 20 um cells)
+# strip-averaged map: unit charge spread over a strip centred at x (boxcar of WS along x, 20 um cells)
 nb = int(round(WS / dg)); EXs = np.zeros_like(EX); pad = np.concatenate([np.zeros((nb, ny)), EX, np.zeros((nb, ny))])
 for t in range(nb): EXs += pad[nb - nb // 2 + t: nb - nb // 2 + t + nx]
 EXs /= nb
@@ -62,7 +62,7 @@ MODELS = [('prompt (no ESL move)', dict(prompt=True)), ('sim-like', dict()), ('s
           ('funnel 1 sy1500', dict(f=1., sy=1500.))]
 if __name__ == '__main__':
     OUT = {}
-    print(f'{n} clouds; columns: a1 / narrow (sig<=350) / wide (sig>=550) / sharing, per stripe offset s (um)')
+    print(f'{n} clouds; columns: a1 / narrow (sig<=350) / wide (sig>=550) / sharing, per strip offset s (um)')
     print(f'{"":22s}     ' + ' '.join(f'{s:+6.0f}' for s in SS))
     for nm, kw in MODELS:
         rows = [score(signals(s, **kw)) for s in SS]

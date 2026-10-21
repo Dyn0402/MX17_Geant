@@ -8,11 +8,11 @@
   "nrow": 4,
   "bottom": 1400.0,
   "out": "bus_par/f_none.json",
-  "stripes": "none",
+  "strips": "none",
   "w": 550.0,
   "off": 0.0
  },
- "n_stripes": 0,
+ "n_strips": 0,
  "N": 1781472,
  "seconds": 41.7,
  "cg_info": 0,

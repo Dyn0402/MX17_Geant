@@ -1,12 +1,12 @@
-"""Stripe direction per board, every build we have, X vs Y side by side (2026-10-20, follow-up to stripe_orient.py).
-Charge landing on a resistive stripe spreads ALONG it, so the view measuring the coordinate along the stripes sees
-slow, late neighbour charge; the other view's neighbours are prompt. Same metric as stripe_orient.py (mean +-1 / +-2
+"""Strip direction per board, every build we have, X vs Y side by side (2026-10-20, follow-up to strip_orient.py).
+Charge landing on a resistive strip spreads ALONG it, so the view measuring the coordinate along the strips sees
+slow, late neighbour charge; the other view's neighbours are prompt. Same metric as strip_orient.py (mean +-1 / +-2
 waveforms over the peak channel, aligned on the central peak; 'late' = 600-960 ns after it), now per (build, view)
 including the boards the survey lacked: det0 (4-1 He/ethane HV scan), det4 May build (5-7, Ar/CF4), and the
 April-24 build ('Strip resist horizontal', EOS det_1_old 4-25, M3-filtered arrays, raw_asym.py --array).
 The Apr-24 board needs a 60 ADC floor instead of 200 (THR).
-Verdict per build: Y-slow (stripes along y, as det3 May 'vertical') or X-slow (stripes along x).
-Usage: NB_RAW=<raw dir> stripe_orient2.py"""
+Verdict per build: Y-slow (strips along y, as det3 May 'vertical') or X-slow (strips along x).
+Usage: NB_RAW=<raw dir> strip_orient2.py"""
 import os, sys, json, numpy as np
 D = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '2026-10-19', 'asym_deck'); sys.path.insert(0, D)
 import make_asym_deck as M, asym_lib as L
@@ -54,4 +54,4 @@ for b in builds:
     OUT[b] = dict(X=mx, Y=my, slow=verdict)
     print(f'{b:26s} | {mx["n"]:5d}/{my["n"]:5d} |  {mx["n1"]:.2f} / {my["n1"]:.2f} |  {mx["n1_delay"]:+5.0f} / {my["n1_delay"]:+5.0f} |'
           f'  {mx["n2_delay"]:+5.0f} / {my["n2_delay"]:+5.0f} | {1e3*mx["n2_late"]:5.1f}±{1e3*mx["n2_late_err"]:.1f} / {1e3*my["n2_late"]:5.1f}±{1e3*my["n2_late_err"]:.1f} | {verdict}')
-json.dump(OUT, open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stripe_orient2.json'), 'w'), indent=1)
+json.dump(OUT, open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'strip_orient2.json'), 'w'), indent=1)

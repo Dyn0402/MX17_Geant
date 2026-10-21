@@ -1,5 +1,5 @@
 # 2 MOhm/sq arms (2026-10-21; 0.5 MOhm/sq is excluded by the Y view): hybrid kernels (production 2M Y + nx1560 X): gap-0 control, 700 um
-# stripes, 700 um + --gap-funnel 1; th00 + thy*, seeds 7-12. Question: does low rho make the excess prompt (data -10 ns)?
+# strips, 700 um + --gap-funnel 1; th00 + thy*, seeds 7-12. Question: does low rho make the excess prompt (data -10 ns)?
 universe                = vanilla
 executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_gapleak_job.sh
 log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/gapleak.log

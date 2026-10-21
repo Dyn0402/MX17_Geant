@@ -1,6 +1,6 @@
-# Anisotropic ESL X kernels (2026-10-21): sigma_xx = A sigma_yy inside the stripes (fast across, nominal 5 MOhm along),
-# the hypothesis left by the low-rho arms (size and timing want fast across-stripe spreading, the Y view wants slow
-# along-stripe spreading). nx=1560, insulating gaps; A = 3, 10, and 10 with 690 um stripes.
+# Anisotropic ESL X kernels (2026-10-21): sigma_xx = A sigma_yy inside the strips (fast across, nominal 5 MOhm along),
+# the hypothesis left by the low-rho arms (size and timing want fast across-strip spreading, the Y view wants slow
+# along-strip spreading). nx=1560, insulating gaps; A = 3, 10, and 10 with 690 um strips.
 universe                = vanilla
 executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_gx_gap.sh
 arguments               = 0 $(w) $(ax)

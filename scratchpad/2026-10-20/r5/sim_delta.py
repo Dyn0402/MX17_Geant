@@ -1,6 +1,6 @@
-"""Can stripe registration make the asymmetry? (2026-10-20 evening) The sim's ESL stripes (800 um, centred on x = 0)
-over 780 um pads give each pad column c a stripe offset delta(c) = signed distance from the column centre
-(PAD_ORIGIN + c P) to the nearest stripe centre; it changes by only 20 um per column, so locally each delta is a
+"""Can strip registration make the asymmetry? (2026-10-20 evening) The sim's ESL strips (800 um, centred on x = 0)
+over 780 um pads give each pad column c a strip offset delta(c) = signed distance from the column centre
+(PAD_ORIGIN + c P) to the nearest strip centre; it changes by only 20 um per column, so locally each delta is a
 pitch-locked board. X-only events of every xo0 arm (th00 + thy*, seeds 5..16): a1 and coin per 50 um delta bin, both
 column-mapping orientations (the DAQ->x direction of 'col' is a convention), and the narrow/wide halves by X share.
 Usage: sim_delta.py [arm prefix (xo0) [npz dir (~/x17/nb_asym_raw/simxoff) [seed list e.g. 7-12]]]

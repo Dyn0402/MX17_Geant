@@ -1,19 +1,19 @@
-"""Weighting potential of one X channel with the resistive stripes as FLOATING conductors (2026-10-19 evening).
+"""Weighting potential of one X channel with the resistive strips as FLOATING conductors (2026-10-19 evening).
 
 Why: the det3 June-15 X copy lives in events whose charge sits over a Y pad, is the same at every Y pad, and the static
 solve (bus_wpot.py, ESL as a plain dielectric surface) gives ~0 on the data's own estimator (fwd_parity.py). At 2 MOhm/sq
-a 550 um stripe equalises across its width in ~26 ns, so at signal times each stripe acts as a conductor with zero net
-charge. If a stripe over row j also covers the gap toward row j+1, where row j+1's bus runs, charge on that stripe
+a 550 um strip equalises across its width in ~26 ns, so at signal times each strip acts as a conductor with zero net
+charge. If a strip over row j also covers the gap toward row j+1, where row j+1's bus runs, charge on that strip
 couples into line j+1 (copy into the next line, in phase, X only, large only when the X central is small = Y-pad events).
 
-Geometry as bus_wpot.py (channel = row 0 along x, own pads at x = +390 mod 1560, own bus at y = -390 on L5), plus stripes
+Geometry as bus_wpot.py (channel = row 0 along x, own pads at x = +390 mod 1560, own bus at y = -390 on L5), plus strips
 along x (parallel to the X rows, as the tau_Y > tau_X anisotropy says) of width W at pitch 780 (no beat: the data show no
 31.2 mm period), centred at y = OFF + 780 m on the cell layer just above the kapton. Floating: phi = phi0 + sum_t V_t psi_t
-with V from zero net charge on every stripe (capacitance matrix from the per-stripe solves). Stripes are infinite along x
-(periodic, 1.56 mm), i.e. the fast-spreading limit along the stripe too.
---stripes none|float|ground. Output: the ESL map (charge on a stripe sees the stripe's potential; in a gap, phi) as
+with V from zero net charge on every strip (capacitance matrix from the per-strip solves). Strips are infinite along x
+(periodic, 1.56 mm), i.e. the fast-spreading limit along the strip too.
+--strips none|float|ground. Output: the ESL map (charge on a strip sees the strip's potential; in a gap, phi) as
 <out>_esl.npy for fwd_parity.py, and the old-style row copy in <out>.json.
-Usage: bus_float.py --out bus_par/f_off200.json [--off 200] [--w 550] [--stripes float] [--dxy 20] [--no-bus] [--h1 264]"""
+Usage: bus_float.py --out bus_par/f_off200.json [--off 200] [--w 550] [--strips float] [--dxy 20] [--no-bus] [--h1 264]"""
 import argparse, time, json, numpy as np, scipy.sparse as sp, scipy.sparse.linalg as spl
 
 ap = argparse.ArgumentParser()
@@ -21,7 +21,7 @@ ap.add_argument('--h1', type=float, default=264.); ap.add_argument('--h2', type=
 ap.add_argument('--gap', type=float, default=100.); ap.add_argument('--dxy', type=float, default=20.)
 ap.add_argument('--no-bus', action='store_true'); ap.add_argument('--nrow', type=int, default=4)
 ap.add_argument('--bottom', type=float, default=1400.); ap.add_argument('--out', required=True)
-ap.add_argument('--stripes', default='float', choices=['none', 'float', 'ground'])
+ap.add_argument('--strips', default='float', choices=['none', 'float', 'ground'])
 ap.add_argument('--w', type=float, default=550.); ap.add_argument('--off', type=float, default=0.)
 a = ap.parse_args()
 P = 780.; PAD = P - a.gap; CU = 26.; GLUE = 19.; KAP = 50.; AMP = 150.; Z_ESL = GLUE + KAP; Z_MESH = Z_ESL + AMP
@@ -35,7 +35,7 @@ def zgrid():
         n = max(1, int(np.ceil((hi - lo) / (13. if lo > -700 else 60.)))); zs += list(np.linspace(hi, lo, n + 1)[1:])
     return np.array(zs)
 zn = zgrid(); zc = .5 * (zn[:-1] + zn[1:]); dz = zn[:-1] - zn[1:]; nz = len(zc)
-kE = int(np.flatnonzero(zc > Z_ESL)[-1])                       # the stripe / ESL cell layer
+kE = int(np.flatnonzero(zc > Z_ESL)[-1])                       # the strip / ESL cell layer
 eps = np.empty((nx, ny, nz))
 for k, z in enumerate(zc):
     eps[:, :, k] = 1. if z > Z_ESL else 3.5 if z > GLUE else 3.2 if z > -CU else 4.4
@@ -64,13 +64,13 @@ oth_lines = np.zeros_like(own_pad)
 for cx0 in (-P / 2, P / 2):
     for cx in wrapx(cx0):
         oth_lines |= np.abs(X - (cx + P / 2)) <= 50.
-# stripes: one per row j, centred at y = OFF + j P, width W, kept inside the domain
-stripes = []
-if a.stripes != 'none':
+# strips: one per row j, centred at y = OFF + j P, width W, kept inside the domain
+strips = []
+if a.strips != 'none':
     for j in range(-a.nrow, a.nrow + 1):
         m = np.abs(Y - (a.off + j * P)) <= a.w / 2
-        if m[0].any(): stripes.append(m)
-# Dirichlet classes: 0 = grounded electrodes, 1 = own channel, 2 + t = stripe t
+        if m[0].any(): strips.append(m)
+# Dirichlet classes: 0 = grounded electrodes, 1 = own channel, 2 + t = strip t
 D = np.full((nx, ny, nz), -1, np.int16)
 for k, z in enumerate(zc):
     if -CU < z < 0:
@@ -81,8 +81,8 @@ for k, z in enumerate(zc):
         D[:, :, k][oth_ring | bus_oth] = 0; D[:, :, k][own_ring | bus_own] = 1; D[:, :, k][own_via] = 1
     if z6[0] < z < z6[1]:
         D[:, :, k][oth_ring | oth_lines] = 0; D[:, :, k][own_ring] = 1
-for t, m in enumerate(stripes):
-    D[:, :, kE][m] = 0 if a.stripes == 'ground' else 2 + t
+for t, m in enumerate(strips):
+    D[:, :, kE][m] = 0 if a.strips == 'ground' else 2 + t
 free = D < 0; idx = -np.ones(D.shape, np.int64); idx[free] = np.arange(free.sum()); N = int(free.sum())
 hm = lambda e1, e2: 2 * e1 * e2 / (e1 + e2)
 DZ = dz[None, None, :]; dzf = .5 * (dz[:-1] + dz[1:])
@@ -104,7 +104,7 @@ for k in (0, -1):                                               # mesh on top, g
     gi = eps[:, :, k] * d * d / (dz[k] / 2); ii = idx[:, :, k]; m = ii >= 0; np.add.at(diag, ii[m], gi[m])
 A = sp.csr_matrix((np.concatenate(vals), (np.concatenate(rows), np.concatenate(cols))), shape=(N, N)) + sp.diags(diag)
 fi = np.concatenate([p[0] for p in bpart]); fc = np.concatenate([p[1] for p in bpart]); fg = np.concatenate([p[2] for p in bpart])
-ncls = 2 + len(stripes); M = sp.diags(1 / diag)
+ncls = 2 + len(strips); M = sp.diags(1 / diag)
 def solve(cls):
     """Field with Dirichlet class `cls` at 1, every other electrode at 0."""
     b = np.zeros(N); m = fc == cls; np.add.at(b, fi[m], fg[m])
@@ -125,14 +125,14 @@ def charge(phi, cls):
     return q
 t0 = time.time()
 phi0, info0 = solve(1)
-res = dict(args=vars(a), n_stripes=len(stripes), N=N)
-if a.stripes == 'float' and stripes:
-    psi = [solve(2 + t)[0] for t in range(len(stripes))]
-    Cm = np.array([[charge(psi[t], 2 + s) for t in range(len(stripes))] for s in range(len(stripes))])
-    q0 = np.array([charge(phi0, 2 + s) for s in range(len(stripes))])
+res = dict(args=vars(a), n_strips=len(strips), N=N)
+if a.strips == 'float' and strips:
+    psi = [solve(2 + t)[0] for t in range(len(strips))]
+    Cm = np.array([[charge(psi[t], 2 + s) for t in range(len(strips))] for s in range(len(strips))])
+    q0 = np.array([charge(phi0, 2 + s) for s in range(len(strips))])
     Vs = np.linalg.solve(Cm, -q0)
     phi = phi0 + sum(v * p for v, p in zip(Vs, psi))
-    res['stripe_V'] = Vs.round(5).tolist(); res['stripe_y'] = [float(a.off + j * P) for j in range(-a.nrow, a.nrow + 1)]
+    res['strip_V'] = Vs.round(5).tolist(); res['strip_y'] = [float(a.off + j * P) for j in range(-a.nrow, a.nrow + 1)]
 else:
     phi = phi0
 res['seconds'] = round(time.time() - t0, 1); res['cg_info'] = int(info0)
