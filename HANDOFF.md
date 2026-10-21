@@ -8,7 +8,9 @@
 - The even-term exclusion of registration (audit §3.1) is WRONG: it compared within one attractor, not vs no pull. A pull
   near the pad boundary gives a1 0.1–0.3 with no net sharing change. det2/det3/det4 show the attractor's quadrature loop
   (sharing residual ∝ −cos φ), but the quiet det3 May has bulk-local sharing structure as large, so it's suggestive only.
-- The transfer is direct n−1 → n+1 (±2 odd ≈ 12 % of ±1); not a copy or a linear coupling.
+- The transfer is direct n−1 → n+1 (±2 odd ≈ 12 % of ±1); not a copy or a linear coupling. A 1-D strip-pull toy (20–30 % of
+  the charge pulled onto lines ~300 µm off the pad centres) reproduces that shape, a1 0.16 and Δs1 ≈ 0: the open issue is the
+  physics of a prompt pull that strong.
 - a1 is gain- and time-independent at fixed width; the 6-19/20 outlier was det2 (noise fingerprint).
 Next: an electrostatic pull (charged gaps focusing avalanche electrons onto the strips) and skewed induction, scored on
 the ±1/±2 odd shape and the size; the strip photo/mask (det2 rows 0–63 vs 128–255, det3 May) is still the decisive measurement.

@@ -50,6 +50,15 @@ both compared the sharing at large |a1| with the sharing at delta = 0 *inside th
 - So the one falsifier of "fixed map × cloud width" is a labelling error. Real det3 on 6-19 is low-statistics and ~2σ low.
   The raw_daq_data HV scan + long run could still be decoded for more FEU 3 events.
 
+## 4. A strip pull reproduces the transfer shape at the data's operating point (`loop/toy_shape.py`)
+- In the attractor toy, the points where a1 = 0.10–0.20 with |Δs1| ≤ 0.03 vs no pull (the det3 June-15 vs May situation) have
+  ±2 odd / ±1 odd = 0.01–0.14 (σ 450 µm: 0.10–0.14) and a small negative ±2 even part (−0.03 … −0.07 per a1). det2: 0.12 and −0.07.
+- Representative point (30 % of the charge pulled onto lines 300 µm off the pad centres, σ 450 µm, 200 µm induction): per unit a1
+  −0.09 / −0.49 / +0.51 / +0.01 at k = −2 / −1 / +1 / +2, against det2's −0.08 / −0.54 / +0.47 / +0.04; a1 0.16, Δs1 +0.003.
+- So a pull toward the strips (offsets toward the pad boundaries) fits every data fingerprint in the toy, including the size,
+  if ~20–30 % of the charge is pulled promptly. The full resistive-spreading sim's effective pull is much weaker; the
+  open question is the physics of a prompt pull that strong (electrostatic focusing by charged gaps is the candidate).
+
 ## What this leaves
 - The fingerprint (audit §4.1) gains: (2) the transfer is n−1 → n+1 direct, ±2 odd ≈ 12 % of ±1; (5) gain- and
   time-independent at fixed width; no session outlier. The even term is not a usable discriminator at the ±0.1 level.

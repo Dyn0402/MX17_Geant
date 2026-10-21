@@ -282,26 +282,31 @@ def avg_norm(getter):
         out.append(float(np.mean([getter(r)[i] / (getter(r)[4] - getter(r)[2]) for r in mb])))
     return out
 meas = avg_norm(lambda r: r['d']); meas = [0.5 * (meas[i] - meas[5 - i]) for i in range(6)]; anti = avg_norm(lambda r: r['anti']['pred']); copy = avg_norm(lambda r: r['copy']['pred'])
-P = Plot(1640, 620, x=(-3.6, 3.6), y=(-0.65, 0.95), xlabel='neighbour k (DAQ order; n+1 is the excess side)', ylabel='change of α(k) per unit change of a1')
+P = Plot(1640, 570, x=(-3.6, 3.6), y=(-0.65, 0.95), xlabel='neighbour k (DAQ order; n+1 is the excess side)', ylabel='change of α(k) per unit change of a1')
 P.xticks([(k, f'{k:+d}') for k in ks_]); P.yticks([(v, f'{v:+.1f}' if v else '0') for v in (-0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8)]); P.hline(0, MUT, None, 1.5)
-SER = [('det2, within board (cell slope)', [fd[k]['b_a1'] for k in ks_], [fd[k]['b_a1_e'] for k in ks_], ORANGE),
-       ('det3 June-15 − May, odd part, matched width', meas, None, RED),
+SER = [('det2 (cell slope)', [fd[k]['b_a1'] for k in ks_], [fd[k]['b_a1_e'] for k in ks_], ORANGE),
+       ('det3 June-15 − May (odd part)', meas, None, RED),
        ('linear antisymmetric coupling', anti, None, GREY), ('one-sided copy', copy, None, BLUE)]
+TR = J(HERE, '..', 'loop', 'toy_shape_rep.json')
+SER.insert(2, (f'strip-pull toy ({TR["f"]:.0%}, δ {TR["delta"]:.0f} µm)', [0.0 if k in (-3, 3) else TR['per_a1'][str(k)] for k in ks_], None, PURPLE))
 for j, (lab, v, e, c) in enumerate(SER):
     for i, k in enumerate(ks_):
-        x = k + (j - 1.5) * 0.17
-        P.vbar(x, v[i], 30, c, tip=f'{lab}: k = {k:+d}: {v[i]:+.3f}' + (f' ± {e[i]:.3f}' if e else ''), base=0)
+        x = k + (j - 2) * 0.15
+        P.vbar(x, v[i], 26, c, tip=f'{lab}: k = {k:+d}: {v[i]:+.3f}' + (f' ± {e[i]:.3f}' if e else ''), base=0)
         if e: ebar(P, x, v[i], e[i], INK, 4)
 P.text(-3.4, 0.85, 'Data: n−1 → n+1 directly; ±2 carries 1/8 (det2) – 1/4 (det3)', 24, INK, weight=600)
-s7b = sd.title('The transfer goes straight from n−1 to n+1: neither a copy nor a fixed coupling between channels',
-               'Change of each neighbour’s in-phase content per unit a1: det2 cells and det3 June-15 vs May (data) against two channel-level operators')
-s7b += P.svg('transfer shape') + legend([(s[0], s[3], 'box') for s in SER], 21)
+s7b = sd.title('The transfer goes straight from n−1 to n+1, as a pull toward the strips gives; not a copy or a fixed coupling',
+               'Change of each neighbour’s in-phase content per unit a1: data (det2 cells, det3 June-15 vs May) against a strip-pull toy and two channel-level operators')
+s7b += P.svg('transfer shape') + legend([(s[0], s[3], 'box') for s in SER], 20)
 sl('transfer', s7b, '<p>det2 (<code>even/det2_profile.py</code>, 32 cells, a1 −0.30 … +0.26, Y share and Y ±2 as width controls): per unit a1, −0.54 / +0.47 at ∓1, −0.08 / +0.04 at ∓2, '
    '~0 at ∓3. det3 June-15 − May (<code>even/antisym.py</code>, Y-share bins 0.6–1.05, odd part): the same shape, with ±2 at ~1/4 of ±1. Operators applied to May’s mean profile and scaled to the measured Δa1: '
    'a nearest-neighbour antisymmetric coupling dq_n = (ε/2)(q_{n−1} − q_{n+1}) puts ~40 % of the ±1 change at ±2; a copy dq_n = a·q_{n−1} raises n+1 and gives n−1 nothing.</p>'
    '<p>So it isn’t a fixed linear channel operator (consistent with the failed mixing fits, route 5). It depends on where the charge sits, i.e. a position-level mechanism; a pull '
    'toward the strips is one. The May → June-15 ±2/±3 even drop (−0.05 / −0.02) is mostly a bulk difference (e.g. the photon-feedback halo): det2’s within-board even slope '
-   'predicts only −0.01 at a1 = 0.14.</p>', short='Transfer shape')
+   'predicts only −0.01 at a1 = 0.14.</p>'
+   f'<p>Strip-pull toy (<code>loop/toy_shape.py</code>, the attractor toy of slide "Even term"): at the data’s operating point (a1 0.10–0.20 with |Δs1| ≤ 0.03 vs no pull) the ±2 '
+   f'odd part is 0.01–0.14 of the ±1 one (σ 450 µm: 0.10–0.14) with a small negative ±2 even part, like det2. Shown: {TR["f"]:.0%} of the charge pulled onto lines {TR["delta"]:.0f} µm '
+   f'off the pad centres, σ {TR["sigma"]:.0f} µm clouds, 200 µm induction: a1 {TR["a1"]:+.3f}, Δs1 {TR["ds1"]:+.3f}. ±3 is not computed in the toy (drawn at 0).</p>', short='Transfer shape')
 
 
 # ------------------------------------------------------------------------------------------------ 8 on the detector
