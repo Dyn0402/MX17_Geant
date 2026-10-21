@@ -55,11 +55,11 @@ b3 = B['det3 June-15']
 n_sub = len([s for s in AD['survey']])
 cover = (sd.kicker('Audit · MX17 micromegas · June-2026 cosmic bench · raw DREAM ADC')
          + '<h1 style="font-size:70px;font-weight:600;line-height:1.08;letter-spacing:-2px;width:1660px">'
-           'The June boards’ X view shifts charge from one neighbour to the other without changing how much they share. '
-           'Resistive-strip registration, as simulated, can’t do that</h1>'
-         + p('A fresh look at a week of work: the observation is solid and well mapped. Many causes are firmly '
-             'excluded. The leading explanation explains the map but fails a test it was never scored on, so the '
-             'way forward is to change what the models are scored on, and to look at the strips themselves.',
+           'The June boards’ X view moves charge straight from one neighbour to the other. Its cause is open: '
+           'a pull toward the resistive strips is still possible, but no simulated version is big enough</h1>'
+         + p('A fresh look at a week of work, updated the same evening: the observation is solid and well mapped, and many causes are firmly '
+             'excluded. The size is set by the cloud width alone (not gain, not time). The sharing test first thought to exclude registration '
+             'does not decide it; the strips themselves (a photo or the mask) would.',
              30, DMUT, extra='width:1560px')
          + '<div style="flex:1"></div>'
          + row(sd.bignum('7', 'board builds surveyed', DRED, '5 June builds, 2 quiet controls (det3 May, det1)',
@@ -270,6 +270,40 @@ sl('moved', s7, '<p>Integrals of positive samples per channel (<code>r5/probe_ch
    'different gain ratio (ΣX/ΣY spans 0.86–1.01 across boards). Redone within one board: a transfer of ≈ the n+1 − n−1 excess (0.10 of ΣY) would raise the '
    'Y-pad class above the X-pad class. Instead it is lower (0.907 vs 0.925). Excluded without any reference board.</p>', short='Moved')
 
+# ------------------------------------------------------------------------------------------------ 7b shape of the transfer
+DP = J(HERE, '..', 'even', 'det2_profile.json'); AS = J(HERE, '..', 'even', 'antisym.json')
+ks_ = [-3, -2, -1, 1, 2, 3]
+fd = {r['k']: r for r in DP['det2']['fit']}
+mb = [r for r in AS if r['lo'] >= 0.6 and r['hi'] <= 1.05]
+def avg_norm(getter):
+    out = []
+    for i, k in enumerate((-3, -2, -1, 0, 1, 2, 3)):
+        if k == 0: continue
+        out.append(float(np.mean([getter(r)[i] / (getter(r)[4] - getter(r)[2]) for r in mb])))
+    return out
+meas = avg_norm(lambda r: r['d']); meas = [0.5 * (meas[i] - meas[5 - i]) for i in range(6)]; anti = avg_norm(lambda r: r['anti']['pred']); copy = avg_norm(lambda r: r['copy']['pred'])
+P = Plot(1640, 620, x=(-3.6, 3.6), y=(-0.65, 0.95), xlabel='neighbour k (DAQ order; n+1 is the excess side)', ylabel='change of α(k) per unit change of a1')
+P.xticks([(k, f'{k:+d}') for k in ks_]); P.yticks([(v, f'{v:+.1f}' if v else '0') for v in (-0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8)]); P.hline(0, MUT, None, 1.5)
+SER = [('det2, within board (cell slope)', [fd[k]['b_a1'] for k in ks_], [fd[k]['b_a1_e'] for k in ks_], ORANGE),
+       ('det3 June-15 − May, odd part, matched width', meas, None, RED),
+       ('linear antisymmetric coupling', anti, None, GREY), ('one-sided copy', copy, None, BLUE)]
+for j, (lab, v, e, c) in enumerate(SER):
+    for i, k in enumerate(ks_):
+        x = k + (j - 1.5) * 0.17
+        P.vbar(x, v[i], 30, c, tip=f'{lab}: k = {k:+d}: {v[i]:+.3f}' + (f' ± {e[i]:.3f}' if e else ''), base=0)
+        if e: ebar(P, x, v[i], e[i], INK, 4)
+P.text(-3.4, 0.85, 'Data: n−1 → n+1 directly; ±2 carries 1/8 (det2) – 1/4 (det3)', 24, INK, weight=600)
+s7b = sd.title('The transfer goes straight from n−1 to n+1: neither a copy nor a fixed coupling between channels',
+               'Change of each neighbour’s in-phase content per unit a1: det2 cells and det3 June-15 vs May (data) against two channel-level operators')
+s7b += P.svg('transfer shape') + legend([(s[0], s[3], 'box') for s in SER], 21)
+sl('transfer', s7b, '<p>det2 (<code>even/det2_profile.py</code>, 32 cells, a1 −0.30 … +0.26, Y share and Y ±2 as width controls): per unit a1, −0.54 / +0.47 at ∓1, −0.08 / +0.04 at ∓2, '
+   '~0 at ∓3. det3 June-15 − May (<code>even/antisym.py</code>, Y-share bins 0.6–1.05, odd part): the same shape, with ±2 at ~1/4 of ±1. Operators applied to May’s mean profile and scaled to the measured Δa1: '
+   'a nearest-neighbour antisymmetric coupling dq_n = (ε/2)(q_{n−1} − q_{n+1}) puts ~40 % of the ±1 change at ±2; a copy dq_n = a·q_{n−1} raises n+1 and gives n−1 nothing.</p>'
+   '<p>So it isn’t a fixed linear channel operator (consistent with the failed mixing fits, route 5). It depends on where the charge sits, i.e. a position-level mechanism; a pull '
+   'toward the strips is one. The May → June-15 ±2/±3 even drop (−0.05 / −0.02) is mostly a bulk difference (e.g. the photon-feedback halo): det2’s within-board even slope '
+   'predicts only −0.01 at a1 = 0.14.</p>', short='Transfer shape')
+
+
 # ------------------------------------------------------------------------------------------------ 8 on the detector
 def parse_noise():
     out = {}
@@ -310,11 +344,11 @@ SS = AD['sessions']
 P = Plot(810, 580, x=(-0.6, len(SS) - 0.4), y=(0, 0.3), ylabel='a1, centre chips 2–5', title='det3 June-15 by session')
 P.xticks([(i, (s['t'] or '')[5:10].replace('-', '/')) for i, s in enumerate(SS)]); P.yticks([(v, f'{v:.2f}') for v in (0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3)])
 for i, s in enumerate(SS):
-    c = GREY if 'other board' in s['run'] else (DRED if '6-19/20 longer' in s['run'] else RED)
+    c = GREY if '6-19/20 longer' in s['run'] else (DRED if 'other board' in s['run'] else RED)
     P.vbar(i, s['a'], 46, c, tip=f'{s["run"]}\na1 = {s["a"]:+.3f} ± {s["e"]:.3f}, n = {s["n"]}\nFEU {s["feu"] or "?"}, drift {", ".join(s["drift"]) or "?"} V', base=0)
     ebar(P, i, s['a'], s['e'], INK, 5)
 i19 = [i for i, s in enumerate(SS) if '6-19/20 longer' in s['run']][0]
-P.text(i19 - 0.3, 0.12, '6-19: drift-HV trouble', 21, INK)
+P.text(i19 - 0.45, 0.042, '= det2', 20, INK)
 P2 = Plot(810, 580, x=(0.2, 1.45), y=(0, 0.4), xlabel='Y share (cloud width, measured on the other view)', ylabel='a1, all matched events', title='Amplitude vs cloud width')
 P2.xticks([(v, f'{v:.1f}') for v in (0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4)]); P2.yticks([(v, f'{v:.1f}' if v else '0') for v in (0, 0.1, 0.2, 0.3, 0.4)])
 WLEG = []
@@ -332,10 +366,10 @@ for k, (sess, pts) in enumerate(sorted(AD['width']['det3 June-15'].items())):
 ss = sorted((SW[k]['ysh_med'], SW[k]['a1']) for k in SW)
 P2.line([q[0] for q in ss], [q[1] for q in ss], INK, w=2.5, markers=False, tip='night-to-night trend (whole-night a1 vs median Y share)')
 P2.text(0.62, 0.375, 'Between nights: narrower, bigger', 24, INK, weight=600)
-s9 = sd.title('The size changes between nights and tracks each night’s cloud width, with one night off the curve',
+s9 = sd.title('The size changes between nights and tracks each night’s cloud width; the one outlier was det2',
               'Left: det3 June-15 per session (board centre); right: whole-night a1 vs median Y share (big dots), and within each night (dotted)')
 s9 += row(P.svg('sessions'), P2.svg('width'), gap=44)
-s9 += legend([('det3 J15 session', RED, 'box'), ('6-19/20 (FEU 7)', DRED, 'box'), ('other board on FEU 3, 6-19', GREY, 'box')] + WLEG + [('night-to-night trend', INK)], 20)
+s9 += legend([('det3 J15 session', RED, 'box'), ('6-19/20 FEU 7: det2 (mislabelled)', GREY, 'box'), ('6-19/20 FEU 3: the real det3 (372 events)', DRED, 'box')] + WLEG + [('night-to-night trend', INK)], 20)
 sl('sessions', s9, '<p>Sessions: 6-18 long run and 6-19/20 longer run are EOS extractions (FEU 7, X only); 6-22/23 and 6-23/24 FEU 3 (drift 1000 / 600 V); 6-25 drift 500 V; '
    '6-27 drift scan (1100 → 100 V: a1 rose 0.05 → 0.16, back to the 1000 V value right after, i.e. reversible); 6-27/28 FEU 7. The n_TOF beam run_79 (July 26, '
    'Ar/iso 90/10) gives 0.05–0.07 with the older whole-board method.</p>'
@@ -345,10 +379,50 @@ sl('sessions', s9, '<p>Sessions: 6-18 long run and 6-19/20 longer run are EOS ex
    'and a1 is the same over both. The older "one curve" (a1 of Y-pad-labelled events vs Y share, all sessions on one curve) used the X-peak labels, whose migration '
    'grows as the Y share falls, so it overstated the per-event width dependence. What survives is night-to-night: median Y share 0.52 / 0.77 / 0.93 with a1 '
    '+0.18 / +0.14 / +0.10 (<code>sess_width.py</code>), plus the drift scan and det2’s two runs.</p>'
-   '<p><b>6-19/20 is the exception</b>: 0.03 where its short pulses (narrow clouds) would predict ~0.13. It is also the only det3 night with drift-current '
-   'spikes (4–9 µA) and a sagging drift HV (890–960 V), and the HV channels were swapped between the two boards relative to 6-17. Under "fixed map × width" '
-   'it is a falsifier unless it is a different board or a different board state. Its raw_daq_data (HV scan + long run) can still be decoded.</p>',
+   '<p><b>6-19/20 was det2</b> (<code>s619/</code>): the "det3 FEU 7" data (a1 0.03, all 8 chips lit) has det2’s readout-chain noise pattern (r = 0.957 with det2 X on 6-22) '
+   'and not det3’s on the same FEU 7 slot on 6-17; the pattern follows chain + board, not the FEU slot. det3’s X readout lit only chips 0–3 on 6-17, and on 6-19 that '
+   '4-chip readout is the FEU 3 file: 372 events, a1 +0.077 ± ~0.03 (≈ 2σ low, few events). The raw_daq_data HV scan + long run could add more.</p>',
    short='Sessions')
+
+# ------------------------------------------------------------------------------------------------ 9b gain and time
+TA = J(HERE, '..', 'time', 'time_a1_det3.json')
+P = Plot(810, 560, x=(440, 535), y=(0, 0.3), xlabel='resist (mesh) voltage, V', ylabel='a1 (all events)', title='Resist-voltage scans')
+P.xticks([(v, str(v)) for v in (450, 470, 490, 510, 530)]); P.yticks([(v, f'{v:.2f}') for v in (0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3)])
+for run, c, lab in (('mx17_det2_det3_overnight_6-22-26', RED, '6-22/23, drift 1000 V'), ('mx17_det3_det4_overnight_6-23-26', '#8f2433', '6-23/24, drift 600 V'),
+                    ('mx17_det3_saturday_scan_6-27-26', '#d9822b', '6-27, drift 1000 V')):
+    pts = [r for r in TA if r['run'] == run and r['sub'].startswith(('resist_', 'hv_scan_')) and r['chunks'][0]['amp'] > 400
+           and not ('6-22' in run and int(r['mesh']) > 500) and sum(c_['n'] for c_ in r['chunks']) >= 300]
+    pts.sort(key=lambda r: int(r['mesh']))
+    vals = [(int(r['mesh']), float(np.mean([c_['a1'] for c_ in r['chunks']])), float(np.sqrt(np.mean([c_['a1_e'] ** 2 for c_ in r['chunks']]) / len(r['chunks']))),
+             float(np.median([c_['amp'] for c_ in r['chunks']]))) for r in pts]
+    P.line([v[0] for v in vals], [v[1] for v in vals], c, tips=[f'{lab}, {v[0]} V: a1 = {v[1]:+.3f} ± {v[2]:.3f}, median central amplitude {v[3]:.0f} ADC' for v in vals])
+    for v in vals: ebar(P, v[0], v[1], v[2], c, 4)
+P.text(445, 0.28, 'Gain ×6 across a scan: no gain trend', 23, INK, weight=600)
+P2 = Plot(810, 560, x=(0.4, 1.15), y=(0, 0.3), xlabel='median Y share of the sub-run (cloud width)', ylabel='a1 (all events)', title='Every det3 June-15 sub-run')
+P2.xticks([(v, f'{v:.1f}') for v in (0.4, 0.6, 0.8, 1.0)]); P2.yticks([(v, f'{v:.2f}') for v in (0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3)])
+SC = {'mx17_det2_det3_overnight_6-22-26': RED, 'mx17_det3_det4_overnight_6-23-26': '#8f2433', 'mx17_det3_day_6-25-26': '#e07a86',
+      'mx17_det3_saturday_scan_6-27-26': '#d9822b', 'mx17_det3_p2_det1_overnight_6-27-26': '#b04a5a'}
+for run, c in SC.items():
+    pts = []
+    for r in TA:
+        if r['run'] != run: continue
+        ys = [c_['ysh'] for c_ in r['chunks'] if c_['ysh']]
+        if not ys or sum(c_['n'] for c_ in r['chunks']) < 400: continue
+        a = float(np.mean([c_['a1'] for c_ in r['chunks']])); e = float(np.sqrt(np.mean([c_['a1_e'] ** 2 for c_ in r['chunks']]) / len(r['chunks'])))
+        pts.append((float(np.mean(ys)), a, e, r['sub'], r['t']))
+    P2.points([q[0] for q in pts], [q[1] for q in pts], c, r=8, tips=[f'{run} {q[3]} ({q[4]}): a1 = {q[1]:+.3f} ± {q[2]:.3f}, median Y share {q[0]:.2f}' for q in pts])
+P2.text(0.62, 0.28, 'One curve in width, all nights', 23, INK, weight=600)
+s9b = sd.title('At fixed cloud width the size ignores the gain and hours of running: not charging-up',
+               'Direct a1 per sub-run from the raw survey (≤ 2 files each); left: resist scans, right: all sub-runs vs their median Y share')
+s9b += row(P.svg('gain'), P2.svg('width all'), gap=44)
+s9b += legend([('6-22/23', RED), ('6-23/24', '#8f2433'), ('6-25', '#e07a86'), ('6-27 scans', '#d9822b'), ('6-27/28 overnight', '#b04a5a')], 21)
+sl('gain', s9b, '<p><code>time/time_a1.py</code>. Charging-up of insulating surfaces scales with the deposited charge (gain × rate) and builds over minutes to hours. At fixed width the '
+   'resist scans change the central amplitude ~×6 (6-23: 525 → 465 V) with a1 flat at 0.15–0.21; 6-22’s 8-hour scan and 6-27 afternoon → overnight show no drift. '
+   'Runs where most pulses rail (6-22 at 505–525 V) or sit below ~400 ADC are dropped from the left panel. The 6-23/24 step at 490 V coincides with a width change '
+   '(median Y share 0.49 → 0.57), as the right panel’s single curve expects.</p>'
+   '<p>Retraction: a "5× jump at fixed HV on 6-23" seen briefly in the survey table came from its copy-model estimator, which misreads low-amplitude runs; on the direct a1 '
+   'the three 495 V / 600 V runs are +0.06 ± 0.05, +0.16 ± 0.02, +0.19 ± 0.01.</p>', short='Gain and time')
+
 
 # ------------------------------------------------------------------------------------------------ 10 timing by width
 P = Plot(1120, 620, x=(250, 800), y=(-130, 100), xlabel='central pulse width (samples above half max × 60 ns)', ylabel='excess delay vs central (ns)')
@@ -388,6 +462,7 @@ ex = [('Code / clustering / maps', 'independent raw-ADC extractor; 0.50 on every
       ('Uniformly low strip resistivity (2, 0.5 MΩ/sq)', 'sim keeps 0.12 / 0.001 of the Y events vs 0.9 in data', MOD),
       ('Gap conduction as the local cause', 'uniform over each board while the field changes sign (next slide)', MOD),
       ('Gas flow pattern', 'flat inlet → exhaust, X only', MOD),
+      ('Charging-up of insulating surfaces', 'a1 flat with gain (×6) and over hours at fixed width', MOD),
       ('Extra sensitivity regions, skip transfer, static relocation', 'fast static model, which misses the full sim’s own baseline', WK)]
 s11 = sd.title('Excluded, and what each exclusion rests on', 'Re-graded in the audit; "weak" means the test can’t carry the verdict')
 s11 += table(['hypothesis', 'what kills it', 'how solid'], [[a, b, c] for a, b, c in ex], 24, widths=[600, 860, 160], align=['left', 'left', 'center'])
@@ -473,7 +548,7 @@ def reg_svg():
     o.append(line(cx, y0 - 20, cx, y0 + 4, INK, 2)); o.append(line(cx + d, y0 - 20, cx + d, y0 + 4, INK, 2))
     o.append(T(cx + d / 2, y0 + 120, 'δ', 28, INK, weight=600))
     o.append(T(W / 2, y0 + 170, 'odd effect: n+1 gains (a1 ∝ δ)', 23, RED))
-    o.append(T(W / 2, y0 + 204, 'even effect: the cloud is concentrated → s1 changes', 23, BLUE))
+    o.append(T(W / 2, y0 + 204, 'even effect: the cloud is concentrated → s1 changes with δ', 23, BLUE))
     return svg(W, H, ''.join(o), 'registration cartoon')
 sd_rows = [r for r in SIMD if r]
 s0 = [r for r in sd_rows if abs(r['d']) < 30]; s0v = np.mean([r['s1'] for r in s0])
@@ -482,7 +557,7 @@ P.xticks([(v, f'{v:+d}' if v else '0') for v in (-300, -150, 0, 150, 300)]); P.y
 P.hline(0, MUT, None, 1.5)
 P.line([r['d'] for r in sd_rows], [r['a1'] for r in sd_rows], RED, tips=[f'sim δ = {r["d"]:+.0f} µm: a1 = {r["a1"]:+.3f} ± {r["e"]:.3f}, n = {r["n"]}' for r in sd_rows])
 P.line([r['d'] for r in sd_rows], [r['s1'] - s0v for r in sd_rows], BLUE, tips=[f'sim δ = {r["d"]:+.0f} µm: s1 = {r["s1"]:.3f} (s1 − s1(0) = {r["s1"] - s0v:+.3f})' for r in sd_rows])
-P.text(-250, 0.48, 'Sharing moves as much as a1', 25, INK, weight=600)
+P.text(-250, 0.48, 'Sharing moves with δ (vs δ = 0)', 25, INK, weight=600)
 s14 = sd.title('The leading candidate, strip registration, predicts an even partner to a1',
                'Left: strips offset by δ pull the cloud; right: the full sim (strips at 800 µm over 780 µm pads) per δ bin')
 s14 += row(reg_svg(), col(P.svg('sim delta'), legend([('a1 (odd in δ)', RED), ('s1 − s1(δ=0) (even in δ)', BLUE)], 22), gap=8), gap=40)
@@ -524,80 +599,83 @@ sl('levers', s15, '<p>Odd amplitude O = ⟨sgn δ · a1⟩ over |δ| ≥ 50 µm 
    'timing trend, but the charge runs along the strips over many rows and the Y view loses its compact clusters.</p>'
    '<p>Anisotropic strips (A = 10) give the data’s timing swing; the Y-box solve (64 families) that would check the Y view has not been run.</p>', short='Levers')
 
-# ------------------------------------------------------------------------------------------------ 16 the even-term test (det2 bands)
-rr = [r for r in BANDS['det2|y'] if r['cls'] == 'all']
-P = Plot(1000, 620, x=(-0.3, 7.3), y=(-0.4, 0.6), xlabel='det2 row band (64 rows each)', ylabel='per band, all matched events')
-P.xticks([(i, str(i)) for i in range(8)]); P.yticks([(v, f'{v:+.1f}' if v else '0') for v in (-0.4, -0.2, 0, 0.2, 0.4, 0.6)])
-P.hline(0, MUT, None, 1.5)
-ks = SHARE['sim']['k_abs']; base = float(np.mean([r['s1x'][0] - r['s1y'][0] for r in rr if abs(r['a1'][0]) < 0.05]))
-P.line([r['band'] for r in rr], [r['a1'][0] for r in rr], RED, tips=[f'det2 band {r["band"]}: a1 = {r["a1"][0]:+.3f} ± {r["a1"][1]:.3f}, n = {r["n"]}' for r in rr])
-P.line([r['band'] for r in rr], [r['s1x'][0] - r['s1y'][0] for r in rr], BLUE,
-       tips=[f'det2 band {r["band"]}: s1X = {r["s1x"][0]:.3f} ± {r["s1x"][1]:.3f}, s1Y = {r["s1y"][0]:.3f}  →  s1X − s1Y = {r["s1x"][0] - r["s1y"][0]:+.3f}' for r in rr])
-P.line([r['band'] for r in rr], [base + ks * abs(r['a1'][0]) for r in rr], BLUE, dash='8 6', markers=False,
-       tip=f'Registration as simulated: s1X − s1Y = baseline {base:+.3f} + {ks:.1f} |a1| (slope from r5/sim_delta.json)')
-P.text(0.0, 0.54, 'a1 swings, sharing doesn’t', 25, INK, weight=600)
-sh = SHARE['det2']['ypad']; sa = SHARE['det2']['all']
-cats = [('sim registration', ks, 0.15, BLUE), ('det2, all cells', sa['k_abs'], sa['k_abs_e'], ORANGE), ('det2, Y-pad-label cells', sh['k_abs'], sh['k_abs_e'], ORANGE),
-        ('det3 May, all cells', SHARE['det3 May']['all']['k_abs'], SHARE['det3 May']['all']['k_abs_e'], GREY)]
-P2 = Plot(620, 620, x=(-0.6, len(cats) - 0.4), y=(-1.4, 2.6), ylabel='Δs1X per unit |a1| (cell fit)', title='Slope over 8 × 8 cells')
-P2.xticks([(i, c[0].replace(', ', ', ')) for i, c in enumerate(cats)]); P2.yticks([(v, f'{v:+.0f}' if v else '0') for v in (-1, 0, 1, 2)])
-P2.xticks([(i, ['sim', 'det2', 'det2 Y-lab', 'det3 May'][i]) for i in range(len(cats))])
-P2.y0 += 0
-P2.hline(0, MUT, None, 1.5)
-for i, (lab, v, e, c) in enumerate(cats):
-    P2.vbar(i, v, 70, c, tip=f'{lab}: slope {v:+.2f} ± {e:.2f}' + (' (from the δ table, no cell fit)' if i == 0 else ''), base=0); ebar(P2, i, v, e, INK)
-s16 = sd.title('The data fail that prediction: on det2 the sharing ignores a field of ±0.2',
-               'Left: det2 per row band: a1 (red), s1X − s1Y (blue; Y share removes the cloud width), registration’s prediction (dashed). Right: fitted slopes')
-s16 += row(P.svg('even term'), P2.svg('slopes'), gap=44)
-s16 += legend([('a1', RED), ('s1X − s1Y, data', BLUE), ('s1X − s1Y predicted by the sim’s registration', BLUE, 'dash')], 22)
-sl('even', s16, f'<p>New in the audit (<code>bands.py</code>, <code>share_vs_a1.py</code>). det2 is the test board: its field takes both signs, so an even term (∝ |a1|) is '
-   f'separable from an odd one (∝ a1). Per cell (8 × 8, ≥ 30 events) the fit s1X = c0 + c1·s1Y + k|a1| + k′a1 gives, for det2 (all events), '
-   f'k = {sa["k_abs"]:+.2f} ± {sa["k_abs_e"]:.2f} (Y-pad-labelled events {sh["k_abs"]:+.2f} ± {sh["k_abs_e"]:.2f}), against {ks:.1f} for the sim’s registration. det3 June-15’s field is '
-   f'mostly one-signed there, so k and k′ are degenerate (their sum ≈ −0.3); the quiet boards give k ≈ 0 at |a1| rms 0.03.</p>'
-   '<p>The earlier quadrature test (<code>r5/quad_test.py</code>, 2026-10-20) looked for the same thing as a cos φ term on the fitted map phase and found −0.007 ± 0.009 on det3. It was '
-   'listed "against" and then dropped from the summary. Together with route 20 ("n+1 gains what n−1 loses, the ±1 sum unchanged") it says the data move charge sideways '
-   'without concentrating it.</p><p>Caveat: s1Y is a proxy for the cloud width; det2’s bands also differ in width (s1Y 0.33–0.97), so a residual width term could hide a '
-   'small even term. It cannot hide one of the predicted size (+0.3 to +0.7 at |a1| = 0.15–0.33).</p>', short='Even term')
+# ------------------------------------------------------------------------------------------------ 16 the even term doesn't decide
+LOOP = J(HERE, '..', 'loop', 'toy_loop.json'); SP = J(HERE, '..', 'even', 'same_pcb.json')
+P = Plot(860, 600, x=(-0.05, 0.32), y=(-0.55, 0.25), xlabel='a1', ylabel='Δs1 vs an unpulled board')
+P.xticks([(v, f'{v:.2f}') for v in (0, 0.1, 0.2, 0.3)]); P.yticks([(v, f'{v:+.1f}' if v else '0') for v in (-0.5, -0.4, -0.3, -0.2, -0.1, 0, 0.1, 0.2)])
+P.hline(0, MUT, None, 1.5); P.vline(0, MUT, None, 1.5)
+LC = {(450., 0.2): PURPLE, (300., 0.2): BLUE, (600., 0.2): GREEN}
+for t in LOOP:
+    key = (t['sigma'], t['f'])
+    if t['sig_ind'] != 200. or t['sig_line'] != 200. or key not in LC: continue
+    half = [(d, a, s) for d, a, s in zip(t['delta'], t['a1'], t['ds1']) if d <= 390 and a <= 0.31]
+    P.line([h[1] for h in half], [h[2] for h in half], LC[key], w=3, r=4,
+           tips=[f'toy: cloud σ {t["sigma"]:.0f} µm, pulled fraction f {t["f"]}, δ = {d:.0f} µm → a1 {a:+.3f}, Δs1 {s:+.3f} (vs f = 0)' for d, a, s in half])
+dm, dj = SP['builds']['det3 May'], SP['builds']['det3 June-15']
+diffs = [(j[0] - m[0], np.hypot(j[1], m[1])) for m, j in zip(dm, dj) if m and j][1:-1]
+w = np.array([1 / e ** 2 for _, e in diffs]); dmean = float(sum(d * wi for (d, _), wi in zip(diffs, w)) / w.sum()); derr = float(1 / np.sqrt(w.sum()))
+a1J = B['det3 June-15']['a1x'][0] if 'a1x' in B['det3 June-15'] else 0.137
+P.points([a1J], [dmean], GOLD, r=14, tips=[f'det3 June-15 vs det3 May (same PCB) at matched Y share: Δs1X = {dmean:+.3f} ± {derr:.3f} (7 inner bins), a1 = {a1J:+.3f}'])
+P.text(0.005, 0.12, 'δ → P/2 (strip over the boundary)', 21, MUT); P.text(0.005, -0.45, 'δ = 0 (strip over the pad centre)', 21, MUT)
+P.text(0.005, 0.2, 'A pull can leave the sharing unchanged', 23, INK, weight=600)
+P2 = Plot(760, 600, x=(0.0, 1.45), y=(0.3, 1.0), xlabel='Y share (cloud width, other view)', ylabel='X sharing s1X', title='Same PCB, two bulks')
+P2.xticks([(v, f'{v:.1f}') for v in (0, 0.3, 0.6, 0.9, 1.2)]); P2.yticks([(v, f'{v:.1f}') for v in (0.3, 0.5, 0.7, 0.9)])
+E_ = SP['edges']
+for nm, c in (('det3 May', BLUE), ('det3 June-15', RED)):
+    rows_ = SP['builds'][nm]; xs = [0.5 * (E_[k] + E_[k + 1]) for k in range(len(rows_)) if rows_[k]]; ys = [r[0] for r in rows_ if r]
+    P2.line(xs, ys, c, tips=[f'{nm}, Y share {E_[k]:.2f}–{E_[k+1]:.2f}: s1X {r[0]:.3f} ± {r[1]:.3f}, a1 {r[2]:+.3f}, n = {r[3]}' for k, r in enumerate(rows_) if r])
+P2.text(0.08, 0.95, 'a1 0 → 0.14, sharing unchanged', 23, INK, weight=600)
+s16 = sd.title('Against an unpulled board the strip pull’s sharing change can be zero: the even term doesn’t decide',
+               'Left: 1-D attractor toy over a half period of δ, Δs1 relative to no pull; gold = det3 June-15 vs May. Right: same-PCB X sharing at matched width')
+s16 += row(col(P.svg('loop'), legend([('cloud σ 300, f 0.2', BLUE), ('σ 450, f 0.2', PURPLE), ('σ 600, f 0.2', GREEN),
+                                     ('det3 June-15 − May', GOLD, 'dot')], 20), gap=8),
+           col(P2.svg('same pcb'), legend([('det3 May (quiet)', BLUE), ('det3 June-15', RED)], 21), gap=8), gap=40)
+sl('even', s16, f'<p><b>Correction (2026-10-21 evening).</b> The first version of this deck said the sharing (the even term) excludes registration "×20". That compared the sharing '
+   'at large |a1| with the sharing at δ = 0 inside the same attractor (the sim’s s1 = 0.64 + 2.2 |a1| fit, and the det2 cell regression). An attractor narrows the cluster most '
+   'at δ = 0 and leaves it about unchanged near δ = P/2, while a1 is zero at both. Measured against an unpulled board, a pull at offsets between the a1 maximum and P/2 gives '
+   'a1 0.1–0.3 with Δs1 ≈ 0.</p>'
+   f'<p>Same PCB (<code>even/same_pcb.py</code>): det3 May and June-15 X sharing at matched Y share differ by {dmean:+.3f} ± {derr:.3f} over the inner bins while a1 goes 0 → 0.14: '
+   'consistent with no pull, or with a pull sampled around the a1 maximum. Toy: <code>loop/toy_loop.py</code> (pad response box ⊗ 200 µm Gaussian, pulled charge smeared 200 µm, '
+   'peak-pad selection, uniform positions). The 25 sim arms’ E/O = 1.2–2.5 (<code>even/sim_even.py</code>) is the same within-attractor contrast, not an exclusion.</p>', short='Even term')
 
-# ------------------------------------------------------------------------------------------------ 17 any attractor
-P = Plot(1060, 640, x=(0, 0.25), y=(-0.1, 0.4), xlabel='|a1|', ylabel='Δs1 that comes with it')
-P.xticks([(v, f'{v:.2f}') for v in (0, 0.05, 0.1, 0.15, 0.2, 0.25)]); P.yticks([(v, f'{v:+.1f}' if v else '0') for v in (-0.1, 0, 0.1, 0.2, 0.3, 0.4)])
-P.hline(0, MUT, None, 1.5)
-TC = {(250., 50.): '#2c5f9e', (250., 150.): BLUE, (250., 300.): '#7fa7d1', (450., 50.): '#5b3a8c', (450., 150.): PURPLE, (450., 300.): '#b79be0'}
-for t in TOY:
-    k = int(np.argmax([q[1] for q in t['pts']])); pts = [q for q in t['pts'][:k + 1] if q[1] >= 0]
-    P.line([q[1] for q in pts], [q[2] for q in pts], TC[(t['sigma'], t['sig_ind'])], w=3, r=4,
-           tips=[f'toy: cloud σ {t["sigma"]:.0f} µm, induction width {t["sig_ind"]:.0f} µm, 700 µm strips, δ = {q[0]:.0f} µm → a1 {q[1]:+.3f}, Δs1 {q[2]:+.3f}' for q in pts])
-dx = [(abs(r['a1'][0]), (r['s1x'][0] - r['s1y'][0]) - base, r) for r in rr]
-P.points([d[0] for d in dx], [d[1] for d in dx], ORANGE, r=9,
-         tips=[f'det2 band {d[2]["band"]}: |a1| = {d[0]:.3f}, s1X − s1Y relative to the quiet bands = {d[1]:+.3f}' for d in dx])
-P.text(0.005, 0.37, 'Any strip pull that makes a1 also makes Δs1', 25, INK, weight=600)
-s17 = sd.title('It isn’t a detail of the sim: any pull toward the strips concentrates the charge',
-               '1-D toy: cloud landing on 700 µm strips at the pad pitch, spread across each strip; curves for cloud σ and induction width. Orange: det2 bands')
-s17 += row(P.svg('toy'), col(legend([('cloud σ 250 µm (blues)', BLUE), ('cloud σ 450 µm (purples)', PURPLE), ('det2 bands, data', ORANGE, 'dot')], 22),
-                              p('Darker = narrower induction (50, 150, 300 µm).', 22, MUT),
-                              p('With σ = 450 µm clouds the toy can’t exceed |a1| ≈ 0.06 at all, even with full spreading across 700 µm strips.', 24, MUT), w=500, gap=24), gap=40)
-sl('toy', s17, '<p><code>toy_strips.py</code> / <code>toy_curves.py</code>: 1-D, pads of pitch 780 µm read through box ⊗ Gaussian (induction width); a Gaussian cloud at uniform '
-   'positions; the part landing on a strip is spread uniformly across that strip’s width (full equalisation), gap charge stays; peak-pad selection. Δs1/a1 is 0.2–4 '
-   'depending on σ, induction width and δ; at the δ needed for a1 ≥ 0.1, Δs1 ≈ +0.05 … +0.25.</p>'
-   '<p><code>toy_attractor.py</code>: the most forgiving case, a fraction f = 0.2 of the cloud moved fully to a line at the attractor, gives a1 = 0.2 with Δs1 ≈ +0.05. '
-   'Even that is above the det2 bands (≈ 0 ± 0.05), and it is not strip physics.</p>'
-   '<p>What would escape: a response that is skewed rather than attracting. If X pad n’s weighting field leans toward n+1 (for example steered by a partly '
-   'conducting, offset strip), the centroid shifts with no first-order change of the sum, and the pad type under the charge doesn’t matter. Only a static version '
-   'of this was ever modelled (route 9), and it was rejected on a pad-class criterion that is now void.</p>', short='Any attractor')
+# ------------------------------------------------------------------------------------------------ 17 the quadrature loop in data
+CR = J(HERE, '..', 'loop', 'det2_crossings_np.json')
+def looppanel(key, ttl, xl):
+    rs = CR[key]; P = Plot(810, 560, x=(-0.4, len(rs) - 0.6), y=(-0.25, 0.25), xlabel=xl, ylabel='per band, all events', title=ttl)
+    P.xticks([(i, str(r['band'])) for i, r in enumerate(rs)]); P.yticks([(v, f'{v:+.1f}' if v else '0') for v in (-0.2, -0.1, 0, 0.1, 0.2)]); P.hline(0, MUT, None, 1.5)
+    P.line(list(range(len(rs))), [r['a1'] for r in rs], RED, tips=[f'{key} band {r["band"]}: a1 = {r["a1"]:+.3f} ± {r["a1_e"]:.3f}, n = {r["n"]}' for r in rs])
+    P.line(list(range(len(rs))), [r['r'] for r in rs], BLUE, tips=[f'{key} band {r["band"]}: s1X − F(s1Y) = {r["r"]:+.3f} ± {r["r_e"]:.3f}, mean Y share {r["s1Y"]:.2f}' for r in rs])
+    for i, r in enumerate(rs): ebar(P, i, r['r'], r['r_e'], BLUE, 5)
+    return P
+PA = looppanel('det3 June-15 by x', 'det3 June-15 (asymmetric)', 'x band (64 true columns)')
+PA.text(-0.2, 0.22, 'Sharing crosses zero at the a1 peak', 22, INK, weight=600)
+PB = looppanel('det3 May by x', 'det3 May, same PCB (quiet)', 'x band (64 true columns)')
+PB.text(-0.2, 0.22, 'Same-size sharing structure, no a1', 22, INK, weight=600)
+s17 = sd.title('The June boards trace the loop a sweeping offset predicts, but the quiet board’s sharing varies as much',
+               'Per 64-column band: a1 (red) and the X sharing residual s1X − F(s1Y) (blue; F = the board’s own binned X-vs-Y relation)')
+s17 += row(PA.svg('loop J15'), PB.svg('loop May'), gap=44)
+s17 += legend([('a1', RED), ('sharing residual (width removed)', BLUE)], 22)
+d2 = CR['det2 by y']
+sl('loop', s17, '<p>An attractor whose offset δ sweeps across a board (print scale or rotation) gives a1 ∝ sin φ and a sharing change ∝ −cos φ: the sharing residual should '
+   'cross zero where a1 peaks and be extreme where a1 crosses zero. det3 June-15 does exactly that across x (+0.08 → 0.01 at the a1 maximum → −0.11). det2 by y '
+   f'(16 bands): +{max(r["r"] for r in d2[:5]):.2f} at its rising a1 zero crossing, about 0 near the extrema, −0.04 … −0.08 at the falling crossing. det4 by x: +0.08 / +0.05 / −0.19 '
+   'with a1 0.03 / 0.11 / 0.03.</p>'
+   '<p>But det3 May, the same PCB with no asymmetry, has residuals of −0.15 and +0.13 in adjacent bands, so bulk-local sharing structure (gap, gain) is as large as the loop. '
+   'June-15 doesn’t repeat May’s pattern, so it isn’t the PCB or the electronics. The loop is suggestive, not evidence (<code>loop/det2_crossings_np.py</code>).</p>', short='Loop')
 
 # ------------------------------------------------------------------------------------------------ 18 fingerprint matrix
 Y_, N_, Q_ = chip('✓', GREEN), chip('✗', RED), chip('?', GREY)
 FP = [('X view only; Y flat in both pad classes', Y_, Y_, Q_),
-      ('Odd n−1 → n+1 transfer, ±1 sum unchanged', N_, '✓ (first order)', Q_),
+      ('Odd n−1 → n+1 transfer, ±1 sum unchanged', '✓ (allowed vs no pull)', '✓ (first order)', Q_),
+      ('Direct n−1 → n+1: ±2 carries ~1/8 of ±1', 'plausible (position-level)', Q_, Q_),
       ('Smooth two-signed field, fixed per board', Y_, Q_, Q_),
       ('Pad-pitch locked, no 31.2 mm beat', '✓ only with a 780 µm print', Y_, Q_),
       ('Same over X pads and Y pads', Y_, Y_, Q_),
       ('Size: board mean 0.14, cells ±0.2', '✗ (≤ ×1.8 of 1/3)', Q_, Q_),
       ('Bigger on narrow-cloud nights and at low drift field', Y_, Q_, 'plausible (field)'),
+      ('Independent of gain (×6) and hours at fixed width', Y_, Y_, N_),
       ('Late on short pulses, early on long', '✓ anisotropic only', Q_, Q_),
-      ('June builds only', 'needs a print difference', Q_, 'June material'),
-      ('6-19/20 off the width curve', N_, Q_, 'plausible (HV trouble)')]
+      ('June builds only', 'needs a print difference', Q_, 'June material')]
 s18 = sd.title('The fingerprint any explanation must reproduce', 'Rows: data facts from the previous slides. Columns: the candidates still standing')
 s18 += table(['fact', 'strip registration (as simulated)', 'skewed X response (untested)', 'surface charging (untested)'], [list(r) for r in FP], 23,
              widths=[640, 380, 330, 320], align=['left', 'center', 'center', 'center'])
@@ -611,17 +689,17 @@ sl('fingerprint', s18, '<p><b>Skewed X response</b>: with uniform illumination, 
    '<p>These are candidates to test, not results.</p>', short='Fingerprint')
 
 # ------------------------------------------------------------------------------------------------ 19 way forward
-WF = [('1', 'Score the even term for every model arm (Δs1 vs a1 per δ; s1X − s1Y per cell in data); drop X-peak-class scores', 'archive + existing sim', 'retires or rescues the lever family'),
-      ('2', 'a1 vs time inside long runs and around every HV change (6-27/28 resist 3:3 → 3:4, drift-scan steps, 6-19 spikes); beam vs bench at matched width', 'archive', 'charging vs pure width'),
-      ('3', 'Decode 6-19/20 raw_daq_data and map it', 'archive', 'fixed map at low scale, or a different board/state'),
-      ('4', 'Per-session, width-matched maps for det3', 'archive', 'is the geometry really fixed'),
-      ('5', 'Split the existing sim arms’ a1 into attraction and induction skew (even vs odd per δ); redo route 9 with resistive offset strips in the weighting field', 'sim, small', 'whether any strip model passes the even term'),
-      ('6', 'Photograph the strips (or get the mask) on det2 rows 0–63 vs 128–255, and on det3 May', 'needs the board', 'registration: opposite δ there, 780 µm pitch'),
-      ('7', 'Collimated source across one pad; HV ramps and dwell; dry-gas flush', 'needs the detector', 'attractor vs displacement; charging; humidity')]
-s19 = sd.title('Way forward, ranked: cheapest decisive tests first', 'Steps 1–5 need nothing new; 6 needs a photo; 7 needs the detector')
+WF = [('done', 'Even term vs a no-pull baseline; transfer shape; a1 vs gain and time; 6-19/20 identified as det2', 'archive + sim', 'even term doesn’t decide; not charging; no outlier'),
+      ('1', 'Score models on the transfer shape (±1 vs ±2) and the size, not on pad classes or the within-attractor even contrast', 'existing sim', 'which position-level mechanisms survive'),
+      ('2', 'Electrostatic pull: charged insulating gaps focusing avalanche electrons onto the strips (prompt, X-only, gain-independent once saturated)', 'sim, new', 'the size problem of resistive spreading'),
+      ('3', 'Skewed induction: offset, partly conducting strips in the weighting field (route 9 redone with resistive strips)', 'sim, small', 'a non-attracting alternative'),
+      ('4', 'Per-session, width-matched maps for det3; decode 6-19/20 FEU 3 for more events', 'archive', 'is the geometry really fixed'),
+      ('5', 'Photograph the strips (or get the mask) on det2 rows 0–63 vs 128–255, and on det3 May', 'needs the board', 'registration: opposite δ there, 780 µm pitch'),
+      ('6', 'Collimated source across one pad; HV ramps and dwell; dry-gas flush', 'needs the detector', 'attractor vs displacement; charging; humidity')]
+s19 = sd.title('Way forward, ranked: cheapest decisive tests first', 'Steps 1–4 need nothing new; 5 needs a photo; 6 needs the detector')
 s19 += table(['#', 'test', 'needs', 'decides'], [list(r) for r in WF], 23, widths=[50, 980, 250, 380], align=['center', 'left', 'left', 'left'])
-sl('forward', s19, '<p>Step 1 is the one that changes the direction of the work: until now every lever was scored on the odd amplitude and the timing only. A sim arm passes only '
-   'if its even term per unit |a1| is ≲ 0.1–0.2 (det2’s Y-pad slope +0.11 ± 0.05).</p>'
+sl('forward', s19, '<p>The even-term score proposed earlier in this audit turned out not to discriminate (slide "Even term"): the sharing change of a pull runs both ways relative '
+   'to an unpulled board, and bulk-local sharing structure is ±0.1. The shape of the transfer (±1 vs ±2) and the size are the scores that remain.</p>'
    '<p>Step 6 is the most decisive physical measurement: registration predicts strip-centre offsets of opposite sign (±100–300 µm) in det2’s positive and negative bands, '
    'and a 780 µm pitch. A phone photo through a microscope eyepiece at a few points would do. Read strip width and gap too.</p>'
    '<p>Analysis does not wait for the mechanism: <code>wft.xasym</code> (nTof_x17, commit 30198e4) corrects det2 and det3 June-15 positions with a measured map × '
@@ -630,26 +708,26 @@ sl('forward', s19, '<p>Step 1 is the one that changes the direction of the work:
 # ------------------------------------------------------------------------------------------------ 20 close
 cl = (sd.kicker('Where it stands')
       + '<h2 style="font-size:58px;font-weight:600;line-height:1.1;width:1660px">The effect is well measured and the analysis can be corrected. Its cause is open: '
-        'registration explains the map but not the sharing</h2>'
+        'a position-level pull toward the strips fits everything but the size</h2>'
       + row(card(p('What this does not rule out', 30, DINK, 600)
                  + p('• Strips that skew the induced signal without concentrating the charge (registration through induction).', 26, DMUT)
                  + p('• A difference in the June print (pitch, width, fill) that the mask or a photo would show.', 26, DMUT)
-                 + p('• A surface or charging effect specific to fresh June bulks.', 26, DMUT)
+                 + p('• A static (saturated) surface charge on fresh June bulks: gain-independent, unlike charging-up.', 26, DMUT)
                  + p('• Something in the June bulk process nobody has named yet (Stephan: "nothing different").', 26, DMUT), bg='#1f2533'),
             card(p('Open decisions', 30, DINK, 600)
-                 + p('• Stop tuning attractor-type levers until the even-term score is in place?', 26, DMUT)
+                 + p('• Next model: an electrostatic pull from charged gaps, or skewed induction?', 26, DMUT)
                  + p('• Can someone photograph a June board’s strips (det2 ideally) and det3 May?', 26, DMUT)
                  + p('• Adopt wft.xasym in production (needs a re-alignment and per-run scales)?', 26, DMUT)
-                 + p('• Was det3’s board or cabling different on 6-19/20?', 26, DMUT), bg='#1f2533'), gap=40))
+                 + p('• What differed in the June print (strip width, pitch, gap)?', 26, DMUT), bg='#1f2533'), gap=40))
 sl('close', cl, '<p>Audit text with every route re-graded (excluded / weakened / supported / untested, flagged for contaminated controls, board averages, selection effects '
    'and unvalidated models): <code>scratchpad/2026-10-21/audit/AUDIT.md</code> in MX17_Geant. Builder: <code>scratchpad/2026-10-21/audit/make_audit_deck.py</code>.</p>',
    dark=True, short='Open')
 
 OUTP = os.path.join(HERE, 'det3-x-asymmetry.html')
 D.write(OUTP, note_meta=dict(title='det3 X neighbour asymmetry: an audit',
-                             summary='Fresh-eyes summary of the week-long study. Every June board carries a smooth, two-signed, X-only field of unequal ±1 neighbours that moves charge '
-                                     'sideways without changing the ±1 sharing. Electronics, connectors, copper, copies, Y→X transfer and gap conduction are excluded on '
-                                     'within-board tests. Strip registration explains the map, but it predicts a sharing change the data don’t show (det2: ×20 too large). '
-                                     'The deck lays out the fingerprint and a ranked plan.',
+                             summary='Fresh-eyes summary of the week-long study, updated the same evening. Every June board carries a smooth, two-signed, X-only field that moves '
+                                     'charge straight from neighbour n−1 to n+1, with a size set by the cloud width alone (not gain, not time). Electronics, connectors, copper, '
+                                     'copies, linear coupling, Y→X transfer, charging and gap conduction are excluded; the 6-19/20 outlier was det2. A pull toward the strips '
+                                     'is still possible (the sharing test does not decide it) but no simulated version is big enough. Fingerprint and ranked plan.',
                              tags='MX17,detector,crosstalk', date='2026-10-21'))
 print('wrote', OUTP)
