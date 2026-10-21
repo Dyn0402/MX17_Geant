@@ -80,6 +80,27 @@ both compared the sharing at large |a1| with the sharing at delta = 0 *inside th
   (`narrow_chain.sh`; funnel width matched with the new `--gap-funnel-width-um`). Note the earlier w690f1 arms funnelled onto
   550 µm edges (the funnel used the production width regardless of the kernel's); fixed by the new option.
 
+## 6. Full-sim narrow-strip test: fails (`paired_odd_narrow.json`, 2026-10-21 19:50)
+- Paired arms vs glg0 (36 angle/seed pairs each, condor 4526326; hybrid X kernels 190 / 290 µm strips, 5 MΩ/sq; funnel
+  width matched). Odd amplitude O (all / narrow half), ratio to glg0, and X sharing s1 (glg0 0.760):
+
+  | arm      | O all  | ratio | O narrow | ratio | s1    |
+  |----------|--------|-------|----------|-------|-------|
+  | glg0     | +0.053 | 1     | +0.068   | 1     | 0.760 |
+  | w190     | +0.011 | 0.21  | +0.022   | 0.33  | 0.715 |
+  | w190f1   | +0.031 | 0.59  | +0.043   | 0.63  | 0.664 |
+  | w290     | +0.028 | 0.52  | +0.035   | 0.51  | 0.728 |
+  | w290f1   | +0.049 | 0.92  | +0.062   | 0.92  | 0.705 |
+
+  (paired diff errors ±0.004–0.005.) Pass needed ×2.5–5 with no sharing change; every arm is BELOW the 550 µm control,
+  and the funnel arms also narrow the sharing (Δs1 −0.05 … −0.10).
+- In the full sim the odd amplitude grows with strip width (190 < 290 < 550; funnel adds ~+0.02–0.025 at each width), the
+  opposite of the 1-D toy (§5). The sim carries the real depth mixture of a track's electrons (Stage A clusters), so the
+  §5 "narrow cloud" regime is not what the sim's clouds look like at the pitch scale, or the toy's induction is not the
+  resistive kernel's. Either way the narrow-print prediction is not supported; a strip photo is no longer the decisive
+  next step for this branch.
+- Y view and the even term were not scored (the odd amplitude already fails).
+
 ## What this leaves
 - The fingerprint (audit §4.1) gains: (2) the transfer is n−1 → n+1 direct, ±2 odd ≈ 12 % of ±1; (5) gain- and
   time-independent at fixed width; no session outlier. The even term is not a usable discriminator at the ±0.1 level.

@@ -56,10 +56,11 @@ n_sub = len([s for s in AD['survey']])
 cover = (sd.kicker('Audit · MX17 micromegas · June-2026 cosmic bench · raw DREAM ADC')
          + '<h1 style="font-size:70px;font-weight:600;line-height:1.08;letter-spacing:-2px;width:1660px">'
            'The June boards’ X view moves charge straight from one neighbour to the other. Its cause is open: '
-           'a pull onto narrow resistive strips could do it; the full-sim test is running</h1>'
+           'a pull onto narrow resistive strips did it in a 1-D toy, but not in the full sim</h1>'
          + p('A fresh look at a week of work, updated the same evening: the observation is solid and well mapped, and many causes are firmly '
              'excluded. The size is set by the cloud width alone (not gain, not time). The sharing test first thought to exclude registration '
-             'does not decide it; the strips themselves (a photo or the mask) would.',
+             'does not decide it. Narrow strips with a charged-gap funnel, which reach the data’s size in a 1-D toy, give a smaller asymmetry than '
+             'the production strips in the full sim.',
              30, DMUT, extra='width:1560px')
          + '<div style="flex:1"></div>'
          + row(sd.bignum('7', 'board builds surveyed', DRED, '5 June builds, 2 quiet controls (det3 May, det1)',
@@ -688,7 +689,7 @@ ds = sorted([r for r in TA if r['sub'].startswith('drift_scan')], key=lambda r: 
 dv = [int(r['drift']) for r in ds]; da = [float(np.mean([c_['a1'] for c_ in r['chunks']])) for r in ds]; dy = [r['chunks'][0]['ysh'] for r in ds]
 P2.line(dv, dy, BLUE, tips=[f'{v} V: median Y share {y:.2f}' for v, y in zip(dv, dy)])
 P2.line(dv, [5 * a for a in da], RED, tips=[f'{v} V: a1 = {a:+.3f} (drawn ×5)' for v, a in zip(dv, da)])
-s17b = sd.title('A physical pull reaches the data’s size only onto narrow strips, with a narrow electron cloud',
+s17b = sd.title('In a 1-D toy a physical pull reaches the data’s size onto narrow strips; the full sim does not',
                 'Left: 1-D toy, gaps charged to saturation funnel every gap electron onto the nearer strip edge; right: the drift scan')
 s17b += row(col(P.svg('funnel width'), legend([('cloud σ 100 µm', '#5b3a8c'), ('σ 150 µm', PURPLE), ('σ 200 µm', '#b79be0'), ('per-electron pull on a σ 450 µm cloud', GREY, 'dash')], 20), gap=8),
             col(P2.svg('drift scan'), legend([('median Y share (cloud width)', BLUE), ('a1 × 5', RED)], 20), gap=8), gap=40)
@@ -700,8 +701,10 @@ sl('funnel', s17b, '<p>A detector responds electron by electron, so a real pull 
    '(<code>loop/toy_funnel_regime.py</code>).</p>'
    '<p>A narrow cloud is plausible: a vertical track’s electrons are a depth mixture (30 mm gap), whose pitch-scale content is ~10× that of a Gaussian of the same '
    'rms, and attachment in the ~1 % H₂O gas at low drift field removes the deep electrons; the drift scan shows the Y share narrowing (0.98 → 0.56) as a1 rises.</p>'
-   '<p>Prediction: narrow strips (≲ 300 µm) with wide gaps on the June prints. Full-sim test running: 190 / 290 µm X kernels (condor 4526243) and paired arms with '
-   'the matched funnel (<code>narrow_chain.sh</code>).</p>', short='Physical pull')
+   '<p>Prediction tested: narrow strips (≲ 300 µm) with wide gaps on the June prints. <b>The full sim says no.</b> Paired arms vs the 550 µm control '
+   '(36 angle/seed pairs each, 190 / 290 µm X kernels, matched funnel; <code>paired_odd_narrow.json</code>): odd amplitude ×0.21 (190 µm), ×0.59 (190 µm + funnel), '
+   '×0.52 (290 µm), ×0.92 (290 µm + funnel), against the ×2.5–5 needed; the funnel arms also narrow the sharing (Δs1 −0.05 … −0.10). In the full sim the asymmetry '
+   'grows with strip width, opposite to the toy: the sim’s real depth-mixture clouds and resistive induction are not the toy’s narrow-cloud regime.</p>', short='Physical pull')
 
 
 # ------------------------------------------------------------------------------------------------ 18 fingerprint matrix
@@ -712,7 +715,7 @@ FP = [('X view only; Y flat in both pad classes', Y_, Y_, Q_),
       ('Smooth two-signed field, fixed per board', Y_, Q_, Q_),
       ('Pad-pitch locked, no 31.2 mm beat', '✓ only with a 780 µm print', Y_, Q_),
       ('Same over X pads and Y pads', Y_, Y_, Q_),
-      ('Size: board mean 0.14, cells ±0.2', 'narrow strips + narrow cloud (toy); full sim running', Q_, Q_),
+      ('Size: board mean 0.14, cells ±0.2', '✗ narrow strips: toy yes, full sim ×0.2–0.9', Q_, Q_),
       ('Bigger on narrow-cloud nights and at low drift field', Y_, Q_, 'plausible (field)'),
       ('Independent of gain (×6) and hours at fixed width', Y_, Y_, N_),
       ('Late on short pulses, early on long', '✓ anisotropic only', Q_, Q_),
@@ -732,10 +735,10 @@ sl('fingerprint', s18, '<p><b>Skewed X response</b>: with uniform illumination, 
 # ------------------------------------------------------------------------------------------------ 19 way forward
 WF = [('done', 'Even term vs a no-pull baseline; transfer shape; a1 vs gain and time; 6-19/20 identified as det2', 'archive + sim', 'even term doesn’t decide; not charging; no outlier'),
       ('1', 'Score models on the transfer shape (±1 vs ±2) and the size, not on pad classes or the within-attractor even contrast', 'existing sim', 'which position-level mechanisms survive'),
-      ('2', 'RUNNING: narrow strips (190 / 290 µm) + saturated-gap funnel in the full sim (condor 4526243 → paired arms)', 'sim', 'whether the toy’s size survives the real kernels'),
+      ('done', 'Narrow strips (190 / 290 µm) + saturated-gap funnel in the full sim: odd amplitude ×0.2–0.9 of the 550 µm control, not ×2.5–5', 'sim', 'the toy’s size does not survive the real kernels'),
       ('3', 'Skewed induction: offset, partly conducting strips in the weighting field (route 9 redone with resistive strips)', 'sim, small', 'a non-attracting alternative'),
       ('4', 'Per-session, width-matched maps for det3; decode 6-19/20 FEU 3 for more events', 'archive', 'is the geometry really fixed'),
-      ('5', 'Photograph the strips (or get the mask) on det2 rows 0–63 vs 128–255, and on det3 May', 'needs the board', 'narrow strips (≲ 300 µm)? opposite δ there, 780 µm pitch'),
+      ('5', 'Photograph the strips (or get the mask) on det2 rows 0–63 vs 128–255, and on det3 May', 'needs the board', 'strip width and gap; opposite δ there, 780 µm pitch'),
       ('6', 'Collimated source across one pad; HV ramps and dwell; dry-gas flush', 'needs the detector', 'attractor vs displacement; charging; humidity')]
 s19 = sd.title('Way forward, ranked: cheapest decisive tests first', 'Steps 1–4 need nothing new; 5 needs a photo; 6 needs the detector')
 s19 += table(['#', 'test', 'needs', 'decides'], [list(r) for r in WF], 23, widths=[50, 980, 250, 380], align=['center', 'left', 'left', 'left'])
