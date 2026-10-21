@@ -56,7 +56,7 @@ n_sub = len([s for s in AD['survey']])
 cover = (sd.kicker('Audit · MX17 micromegas · June-2026 cosmic bench · raw DREAM ADC')
          + '<h1 style="font-size:70px;font-weight:600;line-height:1.08;letter-spacing:-2px;width:1660px">'
            'The June boards’ X view moves charge straight from one neighbour to the other. Its cause is open: '
-           'a pull toward the resistive strips is still possible, but no simulated version is big enough</h1>'
+           'a pull onto narrow resistive strips could do it; the full-sim test is running</h1>'
          + p('A fresh look at a week of work, updated the same evening: the observation is solid and well mapped, and many causes are firmly '
              'excluded. The size is set by the cloud width alone (not gain, not time). The sharing test first thought to exclude registration '
              'does not decide it; the strips themselves (a photo or the mask) would.',
@@ -288,14 +288,14 @@ SER = [('det2 (cell slope)', [fd[k]['b_a1'] for k in ks_], [fd[k]['b_a1_e'] for 
        ('det3 June-15 − May (odd part)', meas, None, RED),
        ('linear antisymmetric coupling', anti, None, GREY), ('one-sided copy', copy, None, BLUE)]
 TR = J(HERE, '..', 'loop', 'toy_shape_rep.json')
-SER.insert(2, (f'strip-pull toy ({TR["f"]:.0%}, δ {TR["delta"]:.0f} µm)', [0.0 if k in (-3, 3) else TR['per_a1'][str(k)] for k in ks_], None, PURPLE))
+SER.insert(2, (f'cloud-level pull toy ({TR["f"]:.0%}, δ {TR["delta"]:.0f} µm)', [0.0 if k in (-3, 3) else TR['per_a1'][str(k)] for k in ks_], None, PURPLE))
 for j, (lab, v, e, c) in enumerate(SER):
     for i, k in enumerate(ks_):
         x = k + (j - 2) * 0.15
         P.vbar(x, v[i], 26, c, tip=f'{lab}: k = {k:+d}: {v[i]:+.3f}' + (f' ± {e[i]:.3f}' if e else ''), base=0)
         if e: ebar(P, x, v[i], e[i], INK, 4)
 P.text(-3.4, 0.85, 'Data: n−1 → n+1 directly; ±2 carries 1/8 (det2) – 1/4 (det3)', 24, INK, weight=600)
-s7b = sd.title('The transfer goes straight from n−1 to n+1, as a pull toward the strips gives; not a copy or a fixed coupling',
+s7b = sd.title('The transfer goes straight from n−1 to n+1: not a copy or a fixed coupling between channels',
                'Change of each neighbour’s in-phase content per unit a1: data (det2 cells, det3 June-15 vs May) against a strip-pull toy and two channel-level operators')
 s7b += P.svg('transfer shape') + legend([(s[0], s[3], 'box') for s in SER], 20)
 sl('transfer', s7b, '<p>det2 (<code>even/det2_profile.py</code>, 32 cells, a1 −0.30 … +0.26, Y share and Y ±2 as width controls): per unit a1, −0.54 / +0.47 at ∓1, −0.08 / +0.04 at ∓2, '
@@ -306,7 +306,7 @@ sl('transfer', s7b, '<p>det2 (<code>even/det2_profile.py</code>, 32 cells, a1 �
    'predicts only −0.01 at a1 = 0.14.</p>'
    f'<p>Strip-pull toy (<code>loop/toy_shape.py</code>, the attractor toy of slide "Even term"): at the data’s operating point (a1 0.10–0.20 with |Δs1| ≤ 0.03 vs no pull) the ±2 '
    f'odd part is 0.01–0.14 of the ±1 one (σ 450 µm: 0.10–0.14) with a small negative ±2 even part, like det2. Shown: {TR["f"]:.0%} of the charge pulled onto lines {TR["delta"]:.0f} µm '
-   f'off the pad centres, σ {TR["sigma"]:.0f} µm clouds, 200 µm induction: a1 {TR["a1"]:+.3f}, Δs1 {TR["ds1"]:+.3f}. ±3 is not computed in the toy (drawn at 0).</p>', short='Transfer shape')
+   f'off the pad centres, σ {TR["sigma"]:.0f} µm clouds, 200 µm induction: a1 {TR["a1"]:+.3f}, Δs1 {TR["ds1"]:+.3f}. ±3 is not computed in the toy (drawn at 0). This toy pulls part of the whole cloud to the line nearest its centre, which a linear detector can’t do; it is a shape check, and slide “Physical pull” has the per-electron version.</p>', short='Transfer shape')
 
 
 # ------------------------------------------------------------------------------------------------ 8 on the detector
@@ -668,6 +668,42 @@ sl('loop', s17, '<p>An attractor whose offset δ sweeps across a board (print sc
    '<p>But det3 May, the same PCB with no asymmetry, has residuals of −0.15 and +0.13 in adjacent bands, so bulk-local sharing structure (gap, gain) is as large as the loop. '
    'June-15 doesn’t repeat May’s pattern, so it isn’t the PCB or the electronics. The loop is suggestive, not evidence (<code>loop/det2_crossings_np.py</code>).</p>', short='Loop')
 
+# ------------------------------------------------------------------------------------------------ 17b what a physical pull needs
+FR = J(HERE, '..', 'loop', 'toy_funnel_regime.json'); TL = J(HERE, '..', 'loop', 'toy_local.json')
+P = Plot(810, 600, x=(60, 560), y=(-0.02, 0.3), xlabel='strip width (µm) at a 780 µm pitch', ylabel='largest a1 with unchanged sharing (|Δs1| ≤ 0.03)')
+P.xticks([(v, str(v)) for v in (100, 200, 300, 400, 500)]); P.yticks([(v, f'{v:.2f}') for v in (0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3)])
+P.raw(f'<rect x="{P.x0}" y="{P.Y(0.20):.1f}" width="{P.pw}" height="{P.Y(0.10) - P.Y(0.20):.1f}" fill="{RED}" fill-opacity="0.10"/>', back=True)
+P.text(360, 0.185, 'det3 June-15 range of a1', 21, RED)
+FC = {100.: '#5b3a8c', 150.: PURPLE, 200.: '#b79be0'}
+for sg in (100., 150., 200.):
+    rs = sorted([r for r in FR if r['sig_ind'] == 350. and r['sigma'] == sg], key=lambda r: r['w'])
+    xs = [r['w'] for r in rs] + [540]; ys = [r['best'] for r in rs] + [0.0]
+    P.line(xs, ys, FC[sg], tips=[f'saturated-gap funnel, cloud σ {sg:.0f} µm, induction 350 µm (no-pull s1 {rs[0]["s1_nopull"]:.2f}), {w:.0f} µm strips: a1 {v:+.3f}' for w, v in zip(xs, ys)][:-1] + ['540 µm strips: funnel alone gives a1 ≈ 0 (toy_funnel.py)'])
+loc = [r for r in TL if r['kind'] == 'local' and r['sigma'] == 450. and np.isfinite(r['best'])]
+P.hline(max(r['best'] for r in loc), GREY, '6 5', 2, tip='toy_local.py: per-electron pulls of 20–100 % onto 50/200 µm lines, σ 450 µm Gaussian cloud, 100/200 µm induction')
+P.text(150, 0.28, 'Only narrow strips + a narrow cloud reach it', 23, INK, weight=600)
+P2 = Plot(810, 600, x=(50, 1150), y=(0, 1.1), xlabel='drift voltage (V, 6-27 drift scan)', title='Low drift field: narrower cloud, bigger a1')
+P2.xticks([(v, str(v)) for v in (100, 300, 500, 700, 900, 1100)]); P2.yticks([(v, f'{v:.1f}') for v in (0, 0.2, 0.4, 0.6, 0.8, 1.0)])
+ds = sorted([r for r in TA if r['sub'].startswith('drift_scan')], key=lambda r: int(r['drift']))
+dv = [int(r['drift']) for r in ds]; da = [float(np.mean([c_['a1'] for c_ in r['chunks']])) for r in ds]; dy = [r['chunks'][0]['ysh'] for r in ds]
+P2.line(dv, dy, BLUE, tips=[f'{v} V: median Y share {y:.2f}' for v, y in zip(dv, dy)])
+P2.line(dv, [5 * a for a in da], RED, tips=[f'{v} V: a1 = {a:+.3f} (drawn ×5)' for v, a in zip(dv, da)])
+s17b = sd.title('A physical pull reaches the data’s size only onto narrow strips, with a narrow electron cloud',
+                'Left: 1-D toy, gaps charged to saturation funnel every gap electron onto the nearer strip edge; right: the drift scan')
+s17b += row(col(P.svg('funnel width'), legend([('cloud σ 100 µm', '#5b3a8c'), ('σ 150 µm', PURPLE), ('σ 200 µm', '#b79be0'), ('per-electron pull on a σ 450 µm cloud', GREY, 'dash')], 20), gap=8),
+            col(P2.svg('drift scan'), legend([('median Y share (cloud width)', BLUE), ('a1 × 5', RED)], 20), gap=8), gap=40)
+sl('funnel', s17b, '<p>A detector responds electron by electron, so a real pull moves each electron by where it lands (the "cloud-level" toy of the transfer slide does not; '
+   'it is a shape check only). Per-electron pulls on σ 300–450 µm Gaussian clouds stay at a1 ≤ 0.04–0.07 with unchanged sharing (<code>loop/toy_local.py</code>).</p>'
+   '<p>Charged insulating gaps saturate at σ = ε₀E₀ ≈ 3.5 nC/cm² (39 kV/cm): then no field line ends on a gap and every gap electron lands on the nearer strip edge. '
+   'With the quoted 540 µm strips that funnel gives a1 ≈ 0 (each gap feeds both edges). The sharing fixes only cloud width ⊗ induction: with a narrow electron '
+   'cloud (σ 100–200 µm) and wide induction (350 µm; no-pull s1 0.59–0.67, the data’s range) the funnel onto narrow strips reaches a1 0.1–0.24 '
+   '(<code>loop/toy_funnel_regime.py</code>).</p>'
+   '<p>A narrow cloud is plausible: a vertical track’s electrons are a depth mixture (30 mm gap), whose pitch-scale content is ~10× that of a Gaussian of the same '
+   'rms, and attachment in the ~1 % H₂O gas at low drift field removes the deep electrons; the drift scan shows the Y share narrowing (0.98 → 0.56) as a1 rises.</p>'
+   '<p>Prediction: narrow strips (≲ 300 µm) with wide gaps on the June prints. Full-sim test running: 190 / 290 µm X kernels (condor 4526243) and paired arms with '
+   'the matched funnel (<code>narrow_chain.sh</code>).</p>', short='Physical pull')
+
+
 # ------------------------------------------------------------------------------------------------ 18 fingerprint matrix
 Y_, N_, Q_ = chip('✓', GREEN), chip('✗', RED), chip('?', GREY)
 FP = [('X view only; Y flat in both pad classes', Y_, Y_, Q_),
@@ -676,7 +712,7 @@ FP = [('X view only; Y flat in both pad classes', Y_, Y_, Q_),
       ('Smooth two-signed field, fixed per board', Y_, Q_, Q_),
       ('Pad-pitch locked, no 31.2 mm beat', '✓ only with a 780 µm print', Y_, Q_),
       ('Same over X pads and Y pads', Y_, Y_, Q_),
-      ('Size: board mean 0.14, cells ±0.2', '✗ (≤ ×1.8 of 1/3)', Q_, Q_),
+      ('Size: board mean 0.14, cells ±0.2', 'narrow strips + narrow cloud (toy); full sim running', Q_, Q_),
       ('Bigger on narrow-cloud nights and at low drift field', Y_, Q_, 'plausible (field)'),
       ('Independent of gain (×6) and hours at fixed width', Y_, Y_, N_),
       ('Late on short pulses, early on long', '✓ anisotropic only', Q_, Q_),
@@ -696,10 +732,10 @@ sl('fingerprint', s18, '<p><b>Skewed X response</b>: with uniform illumination, 
 # ------------------------------------------------------------------------------------------------ 19 way forward
 WF = [('done', 'Even term vs a no-pull baseline; transfer shape; a1 vs gain and time; 6-19/20 identified as det2', 'archive + sim', 'even term doesn’t decide; not charging; no outlier'),
       ('1', 'Score models on the transfer shape (±1 vs ±2) and the size, not on pad classes or the within-attractor even contrast', 'existing sim', 'which position-level mechanisms survive'),
-      ('2', 'Electrostatic pull: charged insulating gaps focusing avalanche electrons onto the strips (prompt, X-only, gain-independent once saturated)', 'sim, new', 'the size problem of resistive spreading'),
+      ('2', 'RUNNING: narrow strips (190 / 290 µm) + saturated-gap funnel in the full sim (condor 4526243 → paired arms)', 'sim', 'whether the toy’s size survives the real kernels'),
       ('3', 'Skewed induction: offset, partly conducting strips in the weighting field (route 9 redone with resistive strips)', 'sim, small', 'a non-attracting alternative'),
       ('4', 'Per-session, width-matched maps for det3; decode 6-19/20 FEU 3 for more events', 'archive', 'is the geometry really fixed'),
-      ('5', 'Photograph the strips (or get the mask) on det2 rows 0–63 vs 128–255, and on det3 May', 'needs the board', 'registration: opposite δ there, 780 µm pitch'),
+      ('5', 'Photograph the strips (or get the mask) on det2 rows 0–63 vs 128–255, and on det3 May', 'needs the board', 'narrow strips (≲ 300 µm)? opposite δ there, 780 µm pitch'),
       ('6', 'Collimated source across one pad; HV ramps and dwell; dry-gas flush', 'needs the detector', 'attractor vs displacement; charging; humidity')]
 s19 = sd.title('Way forward, ranked: cheapest decisive tests first', 'Steps 1–4 need nothing new; 5 needs a photo; 6 needs the detector')
 s19 += table(['#', 'test', 'needs', 'decides'], [list(r) for r in WF], 23, widths=[50, 980, 250, 380], align=['center', 'left', 'left', 'left'])
@@ -713,7 +749,7 @@ sl('forward', s19, '<p>The even-term score proposed earlier in this audit turned
 # ------------------------------------------------------------------------------------------------ 20 close
 cl = (sd.kicker('Where it stands')
       + '<h2 style="font-size:58px;font-weight:600;line-height:1.1;width:1660px">The effect is well measured and the analysis can be corrected. Its cause is open: '
-        'a position-level pull toward the strips fits everything but the size</h2>'
+        'a charged-gap funnel onto narrow strips fits in a toy; the strips’ width decides</h2>'
       + row(card(p('What this does not rule out', 30, DINK, 600)
                  + p('• Strips that skew the induced signal without concentrating the charge (registration through induction).', 26, DMUT)
                  + p('• A difference in the June print (pitch, width, fill) that the mask or a photo would show.', 26, DMUT)
