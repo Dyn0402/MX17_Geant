@@ -254,7 +254,10 @@ class Digitizer:
                  # nearer strip edge (inset this far inside it) before the
                  # kernel lookup -- prompt funnelling by a charged-up gap
                  # surface. 0 = bit-identical (no rng draw).
-                 gap_funnel=0.0, gap_funnel_inset_um=20.0):
+                 gap_funnel=0.0, gap_funnel_inset_um=20.0,
+                 # strip width the funnel targets; None = the production
+                 # C.ESL_WIDTH_M (set it to the kernel's --esl-width-um).
+                 gap_funnel_width_um=None):
         # kernel_t_max_ns exists so the LUT window can be varied without
         # editing the default — the A1 before/after (test_window) and any
         # SPS-config run (64 x 60 ns frame -> 4200) both need it.
@@ -340,6 +343,8 @@ class Digitizer:
         self.x_view_offset_um = float(x_view_offset_um)
         self.gap_funnel = float(gap_funnel)
         self.gap_funnel_inset_um = float(gap_funnel_inset_um)
+        self.gap_funnel_width_m = (C.ESL_WIDTH_M if gap_funnel_width_um is None
+                                   else float(gap_funnel_width_um) * 1e-6)
         if not 0.0 <= self.gap_funnel <= 1.0:
             raise ValueError(f"gap_funnel must be in [0, 1], got {gap_funnel}")
         self.n_funnelled = 0
@@ -599,7 +604,7 @@ class Digitizer:
         a strip CENTRE at x = 0 mod the ESL pitch (kernels.esl_phase), the same
         registration the kernel product was solved with."""
         ph = K.esl_phase(x)
-        half = C.ESL_WIDTH_M / 2
+        half = self.gap_funnel_width_m / 2
         gap = (ph >= half) & (ph < C.ESL_PITCH_M - half)
         sel = gap & (self.rng_funnel.random(len(x)) < self.gap_funnel)
         inset = self.gap_funnel_inset_um * 1e-6
@@ -747,6 +752,7 @@ class Digitizer:
             "x_view_offset_um": self.x_view_offset_um,
             "gap_funnel": self.gap_funnel,
             "gap_funnel_inset_um": self.gap_funnel_inset_um,
+            "gap_funnel_width_um": self.gap_funnel_width_m * 1e6,
             "n_funnelled": self.n_funnelled,
             "feedback_rmax_mm": self.feedback_rmax_mm,
             "ion_speed_scale": self.ion_speed_scale,

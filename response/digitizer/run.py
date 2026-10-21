@@ -271,6 +271,9 @@ def main():
                          "round). 0 = bit-identical.")
     ap.add_argument("--gap-funnel-inset-um", type=float, default=20.0,
                     help="how far inside the strip edge funnelled avalanches land")
+    ap.add_argument("--gap-funnel-width-um", type=float, default=None,
+                    help="strip width the funnel targets (default: production "
+                         "ESL width); match the kernel's --esl-width-um")
     ap.add_argument("--feedback-rmax-mm", type=float, default=10.0,
                     help="cap on the feedback displacement (redrawn beyond it); "
                          "stands in for UV absorption in the quencher.")
@@ -408,6 +411,7 @@ def main():
                     x_view_offset_um=a.x_view_offset_um,
                     gap_funnel=a.gap_funnel,
                     gap_funnel_inset_um=a.gap_funnel_inset_um,
+                    gap_funnel_width_um=a.gap_funnel_width_um,
                     z_aval_um=a.z_aval_um,
                     drift_gap_mm=a.drift_gap_mm,
                     kernel_t_max_ns=a.kernel_t_max,
