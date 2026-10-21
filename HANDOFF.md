@@ -1,21 +1,45 @@
 # Handoff
 
-## det3 X asymmetry (all rounds) — updated 2026-10-21 evening (dylan-MS-7C84)
+## det3 X asymmetry (all rounds) — updated 2026-10-21 night (dylan-MS-7C84)
 
-**Resume:** read `scratchpad/2026-10-21/audit/AUDIT.md` (independent audit; deck remade at the same URL) and then
-`scratchpad/2026-10-21/FOLLOWUP.md` (supersedes the "leading explanation" below). Key changes:
-- The asymmetry is the same over X and Y pads (Y-share label, `m3class/`); the Y-pad story was peak migration.
-- The even-term exclusion of registration (audit §3.1) is WRONG: it compared within one attractor, not vs no pull. A pull
-  near the pad boundary gives a1 0.1–0.3 with no net sharing change. det2/det3/det4 show the attractor's quadrature loop
-  (sharing residual ∝ −cos φ), but the quiet det3 May has bulk-local sharing structure as large, so it's suggestive only.
-- The transfer is direct n−1 → n+1 (±2 odd ≈ 12 % of ±1); not a copy or a linear coupling. Per-electron pulls only reach the size with a
-  narrow electron cloud (σ ≤ 200 µm) + wide induction (~350 µm); then a saturated charged-gap funnel onto NARROW strips
-  (≲ 300 µm) gives a1 0.1–0.2 at Δs1 ≈ 0 (FOLLOWUP §5). Full-sim test: kernels condor 4526243 → arms via narrow_chain.sh
-  (w190/w190f1/w290/w290f1, paired with glg0; npz → desktop job tmp sim/narrow). Score with paired_odd.py, even/sim_even.py.
-- a1 is gain- and time-independent at fixed width; the 6-19/20 outlier was det2 (noise fingerprint).
-Next: an electrostatic pull (charged gaps focusing avalanche electrons onto the strips) and skewed induction, scored on
-the ±1/±2 odd shape and the size; the strip photo/mask (det2 rows 0–63 vs 128–255, det3 May) is still the decisive measurement.
-The text below (rounds 7–8) is kept for reference.
+**Resume:** narrow-strip + funnel full-sim arms (chain running); score them vs glg0 when ~/x17/nb_asym_raw/simnarrow fills.
+
+**Read first:** `scratchpad/2026-10-21/FOLLOWUP.md` (§1–5, supersedes the older picture below), then `audit/AUDIT.md`.
+Deck (rebuilt from `scratchpad/2026-10-21/audit/make_audit_deck.py`, 23 slides): https://dylan-neff.web.cern.ch/notes/det3-x-asymmetry.html
+
+**Where it stands (2026-10-21 night):**
+- Data facts: X-only (Y flat in both pad classes), same over X and Y pads (Y-share label; the Y-pad story was peak migration),
+  direct n−1 → n+1 transfer (±2 odd 1/8 det2 – 1/4 det3), size set by cloud width only (gain ×6 and hours: flat), 6-19/20
+  FEU 7 was det2 (noise fingerprint). Not a copy, not a linear channel coupling, not charging-up.
+- The even-term "exclusion" of registration was WRONG (within-attractor comparison); vs an unpulled board a pull can leave
+  the sharing unchanged. Bulk-local sharing structure (±0.1 on det3 May) makes the even term non-discriminating.
+- Physical (per-electron) pulls reach the data's size only with a narrow electron cloud (σ ≤ 200 µm) + wide induction
+  (~350 µm). Then a saturated charged-gap funnel onto NARROW strips (≲ 300 µm) gives a1 0.1–0.2 at Δs1 ≈ 0 (1-D toy).
+  Prediction: June prints have narrow strips / wide gaps. The "cloud-level" toy that matched det2's shape is unphysical.
+
+**In progress (survives this session):**
+- condor 4526243: X kernels with 190 / 290 µm strips (`gx_narrow.sub` → EOS `/eos/user/d/dneff/tmp/gx/gap0_w{190,290}_nx1560/`).
+- Desktop chain `scratchpad/2026-10-21/narrow_chain.sh`, detached (setsid, PID 1232031 at wrap-up), log `~/x17/narrow_chain.log`:
+  waits for 4526243 → builds hybrids on lxplus → `condor_submit stageBC_narrow.sub` (144 arms: glw190, glw190f1, glw290,
+  glw290f1; th00 + thy*, seeds 7–12) → waits → rsyncs npz to `~/x17/nb_asym_raw/simnarrow/`. Log says CHAIN_SUBMITTED /
+  ARMS_DONE. If it died (reboot, lxplus connection expired): rerun from the step it reached; don't resubmit arms twice
+  (check `condor_q -af Cmd Args | grep run_funnelw_job`).
+
+**Next steps:**
+1. Score the arms: `python3 scratchpad/2026-10-20/r5/paired_odd.py glg0 <glg0 dir> w190f1 ~/x17/nb_asym_raw/simnarrow ...`
+   (glg0 npz: yoga `~/x17/nb_asym_raw/simgapleak/` or lxplus `mx17_s1/simgapleak_npz/`; new tags `glw190f1_*` etc.), `even/sim_even.py`, Y view kept?
+   Pass if the odd amplitude reaches the data (×2.5–5 of glg0) with no sharing gain and the Y view intact.
+2. If it passes: the strip photo/mask (det2 rows 0–63 vs 128–255, det3 May) is the decisive check of narrow June strips.
+3. Keep the deck current (`make_audit_deck.py`, publish with add-note.py --slug det3-x-asymmetry --force --deploy).
+
+**Gotchas:**
+- New digitizer option `--gap-funnel-width-um` (default = production 550, bit-identical). Earlier w690f1 arms funnelled
+  onto 550 µm edges (the funnel ignored the kernel width).
+- lxplus src (`/afs/cern.ch/work/d/dneff/mx17_s1/src`) is not git; sync changed files by scp and check md5 vs git first.
+- The survey table's copy-model estimator (`copy_survey.csv` 'a') misreads low-amplitude runs; use the direct a1.
+- `scratchpad/2026-10-17/eval_v2.log` stray change and `build-r6404-g4114/` are deliberately left uncommitted.
+
+The text below (rounds 7–8, 2026-10-21 afternoon) is kept for reference; FOLLOWUP.md supersedes it.
 
 **Goal:** explain det3 June-15's X n−1/n+1 asymmetry (and correct for it) from archive data and simulation; there has
 been no detector access since 10-13 and there is no strip mask.

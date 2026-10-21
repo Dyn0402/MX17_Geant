@@ -11,7 +11,7 @@ cd $D && condor_submit stageBC_narrow.sub"
 echo CHAIN_SUBMITTED
 sleep 600
 until [ "$(ssh lxplus 'condor_q -af Cmd Args 2>/dev/null | grep -c "run_funnelw_job.sh glw[12]90"')" = "0" ]; do sleep 600; done
-mkdir -p /home/dylan/.claude/jobs/25c4e04f/tmp/sim/narrow
-rsync -a --include='glw190*' --include='glw290*' --exclude='*' lxplus:$D/simgapleak_npz/ /home/dylan/.claude/jobs/25c4e04f/tmp/sim/narrow/
-ls /home/dylan/.claude/jobs/25c4e04f/tmp/sim/narrow | wc -l
+mkdir -p $HOME/x17/nb_asym_raw/simnarrow
+rsync -a --include='glw190*' --include='glw290*' --exclude='*' lxplus:$D/simgapleak_npz/ $HOME/x17/nb_asym_raw/simnarrow/
+ls $HOME/x17/nb_asym_raw/simnarrow | wc -l
 echo ARMS_DONE
