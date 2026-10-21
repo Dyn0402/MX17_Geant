@@ -1,71 +1,74 @@
 # Handoff
 
-## det3 X asymmetry (all rounds) — updated 2026-10-20 evening (dylan-Yoga)
+## det3 X asymmetry (all rounds) — updated 2026-10-21 (dylan-Yoga)
 
-**Resume:** read "Current picture" and the ledger at the top of `scratchpad/2026-10-19/asym_deck/FINDINGS.md` (routes 1–37),
-then "Next checks after the seventh round" at the end of its Seventh round section.
+**Resume:** read "Current picture" + ledger (routes 1–40) at the top of `scratchpad/2026-10-19/asym_deck/FINDINGS.md`; next: Y-box anisotropic check.
 
 **Goal:** explain det3 June-15's X n−1/n+1 asymmetry (and correct for it) from archive data and simulation; there has
-been no detector access since 10-13.
+been no detector access since 10-13 and there is no stripe mask.
 
-**Done this round (seventh):**
-- The sim's registration a1 is a late sheet-transport effect in the kernel itself (`r5/kernel_delta.py`).
-- The sim's registration excess leads the central by 70–90 ns; the data's by 10 ns (`r5/delta_timing.py`).
-- Size levers measured with paired full-sim arms (`r5/paired_odd.py`):
-  - prompt gap funnelling (digitizer `--gap-funnel`): ×1.40;
-  - wider stripes (700 µm): ×1.45;
-  - cross-gap leak: ×0.9–1.0, not a size lever.
-- The cross-gap leak at 5–10 % of the stripe conductivity reproduces the June boards' late across-stripe content
-  (+7.8 / +27.6 ×10⁻³ vs data 12–31). The June gaps conduct, but that isn't the asymmetry.
-- ρ_s sets the timing of the registration term, not its size.
-- Per-board X-centroid bias maps for the analysis correction (`r5/corr_maps.json`): det3 −75 µm mean, 77 µm rms; det2
-  ±70 µm bands; one fixed map × per-session scale fits det3.
-- New default-off code (production bit-identical):
-  - `wpot.esl_sigma_profile(gap_frac)`, `W2Solver(esl_gap_frac)`;
-  - `w2_production.py family --nx --gap-frac --esl-width-um` and `combine-x`;
-  - digitizer `--gap-funnel/--gap-funnel-inset-um` (own rng stream);
-  - `scratchpad/2026-10-21/build_hybrid.py`.
+**Where it stands (end of rounds 7–8):**
+- The asymmetry is a fixed, smooth, two-signed, X-only field on every June board, scaled by the cloud width.
+- Leading explanation: resistive-stripe registration (stripe offset vs pad column, varying over the board).
+- Best model so far, at 5 MΩ/sq along the stripes, which keeps the Y view: 700 µm stripes + gap electrons funnelled
+  onto the stripe edges + anisotropic stripes σ_xx = 10·σ_yy.
+  - Size ×1.79 overall, ×2.22 for narrow clouds, against the data's ×2.5–5.
+  - Reproduces the data's timing pattern: excess late (+64/+74 ns) for near-vertical (short) pulses, early for
+    inclined ones; data +52 → −54 ns.
+- Closed this round:
+  - Cross-gap leak: explains the June boards' late cross-stripe charge (f ≈ 0.05–0.1) but adds no asymmetry.
+  - Uniform low ρ_s (2 and 0.5 MΩ/sq): gives size and timing, but fails the Y view (Y/X compact clusters 0.12 /
+    0.001 vs data 0.9).
+- "Prompt" (route 21) vs the beam study's "delayed 114 ns": the same data under different angle mixes (#39).
+- Analysis: the production wft X position carries the field (K = −0.77 ± 0.13 vs M3). nTof_x17 `wft/xasym.py`
+  (commit 30198e4) corrects det2 and det3 June-15 (opt-in, new column).
+  - Re-alignment check: board resolution unchanged (≤ 4 µm). It removes a positional systematic of up to ±70 µm.
+- Deck slides 34–42 (rounds 4–8), published: https://dylan-neff.web.cern.ch/notes/det3-x-asymmetry.html
 
-**Eighth round (2026-10-20 night):**
-- The excess timing depends on the pulse width: late (+52 ns) for short, near-vertical pulses; early (−52 ns) for long
-  ones. The sim is early in every width bin (`r5/timing_width.py`).
-- The production wft X position carries the field: K = −0.77 ± 0.13 against M3 (`2026-10-21/reco_resid_map.py`).
-- Correction shipped opt-in in nTof_x17 `wft/xasym.py` (commit 30198e4) for det2 and det3 June-15.
-- Deck slides 34–42 for rounds 4–8, published: https://dylan-neff.web.cern.ch/notes/det3-x-asymmetry.html
-  (`2026-10-21/deck_slides_1021.py`).
-
-**Low ρ_s (done):** 0.5 and 2 MΩ/sq arms (condor 4520942, 4520945) reach ×2.1–2.4 and, at 0.5 MΩ, the data's timing
-trend. But both fail the Y view: Y/X kept for vertical tracks is 0.001 and 0.12, against data ≈ 0.9 and 5 MΩ 0.92.
-The ρ_s lever is closed. The best Y-compatible sim is 700 µm stripes + funnel at 5 MΩ, ×1.58 (narrow ×1.78).
+**In progress:** nothing running (no condor jobs). All arm npz are on yoga `~/x17/nb_asym_raw/{simfunnel,simgapleak}/`;
+decoded ROOT on EOS `response_sim/stageB_w2/{funnel,gapleak}/`; X-kernel products and hybrids in `/eos/user/d/dneff/tmp/gx/`.
 
 **Next steps:**
-1. Mask (Dylan): stripe pitch, width, alignment, June vs May.
-2. Model a print that spreads charge fast across a stripe but slowly along it (structured or anisotropic stripe),
-   or registration without transport. Uniform ρ_s can't do both.
-3. Analysis: apply `wft.xasym` to det2/det3 June-15 with a re-alignment; the det3 residual maps also keep an x-scale
-   term the alignment doesn't fit.
+1. Y-box check of the anisotropic model (the hybrids kept the production Y kernels).
+   - `w2_production.py family --box y --aniso-x 10` needs 64 families at 30 GB each: a full campaign like the
+     W2 grid (`run_w2_family.sh` pattern).
+   - Or argue it from a reduced-ny Y solve (`--ny 64`) first.
+2. Close the remaining size gap (×2.2 vs ×2.5–5): scan A (20, 50) together with wider stripes (750 µm) and the
+   funnel inset. Paired arms vs `glg0` with `paired_odd.py`; timing with `timing_width.py`.
+3. When a mask or print spec exists: stripe pitch, width and alignment → predicted δ(x, y) per board vs the measured
+   fields (`r5/corr_maps.json`).
+4. Analysis: decide on adopting `wft.xasym` (needs a re-alignment and the run's scale). The det3 residual maps also
+   keep an x-scale term (+55…+79 µm/100 mm) the alignment doesn't fit.
 
 **Gotchas / decisions:**
-- Score sim variants as paired arms (same angle and seed), never on unpaired sets. Funnel has its own rng, so pairing
-  is exact. The hybrid f = 0 control (glg0) is ×0.95 of the production arms (grid): pair hybrid arms with glg0.
-- The static fast model (`esl_fast.py`) does not reproduce the sim baseline. Use the kernel (`kernel_delta.py`) or
-  the full sim.
-- Kernel gains that arrive late (leak) don't show in the in-phase peak a1. Check full-sim arms before believing a
-  kernel number.
-- nx = 390 mini kernels have ±0.03 lattice artefacts per δ. Use nx = 1560 (exact pad edges). ESL widths must not put
-  strip edges on grid points (use 410/690, not 400/700).
-- An X family at nx = 1560 takes ~61 min on condor (7.3 GB); combine-x ~30 min.
-- `sim_delta.py`, `delta_timing.py`, `paired_odd.py`, `sim_late2.py` take arm prefix + dir args.
-- Earlier gotchas still hold: score models on effects vs controls; don't rank-then-measure on the same noisy bins;
-  use 2D maps, not 1D profiles; `r5/fp_data.pkl` is a local cache.
-- yoga data disk `/media/dylan/data` is ~100 % full.
+- Always score sim variants as paired arms (same angle and seed). Hybrid arms pair with `glg0` (×0.95 of the
+  production arms: the grid). The funnel has its own rng stream.
+- Check the Y view for any transport variant: Y/X kept for th00 (data ≈ 0.9). That is what excluded low ρ_s.
+- Kernel gains that arrive late don't reach the in-phase a1. Believe the full sim, not the kernel.
+- Excess timing must be compared per pulse-width quartile. The sim's pulses are longer (shortest quartile = data q2).
+- The static fast model (`esl_fast.py`) doesn't reproduce the sim baseline. Don't use it as a calibrator.
+- ESL widths must not put strip edges on grid points (410/690 µm at nx = 1560). nx = 390 mini kernels have ±0.03
+  lattice artefacts. An X family at nx = 1560 takes ~1 h, combine-x ~30 min.
+- `wft.xasym` frame: pos_mm = 0.78 × true column on both views. K was measured with offset + rotation removed (what
+  the alignment absorbs).
+- The lxplus shared ssh connection expires overnight. Dylan re-auths (`kinit` + `ssh lxplus`).
 
-**Key files:**
-- `scratchpad/2026-10-19/asym_deck/FINDINGS.md`: ledger, picture, all rounds.
-- `scratchpad/2026-10-20/r5/`: `kernel_delta.py`, `delta_timing.py`, `paired_odd.py`, `sim_late2.py`,
-  `corr_maps.py`, `esl_fast.py` (+ earlier rounds' scripts).
-- `scratchpad/2026-10-21/`: condor subs and job scripts (`run_gx_gap.sh`, `run_funnel_job.sh`,
-  `run_gapleak_job.sh`), `build_hybrid.py`.
+**Key files & commands:**
+- `scratchpad/2026-10-19/asym_deck/FINDINGS.md`: ledger, picture, rounds 1–8.
+- `scratchpad/2026-10-20/r5/`: scorers `paired_odd.py`, `timing_width.py`, `sim_late2.py` (`SIM_VIEW=y`),
+  `delta_timing.py`, `sim_delta.py`, `kernel_delta.py`, `corr_maps.py`.
+- `scratchpad/2026-10-21/`:
+  - condor subs and job scripts: `run_gx_gap.sh GF [WIDTH|-] [ANISO]`, `run_gapleak_job.sh TAG KERNEL FUNNEL ANG SEED`,
+    `run_funnel_job.sh`;
+  - `build_hybrid.py`, `aniso_chain.sh`;
+  - `reco_*.py` and `realign_xasym.sh` (nTof_x17 venv);
+  - `deck_slides_1021.py`.
+- Solver/digitizer options (all default-off, production bit-identical):
+  - `w2_production.py family/combine-x --nx --gap-frac --esl-width-um --aniso-x`;
+  - digitizer `--gap-funnel/--gap-funnel-inset-um`.
+- Deck rebuild: `NB_RAW=/media/dylan/data/claude_tmp/tmp/nb/raw ~/PycharmProjects/nTof_x17/.venv/bin/python
+  scratchpad/2026-10-19/asym_deck/make_asym_deck.py`, then `add-note.py det3-x-asymmetry.html --slug
+  det3-x-asymmetry --force --deploy`.
 
 ## Neighbour asymmetry + timing vs strip distance — updated 2026-10-19 (dylan-MS-7C84)
 
