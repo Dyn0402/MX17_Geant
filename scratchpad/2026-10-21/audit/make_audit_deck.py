@@ -721,7 +721,7 @@ FP = [('X view only; Y flat in both pad classes', Y_, Y_, Q_),
       ('Late on short pulses, early on long', '✓ anisotropic only', Q_, Q_),
       ('June builds only', 'needs a print difference', Q_, 'June material')]
 s18 = sd.title('The fingerprint any explanation must reproduce', 'Rows: data facts from the previous slides. Columns: the candidates still standing')
-s18 += table(['fact', 'strip registration (as simulated)', 'skewed X response (untested)', 'surface charging (untested)'], [list(r) for r in FP], 23,
+s18 += table(['fact', 'strip registration (as simulated)', 'skewed X response (in the sim; ion paths: ✗)', 'surface charging (untested)'], [list(r) for r in FP], 23,
              widths=[640, 380, 330, 320], align=['left', 'center', 'center', 'center'])
 sl('fingerprint', s18, '<p><b>Skewed X response</b>: with uniform illumination, a1 ≠ 0 needs a response that is not mirror-symmetric about the pad. Registration gets there by '
    'attracting the charge (and pays with the even term). The other way is a weighting field that leans toward one neighbour, without moving the charge: the centroid '
@@ -730,13 +730,17 @@ sl('fingerprint', s18, '<p><b>Skewed X response</b>: with uniform illumination, 
    'criterion now void, and because it grew with cloud size).</p>'
    '<p><b>Surface charging</b>: insulating surfaces (coverlay, gap kapton) on fresh June bulks charging up and adding a lateral field. It would naturally give time and '
    'field dependence, and an HV incident could reset it (6-19). It has no worked prediction for the map geometry or pad-pitch locking yet.</p>'
-   '<p>These are candidates to test, not results.</p>', short='Fingerprint')
+   '<p>These are candidates to test, not results.</p>'
+   '<p><b>Update (FOLLOWUP §7):</b> the skewed response is not untested after all. Every full-sim arm runs on W2 kernels whose X box is the 31.2 mm '
+   'superperiod, so offset resistive strips at every δ are in them, and a 2-D floating-strip toy at the sim’s sharing gives the sim’s size (O ≈ 0.04). '
+   'The one piece the sim lacked, avalanche ions returning along the funnel’s field lines, reduces the funnel’s asymmetry by 5–10 % (<code>skew/ion_path_toy.py</code>).</p>', short='Fingerprint')
 
 # ------------------------------------------------------------------------------------------------ 19 way forward
 WF = [('done', 'Even term vs a no-pull baseline; transfer shape; a1 vs gain and time; 6-19/20 identified as det2', 'archive + sim', 'even term doesn’t decide; not charging; no outlier'),
       ('1', 'Score models on the transfer shape (±1 vs ±2) and the size, not on pad classes or the within-attractor even contrast', 'existing sim', 'which position-level mechanisms survive'),
       ('done', 'Narrow strips (190 / 290 µm) + saturated-gap funnel in the full sim: odd amplitude ×0.2–0.9 of the 550 µm control, not ×2.5–5', 'sim', 'the toy’s size does not survive the real kernels'),
-      ('3', 'Skewed induction: offset, partly conducting strips in the weighting field (route 9 redone with resistive strips)', 'sim, small', 'a non-attracting alternative'),
+      ('done', 'Skewed induction: the W2 kernels already carry offset resistive strips at every δ (31.2 mm box) and sit at the conducting-strip limit (2-D toy: O ≈ 0.04 at the sim’s sharing); funnel ion return paths subtract 5–10 %', 'sim + toy', 'no strip-induction route reaches ×2.5–5 at the data’s sharing'),
+      ('3', 'Prompt sharing, data vs sim at the same in-phase s1: is the data’s cloud narrower with wider late spreading (the regime every strip route needs)?', 'archive + sim', 'whether any strip mechanism can work'),
       ('4', 'Per-session, width-matched maps for det3; decode 6-19/20 FEU 3 for more events', 'archive', 'is the geometry really fixed'),
       ('5', 'Photograph the strips (or get the mask) on det2 rows 0–63 vs 128–255, and on det3 May', 'needs the board', 'strip width and gap; opposite δ there, 780 µm pitch'),
       ('6', 'Collimated source across one pad; HV ramps and dwell; dry-gas flush', 'needs the detector', 'attractor vs displacement; charging; humidity')]

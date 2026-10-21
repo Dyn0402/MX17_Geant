@@ -1,10 +1,11 @@
 # Handoff
 
-## det3 X asymmetry (all rounds) — updated 2026-10-21 ~20:00 (dylan-MS-7C84)
+## det3 X asymmetry (all rounds) — updated 2026-10-21 ~21:30 (dylan-MS-7C84)
 
-**Resume:** the narrow-strip full-sim test FAILED (FOLLOWUP.md §6); next is the skewed-induction family (step 1 below).
+**Resume:** narrow strips FAILED (FOLLOWUP §6); skewed induction is already in the sim and ion return paths are closed (§7).
+Next: prompt sharing, data vs sim (step 1 below).
 
-**Read first:** `scratchpad/2026-10-21/FOLLOWUP.md` (§1–6, supersedes the older picture below), then `audit/AUDIT.md`.
+**Read first:** `scratchpad/2026-10-21/FOLLOWUP.md` (§1–7, supersedes the older picture below), then `audit/AUDIT.md`.
 Deck (rebuilt from `scratchpad/2026-10-21/audit/make_audit_deck.py`, 23 slides): https://dylan-neff.web.cern.ch/notes/det3-x-asymmetry.html
 
 **Where it stands (2026-10-21 ~20:00):**
@@ -18,16 +19,22 @@ Deck (rebuilt from `scratchpad/2026-10-21/audit/make_audit_deck.py`, 23 slides):
 - **Full sim says no** (condor 4526326, 36 pairs per arm vs glg0, `scratchpad/2026-10-21/paired_odd_narrow.json`): odd
   amplitude ×0.21 (w190), ×0.59 (w190f1), ×0.52 (w290), ×0.92 (w290f1) of the 550 µm control, vs ×2.5–5 needed; funnel arms
   narrow the sharing (Δs1 −0.05…−0.10). In the sim the asymmetry grows with strip width. Narrow-print prediction unsupported.
+- **Skewed induction (§7):** the W2 X box is the 31.2 mm superperiod, so every arm already has offset resistive strips at
+  every δ; a 2-D floating-strip toy (`skew/ion_path_toy.py --esl float`, `skew/float_psi.py`) at the sim's sharing gives
+  O ≈ 0.04 (sim 0.053): the sim sits at the conducting-strip limit. Funnel ion return paths: −5…−10 % (closed).
+  The floating limit shrinks with cloud width and has ±2/±1 = 1/8–1/4 at σ 250–330 µm (data-like), but is too small at
+  the data's sharing.
 
-**In progress:** nothing running. Narrow arm npz on the desktop `~/x17/nb_asym_raw/simnarrow/` (also lxplus
+**In progress:** nothing running (`float_psi_w550.npz` deleted: regenerate in 9 s with `skew/float_psi.py`). Narrow arm npz on the desktop `~/x17/nb_asym_raw/simnarrow/` (also lxplus
 `mx17_s1/simgapleak_npz/glw{190,290}*`); glg0 control npz now also on the desktop `~/x17/nb_asym_raw/simgapleak/`.
 
 **Next steps:**
-1. Skewed induction (FOLLOWUP "What this leaves", deck way-forward step 3): offset, partly conducting strips leaning the X
-   weighting field without moving charge; route 9 redone with resistive strips. Score on the odd shape (±1 vs ±2) and size
-   first, then the even term and the Y view.
-2. Optional for the record: why the toy and full sim disagree (pitch-scale content of the sim's clouds vs the toy's σ ≤ 200 µm;
-   the resistive kernel's induction vs the toy's Gaussian). Wider strips (750 µm) + funnel trend is the other direction to scan.
+1. Prompt sharing, data vs sim at the same in-phase s1 (FOLLOWUP "What this leaves"): every strip route needs a cloud the
+   strip pins while narrow, widened later. Early-sample (pre-spreading) X sharing in det3 June / det2 vs glg0; also det3 May.
+   If the data's prompt sharing is narrower than the sim's, rebuild Stage A/B clouds there; if not, strip mechanisms are out
+   and only the board/detector tests remain (strip photo; collimated scan, HV ramps, dry gas).
+2. Open for the record: route 9's 3-D note said the floating effect GROWS with σ; the 2-D toy says it shrinks. Check with
+   `2026-10-19/bus_float.py` + the data's α estimator if strips come back.
 3. Keep the deck current (`make_audit_deck.py`, publish with add-note.py --slug det3-x-asymmetry --force --deploy).
 
 **Gotchas:**

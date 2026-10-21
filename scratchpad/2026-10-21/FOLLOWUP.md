@@ -101,11 +101,51 @@ both compared the sharing at large |a1| with the sharing at delta = 0 *inside th
   next step for this branch.
 - Y view and the even term were not scored (the odd amplitude already fails).
 
+## 7. Skewed induction: the resistive version is already simulated; ion return paths closed (`skew/`, 2026-10-21 ~21:00)
+- **The resistive-strip version of route 9 is not a new test.** The W2 X box is the 31.2 mm superperiod (`kernels.pad_x`
+  folds into `C.SUPERPERIOD_M`): 39 strips at 800 µm over 40 pads at 780 µm, so every production and hybrid kernel already
+  carries offset resistive strips at every δ with the full time-dependent (Riegler) weighting physics. glg0's O = +0.053 IS
+  the skewed-induction + attraction answer for 550 µm strips at 5 MΩ/sq (per-δ: `r5/kernel_delta*.json`).
+- **What the sim cannot do, tested in a 2-D toy (`skew/ion_path_toy.py`):** with a saturated funnel the avalanche ions
+  drift back along their electron's field line and reach the mesh above where it came from, while the digitizer sends
+  them straight up from the strip edge with one shared ion time profile. Integrated charge is path-independent (mesh
+  ψ = 0); a1 is an in-phase projection, so the path could matter. Exact layered weighting potentials over the
+  superperiod, the sim's DreamShaper, the data's α projection, 20 k clouds per point (O error ≈ ±0.002).
+  - ESL transparent: |O| ≤ 0.005 in every case (no funnel, funnel with straight ions, funnel with return paths),
+    σ 100–450 µm. (The 200-event test's ±0.05 was noise.)
+  - ESL strips floating (`skew/float_psi.py`, zero net charge per strip): the return paths reduce the funnel's |O| by
+    5–10 % (σ 100: −0.221 → −0.204; σ 300: −0.106 → −0.094). **Closed: ion paths do not add a skew; they slightly undo
+    the funnel's attraction.**
+- **The floating-strip limit itself** (`ion_path_toy_float.json`), no funnel / funnel:
+
+  | σ (µm) | O | O funnel | ±2/±1 | s1 |
+  |---|---|---|---|---|
+  | 100 | −0.160 | −0.221 | 0.00 / 0.02 | 0.37 |
+  | 200 | −0.085 | −0.148 | 0.05 / 0.09 | 0.49 |
+  | 300 | −0.062 | −0.106 | 0.18 / 0.24 | 0.63 |
+  | 450 | −0.025 | −0.052 | 0.76 / 0.71 | 0.88 |
+
+  - It SHRINKS with cloud width (the data's direction), unlike route 9's 3-D `bus_float` + `fwd_parity` note ("growing
+    with σ"); the difference is unexplained (2-D full-column X pads here vs the 3-D comb there, and a different estimator).
+  - ±2/±1 reaches the data's 1/8–1/4 at σ 250–330 µm.
+  - But at the full sim's sharing (s1 ≈ 0.76, σ ≈ 370 µm) O ≈ 0.04, the full sim's own 0.053: **the full sim is already at
+    the conducting-strip limit.** At the data's sharing no strip-induction variant reaches ×2.5–5; it would need a cloud
+    narrower than the sim's with the same sharing, i.e. wide late spreading after the strip has fixed the centroid (the
+    §5 narrow-cloud regime again, which §6 showed the sim does not have).
+- Sign: the toy's O is negative in the +x / sim_delta convention; magnitudes are what compare (the data's δ is unknown).
+
 ## What this leaves
 - The fingerprint (audit §4.1) gains: (2) the transfer is n−1 → n+1 direct, ±2 odd ≈ 12 % of ±1; (5) gain- and
   time-independent at fixed width; no session outlier. The even term is not a usable discriminator at the ±0.1 level.
 - Excluded on top of the audit: a fixed linear channel operator (copy or antisymmetric coupling), charging-up.
 - Open: what physical, position-level, sum-conserving mechanism moves charge from the n−1 pad to the n+1 pad, X-only (across the strips), with a smooth two-signed geometry per board, June bulks only, and an
-  amplitude set by the cloud width. The skewed-induction family (audit §4.2: an offset, partly conducting strip steering the
-  induced signal, or tilted ion drift in a lateral field between strips at different potentials) is the remaining
-  untested class; it should now be scored on the odd shape (±1 vs ±2) and the even term before anything else.
+  amplitude set by the cloud width.
+- Strip-induction routes are now exhausted at the data's sharing (§6, §7): offset resistive strips are in the full sim and
+  sit at the conducting-strip limit; ion return paths subtract; a lateral field from strips at different potentials would
+  need ~kV between neighbours (E_z ≈ 33 V/µm) to tilt the ions by 0.1, implausible for cosmic-rate currents.
+- What every strip route needs and the sim lacks: a cloud whose centroid the strip fixes while it is narrow, with the
+  sharing widened afterwards (late spreading), so that s1 is in the data's range while a1 keeps the narrow-cloud size.
+  Testable on archive data: compare the data's PROMPT sharing (early samples, before resistive spreading) with the sim's
+  at the same in-phase s1. Narrower prompt sharing in the data than in the sim would put the data in that regime.
+- Otherwise the remaining classes need the board or the detector: the strip photo (registration, width, gap) and
+  the detector tests (collimated scan across a pad, HV ramps and dwell, dry gas).
