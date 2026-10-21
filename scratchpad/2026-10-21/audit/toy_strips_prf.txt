@@ -1,0 +1,24 @@
+{'sigma': 250.0, 'w': 540.0, 'e': 0.3, 's1_0': 0.457, 'a1_max': 0.019, 'd_at_max': 330.0}
+{'sigma': 250.0, 'w': 540.0, 'e': 1.0, 's1_0': 0.465, 'a1_max': 0.085, 'd_at_max': 270.0, 'ds1_0.05': 0.043, 'd_0.05': 150.0}
+{'sigma': 250.0, 'w': 700.0, 'e': 0.3, 's1_0': 0.467, 'a1_max': 0.038, 'd_at_max': 255.0}
+{'sigma': 250.0, 'w': 700.0, 'e': 1.0, 's1_0': 0.5, 'a1_max': 0.179, 'd_at_max': 285.0, 'ds1_0.05': 0.02, 'd_0.05': 75.0, 'ds1_0.1': 0.078, 'd_0.1': 150.0}
+{'sigma': 450.0, 'w': 540.0, 'e': 0.3, 's1_0': 0.818, 'a1_max': 0.014, 'd_at_max': 255.0}
+{'sigma': 450.0, 'w': 540.0, 'e': 1.0, 's1_0': 0.826, 'a1_max': 0.036, 'd_at_max': 240.0}
+{'sigma': 450.0, 'w': 700.0, 'e': 0.3, 's1_0': 0.826, 'a1_max': 0.021, 'd_at_max': 165.0}
+{'sigma': 450.0, 'w': 700.0, 'e': 1.0, 's1_0': 0.856, 'a1_max': 0.064, 'd_at_max': 255.0, 'ds1_0.05': 0.053, 'd_0.05': 150.0}
+sig_ind 50 sigma 250 d 75: a1 +0.038 ds1 +0.035  ratio 0.91
+sig_ind 50 sigma 250 d 150: a1 +0.097 ds1 +0.128  ratio 1.33
+sig_ind 50 sigma 250 d 225: a1 +0.162 ds1 +0.246  ratio 1.51
+sig_ind 50 sigma 250 d 285: a1 +0.177 ds1 +0.347  ratio 1.96
+sig_ind 50 sigma 450 d 75: a1 +0.024 ds1 +0.027  ratio 1.09
+sig_ind 50 sigma 450 d 150: a1 +0.039 ds1 +0.094  ratio 2.41
+sig_ind 50 sigma 450 d 225: a1 +0.059 ds1 +0.171  ratio 2.91
+sig_ind 50 sigma 450 d 285: a1 +0.056 ds1 +0.228  ratio 4.07
+sig_ind 300 sigma 250 d 75: a1 +0.061 ds1 +0.013  ratio 0.21
+sig_ind 300 sigma 250 d 150: a1 +0.121 ds1 +0.050  ratio 0.42
+sig_ind 300 sigma 250 d 225: a1 +0.164 ds1 +0.109  ratio 0.67
+sig_ind 300 sigma 250 d 285: a1 +0.173 ds1 +0.166  ratio 0.96
+sig_ind 300 sigma 450 d 75: a1 +0.031 ds1 +0.007  ratio 0.23
+sig_ind 300 sigma 450 d 150: a1 +0.047 ds1 +0.028  ratio 0.60
+sig_ind 300 sigma 450 d 225: a1 +0.046 ds1 +0.058  ratio 1.28
+sig_ind 300 sigma 450 d 285: a1 +0.038 ds1 +0.083  ratio 2.17
