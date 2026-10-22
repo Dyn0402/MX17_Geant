@@ -1,0 +1,25 @@
+A. pitch 760.7 µm vs pads 780.0: offset advances +19.3 µm per column (800 µm design: -20); beat 30.7 mm = 39.4 columns (±1 % pitch: 51.3-21.8 mm), f = 0.0254/column (0.0152-0.0357); 13.0 beats across the board; 525 strips over the active width (800 µm: 499); exact-box pitch 780 x 39/40 = 760.5 µm
+
+B. sim a1(delta) (r5/sim_delta.json, xo0 arms): range -0.157..+0.085, event-weighted mean +0.0000, uniform-delta mean -0.0054; s1 0.63..1.14
+   761              : beat-harmonic amplitude a1 0.074, s1 0.127;  64-column cells: max |mean a1| 0.025, rms 0.010, s1 spread 0.045;  board mean a1 -0.010..-0.010 (over offsets x0)
+   800 (sim design) : beat-harmonic amplitude a1 0.074, s1 0.127;  64-column cells: max |mean a1| 0.026, rms 0.010, s1 spread 0.044;  board mean a1 -0.011..-0.009 (over offsets x0)
+   780 (pad-locked) : beat-harmonic amplitude a1 0.000, s1 0.000;  64-column cells: max |mean a1| 0.148, rms 0.000, s1 spread 0.000;  board mean a1 -0.148..+0.081 (over offsets x0)
+
+C. data, per-column first harmonic over f = 0.0132..0.0377 (761 µm ±1 % + margin), detrended (sigma 30 columns), permutation null (300) of the column means
+   det3 June-15  X n  42771 | s1: max 0.0116 at f 0.0200 (p 0.05, null95 0.0116), at 761 µm 0.0027 | d1: max 0.0057 at f 0.0132 (p 0.98, null95 0.0117), at 761 µm 0.0003
+   det3 June-15  Y n  33372 | s1: max 0.0071 at f 0.0227 (p 0.65, null95 0.0097), at 761 µm 0.0053 | d1: max 0.0107 at f 0.0312 (p 0.09, null95 0.0111), at 761 µm 0.0044
+   det2          X n  10651 | s1: max 0.0226 at f 0.0262 (p 0.16, null95 0.0253), at 761 µm 0.0166 | d1: max 0.0180 at f 0.0237 (p 0.38, null95 0.0229), at 761 µm 0.0086
+   det2          Y n  11394 | s1: max 0.0185 at f 0.0185 (p 0.32, null95 0.0237), at 761 µm 0.0125 | d1: max 0.0101 at f 0.0150 (p 0.84, null95 0.0163), at 761 µm 0.0075
+   det4          X n   2174 | s1: max 0.0510 at f 0.0287 (p 0.40, null95 0.0692), at 761 µm 0.0242 | d1: max 0.0428 at f 0.0172 (p 0.96, null95 0.0946), at 761 µm 0.0173
+  ok = np.isfinite(cm); c = np.flatnonzero(ok); v = cm[ok] - cm[ok].mean()
+  ret = ret.dtype.type(ret / rcount)
+  return _methods._mean(a, axis=axis, dtype=dtype,
+   det4          Y n   2498 | s1: max nan at f 0.0132 (p 0.00, null95 nan), at 761 µm nan | d1: max nan at f 0.0132 (p 0.00, null95 nan), at 761 µm nan
+   det6          X n   3145 | s1: max 0.2664 at f 0.0350 (p 1.00, null95 0.2805), at 761 µm 0.2520 | d1: max 0.1329 at f 0.0265 (p 0.17, null95 0.1329), at 761 µm 0.0882
+   det6          Y n   3402 | s1: max 0.0000 at f 0.0132 (p 1.00, null95 0.0000), at 761 µm 0.0000 | d1: max 0.0000 at f 0.0132 (p 1.00, null95 0.0000), at 761 µm 0.0000
+   det7          X n   1542 | s1: max 0.4506 at f 0.0172 (p 0.03, null95 0.4421), at 761 µm 0.3747 | d1: max 0.3190 at f 0.0367 (p 0.74, null95 0.6077), at 761 µm 0.0613
+   det7          Y n   2564 | s1: max 0.3648 at f 0.0202 (p 0.17, null95 0.4334), at 761 µm 0.3146 | d1: max 0.1356 at f 0.0295 (p 0.67, null95 0.2230), at 761 µm 0.1200
+   det3 May      X n  15123 | s1: max 0.0572 at f 0.0155 (p 0.01, null95 0.0531), at 761 µm 0.0107 | d1: max 0.0209 at f 0.0325 (p 0.99, null95 0.0426), at 761 µm 0.0158
+   det3 May      Y n  16913 | s1: max 0.0395 at f 0.0282 (p 0.01, null95 0.0374), at 761 µm 0.0386 | d1: max 0.0150 at f 0.0272 (p 0.95, null95 0.0276), at 761 µm 0.0057
+   det1          X n   5455 | s1: max 0.0685 at f 0.0282 (p 0.75, null95 0.1028), at 761 µm 0.0228 | d1: max 0.0271 at f 0.0142 (p 1.00, null95 0.0679), at 761 µm 0.0154
+   det1          Y n   5066 | s1: max 0.0772 at f 0.0232 (p 0.57, null95 0.1052), at 761 µm 0.0632 | d1: max 0.0457 at f 0.0297 (p 1.00, null95 0.1036), at 761 µm 0.0205

@@ -29,6 +29,11 @@ AMP_GAP_M = AMP_GAP_UM * 1e-6
 # ── ESL resistive strips ─────────────────────────────────────────────────────
 # Screen-printed after fab, so NOT in the gerber set; geometry is the confirmed
 # user/fab spec (plan §1 row 3, design/NEEDED_INPUTS.md §6c).
+# 2026-10-22: photos of the print film give pitch 760.7 µm (±1 %), fill 0.694
+# (dark 528 µm), i.e. the spec's shape at ~761 µm, not 800. Whether the film is
+# the production pattern at 1:1 is being confirmed; values below unchanged until
+# then. A 760.5 µm pitch (= 780 x 39/40) would close on a 30.42 mm box. See
+# scratchpad/2026-10-21/FOLLOWUP.md §14-15.
 ESL_WIDTH_UM = 550.0
 ESL_GAP_UM = 250.0
 ESL_PITCH_UM = ESL_WIDTH_UM + ESL_GAP_UM     # 800.0

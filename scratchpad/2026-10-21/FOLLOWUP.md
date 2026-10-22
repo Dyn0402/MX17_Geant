@@ -334,6 +334,64 @@ ticks, scale-vs-row from the strips' own pitch, strip edges at the local mid-lev
 - Open: what the transparency is (production screen film or a printout, and at what scale). A long ruler or tape along the
   full pattern width in one photo from >= 40 cm would give the total width, hence the strip count.
 
+## 15. Consequences if the film is the true pattern (2026-10-22, dylan-Yoga)
+**Assumption:** the photographed film (§14) is the pattern printed on the boards, at 1:1. Dylan believes it is and is
+checking. Script and log: `../2026-10-22/film761/consequences.py` → `consequences.json`, `consequences.log`.
+
+**A. Geometry.** Strips 760.7 µm against pads 780 µm: the strip offset under each pad column advances +19.3 µm per column
+(the 800 µm design: −20 µm, the other way). The beat (moiré) period is 30.7 mm = 39.4 columns, about 13 beats across the
+board. With the ±1 % pitch systematic it is 22–51 mm (f = 0.015–0.036 per column). 525 strips cover the 399.36 mm active
+width (800 µm design: 499). A pitch of 780 × 39 / 40 = 760.5 µm (inside the error) closes exactly on a 30.42 mm box,
+40 strips per 39 pads: the natural kernel box for a sim of this pattern.
+
+**B. What strip registration can do on this geometry** (the full sim's a1(δ) and s1(δ), `r5/sim_delta.json`, laid onto the
+512 columns at every starting offset):
+| print pitch | beat harmonic a1 / s1 | max \|a1\| of a 64-column cell | board-mean a1 |
+|---|---|---|---|
+| 760.7 µm (film) | 0.074 / 0.127 | 0.025 | −0.010 |
+| 800 µm (design, sim) | 0.074 / 0.127 | 0.026 | −0.010 |
+| 780 µm (pad-locked) | 0 / 0 | 0.148 | −0.148 … +0.081 |
+The sim's a1(δ) is odd and averages to ~0 over δ (event-weighted mean +0.000). Whenever the strips and pads have different
+pitches, every offset recurs every ~39 columns, so registration can only make a ~30 mm ripple, never a board-scale field:
+≤ 0.025 in any 64-column cell. The data's cells run 0.07–0.20 on det3 June-15 (map fit b = 0.137, A = 0.066, kx = −0.012
+rad/column, a period of ~500 columns) and ±0.11 on det2. Only a pad-locked (780 µm) print could do it, which is why the audit
+(§4.3 step 6, §4.4) named the pitch as the decisive measurement.
+
+**C. The ripple the strips should leave is not in the data** (per-column first harmonic over f = 0.013–0.038, detrended,
+permutation null of the column means):
+| board, view | s1 max (p) | d1 max (p) | sim prediction s1 / d1 |
+|---|---|---|---|
+| det3 June-15 X | 0.0116 (0.05) | 0.0057 (0.98) | 0.127 / 0.074 |
+| det2 X | 0.023 (0.16) | 0.018 (0.38) | |
+| det3 May X / Y | 0.057 / 0.040 (0.01 / 0.01) | 0.021 / 0.015 (0.99 / 0.95) | |
+det3 May's s1 peaks sit at f = 0.0155 (the 64-channel chip period) and appear in its Y control view too; they are not
+the strip beat. det4/det6/det7 lack the per-column statistics. The data's strip imprint is ≥ 5× (det2) to ≥ 10× (det3 June)
+below the sim's, in both sharing and asymmetry.
+
+**Consequences (all under the assumption):**
+1. **Strip registration is excluded as the cause of the asymmetry**, as an attractor or as a skewed response, since both
+   are functions of δ: the field has the wrong spatial structure (board-scale, no 30 mm ripple), and the cell amplitude it
+   could reach is ≤ 1/3–1/8 of the data's. The pad-locked escape is gone: every third of every photo reads 748–768 µm, and 780
+   would need a 2.5 % scale error against a ±1 % estimate.
+2. **The sim overstates the strips' imprint on charge sharing** by ≥ 5–10× (s1 ripple 0.127 predicted, ≤ 0.012–0.023
+   seen), on every board with the statistics, det3 May included. This is the audit's row 3 tension, now without its escape.
+   Whatever the strips do in the sim (resistivity, kernel treatment of the strip/gap contrast) is too visible; any
+   sim-derived statement that leans on strip structure (registration size, funnel, anisotropic strips, narrow-print
+   arms, §6–§10) is weakened accordingly.
+3. **The sim's geometry is wrong in detail but not in kind:** a 760.5 µm print gives the same superperiod length
+   (30.4 vs 31.2 mm), the same fill (0.694 vs 0.6875) and the opposite drift direction. Registration-averaged quantities
+   change by a few % at most (strips and gaps 5 % narrower). Only per-column / per-offset predictions mirror. Rebuilding
+   the kernels for 760.5 µm is worth it only to study the imprint discrepancy (2), not for the asymmetry.
+4. **What survives for the asymmetry** is a mechanism that is pad-pitch locked or column-independent, X-only, smooth over
+   the board with two signs, June bulks only, amplitude set by the cloud width. Strip-print routes (registration, offset
+   strips, width/funnel/anisotropy levers, strip resistivity gradient) are out. Left from the audit's list: surface charge
+   on the fresh June bulks (lamination, coverlay), something in the pad/via layer of the June PCBs, or the bulk process
+   itself (mesh, pillars). These need the detector tests (§4.3 step 7: collimated scan across a pad, HV ramps/dwell, dry gas).
+5. Unchanged: `wft.xasym` (data-driven correction), the per-session / timing results (§12–13).
+
+If the film turns out to be a scaled printout rather than the production film, (1)–(2) still hold for the 800 µm design
+(B: identical numbers); only a production pitch of exactly 780 µm would reopen registration.
+
 ## What this leaves
 - The fingerprint (audit §4.1) gains: (2) the transfer is n−1 → n+1 direct, ±2 odd ≈ 12 % of ±1; (5) gain- and
   time-independent at fixed width; no session outlier. The even term is not a usable discriminator at the ±0.1 level.
@@ -358,5 +416,7 @@ ticks, scale-vs-row from the strips' own pitch, strip edges at the local mid-lev
   dry-gas D_T and depth-independent clouds are excluded by the time profile. §12: in det3 May they are inclined tracks the
   |dt_nb| cut lets in; in det3 June they come from the 6-23 session, where det3 collected each column as a burst at a random
   depth (mechanism open, amplification side suspected). Use M3 angles and clean sessions (6-27, 1000 V) from now on.
-- Otherwise the remaining classes need the board or the detector: the strip photo (registration, width, gap) and
-  the detector tests (collimated scan across a pad, HV ramps and dwell, dry gas).
+- **§14–15 (strip film photo):** pitch 761 µm ≠ 780 µm pads, so registration cannot make a board-scale field (≤ 0.025 per
+  64-column cell) and the 30 mm ripple it requires is absent (≥ 5–10× below the sim). If the film is the production pattern,
+  strip routes are out and the sim's strip imprint is too strong. What remains needs the detector tests (collimated scan
+  across a pad, HV ramps and dwell, dry gas) and a look at the June bulk process / pad layer.

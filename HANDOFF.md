@@ -1,6 +1,28 @@
 # Handoff
 
-## det3 X asymmetry (all rounds) — updated 2026-10-22 ~12:15 (dylan-Yoga)
+## det3 X asymmetry (all rounds) — updated 2026-10-22 ~13:00 (dylan-Yoga)
+
+**Resume:** FOLLOWUP §15 (new): consequences **if the photographed film (§14, 760.7 µm) is the production pattern**
+(Dylan believes so and is confirming).
+- Strip offset advances +19.3 µm per pad column, beat 30.7 mm (22–51 mm for ±1 %), 13 beats per board, 525 strips.
+- Registration (attractor or skewed response, any δ function) can reach ≤ 0.025 per 64-column cell (data 0.07–0.20) and
+  must leave a 30 mm ripple (sim: s1 0.127, a1 0.074); the data's ripple is ≤ 0.012 (det3 June) / 0.023 (det2):
+  **strip routes are out**, and **the sim's strip imprint is ≥ 5–10× too strong** on every board.
+- Only a production pitch of exactly 780 µm would reopen registration (every third of every photo reads 748–768 µm).
+- Remaining: pad-locked or column-independent mechanisms (surface charge on fresh June bulks, June PCB pad/via layer,
+  bulk process) → detector tests.
+- Documented in FOLLOWUP §15, an AUDIT.md addendum (top and §4.4), deck slide 17 "Consequences" + updated close / way
+  forward, and a comment in `response/common/constants.py` (values unchanged pending confirmation).
+
+**Next steps (prepend):**
+0. On confirmation that the film is the production print: mark §15 as confirmed (FOLLOWUP, AUDIT addendum, deck, constants
+   comment). If it is not 1:1, get the production pitch: only exactly 780 µm changes the conclusion.
+1. Decide whether to rework the sim's strip response (imprint ≥ 5–10× too strong) before using it for anything strip-related;
+   a 760.5 µm kernel family (30.42 mm box, 40 strips / 39 pads) only matters for per-column predictions.
+
+The ~12:15 state follows.
+
+## det3 X asymmetry (all rounds) — 2026-10-22 ~12:15 (dylan-Yoga)
 
 **Resume:** FOLLOWUP §14 (new): Dylan's photos of the resistive-strip print film (transparency + steel ruler). Pitch
 **760.7 µm** (±2.3 photo spread, ±1 % lens-distortion systematic, no parallax bias), fill **0.694** (spec 550/800 = 0.6875),

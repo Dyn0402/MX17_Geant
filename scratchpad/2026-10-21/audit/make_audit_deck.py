@@ -581,6 +581,37 @@ sl('film', s10e, '<p><code>2026-10-22/strip_photo/</code> (MX17_Geant): <code>le
    '<p>A ruler-free strip count across the whole film (overview photo, phase unwrapping; 499 strips for 800 µm vs 512 for 780 µm vs 525 for 761 µm over the active width) '
    'scattered ±20 between columns (reflections, low contrast): inconclusive.</p>', short='Strip film')
 
+# ------------------------------------------------------------------------------------------------ 10f consequences if the film is the true pattern (§15)
+CQ = J(SPH, '..', 'film761', 'consequences.json'); G = CQ['geometry']; SG = CQ['sim_on_geometry']; DB = CQ['data_beat']
+sim761 = SG['761']
+P = Plot(1000, 600, x=(0, 5), y=(0, 0.14), xlabel='', ylabel='30 mm-ripple amplitude (first harmonic over columns)')
+P.yticks([(v, f'{v:.2f}') for v in (0, .02, .04, .06, .08, .10, .12, .14)])
+P.hline(sim761['harm_s1'], BLUE, '8 6', 2); P.hline(sim761['harm_a1'], RED, '8 6', 2)
+P.text(0.1, sim761['harm_s1'] + 0.004, f"sim, sharing s1: {sim761['harm_s1']:.3f}", 21, BLUE); P.text(0.1, sim761['harm_a1'] + 0.004, f"sim, asymmetry a1: {sim761['harm_a1']:.3f}", 21, RED)
+labs = [('det3 June-15|X', 'det3 June X'), ('det2|X', 'det2 X'), ('det3 May|X', 'det3 May X'), ('det3 May|Y', 'det3 May Y')]
+P.xticks([(i + 1, l) for i, (_, l) in enumerate(labs)])
+for i, (k, l) in enumerate(labs):
+    for nm, c, dx in (('s1', BLUE, -0.12), ('d1', RED, 0.12)):
+        q = DB[f'{k}|{nm}']
+        P.points([i + 1 + dx], [q['Amax']], c, r=9, tips=[f"{l}, {'sharing s1' if nm == 's1' else 'asymmetry a1'}: max {q['Amax']:.4f} at f = {q['fbest']:.4f}/column "
+                                                           f"(p = {q['p']:.2f}, null 95 % {q['null95']:.4f}); at 761 µm exactly {q['A761']:.4f}; {q['ncol']} columns"])
+        ebar(P, i + 1 + dx, q['null95'] / 2, q['null95'] / 2, GREY, 5)
+rows = [['film 761 µm', f"{SG['761']['cell_max_abs_a1']:.3f}", f"{SG['761']['harm_a1']:.3f}"], ['design 800 µm', f"{SG['800 (sim design)']['cell_max_abs_a1']:.3f}", f"{SG['800 (sim design)']['harm_a1']:.3f}"],
+        ['pad-locked 780 µm', f"{SG['780 (pad-locked)']['cell_max_abs_a1']:.3f}", '0'], ['data, det3 June', '0.07–0.20', '≤ 0.006']]
+s10f = sd.title('If the film is the true pattern, the strips cannot make the asymmetry: the offset recurs every 30 mm, and the ripple that implies is absent',
+                f"Strips {G['pitch']:.0f} µm vs pads 780 µm: offset +{G['advance_um_per_col']:.1f} µm per column, beat {G['beat_mm']:.1f} mm ({G['beat_cols']:.0f} columns), "
+                f"{G['n_beats_on_board']:.0f} beats per board. Points: data, largest ripple in f = {G['f_range'][0]:.3f}–{G['f_range'][1]:.3f}/column (grey bar: 95 % of the null)")
+s10f += row(P.svg('ripple'), col(table(['strip print', 'max |a1| per 64-col cell', 'a1 ripple'], rows, 20, widths=[200, 230, 130], align=['left', 'center', 'center']),
+                                  p('Registration (attractor or skewed response) is a function of the strip offset only; it averages to ~0 over one beat. '
+                                    'Only a 780 µm print could hold a board-scale field.', 21, MUT),
+                                  p('The sim’s strip imprint (0.127 in s1) is ≥ 5–10× the data’s on every board with the statistics, det3 May included.', 21, MUT), w=600, gap=22), gap=36)
+sl('ripple', s10f, '<p><code>2026-10-22/film761/consequences.py</code> (MX17_Geant), FOLLOWUP §15. B: the full sim’s a1(δ) and s1(δ) (<code>r5/sim_delta.json</code>) laid onto 512 columns '
+   'at every starting offset; C: per-column means of s1 and a1 (detrended, σ 30 columns), first harmonic, permutation null of the column means, the same estimator as '
+   '<code>r5/beat_col.py</code>. det3 May’s s1 peaks sit at 1/64 per column (the chip period) and show in its Y control view. det4/6/7: too few events per column.</p>'
+   '<p>Under the assumption that the film is the production print: strip routes (registration, offset strips, width/funnel/anisotropy levers) are out; the sim is too strip-sensitive; '
+   'what remains is pad-locked or column-independent and X-only (surface charge on fresh June bulks, the June PCB pad/via layer, the bulk process). '
+   'If the film were a scaled printout, the 800 µm design gives the same numbers; only a production pitch of exactly 780 µm would reopen registration.</p>', short='Consequences')
+
 # ------------------------------------------------------------------------------------------------ 11 what's excluded
 def chip(t, c):
     return f'<span style="display:inline-block;padding:2px 12px;border-radius:8px;background:{c};color:white;font-weight:600">{t}</span>'
@@ -877,7 +908,8 @@ WF = [('done', 'Even term vs a no-pull baseline; transfer shape; a1 vs gain and 
       ('done', 'det2’s regime re-scored with M3 angles on its clean 6-22 sessions: near the sim (χ² 56 / 20), a ≤ 2σ lean to narrow-prompt / late-wide vs det3 June. The degraded state recurs once more: det2 on 6-17, also bottom slot, gain hardly following the resist HV', 'archive + M3', 'timing no longer constrains the strip routes'),
       ('3', 'What degraded the bottom-slot board on 6-17 and 6-23 (bench logbook: resist HV contact / cable at the bottom slot)', 'logbook', 'whether a floating resistive layer explains it'),
       ('4', 'Per-session, width-matched maps for det3; decode 6-19/20 FEU 3 for more events', 'archive', 'is the geometry really fixed'),
-      ('5', 'Photograph the strips (or get the mask) on det2 rows 0–63 vs 128–255, and on det3 May', 'needs the board', 'strip width and gap; opposite δ there, 780 µm pitch'),
+      ('done', 'Print film photographed (§14–15): pitch 761 µm, fill 0.694. With any pitch ≠ 780 µm registration recurs every ~30 mm: ≤ 0.025 per cell, and the 30 mm ripple it needs is absent (≥ 5–10× below the sim)', 'photo', 'strip routes out if the film is the production print; sim strip imprint too strong'),
+      ('5', 'Confirm the film is the production pattern at 1:1', 'Dylan / Stephan', 'whether §15 applies'),
       ('6', 'Collimated source across one pad; HV ramps and dwell; dry-gas flush', 'needs the detector', 'attractor vs displacement; charging; humidity')]
 s19 = sd.title('Way forward, ranked: cheapest decisive tests first', 'Steps 1–4 need nothing new; 5 needs a photo; 6 needs the detector')
 s19 += table(['#', 'test', 'needs', 'decides'], [list(r) for r in WF], 23, widths=[50, 980, 250, 380], align=['center', 'left', 'left', 'left'])
@@ -890,27 +922,24 @@ sl('forward', s19, '<p>The even-term score proposed earlier in this audit turned
 
 # ------------------------------------------------------------------------------------------------ 20 close
 cl = (sd.kicker('Where it stands')
-      + '<h2 style="font-size:58px;font-weight:600;line-height:1.1;width:1660px">The effect is well measured and the analysis can be corrected. Its cause is open: '
-        'a charged-gap funnel onto narrow strips fits in a toy; the strips’ width decides</h2>'
-      + row(card(p('What this does not rule out', 30, DINK, 600)
-                 + p('• Strips that skew the induced signal without concentrating the charge (registration through induction).', 26, DMUT)
-                 + p('• A difference in the June print (pitch, width, fill) that the mask or a photo would show.', 26, DMUT)
+      + '<h2 style="font-size:58px;font-weight:600;line-height:1.1;width:1660px">The effect is well measured and the analysis can be corrected. '
+        'If the photographed film is the production print (761 µm), the resistive strips are ruled out as its cause</h2>'
+      + row(card(p('What is left', 30, DINK, 600)
                  + p('• A static (saturated) surface charge on fresh June bulks: gain-independent, unlike charging-up.', 26, DMUT)
-                 + p('• Something in the June bulk process nobody has named yet (Stephan: "nothing different").', 26, DMUT), bg='#1f2533'),
+                 + p('• Something in the pad / via layer of the June PCBs (pad-pitch locked by construction).', 26, DMUT)
+                 + p('• The bulk process itself (mesh, pillars, lamination): Stephan says "nothing different".', 26, DMUT)
+                 + p('• Something nobody has named yet: X-only, June only, set by the cloud width.', 26, DMUT), bg='#1f2533'),
             card(p('Open decisions', 30, DINK, 600)
-                 + p('• Next model: an electrostatic pull from charged gaps, or skewed induction?', 26, DMUT)
-                 + p('• Can someone photograph a June board’s strips (det2 ideally) and det3 May?', 26, DMUT)
-                 + p('• Adopt wft.xasym in production (needs a re-alignment and per-run scales)?', 26, DMUT)
-                 + p('• What differed in the June print (strip width, pitch, gap)?', 26, DMUT), bg='#1f2533'), gap=40))
+                 + p('• Confirm the film is the production pattern at 1:1 (Dylan checking).', 26, DMUT)
+                 + p('• Detector tests when access returns: collimated scan across a pad, HV ramps and dwell, dry gas.', 26, DMUT)
+                 + p('• The sim’s strip imprint is ≥ 5–10× too strong: rework the strip response before trusting strip-based sim results?', 26, DMUT)
+                 + p('• Adopt wft.xasym in production (needs a re-alignment and per-run scales)?', 26, DMUT), bg='#1f2533'), gap=40))
 sl('close', cl, '<p>Audit text with every route re-graded (excluded / weakened / supported / untested, flagged for contaminated controls, board averages, selection effects '
    'and unvalidated models): <code>scratchpad/2026-10-21/audit/AUDIT.md</code> in MX17_Geant. Builder: <code>scratchpad/2026-10-21/audit/make_audit_deck.py</code>.</p>',
    dark=True, short='Open')
 
 OUTP = os.path.join(HERE, 'det3-x-asymmetry.html')
 D.write(OUTP, note_meta=dict(title='det3 X neighbour asymmetry: an audit',
-                             summary='Fresh-eyes summary of the week-long study, updated the same evening. Every June board carries a smooth, two-signed, X-only field that moves '
-                                     'charge straight from neighbour n−1 to n+1, with a size set by the cloud width alone (not gain, not time). Electronics, connectors, copper, '
-                                     'copies, linear coupling, Y→X transfer, charging and gap conduction are excluded; the 6-19/20 outlier was det2. A pull toward the strips '
-                                     'is still possible (the sharing test does not decide it) but no simulated version is big enough. Fingerprint and ranked plan.',
-                             tags='MX17,detector,crosstalk', date='2026-10-21'))
+                             summary='Fresh-eyes summary of the study, kept current. Every June board carries a smooth, two-signed, X-only field that moves charge from neighbour n−1 to n+1, sized by the cloud width alone. Electronics, copies, linear coupling, Y→X transfer, charging and gap conduction are excluded. 2026-10-22: the print film of the resistive strips measures 761 µm (not 780): if it is the production print, strip registration cannot make the field and the sim overstates the strips. Fingerprint, exclusions and plan.',
+                             tags='MX17,detector,crosstalk', date='2026-10-22'))
 print('wrote', OUTP)

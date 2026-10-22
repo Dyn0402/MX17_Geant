@@ -9,6 +9,13 @@ Notation: a1 = α(n+1) − α(n−1) in DAQ order, α = in-phase content of a ne
 s1X = α(+1) + α(−1) (the X ±1 sharing), s1Y = the same in Y ("Y share"). Y-pad / X-pad class = parity of
 (X peak + Y peak), i.e. the pad type under the charge.
 
+> **Addendum 2026-10-22 (strip film photo, FOLLOWUP §14–15).** The print film of the resistive strips was photographed
+> (Dylan, macro shots with a steel ruler): pitch **760.7 µm** (±1 % systematic), fill 0.694 (spec 550 / 800 = 0.6875).
+> Step 6 below named the pitch as the decisive test (registration needs a 780 µm, pad-locked print). If the film is the
+> production pattern (being confirmed), registration is excluded: with any pitch ≠ 780 µm the strip offset recurs every
+> ~30 mm, so it can reach ≤ 0.025 per 64-column cell (data 0.07–0.20) and must leave a ~30 mm ripple in s1 and a1 that the
+> data do not show (≥ 5–10× below the sim). The sim's strip imprint is too strong on every board. See FOLLOWUP §15.
+
 ## 0. Summary
 
 - The observation is solid and well characterised as data. It is a fixed, smooth, two-signed, X-only field of
@@ -322,6 +329,10 @@ it gives ≤ 1/2 of the size, and only with a stack of tuned levers. Its necessa
 the same order as the asymmetry, is absent in the data. It should be held as one candidate among a small family
 (registration as an attractor, a skewed response, surface charging), with the even-term score and the strip photo as the
 tests that separate them, not as the working answer.
+
+**2026-10-22:** the strip photo came in (FOLLOWUP §14–15): 761 µm, not 780. If the film is the production pattern, both
+registration readings (attractor and skewed response) are excluded, and of this family only surface charging (or another
+non-strip, pad-locked mechanism) remains.
 
 ## Files (this directory)
 - `share_vs_a1.py` → `share_vs_a1_nc8.json`: per-cell s1X vs |a1|, a1 (data) and the sim reference slope.
