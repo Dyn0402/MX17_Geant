@@ -553,6 +553,34 @@ sl('degraded', s10d, '<p><code>2026-10-22/partial/slot_table.py</code>, <code>sc
    'The §8 statement “det2 narrow-prompt / late-wide, det3 June the opposite” is reduced to a ≤ 2σ difference between two sim-like boards: timing no longer constrains '
    'the strip routes either way.</p>', short='Degraded nights')
 
+# ------------------------------------------------------------------------------------------------ 10e strip film photos (2026-10-22, §14)
+import base64
+SPH = os.path.join(HERE, '..', '..', '2026-10-22', 'strip_photo'); MS = J(SPH, 'measure.json')
+IMG = base64.b64encode(open(os.path.join(SPH, 'p2_overlay_crop.jpg'), 'rb').read()).decode()
+P = Plot(820, 560, x=(20, 100), y=(740, 810), xlabel='photo magnification (px per mm)', ylabel='strip pitch on the film (µm)')
+P.xticks([(v, str(v)) for v in (20, 40, 60, 80, 100)]); P.yticks([(v, str(v)) for v in (740, 760, 780, 800)])
+P.hline(800, GREY, '8 6', 1.5); P.hline(780, PURPLE, '8 6', 1.5)
+good = [r for r in MS if r['tag'] != 'p4']; bad = [r for r in MS if r['tag'] == 'p4']
+P.points([r['px_per_mm_A'] for r in good], [r['pitch_um'] for r in good], RED, r=9,
+         tips=[f"{r['tag']}: {r['pitch_um']:.1f} µm (thirds {', '.join(f'{t:.0f}' for t in r['pitch_thirds_um'])}), fill {r['fill']:.3f}, dark {r['width_um']:.0f} / clear {r['gap_um']:.0f} µm, {r['n_strips']} strips over {r['span_mm']:.0f} mm" for r in good])
+P.points([r['px_per_mm_A'] for r in bad], [r['pitch_um'] for r in bad], GREY, r=8, tips=[f"{r['tag']} (motion-blurred, steep angle): {r['pitch_um']:.1f} µm, fill {r['fill']:.3f}" for r in bad])
+P.text(24, 803, 'spec 800 µm', 20, MUT); P.text(24, 783, 'pads 780 µm', 20, PURPLE)
+pm = float(np.mean([r['pitch_um'] for r in good])); fm = float(np.mean([r['fill'] for r in good]))
+s10e = sd.title(f'The print film: {pm:.0f} µm pitch, fill {fm:.2f} (the spec’s 550 / 800 shape), a very regular print',
+                'Five phone macro photos with a steel ruler; strip edges (red) and mm ticks (green) found automatically; red points: pitch per photo')
+s10e += row(f'<img src="data:image/jpeg;base64,{IMG}" style="width:760px;border-radius:6px">',
+            col(P.svg('film'), p(f'Same pitch at 31 and 73–93 px/mm: the ruler’s height above the film does not bias it (≤ 0.5 %). Lens distortion leaves ±1 % '
+                                  f'(the middle third of every frame reads ~10 µm low). Strip-to-strip placement jitter 6–10 µm.', 21, MUT), w=840, gap=14), gap=40)
+sl('film', s10e, '<p><code>2026-10-22/strip_photo/</code> (MX17_Geant): <code>level.py</code> levels each photo on the ruler edge, <code>measure.py</code> maps x to mm with a cubic fit '
+   'to the mm ticks, takes the scale’s change with image row from the strips’ own pitch, and finds strip edges at the local mid-level. Photos: Dylan, 2026-10-22, '
+   'the strip pattern printed on a transparency.</p>'
+   f'<p>Result: pitch {pm:.1f} µm (photo spread 2.3 µm, ±1 % distortion systematic), dark {np.mean([r["width_um"] for r in good]):.0f} µm / clear '
+   f'{np.mean([r["gap_um"] for r in good]):.0f} µm, fill {fm:.3f} ± 0.016 (spec 550 / 800 = 0.6875). <b>If the film is 1:1</b>, the as-built pitch is 761 µm, not 800: '
+   'against 780 µm pads that beats with a period 761 × 780 / 19 ≈ 31.2 mm, the same superperiod as the 800 µm design, with the registration drifting the other way. '
+   'If the film is a scaled print (95 %) of the 800 µm design, the shape is exactly the spec. Which it is decides whether the sim needs anything new.</p>'
+   '<p>A ruler-free strip count across the whole film (overview photo, phase unwrapping; 499 strips for 800 µm vs 512 for 780 µm vs 525 for 761 µm over the active width) '
+   'scattered ±20 between columns (reflections, low contrast): inconclusive.</p>', short='Strip film')
+
 # ------------------------------------------------------------------------------------------------ 11 what's excluded
 def chip(t, c):
     return f'<span style="display:inline-block;padding:2px 12px;border-radius:8px;background:{c};color:white;font-weight:600">{t}</span>'

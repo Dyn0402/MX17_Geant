@@ -309,6 +309,31 @@ Scripts, logs and JSON: `../2026-10-22/partial/` (`slot_table.py`, `scan617.py`,
   narrow-prompt / late-wide. Timing no longer constrains the strip routes either way; the strip photo / mask and the detector
   tests are the remaining discriminators.
 
+## 14. The resistive-strip print film, photographed (2026-10-22, dylan-Yoga)
+Dylan photographed the strip pattern printed on a transparency (phone macro shots with a steel ruler, 2026-10-22 11:05).
+Raw photos: desktop Windows `Downloads/Photos-1-001.zip`; laptop `../2026-10-22/strip_photo/raw/` (git-ignored, 22 MB).
+Scripts, logs, JSON: `../2026-10-22/strip_photo/` (`level.py`: level on the ruler edge; `measure.py`: cubic mm(x) from the mm
+ticks, scale-vs-row from the strips' own pitch, strip edges at the local mid-level; `count.py`: ruler-free count, failed).
+- **Pitch 760.7 µm** (p1, p2, p3, p5: 757.6 / 760.0 / 760.9 / 764.1; photo spread 2.3 µm; blurred p4 757.6). Systematic: lens
+  distortion leaves the middle third of every frame ~10 µm below the outer thirds, so ±1 %. The ruler's height above the film
+  does not bias it: the same pitch at 31 px/mm (p1) and 73-93 px/mm (slope 0.09 µm per px/mm), so parallax is <= 0.5 %.
+  The ruler's two-band tilt estimate disagreed with the strips' own row gradient (barrel distortion, 5-mm tick indexing) and
+  is reported only.
+- **Shape: fill (dark / pitch) 0.694 ± 0.016**, dark 528 µm, clear 242 µm at this scale; the spec's 550 / 800 = 0.6875.
+- **Regularity:** strip-to-strip placement jitter 6-10 µm; edge-to-edge width scatter 32-49 µm rms (includes edge noise);
+  gap ends rounded; one scratched patch (p3).
+- **Ruler-free count across the film** (overview photo, phase unwrapping; over the 399.4 mm active width 499 strips at 800 µm,
+  512 at 780, 525 at 761): column-to-column scatter ±20 (reflections, wrinkles), inconclusive.
+- **Reading.** Whether this is 1:1 decides it:
+  - 1:1 (the production film): the as-built pitch is ~761 µm, not 800. Against 780 µm pads it beats with period
+    761 x 780 / 19 ≈ 31.2 mm, the same superperiod as the 800 µm design, with the registration drifting the other way per pad.
+    The sim's superperiod structure stands; per-board registration maps would mirror.
+  - A scaled print (95.1 % of the 800 µm design): the shape is exactly the spec and nothing changes.
+  - Either way the film shows no print irregularity at the 10 µm level that could make a smooth, two-signed, board-scale field
+    by itself; that would have to come from how the film was laid on each board (rotation, scale, offset).
+- Open: what the transparency is (production screen film or a printout, and at what scale). A long ruler or tape along the
+  full pattern width in one photo from >= 40 cm would give the total width, hence the strip count.
+
 ## What this leaves
 - The fingerprint (audit §4.1) gains: (2) the transfer is n−1 → n+1 direct, ±2 odd ≈ 12 % of ±1; (5) gain- and
   time-independent at fixed width; no session outlier. The even term is not a usable discriminator at the ±0.1 level.

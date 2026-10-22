@@ -1,6 +1,22 @@
 # Handoff
 
-## det3 X asymmetry (all rounds) — updated 2026-10-22 ~11:40 (dylan-Yoga)
+## det3 X asymmetry (all rounds) — updated 2026-10-22 ~12:15 (dylan-Yoga)
+
+**Resume:** FOLLOWUP §14 (new): Dylan's photos of the resistive-strip print film (transparency + steel ruler). Pitch
+**760.7 µm** (±2.3 photo spread, ±1 % lens-distortion systematic, no parallax bias), fill **0.694** (spec 550/800 = 0.6875),
+placement jitter 6–10 µm. If the film is 1:1, the as-built pitch is ~761 µm, not 800: with 780 µm pads that still gives a
+≈ 31.2 mm superperiod, the registration drifting the other way. If it is a 95 % print of the 800 µm design, nothing changes.
+Deck slide 16 "Strip film". Raw photos git-ignored in `scratchpad/2026-10-22/strip_photo/raw/` (and the desktop's Windows
+Downloads, Photos-1-001.zip).
+
+**Next steps (prepend to the list below):**
+0. Ask Dylan what the transparency is (production screen film or a printout; print scale). If 1:1, decide whether to rerun
+   any sim arm with a 761 µm strip pitch (superperiod 31.2 mm unchanged, drift direction reversed). A photo with a long
+   ruler / tape along the full pattern width from >= 40 cm would give the strip count independently of scale.
+
+The ~11:40 state follows.
+
+## det3 X asymmetry (all rounds) — 2026-10-22 ~11:40 (dylan-Yoga)
 
 **Resume:** FOLLOWUP §13 (new), after §12. Both follow-ups of §12 are done:
 - **det2's §8 timing regime**, re-scored with M3 angles on its healthy 6-22 nights, is near the sim (χ² 56/20 with |dt_nb|, 63/16 M3)

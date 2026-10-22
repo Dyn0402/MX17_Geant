@@ -1,0 +1,5 @@
+p1:  31.2 px/mm (B  30.8, strips  31.7, tilt x0.9827)  ticks 128 res 87.2 um  strips 161 / 122.6 mm  pitch  757.6 ± 0.13 um (thirds 756.7, 752.8, 761.7; centre res 76.1, jitter  6.1)  dark  518 ±  49  gap  240 ±  54  fill 0.683
+p2:  73.7 px/mm (B  71.7, strips  73.7, tilt x0.9992)  ticks  56 res 24.2 um  strips  70 /  52.4 mm  pitch  760.0 ± 0.29 um (thirds 763.2, 750.9, 766.3; centre res 48.7, jitter 10.0)  dark  528 ±  49  gap  243 ±  52  fill 0.694
+p3:  79.0 px/mm (B  59.6, strips  79.1, tilt x0.9991)  ticks  52 res 25.3 um  strips  63 /  48.0 mm  pitch  760.9 ± 0.36 um (thirds 768.3, 751.9, 768.1; centre res 53.4, jitter 10.5)  dark  517 ±  32  gap  253 ±  36  fill 0.679
+p4:  93.4 px/mm (B  86.3, strips  94.3, tilt x0.9912)  ticks  44 res 38.0 um  strips  55 /  40.8 mm  pitch  757.6 ± 0.40 um (thirds 764.4, 747.9, 759.6; centre res 47.3, jitter 11.5)  dark  492 ±  56  gap  267 ±  50  fill 0.649
+p5:  72.8 px/mm (B  71.3, strips  72.3, tilt x1.0073)  ticks  46 res 20.9 um  strips  58 /  43.6 mm  pitch  764.1 ± 0.52 um (thirds 763.4, 761.5, 767.6; centre res 65.8, jitter  8.2)  dark  549 ±  41  gap  231 ±  42  fill 0.719

@@ -1,0 +1,32 @@
+{
+ "p1": {
+  "file": "PXL_20261022_090552548.MACRO_FOCUS.jpg",
+  "angle_deg": -1.350221572088215,
+  "edge_row": 1471.5903508771926,
+  "n_blocks": 19
+ },
+ "p2": {
+  "file": "PXL_20261022_090604627.MACRO_FOCUS.jpg",
+  "angle_deg": -0.6164675636507264,
+  "edge_row": 1892.7132352941169,
+  "n_blocks": 17
+ },
+ "p3": {
+  "file": "PXL_20261022_090607834.MACRO_FOCUS.jpg",
+  "angle_deg": -1.8619596945755057,
+  "edge_row": 2217.433333333332,
+  "n_blocks": 19
+ },
+ "p4": {
+  "file": "PXL_20261022_090611037.MACRO_FOCUS.MP.jpg",
+  "angle_deg": -1.5076151325961984,
+  "edge_row": 2170.8912907268164,
+  "n_blocks": 18
+ },
+ "p5": {
+  "file": "PXL_20261022_090623662.MACRO_FOCUS.jpg",
+  "angle_deg": 0.6479202397058441,
+  "edge_row": 1894.1132352941183,
+  "n_blocks": 16
+ }
+}
