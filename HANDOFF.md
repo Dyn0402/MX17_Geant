@@ -1,6 +1,26 @@
 # Handoff
 
-## det3 X asymmetry (all rounds) — updated 2026-10-22 ~10:40 (dylan-Yoga)
+## det3 X asymmetry (all rounds) — updated 2026-10-22 ~11:40 (dylan-Yoga)
+
+**Resume:** FOLLOWUP §13 (new), after §12. Both follow-ups of §12 are done:
+- **det2's §8 timing regime**, re-scored with M3 angles on its healthy 6-22 nights, is near the sim (χ² 56/20 with |dt_nb|, 63/16 M3)
+  and ≤ 2σ from clean det3 June (r25/pk −0.16 ± 0.09, late/pk +0.21 ± 0.10). §8's contrast came from det3's degraded 6-23.
+  **Timing no longer constrains the strip routes.**
+- **The degraded state recurs**: det2 on 6-17 and det3 on 6-23, both in the bottom slot (z 232, drift 0:7, resist 3:3), gain
+  hardly following the resist HV (×2.6 / ×1.5 over 60 V vs ~×6). The same slot was healthy on 6-22, 6-25, 6-26: a per-night
+  condition. Cause open; a resistive layer not following its supply fits but is untested.
+- Deck slide 15 "Degraded nights"; way-forward table updated.
+
+**Next steps (replace the list below):**
+1. Bench logbook for 6-17 and 6-23 (bottom-slot resist HV cable/connector, gas or mounting changes) to close the degraded-night cause.
+   Exclude 6-17 det2 and 6-23 det3 from any timing or sharing study (they still carry the asymmetry; whether its size is affected
+   was not checked).
+2. The strip photo / mask and the detector tests are now the only discriminators between mechanisms.
+3. Use M3 angles (not |dt_nb|) and healthy nights for any data/sim comparison: det3 June s051 + s025, det2 s004 + s006.
+
+The 2026-10-22 ~10:40 state follows; its next steps 1 and 2 are done (above).
+
+## det3 X asymmetry (all rounds) — 2026-10-22 ~10:40 (dylan-Yoga)
 
 **Resume:** FOLLOWUP §12 (new). The partial-column pulses are identified, and step 2 (det3 June X timing at matched FWHM and
 drift field) is done: **clean det3 June X timing is sim-like; §8–10's det3 June timing fingerprint came from a degraded session.**

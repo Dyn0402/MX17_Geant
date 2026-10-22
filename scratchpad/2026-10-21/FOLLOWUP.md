@@ -285,6 +285,30 @@ June (chip medians, `diag.py`), whatever the May run_config's rotation says.
   is common to both det3 bulks. Timing no longer discriminates the asymmetry mechanisms; the remaining discriminators are the
   strip photo / mask and the detector tests.
 
+## 13. Degraded nights recur in the bottom slot; det2's clean timing is sim-like too (2026-10-22, dylan-Yoga)
+Scripts, logs and JSON: `../2026-10-22/partial/` (`slot_table.py`, `scan617.py`, `det2_rescore.py`, `board_vs_board.py`).
+- **Every detector-session with M3 tracks** (`slot_table.py`, M3-vertical tracks, long/longer runs). Degraded (9-pad amplitude
+  ~4x low, columns cut before sample 14 in 13-41 %, s1 0.29-0.46): **det2 on 6-17** (s001) and **det3 on 6-23** (s052, s054).
+  Both boards sat in the bottom slot (z 232) on drift 0:7 / resist 3:3. The same slot and channels were healthy for det3 on 6-22
+  (slower columns, A9 3897), det3 on 6-25 (4911) and det6 on 6-26 (drift 0:6; 3156-4387), and det3 May (5-6, bottom) is healthy.
+  Every top-slot board is healthy (A9 3300-4800, <= 9 % cut short). So it is a per-night condition of the bottom-slot board,
+  not the slot or the HV channel as such. (Bottom-slot boards have lower s1 in general, 0.34-0.86 vs 0.79-1.03 on top; not followed up.)
+- **6-17 resist scan** (`scan617.py`, one file per sub-run extracted to `~/x17/nb_asym_raw/scan617/`, 11 MB): det2 (FEU 3,
+  bottom) A9 499 -> 1304 over 450 -> 510 V (x2.6; healthy boards ~x6 per 60 V), cut-short 11-26 %, s1 0.24-0.29 at every
+  voltage. Same signature as 6-23 (x1.5 over 465 -> 525 V). The 6-17 top board (FEU 7) passes too few isolated events (13-128 per
+  file) to serve as a control. No hv_monitor.csv exists for 6-17.
+- Cause still open. A resistive layer not following its supply (bad contact / floating at the bottom slot on those nights) fits
+  the gain that ignores the resist HV and could cut columns by charging within an event; nothing here tests it. Next check: the
+  bench logbook (cabling, connector or gas changes on 6-17 and 6-23).
+- **det2's §8 regime re-scored** (`det2_rescore.py`): det2's §8 data (d2 = 6-22 long_run) were from a healthy night (top slot,
+  1000 V). With the §12 cells vs sim glg0: |dt_nb| < 80 chi2 56 / 20, r25/peak 0.61 (sim 0.60), late/peak 2.16 (1.87); M3 |th| < 2 deg:
+  63 / 16, r25/pk 0.92 (0.72), late/pk 2.02 (1.86). det2 6-17 (degraded): 1292 / 28. Direct det2 - det3 June (6-27) over common cells
+  (`board_vs_board.py`): r25/pk -0.16 +- 0.09 (|dt_nb|), -0.09 +- 0.11 (M3); late/pk +0.13 +- 0.14, +0.21 +- 0.10.
+- **Consequence:** §8's contrast "det2 narrow-prompt / late-wide, det3 June wide-before-peak and flat" was mostly the degraded
+  6-23 session. On healthy nights both asymmetric boards are near the sim, with at most a <= 2 sigma lean of det2 toward
+  narrow-prompt / late-wide. Timing no longer constrains the strip routes either way; the strip photo / mask and the detector
+  tests are the remaining discriminators.
+
 ## What this leaves
 - The fingerprint (audit §4.1) gains: (2) the transfer is n−1 → n+1 direct, ±2 odd ≈ 12 % of ±1; (5) gain- and
   time-independent at fixed width; no session outlier. The even term is not a usable discriminator at the ±0.1 level.
@@ -299,6 +323,7 @@ June (chip medians, `diag.py`), whatever the May run_config's rotation says.
   **Reopened by §12:** the det3 June-15 side of this came from the degraded 6-23 session; on clean 6-27 data det3 June X
   timing is sim-like, so the strip routes are no longer excluded by timing on det3 June (det2's regime should be re-checked
   the same way: M3 angles, its cleanest session).
+  §13: done. det2's healthy-night timing is near the sim, ≤ 2σ from det3 June; the contrast is gone.
 - Fingerprints (§8–10): det3 June X has a high, flat early sharing and suppressed late X growth, stable over all sessions,
   not a coupling. Fast-equalising strips (σ_xx = 100 σ_yy) and strip resistivity gradients are excluded (§10).
   **Withdrawn by §12:** that fingerprint is the degraded 6-23 session (the d3jun reference); clean det3 June X (6-27, 1000 V)

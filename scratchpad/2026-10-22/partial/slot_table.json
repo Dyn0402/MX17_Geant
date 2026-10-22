@@ -1,0 +1,597 @@
+[
+ {
+  "tag": "s001",
+  "run": "mx17_det1_det2_overnight_6-17-26",
+  "sub": "longer_run",
+  "det": "mx17_1",
+  "z": 232.0,
+  "hv": {
+   "drift": [
+    0,
+    7
+   ],
+   "resist": [
+    3,
+    3
+   ]
+  },
+  "drift": 1000,
+  "desc": "Bulked by Arnaud June 12. Giant pillars on pa",
+  "n_vert": 621,
+  "axis": "y",
+  "on": [
+   5.0,
+   8.0,
+   15.0
+  ],
+  "end": [
+   13.0,
+   23.0,
+   31.0
+  ],
+  "early_end": 0.13043478260869565,
+  "A9": 1143.0,
+  "short": 0.5410628019323671,
+  "s1": 0.2898119135848555
+ },
+ {
+  "tag": "s003",
+  "run": "mx17_det2_det3_overnight_6-22-26",
+  "sub": "long_run",
+  "det": "mx17_3",
+  "z": 232.0,
+  "hv": {
+   "drift": [
+    0,
+    7
+   ],
+   "resist": [
+    3,
+    3
+   ]
+  },
+  "drift": 1000,
+  "desc": "Bulked by Stephan June 15",
+  "n_vert": 231,
+  "axis": "y",
+  "on": [
+   6.0,
+   8.0,
+   14.0
+  ],
+  "end": [
+   21.0,
+   31.0,
+   31.0
+  ],
+  "early_end": 0.004329004329004329,
+  "A9": 3897.0,
+  "short": 0.2597402597402597,
+  "s1": 0.7487016932945659
+ },
+ {
+  "tag": "s004",
+  "run": "mx17_det2_det3_overnight_6-22-26",
+  "sub": "long_run",
+  "det": "mx17_2",
+  "z": 702.0,
+  "hv": {
+   "drift": [
+    0,
+    6
+   ],
+   "resist": [
+    3,
+    4
+   ]
+  },
+  "drift": 1000,
+  "desc": "Bulked by Arnaud June 12. Giant pillars on pa",
+  "n_vert": 372,
+  "axis": "y",
+  "on": [
+   5.0,
+   7.0,
+   9.0
+  ],
+  "end": [
+   19.0,
+   21.0,
+   23.0
+  ],
+  "early_end": 0.01881720430107527,
+  "A9": 4811.0,
+  "short": 0.12365591397849462,
+  "s1": 0.8696086439722864
+ },
+ {
+  "tag": "s006",
+  "run": "mx17_det2_det3_overnight_6-22-26",
+  "sub": "longer_run",
+  "det": "mx17_2",
+  "z": 702.0,
+  "hv": {
+   "drift": [
+    0,
+    6
+   ],
+   "resist": [
+    3,
+    4
+   ]
+  },
+  "drift": 1000,
+  "desc": "Bulked by Arnaud June 12. Giant pillars on pa",
+  "n_vert": 407,
+  "axis": "y",
+  "on": [
+   5.0,
+   7.0,
+   9.0
+  ],
+  "end": [
+   19.0,
+   21.0,
+   23.0
+  ],
+  "early_end": 0.007371007371007371,
+  "A9": 4687.0,
+  "short": 0.11547911547911548,
+  "s1": 0.8615532621621752
+ },
+ {
+  "tag": "s024",
+  "run": "mx17_det3_day_6-25-26",
+  "sub": "long_run",
+  "det": "mx17_3",
+  "z": 232.0,
+  "hv": {
+   "drift": [
+    0,
+    7
+   ],
+   "resist": [
+    3,
+    3
+   ]
+  },
+  "drift": 500,
+  "desc": "Bulked by Stephan June 15",
+  "n_vert": 100,
+  "axis": "y",
+  "on": [
+   5.0,
+   7.0,
+   11.0
+  ],
+  "end": [
+   24.0,
+   27.0,
+   30.0
+  ],
+  "early_end": 0.0,
+  "A9": 4911.0,
+  "short": 0.06,
+  "s1": 0.8566953645495784
+ },
+ {
+  "tag": "s025",
+  "run": "mx17_det3_p2_det1_overnight_6-27-26",
+  "sub": "long_run_p2_det1_sanity_check",
+  "det": "mx17_3",
+  "z": 702.0,
+  "hv": {
+   "drift": [
+    0,
+    7
+   ],
+   "resist": [
+    3,
+    4
+   ]
+  },
+  "drift": 1000,
+  "desc": "Bulked by Stephan June 15",
+  "n_vert": 538,
+  "axis": "y",
+  "on": [
+   6.0,
+   7.0,
+   9.0
+  ],
+  "end": [
+   18.0,
+   20.0,
+   21.0
+  ],
+  "early_end": 0.007434944237918215,
+  "A9": 4363.5,
+  "short": 0.10408921933085502,
+  "s1": 0.9201800176855222
+ },
+ {
+  "tag": "s051",
+  "run": "mx17_det3_saturday_scan_6-27-26",
+  "sub": "long_run_resist_490V_drift_1000V",
+  "det": "mx17_3",
+  "z": 702.0,
+  "hv": {
+   "drift": [
+    0,
+    7
+   ],
+   "resist": [
+    3,
+    4
+   ]
+  },
+  "drift": 1000,
+  "desc": "Bulked by Stephan June 15",
+  "n_vert": 593,
+  "axis": "y",
+  "on": [
+   6.0,
+   7.0,
+   9.0
+  ],
+  "end": [
+   18.0,
+   20.0,
+   22.0
+  ],
+  "early_end": 0.00505902192242833,
+  "A9": 4261.0,
+  "short": 0.08768971332209106,
+  "s1": 0.8997470683610458
+ },
+ {
+  "tag": "s052",
+  "run": "mx17_det3_det4_overnight_6-23-26",
+  "sub": "long_run",
+  "det": "mx17_3",
+  "z": 232.0,
+  "hv": {
+   "drift": [
+    0,
+    7
+   ],
+   "resist": [
+    3,
+    3
+   ]
+  },
+  "drift": 600,
+  "desc": "Bulked by Stephan June 15",
+  "n_vert": 193,
+  "axis": "y",
+  "on": [
+   4.0,
+   7.0,
+   15.0
+  ],
+  "end": [
+   10.200000000000003,
+   21.0,
+   31.0
+  ],
+  "early_end": 0.25906735751295334,
+  "A9": 921.5,
+  "short": 0.5854922279792746,
+  "s1": 0.44839096006736057
+ },
+ {
+  "tag": "s053",
+  "run": "mx17_det3_det4_overnight_6-23-26",
+  "sub": "long_run",
+  "det": "mx17_4",
+  "z": 702.0,
+  "hv": {
+   "drift": [
+    0,
+    6
+   ],
+   "resist": [
+    3,
+    4
+   ]
+  },
+  "drift": 600,
+  "desc": "Bulked by Stephan in batch of 3 on June 22. W",
+  "n_vert": 52,
+  "axis": "y",
+  "on": [
+   1.0,
+   6.5,
+   10.0
+  ],
+  "end": [
+   18.0,
+   24.0,
+   31.0
+  ],
+  "early_end": 0.019230769230769232,
+  "A9": 4663.0,
+  "short": 0.40384615384615385,
+  "s1": 1.0305242856538073
+ },
+ {
+  "tag": "s054",
+  "run": "mx17_det3_det4_overnight_6-23-26",
+  "sub": "longer_run",
+  "det": "mx17_3",
+  "z": 232.0,
+  "hv": {
+   "drift": [
+    0,
+    7
+   ],
+   "resist": [
+    3,
+    3
+   ]
+  },
+  "drift": 600,
+  "desc": "Bulked by Stephan June 15",
+  "n_vert": 29,
+  "axis": "y",
+  "on": [
+   3.8000000000000003,
+   5.0,
+   9.2
+  ],
+  "end": [
+   10.0,
+   15.0,
+   23.999999999999996
+  ],
+  "early_end": 0.41379310344827586,
+  "A9": 719.0,
+  "short": 0.7586206896551724,
+  "s1": 0.4641954765281839
+ },
+ {
+  "tag": "s055",
+  "run": "mx17_det3_det4_overnight_6-23-26",
+  "sub": "longer_run",
+  "det": "mx17_4",
+  "z": 702.0,
+  "hv": {
+   "drift": [
+    0,
+    6
+   ],
+   "resist": [
+    3,
+    4
+   ]
+  },
+  "drift": 600,
+  "desc": "Bulked by Stephan in batch of 3 on June 22. W",
+  "n_vert": 23,
+  "axis": "x",
+  "on": [
+   0.40000000000000036,
+   5.0,
+   10.0
+  ],
+  "end": [
+   14.0,
+   23.0,
+   29.6
+  ],
+  "early_end": 0.08695652173913043,
+  "A9": 3501.0,
+  "short": 0.6956521739130435,
+  "s1": 0.9961215264469541
+ },
+ {
+  "tag": "s070",
+  "run": "mx17_det4_day_6-24-26",
+  "sub": "long_run",
+  "det": "mx17_4",
+  "z": 702.0,
+  "hv": {
+   "drift": [
+    0,
+    6
+   ],
+   "resist": [
+    3,
+    4
+   ]
+  },
+  "drift": 600,
+  "desc": "Bulked by Stephan in batch of 3 on June 22. W",
+  "n_vert": 116,
+  "axis": "y",
+  "on": [
+   1.0,
+   6.0,
+   10.0
+  ],
+  "end": [
+   17.5,
+   23.0,
+   27.0
+  ],
+  "early_end": 0.017241379310344827,
+  "A9": 4020.0,
+  "short": 0.21551724137931033,
+  "s1": 0.832889070463823
+ },
+ {
+  "tag": "s071",
+  "run": "mx17_det6_det7_overnight_6-26-26",
+  "sub": "long_run",
+  "det": "mx17_6",
+  "z": 232.0,
+  "hv": {
+   "drift": [
+    0,
+    6
+   ],
+   "resist": [
+    3,
+    3
+   ]
+  },
+  "drift": 700,
+  "desc": "Bulked by Stephan June 24 (?). Was board D. S",
+  "n_vert": 79,
+  "axis": "y",
+  "on": [
+   2.0,
+   7.0,
+   12.0
+  ],
+  "end": [
+   21.0,
+   27.0,
+   31.0
+  ],
+  "early_end": 0.0,
+  "A9": 4387.0,
+  "short": 0.16455696202531644,
+  "s1": 0.5061848099871767
+ },
+ {
+  "tag": "s072",
+  "run": "mx17_det6_det7_overnight_6-26-26",
+  "sub": "long_run",
+  "det": "mx17_7",
+  "z": 702.0,
+  "hv": {
+   "drift": [
+    0,
+    7
+   ],
+   "resist": [
+    3,
+    4
+   ]
+  },
+  "drift": 700,
+  "desc": "Bulked by Stephan in batch of 3 on June 22. W",
+  "n_vert": 112,
+  "axis": "y",
+  "on": [
+   4.100000000000001,
+   7.0,
+   11.0
+  ],
+  "end": [
+   18.0,
+   20.0,
+   24.900000000000006
+  ],
+  "early_end": 0.008928571428571428,
+  "A9": 3814.0,
+  "short": 0.15178571428571427,
+  "s1": 0.8815785268562445
+ },
+ {
+  "tag": "s073",
+  "run": "mx17_det6_det7_overnight_6-26-26",
+  "sub": "longer_run",
+  "det": "mx17_6",
+  "z": 232.0,
+  "hv": {
+   "drift": [
+    0,
+    6
+   ],
+   "resist": [
+    3,
+    3
+   ]
+  },
+  "drift": 700,
+  "desc": "Bulked by Stephan June 24 (?). Was board D. S",
+  "n_vert": 310,
+  "axis": "y",
+  "on": [
+   0.0,
+   6.0,
+   11.0
+  ],
+  "end": [
+   20.0,
+   27.0,
+   31.0
+  ],
+  "early_end": 0.0064516129032258064,
+  "A9": 3156.5,
+  "short": 0.38387096774193546,
+  "s1": 0.33526178101921533
+ },
+ {
+  "tag": "s074",
+  "run": "mx17_det6_det7_overnight_6-26-26",
+  "sub": "longer_run",
+  "det": "mx17_7",
+  "z": 702.0,
+  "hv": {
+   "drift": [
+    0,
+    7
+   ],
+   "resist": [
+    3,
+    4
+   ]
+  },
+  "drift": 700,
+  "desc": "Bulked by Stephan in batch of 3 on June 22. W",
+  "n_vert": 169,
+  "axis": "y",
+  "on": [
+   5.0,
+   7.0,
+   12.0
+  ],
+  "end": [
+   19.0,
+   21.0,
+   25.200000000000017
+  ],
+  "early_end": 0.005917159763313609,
+  "A9": 3304.0,
+  "short": 0.1834319526627219,
+  "s1": 0.7870105407296252
+ },
+ {
+  "tag": "s085",
+  "run": "mx17_det3_long_run_5-6-26",
+  "sub": "long_run",
+  "det": "mx17_1",
+  "z": 232.0,
+  "hv": {
+   "drift": [
+    0,
+    7
+   ],
+   "resist": [
+    3,
+    0
+   ]
+  },
+  "drift": 900,
+  "desc": "Bulked 5-5-26. Strip resist vertical. ESL no ",
+  "n_vert": 83,
+  "axis": "y",
+  "on": [
+   6.0,
+   8.0,
+   14.0
+  ],
+  "end": [
+   18.0,
+   20.0,
+   22.0
+  ],
+  "early_end": 0.012048192771084338,
+  "A9": 4026.0,
+  "short": 0.30120481927710846,
+  "s1": 0.641449355663325
+ }
+]

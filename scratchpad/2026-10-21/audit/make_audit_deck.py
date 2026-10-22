@@ -521,6 +521,38 @@ sl('colend', s10c, '<p><code>2026-10-22/partial/</code> (MX17_Geant), M3 tracks 
    'prompt-wide, flat, suppressed late growth" fingerprint is the 6-23 session, not the June bulk. The asymmetry itself is in the clean sessions (survey a ≈ 0.07–0.11).</p>',
    short='Partial columns')
 
+# ------------------------------------------------------------------------------------------------ 10d degraded nights + det2 re-score (2026-10-22, §13)
+STB = J(P22, 'slot_table.json'); D2 = J(P22, 'det2_rescore.json'); BB = J(P22, 'board_vs_board.json'); SC17 = J(P22, 'scan617.json')
+PHYS = {('mx17_det1_det2_overnight_6-17-26', 'mx17_1'): 'det2', ('mx17_det2_det3_overnight_6-22-26', 'mx17_2'): 'det2', ('mx17_det3_long_run_5-6-26', 'mx17_1'): 'det3 May'}
+trows = []
+for r in sorted(STB, key=lambda r: (r['run'][-7:], r['z'])):
+    if r['n_vert'] < 50: continue
+    bad = r['early_end'] > 0.1
+    nm = PHYS.get((r['run'], r['det']), r['det'].replace('mx17_', 'det'))
+    cell = (lambda t: f'<b style="color:{RED}">{t}</b>') if bad else (lambda t: t)
+    trows.append([cell(re.search(r'(\d+-\d+)-26', r['run']).group(1)), cell(r['sub'].split('_resist')[0].replace('_p2_det1_sanity_check', '')[:10]), cell(nm), cell('bottom' if r['z'] < 500 else 'top'), cell(str(r['drift'])),
+                  cell(f"{r['A9']:.0f}"), cell(f"{100 * r['early_end']:.0f} %"), cell(f"{r['s1']:.2f}")])
+d2 = lambda sel: D2[f'det2 6-22 (s004+s006) [{sel}]']
+s10d = sd.title('Two degraded nights, both in the bottom slot; det2’s clean timing is sim-like too',
+                'Left: every detector-session with M3 tracks (M3-vertical tracks; red = columns cut short). Right: det2 6-22 (top slot, 1000 V) vs the sim and vs det3 June')
+s10d += row(table(['night', 'run', 'board', 'slot', 'drift V', 'A9 (ADC)', 'cut short', 's1'], trows, 19, widths=[80, 140, 100, 90, 90, 110, 100, 70],
+                  align=['left', 'left', 'left', 'left', 'center', 'center', 'center', 'center']),
+            col(table(['det2 6-22', 'χ² vs sim', 'r25/pk', 'late/pk'],
+                      [[f'|Δt| < 80', f"{d2('dtn')['chi2']:.0f} / {d2('dtn')['ndof']}", f"{d2('dtn')['ratios'][1]:.2f} ({d2('dtn')['ratios'][4]:.2f})", f"{d2('dtn')['ratios'][2]:.2f} ({d2('dtn')['ratios'][5]:.2f})"],
+                       [f'M3 |θ| < 2°', f"{d2('m3v')['chi2']:.0f} / {d2('m3v')['ndof']}", f"{d2('m3v')['ratios'][1]:.2f} ({d2('m3v')['ratios'][4]:.2f})", f"{d2('m3v')['ratios'][2]:.2f} ({d2('m3v')['ratios'][5]:.2f})"]],
+                      20, widths=[150, 120, 140, 140], align=['left', 'center', 'center', 'center']),
+                p('(sim in brackets). det2 − det3 June: r25/pk ' + f"{BB['dtn']['r25/pk diff'][0]:+.2f} ± {BB['dtn']['r25/pk diff'][1]:.2f}, late/pk {BB['m3v']['f50/pk diff'][0]:+.2f} ± {BB['m3v']['f50/pk diff'][1]:.2f} (M3): "
+                  'a ≤ 2σ lean to “narrow-prompt, late-wide”, not the clean contrast of §8.', 21, MUT),
+                p('Degraded = 9-pad amplitude ~4× low, columns cut at random depths, gain hardly following the resist HV (6-23: ×1.5, 6-17: ×2.6 over 60 V; healthy ≈ ×6).', 21, MUT),
+                w=620, gap=22), gap=40)
+sl('degraded', s10d, '<p><code>2026-10-22/partial/slot_table.py</code>, <code>scan617.py</code>, <code>det2_rescore.py</code>, <code>board_vs_board.py</code>. Board names: physical boards as in '
+   'copy_survey (the 6-17 run_config’s descriptions are swapped). Both degraded nights put the board in the bottom slot (z 232 mm) on drift 0:7 and resist 3:3, but the same '
+   'slot and channels were healthy on 6-22 (det3, slower columns), 6-25 (det3) and 6-26 (det6), so it is a per-night condition, not the slot. HV readback normal where logged. '
+   'A resistive layer not following its supply (bad contact, floating) fits the flat gain; nothing here tests it. The bench logbook for 6-17 and 6-23 is the next check.</p>'
+   '<p>det2’s §8 timing used 6-22 (clean). Re-scored with the same cells as det3: near the sim, prompt sharing not narrower than the sim’s, late growth slightly above it. '
+   'The §8 statement “det2 narrow-prompt / late-wide, det3 June the opposite” is reduced to a ≤ 2σ difference between two sim-like boards: timing no longer constrains '
+   'the strip routes either way.</p>', short='Degraded nights')
+
 # ------------------------------------------------------------------------------------------------ 11 what's excluded
 def chip(t, c):
     return f'<span style="display:inline-block;padding:2px 12px;border-radius:8px;background:{c};color:white;font-weight:600">{t}</span>'
@@ -814,7 +846,8 @@ WF = [('done', 'Even term vs a no-pull baseline; transfer shape; a1 vs gain and 
       ('done', 'Fast-equalising strips (σ_xx = 100 σ_yy) in the full sim: ×1.04 (×1.41 with funnel), r(f) still rising; a resistivity gradient across the strip (19:1) changes a1 by ≤ 0.012', 'sim + toy', 'neither; det3 June X instead lacks LATE X spreading'),
       ('done', 'Sim early-cloud width: at matched pulse length det3 May X = sim (dry D_T and depth-independent clouds excluded); the “flat early sharing” is a data-only population of short, partial-column pulses (29–84 % of the cut), not tilt', 'sim arms + archive', 'compare timing only at matched FWHM; what are the partial columns?'),
       ('done', 'Partial columns (§12, M3 tracks): det3 May’s are tracks inclined across the pads (6° vs 1.3°) that pass the |Δt| cut; det3 June’s come from the 6-23 session, where det3 collected each muon column as a ~0.5 µs burst at a random depth (not trigger, tracks, DAQ, position or field). Clean det3 June X (6-27, 1000 V) vs sim at matched FWHM: χ² 34 / 16, late growth normal', 'archive + M3', 'det3 June X timing has no June-specific feature; 6-23 cause open'),
-      ('3', 'Re-check det2’s narrow-prompt / late-wide regime with M3 angles on its cleanest session; what degraded det3 on 6-23 (gain flat vs resist HV)', 'archive (+ M3)', 'whether any timing fingerprint survives'),
+      ('done', 'det2’s regime re-scored with M3 angles on its clean 6-22 sessions: near the sim (χ² 56 / 20), a ≤ 2σ lean to narrow-prompt / late-wide vs det3 June. The degraded state recurs once more: det2 on 6-17, also bottom slot, gain hardly following the resist HV', 'archive + M3', 'timing no longer constrains the strip routes'),
+      ('3', 'What degraded the bottom-slot board on 6-17 and 6-23 (bench logbook: resist HV contact / cable at the bottom slot)', 'logbook', 'whether a floating resistive layer explains it'),
       ('4', 'Per-session, width-matched maps for det3; decode 6-19/20 FEU 3 for more events', 'archive', 'is the geometry really fixed'),
       ('5', 'Photograph the strips (or get the mask) on det2 rows 0–63 vs 128–255, and on det3 May', 'needs the board', 'strip width and gap; opposite δ there, 780 µm pitch'),
       ('6', 'Collimated source across one pad; HV ramps and dwell; dry-gas flush', 'needs the detector', 'attractor vs displacement; charging; humidity')]
