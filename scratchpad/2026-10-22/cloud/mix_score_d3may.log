@@ -1,0 +1,31 @@
+d3may X: FWHM-histogram weights per sim event 0: 0.0221, 1: 0, 2: 1.21, 3: 0, 5: 7.92, 5g4: 0, 10: 62.6  (chi2-ish 1.703)
+   FWHM bins       data   100  150  200  250  300  350  400  450  500  550  600  650  700  750  800  850  900  950
+   data counts              0    0    0   46  265  200  134  105   79   63   45   48   34   19   21    6    0    0
+   fitted mixture           0    0    0   16  265  206  129   96   83   63   63   41   28   13    4    2    0    0
+   data d3may (10-21 cut) s1 0.2-0.45  n   112 (eff    112)  r05 0.172  r10 0.158  r25 0.154  peak 0.261  f50 0.604   early/pk 0.66 late/pk 2.31
+   data d3may (10-21 cut) s1 0.45-0.7  n   190 (eff    190)  r05 0.286  r10 0.294  r25 0.301  peak 0.500  f50 0.905   early/pk 0.57 late/pk 1.81
+   sim mix (10-21 cut)    s1 0.2-0.45  n  1931 (eff     83)  r05 0.071  r10 0.080  r25 0.094  peak 0.252  f50 0.876   early/pk 0.28 late/pk 3.48
+   sim mix (10-21 cut)    s1 0.45-0.7  n  3084 (eff    103)  r05 0.312  r10 0.277  r25 0.254  peak 0.472  f50 1.191   early/pk 0.66 late/pk 2.52
+   sim tilt 0 (10-21 cut) s1 0.2-0.45  n  1177 (eff   1177)  r05 0.089  r10 0.098  r25 0.112  peak 0.306  f50 0.784   early/pk 0.29 late/pk 2.57
+   sim tilt 0 (10-21 cut) s1 0.45-0.7  n  2028 (eff   2028)  r05 0.330  r10 0.320  r25 0.320  peak 0.533  f50 0.924   early/pk 0.62 late/pk 1.74
+   tilt 0: FWHM p50 603 ns, |dt_nb| p50 69
+   tilt 0 (|dt|<80)       s1 0.2-0.45  n  1680 (eff   1680)  r05 0.093  r10 0.103  r25 0.119  peak 0.295  f50 0.750   early/pk 0.32 late/pk 2.54
+   tilt 0 (|dt|<80)       s1 0.45-0.7  n  2640 (eff   2640)  r05 0.330  r10 0.321  r25 0.325  peak 0.522  f50 0.931   early/pk 0.63 late/pk 1.79
+   tilt 1: FWHM p50 541 ns, |dt_nb| p50 121
+   tilt 1 (|dt|<80)       s1 0.2-0.45  n   189 (eff    189)  r05 0.063  r10 0.078  r25 0.099  peak 0.260  f50 0.789   early/pk 0.24 late/pk 3.03
+   tilt 1 (|dt|<80)       s1 0.45-0.7  n   291 (eff    291)  r05 0.248  r10 0.255  r25 0.270  peak 0.476  f50 1.074   early/pk 0.52 late/pk 2.26
+   tilt 2: FWHM p50 442 ns, |dt_nb| p50 198
+   tilt 2 (|dt|<80)       s1 0.2-0.45  n    61 (eff     61)  r05 0.032  r10 0.049  r25 0.071  peak 0.236  f50 0.936   early/pk 0.13 late/pk 3.96
+   tilt 2 (|dt|<80)       s1 0.45-0.7  n   117 (eff    117)  r05 0.139  r10 0.148  r25 0.173  peak 0.443  f50 1.252   early/pk 0.31 late/pk 2.83
+   tilt 3: FWHM p50 380 ns, |dt_nb| p50 246
+   tilt 3 (|dt|<80)       s1 0.2-0.45  n    32 (eff     32)  r05 0.072  r10 0.065  r25 0.072  peak 0.251  f50 0.985   early/pk 0.29 late/pk 3.92
+   tilt 3 (|dt|<80)       s1 0.45-0.7  n    48 (eff     48)  r05 0.354  r10 0.300  r25 0.212  peak 0.418  f50 1.357   early/pk 0.85 late/pk 3.25
+   tilt 5: FWHM p50 342 ns, |dt_nb| p50 273
+   tilt 5 (|dt|<80)       s1 0.2-0.45  n     4 (eff      4)  
+   tilt 5 (|dt|<80)       s1 0.45-0.7  n     8 (eff      8)  
+   tilt 5g4: FWHM p50 340 ns, |dt_nb| p50 272
+   tilt 5g4 (|dt|<80)     s1 0.2-0.45  n     8 (eff      8)  
+   tilt 5g4 (|dt|<80)     s1 0.45-0.7  n    14 (eff     14)  
+   tilt 10: FWHM p50 325 ns, |dt_nb| p50 193
+   tilt 10 (|dt|<80)      s1 0.2-0.45  n     0 (eff      0)  
+   tilt 10 (|dt|<80)      s1 0.45-0.7  n     0 (eff      0)  

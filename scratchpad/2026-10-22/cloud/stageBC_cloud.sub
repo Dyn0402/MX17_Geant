@@ -1,0 +1,15 @@
+# Sim early-cloud width arms (2026-10-22): the glg0 recipe + one change each (constant-width clouds, sigma0 400, dry
+# gas D_T, feedback spread 400); th00 + thy*, seeds 7-12, paired with glg0 (4507xxx gapleak). g0chk = bit-identity check.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_cloud_job.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/cloud.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4 MX17_GAS_TABLE=/afs/cern.ch/work/d/dneff/mx17_s1/src/design/gas/drift_velocity_Ar_iC4H10_95_5_H2O_1.0.json"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/cloud_$(t)_$(ang)_s$(seed).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/cloud_$(t)_$(ang)_s$(seed).err
+arguments               = "c$(t)_$(ang)_s$(seed) $(k) $(ang) $(seed) $(g) '$(x)'"
+queue t, k, ang, seed, g, x from cloud_list.txt

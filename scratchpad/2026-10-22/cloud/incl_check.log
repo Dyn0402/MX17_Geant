@@ -1,0 +1,58 @@
+
+det3 May X: n 3139
+   |dt_nb| ns    n    corr(d_early,d_late)   r05    r25    peak   f50     (s1 0.2-0.45)
+      0-30       347    +0.52                 0.133  0.161  0.273  0.542   [59]
+     30-80       407    +0.37                 0.206  0.148  0.251  0.658   [53]
+     80-200     1198    +0.03                 0.419  0.247  0.272  0.577   [133]
+    200-10000   1090    -0.53                 1.670  0.589  0.267  0.464   [87]
+
+det3 June-15 X: n 2445
+   |dt_nb| ns    n    corr(d_early,d_late)   r05    r25    peak   f50     (s1 0.2-0.45)
+      0-30       301    +0.47                 0.261  0.284  0.297  0.396   [140]
+     30-80       487    +0.41                 0.420  0.333  0.315  0.411   [214]
+     80-200      835    +0.36                 0.416  0.358  0.311  0.388   [369]
+    200-10000    819    +0.11                 1.038  0.446  0.300  0.367   [310]
+
+det3 May Y: n 2763
+   |dt_nb| ns    n    corr(d_early,d_late)   r05    r25    peak   f50     (s1 0.2-0.45)
+      0-30       201    -0.02                 0.241  0.167  0.254  0.664   [34]
+     30-80       323    -0.02                 0.226  0.216  0.252  0.612   [50]
+     80-200      923    -0.26                 0.294  0.196  0.250  0.639   [97]
+    200-10000   1226    -0.40                 1.189  0.485  0.267  0.495   [90]
+
+det3 June-15 Y: n 2704
+   |dt_nb| ns    n    corr(d_early,d_late)   r05    r25    peak   f50     (s1 0.2-0.45)
+      0-30       239    +0.40                 0.126  0.203  0.281  0.570   [110]
+     30-80       413    +0.35                 0.238  0.228  0.295  0.570   [174]
+     80-200      843    +0.45                 0.272  0.244  0.310  0.569   [343]
+    200-10000   1207    +0.41                 0.639  0.327  0.304  0.464   [299]
+
+sim glg0 X (th00+thy): n 13354
+   |dt_nb| ns    n    corr(d_early,d_late)   r05    r25    peak   f50     (s1 0.2-0.45)
+      0-30      3250    +0.61                 0.090  0.109  0.315  0.785   [503]
+     30-80      4577    +0.51                 0.089  0.113  0.298  0.783   [674]
+     80-200     4904    +0.49                 0.112  0.141  0.312  0.770   [724]
+    200-10000    614    +0.68                 0.243  0.245  0.291  0.688   [50]
+
+sim glg0 Y (th00): n 2572
+   |dt_nb| ns    n    corr(d_early,d_late)   r05    r25    peak   f50     (s1 0.2-0.45)
+      0-30       376    +0.40                 0.051  0.087  0.245  0.905   [29]
+     30-80       571    +0.31                 0.043  0.105  0.260  0.873   [38]
+     80-200     1065    +0.39                 0.054  0.126  0.300  0.908   [46]
+    200-10000    558    +0.52                   nan    nan    nan    nan   [15]
+Traceback (most recent call last):
+  File "/home/dylan/CLionProjects/MX17_Geant/scratchpad/2026-10-22/cloud/incl_check.py", line 46, in <module>
+    run('sim glg0 Y (thy, inclined in Y)', sorted(glob.glob(f'{RAW}/simgapleak/glg0_thy*_y.npz')))
+  File "/home/dylan/CLionProjects/MX17_Geant/scratchpad/2026-10-22/cloud/incl_check.py", line 27, in run
+    W, s1, dtn = load(files); c = W[:, HW]; pk = c.argmax(1); D = W[:, HW + 1] - W[:, HW - 1]; S = W[:, HW + 1] + W[:, HW - 1]
+                 ^^^^^^^^^^^
+  File "/home/dylan/CLionProjects/MX17_Geant/scratchpad/2026-10-22/cloud/incl_check.py", line 16, in load
+    d = L.load(f); p = d['p'] % 512; m = (p % 64 >= 4) & (p % 64 <= 59)
+        ^^^^^^^^^
+  File "/home/dylan/CLionProjects/MX17_Geant/scratchpad/2026-10-21/prompt/../../2026-10-19/asym_deck/asym_lib.py", line 21, in load
+    W = z['wf']; g = good(W); p = z['p'].astype(int)
+                     ^^^^^^^
+  File "/home/dylan/CLionProjects/MX17_Geant/scratchpad/2026-10-21/prompt/../../2026-10-19/asym_deck/asym_lib.py", line 12, in good
+    c = W[:, HW]; A = c.max(1); pk = c.argmax(1); pre = c[:, :3].mean(1)
+        ~^^^^^^^
+IndexError: too many indices for array: array is 1-dimensional, but 2 were indexed

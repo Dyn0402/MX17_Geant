@@ -1,0 +1,36 @@
+tx1, hybrid_rho5M_gap0_nx1560.npz, th00, 7, wet, --x-tilt-deg 1
+tx1, hybrid_rho5M_gap0_nx1560.npz, th00, 8, wet, --x-tilt-deg 1
+tx1, hybrid_rho5M_gap0_nx1560.npz, th00, 9, wet, --x-tilt-deg 1
+tx1, hybrid_rho5M_gap0_nx1560.npz, th00, 10, wet, --x-tilt-deg 1
+tx1, hybrid_rho5M_gap0_nx1560.npz, th00, 11, wet, --x-tilt-deg 1
+tx1, hybrid_rho5M_gap0_nx1560.npz, th00, 12, wet, --x-tilt-deg 1
+tx2, hybrid_rho5M_gap0_nx1560.npz, th00, 7, wet, --x-tilt-deg 2
+tx2, hybrid_rho5M_gap0_nx1560.npz, th00, 8, wet, --x-tilt-deg 2
+tx2, hybrid_rho5M_gap0_nx1560.npz, th00, 9, wet, --x-tilt-deg 2
+tx2, hybrid_rho5M_gap0_nx1560.npz, th00, 10, wet, --x-tilt-deg 2
+tx2, hybrid_rho5M_gap0_nx1560.npz, th00, 11, wet, --x-tilt-deg 2
+tx2, hybrid_rho5M_gap0_nx1560.npz, th00, 12, wet, --x-tilt-deg 2
+tx3, hybrid_rho5M_gap0_nx1560.npz, th00, 7, wet, --x-tilt-deg 3
+tx3, hybrid_rho5M_gap0_nx1560.npz, th00, 8, wet, --x-tilt-deg 3
+tx3, hybrid_rho5M_gap0_nx1560.npz, th00, 9, wet, --x-tilt-deg 3
+tx3, hybrid_rho5M_gap0_nx1560.npz, th00, 10, wet, --x-tilt-deg 3
+tx3, hybrid_rho5M_gap0_nx1560.npz, th00, 11, wet, --x-tilt-deg 3
+tx3, hybrid_rho5M_gap0_nx1560.npz, th00, 12, wet, --x-tilt-deg 3
+tx5, hybrid_rho5M_gap0_nx1560.npz, th00, 7, wet, --x-tilt-deg 5
+tx5, hybrid_rho5M_gap0_nx1560.npz, th00, 8, wet, --x-tilt-deg 5
+tx5, hybrid_rho5M_gap0_nx1560.npz, th00, 9, wet, --x-tilt-deg 5
+tx5, hybrid_rho5M_gap0_nx1560.npz, th00, 10, wet, --x-tilt-deg 5
+tx5, hybrid_rho5M_gap0_nx1560.npz, th00, 11, wet, --x-tilt-deg 5
+tx5, hybrid_rho5M_gap0_nx1560.npz, th00, 12, wet, --x-tilt-deg 5
+g0, hybrid_rho5M_gap0_nx1560.npz, thx05, 7, wet, -
+g0, hybrid_rho5M_gap0_nx1560.npz, thx05, 8, wet, -
+g0, hybrid_rho5M_gap0_nx1560.npz, thx05, 9, wet, -
+g0, hybrid_rho5M_gap0_nx1560.npz, thx05, 10, wet, -
+g0, hybrid_rho5M_gap0_nx1560.npz, thx05, 11, wet, -
+g0, hybrid_rho5M_gap0_nx1560.npz, thx05, 12, wet, -
+g0, hybrid_rho5M_gap0_nx1560.npz, thx10, 7, wet, -
+g0, hybrid_rho5M_gap0_nx1560.npz, thx10, 8, wet, -
+g0, hybrid_rho5M_gap0_nx1560.npz, thx10, 9, wet, -
+g0, hybrid_rho5M_gap0_nx1560.npz, thx10, 10, wet, -
+g0, hybrid_rho5M_gap0_nx1560.npz, thx10, 11, wet, -
+g0, hybrid_rho5M_gap0_nx1560.npz, thx10, 12, wet, -

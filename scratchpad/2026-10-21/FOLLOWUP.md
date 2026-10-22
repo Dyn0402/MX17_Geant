@@ -211,6 +211,34 @@ Near-vertical cut (|Δt_nb| < 80 ns, FWHM ≥ its 25th pct), `coupling_checks.js
   5 MΩ/sq and ×100, σ 150/300, with and without the funnel (toy floor ~0.01–0.02 from the asymmetric δ set). A strip settles
   to one potential whatever its profile, so only the transient acts, and it is < 1/10 of the data. Closed.
 
+## 11. The sim's "too narrow early clouds" was a selection mismatch; the data carry partial-column pulses the sim lacks (2026-10-22)
+Scripts and outputs: `../2026-10-22/cloud/` (README in each docstring). Condor 4526808 (cloud arms) and 4526809 (x-tilt arms),
+`run_cloud_job.sh`; digitizer options `--diff-t-scale` and `--x-tilt-deg` (default-off, bit-identical: `cg0chk` = glg0 npz).
+- **The §8–10 near-vertical cut compared different populations.** FWHM ≥ the set's own 25th percentile keeps short pulses
+  in the data: det3 May X |dt_nb| < 30 ns has median FWHM 423 ns vs the vertical sim's 590 ns. In absolute FWHM bins
+  (`fwhm_bins.py`) det3 May X matches glg0 at the sim's pulse lengths (s1 0.45–0.7, FWHM 450–550: r05 0.33 ± 0.09 /
+  0.39, f50 0.92 / 0.95; 550–650: 0.21 ± 0.06 / 0.33, f50 1.00 / 0.95); early/peak climbs to ~1–2 only below 350–450 ns.
+- **The short pulses are partial drift columns, not small tilts** (`short_pulses.py`): det3 May X/Y: onset ~4 samples
+  (~240 ns, ~9 mm of drift) later than long pulses, the same 50 % fall, amplitude −25 % (top of the column missing);
+  det3 June-15 (6-23, 600 V drift): normal onset, fall 12.6 vs 20.6 samples (bottom missing). Fraction of |dt_nb| < 80:
+  det3 May 29 % X / 43 % Y, det3 June 62 / 84 %, sim 1–4 %. Sheared th00 at 1/2/3/5° and Stage A thx05/thx10
+  (`mix_score.py`) almost never pass |dt_nb| < 80 (median 120–270 ns) and those that do have LOWER early sharing
+  (tilt 2°: r05 0.03); a FWHM-matched tilt mixture does not reproduce the data's profile on any board.
+- **Cloud-width arms vs det3 May X in matched-FWHM cells** (`arm_chi2.py`, shape χ² of r05, r25, f50 over the peak, 6 cells
+  common to all arms, 18 dof): glg0 23.9, σ0 400 µm 17.5, feedback spread 400 µm 19.0, **dry-gas D_T 86**, no drift
+  diffusion + σ0 400 / 250 µm: 57 / 565. The time profile excludes the dry-gas D_T (the board's "widens like dry gas"
+  question) and depth-independent clouds; σ0 / feedback spread are unconstrained at this statistics (26–48 events per
+  data cell). det3 May Y has too few long pulses for a matched comparison (sim Y pulses are also shorter than X: 521 vs 592 ns).
+- **det3 June's reference set is the 6-23 session at drift 600 V** (`d3jun_x/y` = 6-23 long_run); det3 May is 900 V,
+  the sim 1000 V. The §8–10 det3 June vs sim timing comparisons mixed drift fields and the short-pulse fraction.
+- **det3 June X late growth, per session** (`late_xy.py`, G = r(f50)/r(peak) on each session's longest pulses, X/Y
+  within a session): det3 May 0.64–0.81 (≈ 0.72), det3 June 1000 V 0.51–0.68, 600 V 0.47–0.55, 100 V 0.46 ± 0.07, det2
+  0.50–0.61, vertical sim 0.56–0.60. det3 May is the high one; the sim sits with the asymmetric boards, so "suppressed
+  late X growth" is not a clean det3 June fingerprint (weak drift-field trend within det3 June, ~2σ).
+- **Consequence:** compare data and sim timing only at matched absolute FWHM (and drift field). The open item is what
+  makes the partial-column pulses (out-of-time tracks, a dead/low-field layer near the mesh or edge, attachment at low
+  drift field?), and whether any det3 June X timing feature survives once they are removed.
+
 ## What this leaves
 - The fingerprint (audit §4.1) gains: (2) the transfer is n−1 → n+1 direct, ±2 odd ≈ 12 % of ±1; (5) gain- and
   time-independent at fixed width; no session outlier. The even term is not a usable discriminator at the ±0.1 level.
@@ -224,8 +252,8 @@ Near-vertical cut (|Δt_nb| < 80 ns, FWHM ≥ its 25th pct), `coupling_checks.js
   regime, det3 June-15 has the opposite (prompt-wide, flat in time). So no strip route covers both asymmetric boards.
 - Fingerprints (§8–10): det3 June X has a high, flat early sharing and suppressed late X growth, stable over all sessions,
   not a coupling. Fast-equalising strips (σ_xx = 100 σ_yy) and strip resistivity gradients are excluded (§10).
-- A general sim problem found on the way (§10): the data's early sharing is flat to the onset in both views on every
-  board; the sim's rises 2–3× before the peak. Fixing the sim's early-cloud width / drift-depth dependence (Stage A
-  clouds, diffusion, avalanche/feedback spread) comes before any further mechanism scoring that relies on timing.
+- §10's "general sim problem" (data early sharing flat, sim rising) is withdrawn (§11): at matched pulse length det3 May X
+  = sim. The data's near-vertical samples are dominated by partial-column pulses (late onset or early end) the sim lacks;
+  dry-gas D_T and depth-independent clouds are excluded by the time profile. Identify those pulses next.
 - Otherwise the remaining classes need the board or the detector: the strip photo (registration, width, gap) and
   the detector tests (collimated scan across a pad, HV ramps and dwell, dry gas).

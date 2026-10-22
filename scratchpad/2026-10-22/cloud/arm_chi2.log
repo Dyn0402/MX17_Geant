@@ -1,0 +1,32 @@
+arm             view  cells   chi2 shape/ndf (r05,r25,f50 over peak)   chi2 peak/ndf
+sim cH4         X      6        19.0 / 18 =  1.06                       5.6 /  6
+sim cH4         Y      1         5.8 /  3 =  1.95                       0.3 /  1
+sim cH4         X+Y    7        24.9 / 21 =  1.18                       5.9 /  7
+
+sim cdry        X      8       158.0 / 24 =  6.58                      16.5 /  8
+sim cdry        Y      1        14.8 /  3 =  4.93                       3.8 /  1
+sim cdry        X+Y    9       172.8 / 27 =  6.40                      20.2 /  9
+
+sim cdt0s2      X      8       581.5 / 24 = 24.23                      30.7 /  8
+sim cdt0s2      Y      2        18.6 /  6 =  3.10                       3.8 /  2
+sim cdt0s2      X+Y   10       600.1 / 30 = 20.00                      34.5 / 10
+
+sim cdt0s4      X      7        75.4 / 21 =  3.59                      45.1 /  7
+sim cdt0s4      Y      1        22.8 /  3 =  7.59                      19.9 /  1
+sim cdt0s4      X+Y    8        98.2 / 24 =  4.09                      65.0 /  8
+
+sim cs4         X      7        50.8 / 21 =  2.42                      37.8 /  7
+sim cs4         Y      0         0.0 /  0 =  0.00                       0.0 /  0
+sim cs4         X+Y    7        50.8 / 21 =  2.42                      37.8 /  7
+
+sim glg0        X      8        69.5 / 24 =  2.90                       7.8 /  8
+sim glg0        Y      2        21.0 /  6 =  3.49                       1.1 /  2
+sim glg0        X+Y   10        90.5 / 30 =  3.02                       8.8 / 10
+
+X cells common to all arms: [((350, 450), (0.2, 0.45)), ((350, 450), (0.45, 0.7)), ((450, 550), (0.2, 0.45)), ((450, 550), (0.45, 0.7)), ((550, 650), (0.45, 0.7)), ((650, 2000), (0.45, 0.7))]
+  sim cH4         shape chi2   19.0 / 18
+  sim cdry        shape chi2   86.4 / 18
+  sim cdt0s2      shape chi2  565.1 / 18
+  sim cdt0s4      shape chi2   57.2 / 18
+  sim cs4         shape chi2   17.5 / 18
+  sim glg0        shape chi2   23.9 / 18

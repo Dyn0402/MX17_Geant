@@ -1,9 +1,37 @@
 # Handoff
 
-## det3 X asymmetry (all rounds) — updated 2026-10-22 ~01:15 (dylan-MS-7C84)
+## det3 X asymmetry (all rounds) — updated 2026-10-22 ~09:30 (dylan-MS-7C84)
 
-**Resume:** FOLLOWUP §6–10. Every strip route tested so far fails (narrow, skewed induction, fast-equalising σ_xx = 100,
-resistivity gradient). Next: the sim's early-cloud width (data's early sharing is flat to the onset; the sim's rises).
+**Resume:** FOLLOWUP §11 (new). The "sim's early clouds too narrow" step is closed: it was a selection mismatch. At matched
+pulse length det3 May X = sim. The data's near-vertical samples are dominated by partial-drift-column pulses the sim lacks.
+Next: identify those pulses.
+
+**§11 in short (2026-10-22, `scratchpad/2026-10-22/cloud/`):**
+- The 10-21 cut (FWHM ≥ the set's own p25) kept short data pulses (det3 May X median 423 ns vs vertical sim 590 ns). In
+  absolute FWHM bins det3 May X matches glg0; the "flat early sharing" lives in pulses < 350–450 ns.
+- Those are partial columns, not tilts: det3 May onset ~4 samples late (top ~9 mm missing), det3 June-15 600 V ends
+  early (bottom missing); 29–84 % of the data's |dt_nb| < 80 sample vs 1–4 % of the sim's. Sheared 1–3° and thx05/10 sim
+  tracks fail |dt_nb| < 80 and have lower early sharing.
+- Cloud arms (condor 4526808; χ² vs det3 May X, 18 dof): glg0 23.9, σ0 400 17.5, H 400 19.0, dry D_T 86, constant-width
+  57 / 565. Dry-gas D_T is excluded by the time profile.
+- `d3jun` = the 6-23 session at 600 V drift (det3 May 900 V, sim 1000 V): §8–10's June-vs-sim timing mixed drift fields.
+  Late X/Y growth per session: det3 May ≈ 0.72, det3 June 0.46–0.68, det2 0.50–0.61, sim 0.56–0.60, so not a clean
+  June fingerprint.
+
+**Next steps (replace the list below):**
+1. What makes the partial-column pulses? Check onset/fall vs the trigger for out-of-time tracks (scintillator timing,
+   two-track events), position on the board (edges, frame, spacers), and drift field (6-27 drift scan 100/300/1000 V).
+   M3 tracks for det3 June would give the true angle.
+2. Then re-score det3 June X's timing (late growth, prompt sharing) at matched absolute FWHM and drift field, with a sim
+   at 600 V drift (run config) if June 6-23 stays the reference.
+3. The strip photo / mask and the detector tests remain the decisive physical checks.
+
+**New options/files:** digitizer `--diff-t-scale` and `--x-tilt-deg` (default-off, bit-identical, synced to lxplus src);
+arm npz on the desktop `~/x17/nb_asym_raw/simcloud/` (tags cdt0s4, cdt0s2, cs4, cdry, cH4, ctx1-5, cg0_thx05/10) and
+lxplus `mx17_s1/simcloud_npz/`; decoded ROOT on EOS `response_sim/stageB_w2/cloud/`. Deck slide 13 "Early sharing" added.
+cH4 keeps ~1/4 of the events (raw_asym's isolation cut rejects the 400 µm halo).
+
+The 2026-10-22 ~01:15 state follows; its next step 1 is done (above).
 
 **Read first:** `scratchpad/2026-10-21/FOLLOWUP.md` (§1–10, supersedes the older picture below), then `audit/AUDIT.md`.
 Deck (rebuilt from `scratchpad/2026-10-21/audit/make_audit_deck.py`, 23 slides): https://dylan-neff.web.cern.ch/notes/det3-x-asymmetry.html

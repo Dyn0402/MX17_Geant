@@ -257,7 +257,11 @@ class Digitizer:
                  gap_funnel=0.0, gap_funnel_inset_um=20.0,
                  # strip width the funnel targets; None = the production
                  # C.ESL_WIDTH_M (set it to the kernel's --esl-width-um).
-                 gap_funnel_width_um=None):
+                 gap_funnel_width_um=None,
+                 # DIAGNOSIS (2026-10-22, sim early-cloud width): scale on the
+                 # drift's transverse diffusion sigma_T (0 = a depth-independent
+                 # cloud). 1.0 = bit-identical (same draws, unscaled).
+                 diff_t_scale=1.0):
         # kernel_t_max_ns exists so the LUT window can be varied without
         # editing the default — the A1 before/after (test_window) and any
         # SPS-config run (64 x 60 ns frame -> 4200) both need it.
@@ -321,6 +325,7 @@ class Digitizer:
         self.sigma0_um = (self.sigma0_calib_um if sigma0_um is None
                           else float(sigma0_um))
         self.calib_seed_z0_mm = calib_seed_z0_mm(self.calib)
+        self.diff_t_scale = float(diff_t_scale)
         self.v_drift = float(np.ravel(
             self.gas.v_drift_um_ns(self.E_drift))[0])
 
@@ -453,7 +458,7 @@ class Digitizer:
         # Since sigma_T^2 is linear in z, dropping the leg from the path length
         # is exactly equivalent to subtracting its variance.
         zs_diff = np.clip(zs_drift - self.calib_seed_z0_mm, 0.0, None)
-        sT = self.gas.sigma_T_um(self.E_drift, zs_diff)
+        sT = self.gas.sigma_T_um(self.E_drift, zs_diff) * self.diff_t_scale
         st = self.gas.sigma_t_ns(self.E_drift, zs_drift)
 
         x = xs * 1e-3 + self.rng.normal(0.0, sT * 1e-6)
@@ -764,6 +769,7 @@ class Digitizer:
                 else "S3 calib" if "survival" in self.calib.get("polya", {})
                 else "absent from calib (schema <= 2), assumed 1.0"),
             "sigma0_um": self.sigma0_um,
+            "diff_t_scale": self.diff_t_scale,
             "sigma0_calib_um": self.sigma0_calib_um,
             "calib_voltage_V": self.calib_v,
             "field_model": self.calib.get("field_model"),

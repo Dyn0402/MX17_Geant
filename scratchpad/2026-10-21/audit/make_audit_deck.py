@@ -452,6 +452,42 @@ sl('timing', s10, '<p><code>r5/timing_width.py</code>: the cloud_basics §42 est
    'mixes (route 39).</p><p>Only the anisotropic-strip sim (σxx = 10 σyy, one tuned parameter) reproduces the sign swing; its Y view was not computed (the hybrids keep the '
    'production isotropic Y kernels).</p>', short='Timing')
 
+# ------------------------------------------------------------------------------------------------ 10b early sharing by pulse length (2026-10-22)
+C22 = os.path.join(HERE, '..', '..', '2026-10-22', 'cloud')
+FB = J(C22, 'fwhm_bins_dtn80.json'); SP = J(C22, 'short_pulses.json')
+P = Plot(1080, 600, x=(250, 750), y=(0, 2.1), xlabel='central pulse FWHM (ns), |Δt(n+1 − n−1)| < 80 ns', ylabel='early / peak sharing  r(5 % rise) / r(peak)')
+P.xticks([(v, str(v)) for v in (300, 400, 500, 600, 700)]); P.yticks([(v, f'{v:.1f}') for v in (0, .5, 1, 1.5, 2)])
+P.hline(1, MUT, None, 1.5)
+for key, c, dash, lab in (('det3 May X', BLUE, None, 'data det3 May X'), ('det3 May Y', GREEN, None, 'data det3 May Y'),
+                          ('sim glg0 X', GREY, '8 6', 'sim baseline X'), ('sim glg0 Y', PURPLE, '8 6', 'sim baseline Y'),
+                          ('sim cdry X', ORANGE, '3 5', 'sim, dry-gas D_T, X')):
+    pts = [q for q in FB[key] if q['s1'] == [0.45, 0.7]]
+    xs = [min(.5 * (q['fw'][0] + q['fw'][1]), 700) if q['fw'][0] else 300 for q in pts]
+    ys = [q['r05'][0] / q['peak'][0] for q in pts]; es = [ys[i] * math.hypot(q['r05'][1] / q['r05'][0], q['peak'][1] / q['peak'][0]) for i, q in enumerate(pts)]
+    P.line(xs, ys, c, dash=dash, tips=[f'{lab}, FWHM {q["fw"][0]}–{q["fw"][1]} ns, s1 0.45–0.7: r05 {q["r05"][0]:.3f}, peak {q["peak"][0]:.3f}, '
+                                        f'f50 {q["f50"][0]:.3f}, n = {q["n"]}' for q in pts])
+    if dash is None:
+        for x, y, e in zip(xs, ys, es):                       # clipped to the axis (det3 May X at 300 ns: 1.98 ± 0.7)
+            lo, hi = max(y - e, 0), min(y + e, 2.1); ebar(P, x, .5 * (lo + hi), .5 * (hi - lo), c)
+P.text(430, 1.95, '← short pulses: data only, prompt-wide', 24, INK, weight=600)
+sp = lambda k, i: SP[k][i]
+rows = [[k, f'{100 * sp(k, 0)["frac"]:.0f} %', f'{sp(k, 0)["onset"][1]:.1f} / {sp(k, -1)["onset"][1]:.1f}', f'{sp(k, 0)["f50"]:.1f} / {sp(k, -1)["f50"]:.1f}']
+        for k in ('det3 May X', 'det3 May Y', 'det3 June-15 X', 'sim glg0 X')]
+s10b = sd.title('The data’s “flat early sharing” is a population of short pulses the sim does not make',
+                'Early/peak sharing vs central pulse length (s1 0.45–0.7). At the sim’s own pulse lengths det3 May X agrees with the sim; the cut of 10-21 was dominated by short pulses')
+s10b += row(P.svg('earlyfw'), col(legend([('data det3 May X', BLUE), ('data det3 May Y', GREEN), ('sim baseline X', GREY, 'dash'), ('sim baseline Y', PURPLE, 'dash'),
+                                          ('sim dry-gas D_T X', ORANGE, 'dash')], 22),
+                                  table(['set', 'FWHM<350', 'onset short/long', 'fall short/long'], rows, 20, widths=[190, 110, 150, 150], align=['left', 'center', 'center', 'center']),
+                                  p('Samples of 60 ns from the trigger. det3 May’s short pulses start ~4 samples late (no charge from the top ~9 mm); det3 June-15 (600 V drift) ones end early.', 21, MUT),
+                                  w=620, gap=22), gap=36)
+sl('earlyfw', s10b, '<p><code>2026-10-22/cloud/</code> (MX17_Geant). The 10-21 near-vertical cut keeps central FWHM ≥ the set’s own 25th percentile. The data’s pulses are short '
+   '(det3 May X |Δt| < 30 ns: median 423 ns; sim 590 ns), so that cut compared different populations. In absolute FWHM bins det3 May X matches the baseline sim '
+   '(shape χ² 23.9 / 18 on the cells every arm fills). Dry-gas D_T is excluded by the time profile (86 / 18); depth-independent clouds (no diffusion, σ0 250 / 400 µm) '
+   'fail (565 / 57); σ0 400 µm (17.5) and feedback spread 400 µm (19.0) are no better than the baseline.</p>'
+   '<p>The short pulses are not small x-tilts: sheared th00 tracks at 1–3° and Stage A thx05/thx10 almost never pass |Δt| < 80 ns, and those that do have <i>lower</i> '
+   'early sharing. They are partial drift columns (late onset or early end), 29–43 % of det3 May’s sample, 62–84 % of det3 June-15’s, 1–4 % of the sim’s. '
+   'What makes them is open.</p>', short='Early sharing')
+
 # ------------------------------------------------------------------------------------------------ 11 what's excluded
 def chip(t, c):
     return f'<span style="display:inline-block;padding:2px 12px;border-radius:8px;background:{c};color:white;font-weight:600">{t}</span>'
@@ -743,7 +779,8 @@ WF = [('done', 'Even term vs a no-pull baseline; transfer shape; a1 vs gain and 
       ('done', 'Prompt sharing, data vs sim at matched s1 (near-vertical tracks): det3 May = sim; det2 narrow-prompt / late-wide (the strip regime); det3 June-15 the opposite, wide before the peak and flat in time, which no sim arm makes', 'archive + sim', 'no strip route covers both asymmetric boards'),
       ('done', 'det3 June’s flat X sharing is response, not coupling: flat from 5 % of the rise, s1 floor allows ≤ 0.06 per neighbour, same in every session; it looks like strips that equalise across their width before the first sample', 'archive', 'fast-equalising strips proposed; refuted by the full sim (next row)'),
       ('done', 'Fast-equalising strips (σ_xx = 100 σ_yy) in the full sim: ×1.04 (×1.41 with funnel), r(f) still rising; a resistivity gradient across the strip (19:1) changes a1 by ≤ 0.012', 'sim + toy', 'neither; det3 June X instead lacks LATE X spreading'),
-      ('3', 'Sim early-cloud width: data’s early sharing is flat to the onset in both views on every board, the sim’s rises 2–3× before the peak; fix before scoring timing-based mechanisms', 'sim (Stage A / diffusion / avalanche spread)', 'a sim that matches the data’s time structure'),
+      ('done', 'Sim early-cloud width: at matched pulse length det3 May X = sim (dry D_T and depth-independent clouds excluded); the “flat early sharing” is a data-only population of short, partial-column pulses (29–84 % of the cut), not tilt', 'sim arms + archive', 'compare timing only at matched FWHM; what are the partial columns?'),
+      ('3', 'Identify the partial-column pulses (late onset on det3 May, early end at 600 V on det3 June): out-of-time tracks, mesh/edge field, attachment? Then re-score det3 June X’s late X growth at matched FWHM and drift field', 'archive (+ M3 tracks)', 'whether det3 June X’s timing is a fingerprint at all'),
       ('4', 'Per-session, width-matched maps for det3; decode 6-19/20 FEU 3 for more events', 'archive', 'is the geometry really fixed'),
       ('5', 'Photograph the strips (or get the mask) on det2 rows 0–63 vs 128–255, and on det3 May', 'needs the board', 'strip width and gap; opposite δ there, 780 µm pitch'),
       ('6', 'Collimated source across one pad; HV ramps and dwell; dry-gas flush', 'needs the detector', 'attractor vs displacement; charging; humidity')]

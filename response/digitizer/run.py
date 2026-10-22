@@ -283,6 +283,16 @@ def main():
                          "anode). Default: the calib's value. Used to test a "
                          "prompt lateral spread of ~0.4 mm (wft's data "
                          "calibration has sigma_p0 0.42 mm; RECO_TRUTH 2026-10-18).")
+    ap.add_argument("--diff-t-scale", type=float, default=1.0,
+                    help="DIAGNOSIS: scale on the drift's transverse diffusion "
+                         "(0 = every electron lands with the prompt width only, "
+                         "whatever its depth; sim early-cloud width, 2026-10-22). "
+                         "1.0 = bit-identical.")
+    ap.add_argument("--x-tilt-deg", type=float, default=0.0,
+                    help="DIAGNOSIS: shear the Stage A clusters to an x-inclined "
+                         "track, x += z tan(theta), before the drift (small "
+                         "angles the Stage A set lacks; 2026-10-22). "
+                         "0 = bit-identical.")
     ap.add_argument("--drift-gap-mm", type=float, default=DEFAULT_DRIFT_GAP_MM,
                     help="charge-visible drift column [mm]. Drift clusters deeper "
                          "than this are dropped (the cathode sits there) and the "
@@ -401,11 +411,15 @@ def main():
         cf.keep(cf.z <= a.drift_gap_mm)
         print(f"  drift gap {a.drift_gap_mm:.2f} mm: kept {cf.n_e.sum() / n0:.4f} "
               f"of the primary electrons")
+    if a.x_tilt_deg:
+        cf.x = cf.x + np.clip(cf.z, 0.0, None) * np.tan(np.radians(a.x_tilt_deg))
+        print(f"  x tilt {a.x_tilt_deg:.2f} deg: clusters sheared by z tan(theta)")
     dig = Digitizer(a.kernel, os.path.expanduser(a.calib), seed=a.seed,
                     with_ions=not a.no_ions, ion_model=a.ion_model,
                     ion_speed_scale=a.ion_speed_scale,
                     ion_mobility=a.ion_mobility,
                     feedback_bg=a.feedback_bg, sigma0_um=a.sigma0_um,
+                    diff_t_scale=a.diff_t_scale,
                     feedback_spread_um=a.feedback_spread_um,
                     feedback_rmax_mm=a.feedback_rmax_mm,
                     x_view_offset_um=a.x_view_offset_um,

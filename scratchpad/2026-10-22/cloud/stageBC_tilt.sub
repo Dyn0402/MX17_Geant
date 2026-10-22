@@ -1,0 +1,15 @@
+# x-tilt arms (2026-10-22): glg0 recipe with th00 clusters sheared to 1, 2, 3, 5 deg in x (--x-tilt-deg), and the real
+# Stage A thx05, thx10 (cross-check of the shear at 5 deg), seeds 7-12: the data inclination mix for the r(f) comparison.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_cloud_job.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/cloud.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4 MX17_GAS_TABLE=/afs/cern.ch/work/d/dneff/mx17_s1/src/design/gas/drift_velocity_Ar_iC4H10_95_5_H2O_1.0.json"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/cloud_$(t)_$(ang)_s$(seed).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/cloud_$(t)_$(ang)_s$(seed).err
+arguments               = "c$(t)_$(ang)_s$(seed) $(k) $(ang) $(seed) $(g) '$(x)'"
+queue t, k, ang, seed, g, x from tilt_list.txt

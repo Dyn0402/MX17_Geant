@@ -1,0 +1,181 @@
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, th00, 7, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, th00, 8, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, th00, 9, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, th00, 10, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, th00, 11, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, th00, 12, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy05, 7, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy05, 8, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy05, 9, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy05, 10, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy05, 11, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy05, 12, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy10, 7, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy10, 8, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy10, 9, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy10, 10, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy10, 11, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy10, 12, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy15, 7, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy15, 8, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy15, 9, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy15, 10, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy15, 11, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy15, 12, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy20, 7, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy20, 8, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy20, 9, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy20, 10, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy20, 11, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy20, 12, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy30, 7, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy30, 8, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy30, 9, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy30, 10, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy30, 11, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s4, hybrid_rho5M_gap0_nx1560.npz, thy30, 12, wet, --diff-t-scale 0 --sigma0-um 400
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, th00, 7, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, th00, 8, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, th00, 9, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, th00, 10, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, th00, 11, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, th00, 12, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy05, 7, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy05, 8, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy05, 9, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy05, 10, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy05, 11, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy05, 12, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy10, 7, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy10, 8, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy10, 9, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy10, 10, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy10, 11, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy10, 12, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy15, 7, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy15, 8, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy15, 9, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy15, 10, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy15, 11, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy15, 12, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy20, 7, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy20, 8, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy20, 9, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy20, 10, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy20, 11, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy20, 12, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy30, 7, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy30, 8, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy30, 9, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy30, 10, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy30, 11, wet, --diff-t-scale 0 --sigma0-um 250
+dt0s2, hybrid_rho5M_gap0_nx1560.npz, thy30, 12, wet, --diff-t-scale 0 --sigma0-um 250
+s4, hybrid_rho5M_gap0_nx1560.npz, th00, 7, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, th00, 8, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, th00, 9, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, th00, 10, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, th00, 11, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, th00, 12, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy05, 7, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy05, 8, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy05, 9, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy05, 10, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy05, 11, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy05, 12, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy10, 7, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy10, 8, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy10, 9, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy10, 10, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy10, 11, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy10, 12, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy15, 7, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy15, 8, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy15, 9, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy15, 10, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy15, 11, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy15, 12, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy20, 7, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy20, 8, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy20, 9, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy20, 10, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy20, 11, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy20, 12, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy30, 7, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy30, 8, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy30, 9, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy30, 10, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy30, 11, wet, --sigma0-um 400
+s4, hybrid_rho5M_gap0_nx1560.npz, thy30, 12, wet, --sigma0-um 400
+dry, hybrid_rho5M_gap0_nx1560.npz, th00, 7, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, th00, 8, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, th00, 9, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, th00, 10, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, th00, 11, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, th00, 12, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy05, 7, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy05, 8, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy05, 9, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy05, 10, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy05, 11, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy05, 12, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy10, 7, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy10, 8, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy10, 9, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy10, 10, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy10, 11, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy10, 12, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy15, 7, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy15, 8, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy15, 9, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy15, 10, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy15, 11, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy15, 12, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy20, 7, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy20, 8, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy20, 9, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy20, 10, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy20, 11, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy20, 12, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy30, 7, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy30, 8, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy30, 9, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy30, 10, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy30, 11, dry, -
+dry, hybrid_rho5M_gap0_nx1560.npz, thy30, 12, dry, -
+H4, hybrid_rho5M_gap0_nx1560.npz, th00, 7, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, th00, 8, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, th00, 9, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, th00, 10, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, th00, 11, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, th00, 12, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy05, 7, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy05, 8, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy05, 9, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy05, 10, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy05, 11, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy05, 12, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy10, 7, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy10, 8, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy10, 9, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy10, 10, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy10, 11, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy10, 12, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy15, 7, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy15, 8, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy15, 9, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy15, 10, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy15, 11, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy15, 12, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy20, 7, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy20, 8, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy20, 9, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy20, 10, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy20, 11, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy20, 12, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy30, 7, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy30, 8, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy30, 9, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy30, 10, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy30, 11, wet, --feedback-spread-um 400
+H4, hybrid_rho5M_gap0_nx1560.npz, thy30, 12, wet, --feedback-spread-um 400
+g0chk, hybrid_rho5M_gap0_nx1560.npz, th00, 7, wet, -
