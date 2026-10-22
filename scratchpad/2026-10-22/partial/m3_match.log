@@ -1,0 +1,14 @@
+s052 x 7_det3_det4_overnight_6-23-26 long_run trunc 0.23  matched |res|<30mm: full 0.93 (n 1006)  trunc 0.95 (n 320)   |res| p50 full 10 trunc 11 mm
+s052 y 7_det3_det4_overnight_6-23-26 long_run trunc 0.23  matched |res|<30mm: full 0.79 (n 1045)  trunc 0.80 (n 302)   |res| p50 full 13 trunc 13 mm
+s054 x det3_det4_overnight_6-23-26 longer_run trunc 0.35  matched |res|<30mm: full 0.82 (n 95)  trunc 0.98 (n 41)   |res| p50 full 9 trunc 7 mm
+s054 y det3_det4_overnight_6-23-26 longer_run trunc 0.30  matched |res|<30mm: full 0.87 (n 341)  trunc 0.87 (n 161)   |res| p50 full 12 trunc 12 mm
+s013 x rnight_6-22-26 resist_480V_drift_1000V trunc 0.01  matched |res|<30mm: full 0.97 (n 967)  trunc 1.00 (n 12)   |res| p50 full 10 trunc 6 mm
+s013 y rnight_6-22-26 resist_480V_drift_1000V trunc 0.01  matched |res|<30mm: full 0.95 (n 818)  trunc 0.86 (n 7)   |res| p50 full 11 trunc 17 mm
+s051 x 27-26 long_run_resist_490V_drift_1000V trunc 0.01  matched |res|<30mm: full 0.98 (n 1618)  trunc 1.00 (n 10)   |res| p50 full 10 trunc 12 mm
+s051 y 27-26 long_run_resist_490V_drift_1000V trunc 0.03  matched |res|<30mm: full 0.97 (n 426)  trunc 0.62 (n 8)   |res| p50 full 11 trunc 18 mm
+s024 x mx17_det3_day_6-25-26 long_run         trunc 0.01  matched |res|<30mm: full 0.98 (n 237)  trunc nan (n 0)   |res| p50 full 9 trunc nan mm
+s024 y mx17_det3_day_6-25-26 long_run         trunc 0.04  matched |res|<30mm: full 0.98 (n 63)  trunc nan (n 0)   |res| p50 full 10 trunc nan mm
+s027 x 7-26 drift_scan_resist_490V_drift_100V trunc 0.07  matched |res|<30mm: full 0.95 (n 727)  trunc 0.98 (n 60)   |res| p50 full 11 trunc 10 mm
+s027 y 7-26 drift_scan_resist_490V_drift_100V trunc 0.06  matched |res|<30mm: full 0.93 (n 694)  trunc 0.84 (n 43)   |res| p50 full 10 trunc 10 mm
+d3may x det3 May 5-5 resist_470V_drift_900V    trunc 0.02  matched |res|<30mm: full 0.98 (n 2519)  trunc 0.90 (n 60)   |res| p50 full 9 trunc 10 mm
+d3may y det3 May 5-5 resist_470V_drift_900V    trunc 0.03  matched |res|<30mm: full 0.97 (n 2410)  trunc 0.97 (n 71)   |res| p50 full 9 trunc 11 mm

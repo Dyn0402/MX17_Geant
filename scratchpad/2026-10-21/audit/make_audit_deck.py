@@ -486,7 +486,40 @@ sl('earlyfw', s10b, '<p><code>2026-10-22/cloud/</code> (MX17_Geant). The 10-21 n
    'fail (565 / 57); σ0 400 µm (17.5) and feedback spread 400 µm (19.0) are no better than the baseline.</p>'
    '<p>The short pulses are not small x-tilts: sheared th00 tracks at 1–3° and Stage A thx05/thx10 almost never pass |Δt| < 80 ns, and those that do have <i>lower</i> '
    'early sharing. They are partial drift columns (late onset or early end), 29–43 % of det3 May’s sample, 62–84 % of det3 June-15’s, 1–4 % of the sim’s. '
-   'What makes them is open.</p>', short='Early sharing')
+   'What makes them: next slide (§12).</p>', short='Early sharing')
+
+# ------------------------------------------------------------------------------------------------ 10c partial columns: what makes them (2026-10-22, §12)
+P22 = os.path.join(HERE, '..', '..', '2026-10-22', 'partial')
+EE = J(P22, 'event_ends.json'); RS = J(P22, 'rescore_chi2.json')
+P = Plot(1060, 600, x=(6, 31), y=(0, 0.38), xlabel='end of the column (last 30 % crossing of the 9-pad sum, 60 ns samples)', ylabel='fraction of events')
+P.xticks([(v, str(v)) for v in (6, 10, 14, 18, 22, 26, 30)]); P.yticks([(v, f'{v:.1f}') for v in (0, .1, .2, .3)])
+for key, c, dash, lab in (('d3may_x', BLUE, None, 'det3 May, 900 V'), ('s051_x', GREEN, None, 'det3 June, 6-27, 1000 V'),
+                          ('s024_x', GOLD, None, 'det3 June, 6-25, 500 V'), ('s052_x', RED, None, 'det3 June, 6-23, 600 V (the §8–10 reference)')):
+    h = np.array(EE[key]['hist_end9'], float); h = h / h.sum(); xs = list(range(6, 32))
+    P.line(xs, [h[i] for i in xs], c, dash=dash, tips=[f'{lab}: end at sample {i}: {h[i]:.3f} (n = {EE[key]["n"]} M3-vertical tracks, |θ| < 2°)' for i in xs])
+P.text(7, 0.36, '6-23: no column end, a ~0.5 µs burst at a random depth', 23, INK, weight=600)
+rows = [[lab, f'{RS[k]["chi2"]:.0f} / {RS[k]["ndof"]}', f'{RS[k]["early_pk"]:.2f}', f'{RS[k]["late_pk"]:.2f}']
+        for lab, k in (('June 6-27, 1000 V', 'det3 June 6-27 1000 V (s051+s025) [dtn]'), ('June 6-23, 600 V', 'det3 June 6-23 600 V (d3jun) [dtn]'),
+                       ('May, 900 V', 'det3 May 900 V [dtn]'), ('June 6-27, M3 vert.', 'det3 June 6-27 1000 V (s051+s025) [m3v]'), ('May, M3 vert.', 'det3 May 900 V [m3v]'))]
+rows.append(['sim glg0', '—', f'{RS["det3 June 6-27 1000 V (s051+s025) [dtn]"]["sim_early_pk"]:.2f}', f'{RS["det3 June 6-27 1000 V (s051+s025) [dtn]"]["sim_late_pk"]:.2f}'])
+s10c = sd.title('The partial columns are inclined tracks (May) and a degraded session (June 6-23); a clean det3 June X matches the sim',
+                'Left: where each M3-vertical track’s drift column ends. Right: X timing at matched pulse length vs the sim (χ² over r(5 %, 25 % rise, peak, 50 % fall))')
+s10c += row(P.svg('colend'), col(legend([('det3 May, 900 V', BLUE), ('det3 June 6-27, 1000 V', GREEN), ('det3 June 6-25, 500 V', GOLD), ('det3 June 6-23, 600 V', RED)], 22),
+                                  table(['set', 'χ² vs sim', 'early/pk', 'late/pk'], rows, 20, widths=[210, 120, 110, 110], align=['left', 'center', 'center', 'center']),
+                                  p('det3 May: the short pulses have M3 |θ| 6° across the pads (long ones 1.3°); the |Δt| < 80 ns cut lets them in.', 21, MUT),
+                                  w=620, gap=22), gap=36)
+sl('colend', s10c, '<p><code>2026-10-22/partial/</code> (MX17_Geant), M3 tracks joined by eventId (Chi2X, Chi2Y < 5). The view X ↔ M3 y mapping holds in May too (chip medians). '
+   '<b>det3 May</b>: the |Δt(n+1 − n−1)| < 80 ns sample keeps inclined tracks; FWHM < 350 ns pulses have |θ_meas| 6.3° (long 1.3°). With M3 |θ| < 2° only 11 % are short.</p>'
+   '<p><b>det3 June 6-23</b> (the d3jun reference, every 600 V sub-run): per vertical muon the column arrives as a ~0.5 µs burst at a random depth (onset p10–p90 4–15 '
+   'samples, end flat 9–31); X and Y (FEU 3 and 4) agree event by event (onset r = 0.83); det4 in the same events is uncorrelated (r = 0.04), so not the trigger; 95 % '
+   'have the M3 track on the hit chip, so not other particles; uniform over angle, board position, M3 multiplicity and time in the run; no dropped-sample floors. '
+   '9-pad amplitude 4–5× below the other sessions and nearly flat over the 465–525 V resist scan (×1.5 vs ×8 on 6-27); α+1 0.08–0.2 vs 0.3–0.47. HV readback normal '
+   '(600 V, 495 V; resist current 0.62 vs ~1.1 µA). Not the drift field: 6-25 at 500 V and the 6-27 scan at 500–1100 V have sharp column ends. Mechanism open '
+   '(a resistive layer not following its supply, i.e. charging, fits the flat gain; electron loss in the gas does not explain random depths).</p>'
+   '<p><b>Step 2</b>: clean det3 June X (6-27 long_run + overnight, 1000 V = sim) at matched absolute FWHM: χ² 34 / 16 vs the sim (det3 May 121 / 36, 6-23 639 / 24); '
+   'late growth not suppressed (2.02 vs sim 1.87). Early sharing sits above the sim on both boards alike (May 0.83, June 0.78, sim 0.58). So §8–10’s "det3 June '
+   'prompt-wide, flat, suppressed late growth" fingerprint is the 6-23 session, not the June bulk. The asymmetry itself is in the clean sessions (survey a ≈ 0.07–0.11).</p>',
+   short='Partial columns')
 
 # ------------------------------------------------------------------------------------------------ 11 what's excluded
 def chip(t, c):
@@ -776,11 +809,12 @@ WF = [('done', 'Even term vs a no-pull baseline; transfer shape; a1 vs gain and 
       ('1', 'Score models on the transfer shape (±1 vs ±2) and the size, not on pad classes or the within-attractor even contrast', 'existing sim', 'which position-level mechanisms survive'),
       ('done', 'Narrow strips (190 / 290 µm) + saturated-gap funnel in the full sim: odd amplitude ×0.2–0.9 of the 550 µm control, not ×2.5–5', 'sim', 'the toy’s size does not survive the real kernels'),
       ('done', 'Skewed induction: the W2 kernels already carry offset resistive strips at every δ (31.2 mm box) and sit at the conducting-strip limit (2-D toy: O ≈ 0.04 at the sim’s sharing); funnel ion return paths subtract 5–10 %', 'sim + toy', 'no strip-induction route reaches ×2.5–5 at the data’s sharing'),
-      ('done', 'Prompt sharing, data vs sim at matched s1 (near-vertical tracks): det3 May = sim; det2 narrow-prompt / late-wide (the strip regime); det3 June-15 the opposite, wide before the peak and flat in time, which no sim arm makes', 'archive + sim', 'no strip route covers both asymmetric boards'),
+      ('done', 'Prompt sharing, data vs sim at matched s1 (near-vertical tracks): det3 May = sim; det2 narrow-prompt / late-wide (the strip regime); det3 June-15 the opposite, wide before the peak and flat in time, which no sim arm makes', 'archive + sim', 'no strip route covers both asymmetric boards (det3 June side withdrawn by §12: the 6-23 session)'),
       ('done', 'det3 June’s flat X sharing is response, not coupling: flat from 5 % of the rise, s1 floor allows ≤ 0.06 per neighbour, same in every session; it looks like strips that equalise across their width before the first sample', 'archive', 'fast-equalising strips proposed; refuted by the full sim (next row)'),
       ('done', 'Fast-equalising strips (σ_xx = 100 σ_yy) in the full sim: ×1.04 (×1.41 with funnel), r(f) still rising; a resistivity gradient across the strip (19:1) changes a1 by ≤ 0.012', 'sim + toy', 'neither; det3 June X instead lacks LATE X spreading'),
       ('done', 'Sim early-cloud width: at matched pulse length det3 May X = sim (dry D_T and depth-independent clouds excluded); the “flat early sharing” is a data-only population of short, partial-column pulses (29–84 % of the cut), not tilt', 'sim arms + archive', 'compare timing only at matched FWHM; what are the partial columns?'),
-      ('3', 'Identify the partial-column pulses (late onset on det3 May, early end at 600 V on det3 June): out-of-time tracks, mesh/edge field, attachment? Then re-score det3 June X’s late X growth at matched FWHM and drift field', 'archive (+ M3 tracks)', 'whether det3 June X’s timing is a fingerprint at all'),
+      ('done', 'Partial columns (§12, M3 tracks): det3 May’s are tracks inclined across the pads (6° vs 1.3°) that pass the |Δt| cut; det3 June’s come from the 6-23 session, where det3 collected each muon column as a ~0.5 µs burst at a random depth (not trigger, tracks, DAQ, position or field). Clean det3 June X (6-27, 1000 V) vs sim at matched FWHM: χ² 34 / 16, late growth normal', 'archive + M3', 'det3 June X timing has no June-specific feature; 6-23 cause open'),
+      ('3', 'Re-check det2’s narrow-prompt / late-wide regime with M3 angles on its cleanest session; what degraded det3 on 6-23 (gain flat vs resist HV)', 'archive (+ M3)', 'whether any timing fingerprint survives'),
       ('4', 'Per-session, width-matched maps for det3; decode 6-19/20 FEU 3 for more events', 'archive', 'is the geometry really fixed'),
       ('5', 'Photograph the strips (or get the mask) on det2 rows 0–63 vs 128–255, and on det3 May', 'needs the board', 'strip width and gap; opposite δ there, 780 µm pitch'),
       ('6', 'Collimated source across one pad; HV ramps and dwell; dry-gas flush', 'needs the detector', 'attractor vs displacement; charging; humidity')]

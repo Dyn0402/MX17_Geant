@@ -239,6 +239,52 @@ Scripts and outputs: `../2026-10-22/cloud/` (README in each docstring). Condor 4
   makes the partial-column pulses (out-of-time tracks, a dead/low-field layer near the mesh or edge, attachment at low
   drift field?), and whether any det3 June X timing feature survives once they are removed.
 
+## 12. The partial columns: inclined tracks in May, a degraded session in June; clean det3 June X timing = sim (2026-10-22, dylan-Yoga)
+Scripts, logs and JSON: `../2026-10-22/partial/` (docstrings). M3 reference tracks joined to the raw npz by decoded file number
+and eventId (`m3lib.py`, vectorised; Chi2X, Chi2Y < 5, single good track). The view X <-> M3 y mapping holds in May as well as
+June (chip medians, `diag.py`), whatever the May run_config's rotation says.
+- **det3 May: the short pulses are tracks inclined across the pads** (`partial_m3.py`). In the |dt_nb| < 80 sample, FWHM < 350 ns
+  pulses have M3 |th_meas| 6.3 deg (p25-p75 2.6-9.5), 350-450 ns 2.5 deg, >= 450 ns 1.3 deg; the |dt_nb| cut does not select
+  vertical tracks (P(|dt_nb| < 80) is 0.41 at < 2 deg but 0.37 again at 10-20 deg). Among M3-vertical tracks (|th_meas| < 2 deg)
+  only 11 % (X) / 24 % (Y) are short. The 9-pad column end is sharp (p10-p90 18-21 samples). Nothing anomalous: a selection effect.
+- **det3 June 6-23 (the d3jun reference of §8-11, every 600 V sub-run) is a degraded session** (`session_profile.py`,
+  `event_ends.py`, `trunc_map.py`, `m3_match.py`, `xy_timing.py`, `det4_timing.py`). Per M3-vertical muon the drift column
+  arrives as a ~0.5 us burst at a random depth: 9-pad 30 % onset p10/50/90 = 4/7/15 samples (6-27: 6/7/10), end flat from 9
+  to 31 (6-27: sharp peak at 19-20), late-ending events carry little early charge. Checked and excluded as the cause:
+  - other particles / out-of-time tracks: 95 % have the M3 track on the hit chip (same as full columns), M3 multiplicity flat;
+  - trigger timing: det4 in the same events (FEU 6, z 702) has its own onsets, r = 0.04 with det3's;
+  - FEU / DAQ: X and Y (FEU 3 and 4) agree event by event (onset r 0.83, peak 0.87); no dropped-sample (-pedestal) floors;
+  - position, angle, time in the run: truncated fraction 0.17-0.30 in every board quartile, angle bin and run quarter;
+  - drift field: 6-25 at 500 V and the 6-27 scan at 500-1100 V have sharp column ends; HV readback normal (drift 600.0 V,
+    resist 494.9 V at 0.62 uA vs ~1.1 uA in other sessions).
+  The 9-pad amplitude of vertical tracks is 4-5x below the other sessions (922 vs 4261 ADC on 6-27 at 490 V) and nearly flat
+  over the 465-525 V resist scan (x1.5, vs x8 for 425-495 V on 6-27); alpha+1 0.08-0.2 vs 0.3-0.47 elsewhere (copy_survey).
+  Mechanism not identified. A gain that does not follow the resist supply points to the amplification side (a resistive layer
+  charging or poorly connected) rather than the gas; electron loss in the drift (attachment) cannot cut columns at random
+  depths and the mean 9-pad profile only sags ~30 % over 0.7 us. 6-22 (1000 V, night before) is intermediate: slow, sagging
+  columns ending past the window, 23-37 % short.
+- **Drift field in clean sessions** (6-27 scan, M3-vertical, X): short fraction 0.50 / 0.38 / 0.29 / 0.16 / 0.09 / 0.04 at
+  100 / 300 / 500 / 700 / 900 / 1100 V; at <= 500 V the column ends past the 1.92 us window, so the FWHM is not a length there.
+- **Step 2: det3 June X timing re-scored on clean sessions at the sim's field** (`rescore.py`, `rescore_chi2.py`): 6-27
+  long_run + 6-27 overnight sanity run (490 V resist, 1000 V drift = sim), same absolute FWHM x s1 cells as `cloud/fwhm_bins.py`,
+  chi2 over r(5 %), r(25 %), r(peak), r(50 % fall) vs sim glg0:
+  | set (|dt_nb| < 80) | chi2 / cells x 4 | early/peak | late/peak |
+  |---|---|---|---|
+  | det3 June 6-27, 1000 V | 34 / 16 | 0.78 | 2.02 |
+  | det3 June 6-23, 600 V (old ref) | 639 / 24 | 1.51 | 1.34 |
+  | det3 May, 900 V | 121 / 36 | 0.83 | 1.76 |
+  | sim glg0 | - | 0.58 | 1.87 |
+  With M3 |th_meas| < 2 deg vs sim th00: June 44 / 16 (early/pk 1.24, late/pk 1.84), May 77 / 28 (1.59, 1.86), sim (0.73, 1.86).
+  Clean det3 June X is as sim-like as det3 May (closer, in fact). Its late growth is not suppressed, and its early sharing sits
+  above the sim by the same amount as det3 May's. **§8-10's det3 June fingerprint ("prompt-wide, flat in time, suppressed late X
+  growth") is the 6-23 session, not the June bulk.** §8's det2 regime and the per-session statements of §9/§11 (late_xy G
+  values) used the |dt_nb| / FW_PCT cuts and should be read with this in mind. The asymmetry itself is in the clean sessions
+  (copy_survey a ≈ 0.07-0.11 on 6-27; direct a1 per §2), so nothing here removes it.
+- **Consequence for the timing route:** with clean data at the sim's field, the det3 June X timing carries no June-specific
+  feature at the present statistics. The early-sharing excess over the sim (early/peak ~0.8 vs 0.6 with |dt_nb|, larger with M3)
+  is common to both det3 bulks. Timing no longer discriminates the asymmetry mechanisms; the remaining discriminators are the
+  strip photo / mask and the detector tests.
+
 ## What this leaves
 - The fingerprint (audit §4.1) gains: (2) the transfer is n−1 → n+1 direct, ±2 odd ≈ 12 % of ±1; (5) gain- and
   time-independent at fixed width; no session outlier. The even term is not a usable discriminator at the ±0.1 level.
@@ -250,10 +296,17 @@ Scripts and outputs: `../2026-10-22/cloud/` (README in each docstring). Condor 4
   need ~kV between neighbours (E_z ≈ 33 V/µm) to tilt the ions by 0.1, implausible for cosmic-rate currents.
 - Every strip route needs a cloud the strip pins while narrow, widened later; §8 tested it on archive data: det2 has that
   regime, det3 June-15 has the opposite (prompt-wide, flat in time). So no strip route covers both asymmetric boards.
+  **Reopened by §12:** the det3 June-15 side of this came from the degraded 6-23 session; on clean 6-27 data det3 June X
+  timing is sim-like, so the strip routes are no longer excluded by timing on det3 June (det2's regime should be re-checked
+  the same way: M3 angles, its cleanest session).
 - Fingerprints (§8–10): det3 June X has a high, flat early sharing and suppressed late X growth, stable over all sessions,
   not a coupling. Fast-equalising strips (σ_xx = 100 σ_yy) and strip resistivity gradients are excluded (§10).
+  **Withdrawn by §12:** that fingerprint is the degraded 6-23 session (the d3jun reference); clean det3 June X (6-27, 1000 V)
+  matches the sim as well as det3 May does.
 - §10's "general sim problem" (data early sharing flat, sim rising) is withdrawn (§11): at matched pulse length det3 May X
   = sim. The data's near-vertical samples are dominated by partial-column pulses (late onset or early end) the sim lacks;
-  dry-gas D_T and depth-independent clouds are excluded by the time profile. Identify those pulses next.
+  dry-gas D_T and depth-independent clouds are excluded by the time profile. §12: in det3 May they are inclined tracks the
+  |dt_nb| cut lets in; in det3 June they come from the 6-23 session, where det3 collected each column as a burst at a random
+  depth (mechanism open, amplification side suspected). Use M3 angles and clean sessions (6-27, 1000 V) from now on.
 - Otherwise the remaining classes need the board or the detector: the strip photo (registration, width, gap) and
   the detector tests (collimated scan across a pad, HV ramps and dwell, dry gas).

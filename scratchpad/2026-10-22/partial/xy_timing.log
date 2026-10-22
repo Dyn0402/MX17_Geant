@@ -1,0 +1,4 @@
+s052 x17_det3_det4_overnight_6-23-26 long_run joined 616  corr onset 0.83  end 0.71  peak 0.87  amp 0.93;  |dpeak|<=1: 0.83  peak p10/50/90 X [ 7. 11. 20.] Y [ 7. 11. 20.]
+s051 6-27-26 long_run_resist_490V_drift_1000V joined 210  corr onset 0.94  end 0.89  peak 0.90  amp 0.98;  |dpeak|<=1: 0.90  peak p10/50/90 X [10. 14. 18.] Y [10. 14. 18.]
+s024 mx17_det3_day_6-25-26 long_run           joined 44  corr onset 0.89  end 0.96  peak 0.73  amp 0.98;  |dpeak|<=1: 0.77  peak p10/50/90 X [12. 18. 22.] Y [13.  18.5 22.7]
+s013 vernight_6-22-26 resist_480V_drift_1000V joined 578  corr onset 0.80  end 0.74  peak 0.74  amp 0.95;  |dpeak|<=1: 0.82  peak p10/50/90 X [10. 16. 22.] Y [10. 16. 22.]

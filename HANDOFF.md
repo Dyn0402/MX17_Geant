@@ -1,6 +1,35 @@
 # Handoff
 
-## det3 X asymmetry (all rounds) — updated 2026-10-22 ~09:30 (dylan-MS-7C84)
+## det3 X asymmetry (all rounds) — updated 2026-10-22 ~10:40 (dylan-Yoga)
+
+**Resume:** FOLLOWUP §12 (new). The partial-column pulses are identified, and step 2 (det3 June X timing at matched FWHM and
+drift field) is done: **clean det3 June X timing is sim-like; §8–10's det3 June timing fingerprint came from a degraded session.**
+
+**§12 in short (`scratchpad/2026-10-22/partial/`, M3 tracks joined by eventId via `m3lib.py`):**
+- det3 May: the short pulses are tracks inclined across the pads (M3 |θ_meas| 6.3° vs 1.3° for long ones); the |dt_nb| < 80 cut
+  lets them in. View X ↔ M3 y in May as in June.
+- det3 June 6-23 (= `d3jun`, every 600 V sub-run) is degraded: each vertical muon's column arrives as a ~0.5 µs burst at a
+  random depth; 9-pad amplitude 4–5× low and nearly flat over the 465–525 V resist scan; α+1 0.08–0.2. Not the trigger (det4
+  uncorrelated), not other tracks (M3 points at the hit), not the DAQ (X/Y agree), not position/angle/time, not the drift field
+  (6-25 at 500 V and 6-27 at 500–1100 V are clean). HV readback normal. Cause open (amplification side suspected).
+- Step 2 (`rescore.py`): det3 June 6-27 long_run + overnight (490 V / 1000 V = sim field) vs sim glg0 at matched FWHM: χ² 34/16
+  (det3 May 121/36, 6-23 639/24); late/peak 2.02 (sim 1.87); early/peak 0.78 vs May 0.83 vs sim 0.58 (common to both det3 bulks).
+  The asymmetry is still present in the clean sessions (copy-survey a ≈ 0.07–0.11).
+- Deck: new slide 14 "Partial columns"; way-forward table updated. FOLLOWUP's "What this leaves" marks the withdrawn items.
+
+**Next steps (replace the list below):**
+1. Use M3 angles (not |dt_nb|) and clean sessions (6-27, 1000 V) for any data/sim timing or sharing comparison. Re-check det2's
+   "narrow-prompt / late-wide" regime (§8) that way. It is the remaining timing argument against the strip routes.
+2. Optional: what degraded det3 on 6-23 (gain flat vs resist HV). Compare 6-22 → 6-25 run logs and resist currents; det4 on
+   6-23 as a control (`det4_timing.py` reads its raw FEU 6).
+3. The strip photo / mask and the detector tests remain the decisive physical checks.
+
+**Gotchas (new):** `d3jun_*.npz` is the degraded 6-23 session. Prefer survey `s051` + `s025` (6-27, 1000 V) as the det3 June
+reference. `pkill -f <pattern>` from the Bash tool kills its own shell when the pattern appears in the command line.
+
+The 2026-10-22 ~09:30 state follows; its next steps 1 and 2 are done (above).
+
+## det3 X asymmetry (all rounds) — 2026-10-22 ~09:30 (dylan-MS-7C84)
 
 **Resume:** FOLLOWUP §11 (new). The "sim's early clouds too narrow" step is closed: it was a selection mismatch. At matched
 pulse length det3 May X = sim. The data's near-vertical samples are dominated by partial-drift-column pulses the sim lacks.
