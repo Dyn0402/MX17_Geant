@@ -18,6 +18,11 @@ Next: identify those pulses.
   Late X/Y growth per session: det3 May ≈ 0.72, det3 June 0.46–0.68, det2 0.50–0.61, sim 0.56–0.60, so not a clean
   June fingerprint.
 
+**In progress:** a background session on the laptop (yoga, Alexandra account, id `71881d1d`, "det3 partial-column
+pulses", started ~09:45) is working on next step 1 (and 2 if clear) and will write FOLLOWUP §12 + push. Check it first:
+`ssh yoga`, then `CLAUDE_CONFIG_DIR=~/.claude-alexandra claude logs 71881d1d` (or `attach`); `git pull` for its commits.
+The desktop's `~/x17/nb_asym_raw` (incl. simcloud/) was synced to the laptop for it. No condor jobs running.
+
 **Next steps (replace the list below):**
 1. What makes the partial-column pulses? Check onset/fall vs the trigger for out-of-time tracks (scintillator timing,
    two-track events), position on the board (edges, frame, spacers), and drift field (6-27 drift scan 100/300/1000 V).
