@@ -1,6 +1,45 @@
 # Handoff
 
-## det3 X asymmetry (all rounds) — updated 2026-10-22 ~13:00 (dylan-Yoga)
+## det3 X asymmetry (all rounds) — updated 2026-10-22 (dylan-Yoga)
+
+**Resume:** PAUSED. Waiting on Stephan: is the photographed strip film (761 µm) the production pattern? Then close the study.
+
+**Goal:** explain (and correct for) the X-only n−1 → n+1 neighbour asymmetry on the June-built boards from archive data and
+simulation. The analysis already has a data-driven correction (`wft.xasym`, nTof_x17), so the cause is not blocking.
+
+**Status (Dylan, 2026-10-22):** there is no access to the detector, so the detector tests (collimated scan across a pad, HV
+ramps/dwell, dry gas) are impossible; don't propose them as next steps. Dylan considers the cause unresolvable with what we
+have. The study ends once Stephan answers about the strip film.
+
+**Done (this session, FOLLOWUP §12–15, deck slides 14–17):**
+- Partial-column pulses: det3 May = inclined tracks passing the |dt_nb| cut; det3 June 6-23 and det2 6-17 = degraded nights
+  of the bottom-slot board (gain not following resist HV, columns cut at random depths; cause unknown). On healthy nights the
+  June boards' timing is sim-like, so timing no longer constrains mechanisms (§12–13).
+- Strip print film photographed (§14): pitch 760.7 µm (±1 %), fill 0.694 (spec 550/800), jitter 6–10 µm.
+- Consequences if it is the production print (§15): registration can't make the field (≤ 0.025 per cell vs 0.07–0.20; the
+  30 mm ripple it requires is absent), and the sim's strip imprint is ≥ 5–10× too strong. Only a production pitch of exactly
+  780 µm would reopen registration.
+- Recorded on the x17 analysis board (log, 2026-10-22).
+
+**Next steps (when Stephan answers):**
+1. If the film is the production print at 1:1: mark §15 confirmed in FOLLOWUP, the AUDIT.md addendum (top and §4.4), deck
+   slides 16–17 and the close slide (`make_audit_deck.py`, publish with add-note.py), and the comment in
+   `response/common/constants.py`. Consider setting `ESL_PITCH_UM` to 760.5 (30.42 mm box, 40 strips / 39 pads) only if the
+   sim will be used again.
+2. If not 1:1 / a different pitch: only exactly 780 µm changes the conclusion; otherwise the same text holds for 800 µm.
+3. Then write a short closing summary (what is known, what is excluded, what remains unexplained: pad-locked or
+   column-independent, X-only, June-only; candidates surface charge on fresh June bulks, June PCB pad/via layer, bulk
+   process) at the top of FOLLOWUP / AUDIT and the deck, and log the closure on the x17 board.
+
+**Key files:** `scratchpad/2026-10-21/FOLLOWUP.md` (§1–15), `scratchpad/2026-10-21/audit/AUDIT.md`,
+`scratchpad/2026-10-21/audit/make_audit_deck.py` → https://dylan-neff.web.cern.ch/notes/det3-x-asymmetry.html,
+`scratchpad/2026-10-22/{partial,strip_photo,film761}/`. Strip photos: `scratchpad/2026-10-22/strip_photo/raw/` on the
+laptop (git-ignored, 22 MB) and the desktop's Windows `Downloads/Photos-1-001.zip` (reached over Tailscale 100.125.24.75
+with `-o HostKeyAlias=desktop-win-lan`; the LAN route fails when the laptop is on the Freebox).
+
+The earlier sections below are the history of this study (newest first).
+
+## det3 X asymmetry (all rounds) — 2026-10-22 ~13:00 (dylan-Yoga)
 
 **Resume:** FOLLOWUP §15 (new): consequences **if the photographed film (§14, 760.7 µm) is the production pattern**
 (Dylan believes so and is confirming).
