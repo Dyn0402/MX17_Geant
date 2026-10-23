@@ -9,6 +9,15 @@ Notation: a1 = α(n+1) − α(n−1) in DAQ order, α = in-phase content of a ne
 s1X = α(+1) + α(−1) (the X ±1 sharing), s1Y = the same in Y ("Y share"). Y-pad / X-pad class = parity of
 (X peak + Y peak), i.e. the pad type under the charge.
 
+> **CLOSED 2026-10-23 (FOLLOWUP §16 and its closing summary).** The last two archive tests are done:
+> - A software pad scan with M3 is not feasible: the charge centroid scatters 0.53 mm about the track, wiping out the
+>   0.78 mm phase.
+> - The pillar lattice (4.68 mm = 6 pads) is not seen in occupancy, charge or a1 on any June board. A pillar-locked field
+>   of the data's size would have shown at 3–8× the null.
+>
+> Cause not identified. Strips and pillars are excluded. What is left (surface charge on the fresh June bulks, the bulk
+> process; attractor vs displacement) needs a point source on the detector. The analysis uses `wft.xasym`.
+
 > **Addendum 2026-10-22 (strip film photo, FOLLOWUP §14–15).** The print film of the resistive strips was photographed
 > (Dylan, macro shots with a steel ruler): pitch **760.7 µm** (±1 % systematic), fill 0.694 (spec 550 / 800 = 0.6875).
 > Step 6 below named the pitch as the decisive test (registration needs a 780 µm, pad-locked print). If the film is the

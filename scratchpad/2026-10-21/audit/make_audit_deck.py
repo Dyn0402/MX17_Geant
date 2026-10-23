@@ -612,6 +612,30 @@ sl('ripple', s10f, '<p><code>2026-10-22/film761/consequences.py</code> (MX17_Gea
    'what remains is pad-locked or column-independent and X-only (surface charge on fresh June bulks, the June PCB pad/via layer, the bulk process). '
    'If the film were a scaled printout, the 800 µm design gives the same numbers; only a production pitch of exactly 780 µm would reopen registration.</p>', short='Consequences')
 
+# ------------------------------------------------------------------------------------------------ 10g last checks (§16, 2026-10-23)
+PJ = J(SPH, '..', '..', '2026-10-23', 'lastditch', 'pillar.json'); PI = J(SPH, '..', '..', '2026-10-23', 'lastditch', 'pillar_inject.json')
+SP = J(SPH, '..', '..', '2026-10-23', 'lastditch', 'subpad.json')
+def zr(q): return f"{q['zmax']:.1f} vs {min(q['null_max']):.1f}–{max(q['null_max']):.1f}"
+rows = [['production occupancy', zr(PJ['det3 June-15']['occupancy']), zr(PJ['det2']['occupancy'])],
+        ['production charge', zr(PJ['det3 June-15']['charge']), zr(PJ['det2']['charge'])],
+        ['survey a1 (4 × 4 patches)', f"{PJ['survey det3 June-15']['a1_patch4']['zmax']:.1f} vs {max(PJ['survey det3 June-15']['a1_patch4']['null_max']):.1f}",
+         f"{PJ['survey det2']['a1_patch4']['zmax']:.1f} vs {max(PJ['survey det2']['a1_patch4']['null_max']):.1f}"],
+        ['injected: dead pillar (charge)', f"{PJ['det3 June-15']['inject']['1.0']['charge']:.0f}", f"{PJ['det2']['inject']['1.0']['charge']:.0f}"],
+        ['injected: pillar a1 field 0.057', f"{PI['det3 June-15']['inject']['r1.4_A0.2']['z']:.0f}", f"{PI['det2']['inject']['r1.4_A0.2']['z']:.0f}"],
+        ['injected: pillar a1 field 0.142', f"{PI['det3 June-15']['inject']['r1.4_A0.5']['z']:.0f}", f"{PI['det2']['inject']['r1.4_A0.5']['z']:.0f}"]]
+d3 = SP['det3 June-15']
+s10g = sd.title('Last checks: the pillar lattice is not in the data, and tracks cannot scan across a pad',
+                'Pillars Ø 0.6 mm on 4.68 mm = 6 pads, the one June-bulk structure laid out on the pad grid; Z = 2-D Fourier power at the lattice (scale ±2.5 %, rotation ±1.5°) vs the same search off-lattice')
+s10g += row(table(['Z at the lattice', 'det3 June-15', 'det2'], rows, 22, widths=[420, 260, 260], align=['left', 'center', 'center']),
+            col(p('Pillars: excluded. A pillar-locked a1 of the data’s size (cells 0.07–0.20) would show at 3–8× the null; the data sit below it on every board, '
+                  'in occupancy, charge and a1. The 10-19 “flat mod 6” test averaged over the board and could not have seen a drifting moiré.', 22, MUT),
+                p(f"Software pad scan: not feasible. The charge centroid scatters {d3['res_mad_um']:.0f} µm about the M3 track even at |tan| < 0.03 "
+                  f"(ionisation along the track, not M3’s 0.21 mm), so the reference cells’ a1 hardly moves with the sub-pad phase. "
+                  'Attractor vs displacement needs a point source.', 22, MUT), w=640, gap=22), gap=36)
+sl('lastchecks', s10g, '<p><code>2026-10-23/lastditch/</code> (MX17_Geant): <code>pillar.py</code> (production parquet + raw survey, Hann-windowed 2-D Fourier at the two '
+   'lattice fundamentals, off-lattice pitches ×0.86/0.90/1.10/1.14 as the look-elsewhere null), <code>pillar_inject.py</code> (a1 += A within r of a synthetic lattice, '
+   'sign flipping between patches, positions smeared 0.53 mm), <code>subpad.py</code> (bench caches: raw windows + M3 truth). FOLLOWUP §16.</p>', short='Last checks')
+
 # ------------------------------------------------------------------------------------------------ 11 what's excluded
 def chip(t, c):
     return f'<span style="display:inline-block;padding:2px 12px;border-radius:8px;background:{c};color:white;font-weight:600">{t}</span>'
@@ -629,6 +653,8 @@ ex = [('Code / clustering / maps', 'independent raw-ADC extractor; 0.50 on every
       ('Gap conduction as the local cause', 'uniform over each board while the field changes sign (next slide)', MOD),
       ('Gas flow pattern', 'flat inlet → exhaust, X only', MOD),
       ('Charging-up of insulating surfaces', 'a1 flat with gain (×6) and over hours at fixed width', MOD),
+      ('Strip registration (any form)', 'film pitch 761 µm ≠ 780: offset recurs every 30 mm, ≤ 0.025 per cell; the required ripple is absent', SOL),
+      ('Pillar moiré (4.68 mm = 6 pads)', 'no lattice in occupancy, charge or a1 on any June board; a field-sized effect shows at 3–8× the null', SOL),
       ('Extra sensitivity regions, skip transfer, static relocation', 'fast static model, which misses the full sim’s own baseline', WK)]
 s11 = sd.title('Excluded, and what each exclusion rests on', 'Re-graded in the audit; "weak" means the test can’t carry the verdict')
 s11 += table(['hypothesis', 'what kills it', 'how solid'], [[a, b, c] for a, b, c in ex], 24, widths=[600, 860, 160], align=['left', 'left', 'center'])
@@ -909,9 +935,10 @@ WF = [('done', 'Even term vs a no-pull baseline; transfer shape; a1 vs gain and 
       ('3', 'What degraded the bottom-slot board on 6-17 and 6-23 (bench logbook: resist HV contact / cable at the bottom slot)', 'logbook', 'whether a floating resistive layer explains it'),
       ('4', 'Per-session, width-matched maps for det3; decode 6-19/20 FEU 3 for more events', 'archive', 'is the geometry really fixed'),
       ('done', 'Print film photographed (§14–15): pitch 761 µm, fill 0.694. With any pitch ≠ 780 µm registration recurs every ~30 mm: ≤ 0.025 per cell, and the 30 mm ripple it needs is absent (≥ 5–10× below the sim)', 'photo', 'strip routes out if the film is the production print; sim strip imprint too strong'),
-      ('5', 'Confirm the film is the production pattern at 1:1', 'Dylan / Stephan', 'whether §15 applies'),
-      ('6', 'Collimated source across one pad; HV ramps and dwell; dry-gas flush', 'needs the detector', 'attractor vs displacement; charging; humidity')]
-s19 = sd.title('Way forward, ranked: cheapest decisive tests first', 'Steps 1–4 need nothing new; 5 needs a photo; 6 needs the detector')
+      ('—', 'Confirm the film is the production pattern at 1:1: no answer; the 761 µm photo is taken as production', 'Stephan', 'assumed'),
+      ('done', 'Pillar moiré (lattice search + injection) and a software pad scan with M3 (§16)', 'archive', 'pillars excluded; tracks cannot scan a pad (0.53 mm centroid scatter)'),
+      ('closed', 'Collimated source across one pad; HV ramps and dwell; dry-gas flush', 'needs the detector', 'not available: study closed 2026-10-23')]
+s19 = sd.title('Tests run and left, as closed on 2026-10-23', 'Open rows 1–4 are not worth more archive time; the decisive test needs the detector')
 s19 += table(['#', 'test', 'needs', 'decides'], [list(r) for r in WF], 23, widths=[50, 980, 250, 380], align=['center', 'left', 'left', 'left'])
 sl('forward', s19, '<p>The even-term score proposed earlier in this audit turned out not to discriminate (slide "Even term"): the sharing change of a pull runs both ways relative '
    'to an unpulled board, and bulk-local sharing structure is ±0.1. The shape of the transfer (±1 vs ±2) and the size are the scores that remain.</p>'
@@ -921,25 +948,25 @@ sl('forward', s19, '<p>The even-term score proposed earlier in this audit turned
    'per-run scale (K = −0.77 ± 0.13 vs M3). It removes a positional systematic of up to ±70 µm and leaves the resolution unchanged.</p>', short='Way forward')
 
 # ------------------------------------------------------------------------------------------------ 20 close
-cl = (sd.kicker('Where it stands')
-      + '<h2 style="font-size:58px;font-weight:600;line-height:1.1;width:1660px">The effect is well measured and the analysis can be corrected. '
-        'If the photographed film is the production print (761 µm), the resistive strips are ruled out as its cause</h2>'
-      + row(card(p('What is left', 30, DINK, 600)
-                 + p('• A static (saturated) surface charge on fresh June bulks: gain-independent, unlike charging-up.', 26, DMUT)
-                 + p('• Something in the pad / via layer of the June PCBs (pad-pitch locked by construction).', 26, DMUT)
-                 + p('• The bulk process itself (mesh, pillars, lamination): Stephan says "nothing different".', 26, DMUT)
-                 + p('• Something nobody has named yet: X-only, June only, set by the cloud width.', 26, DMUT), bg='#1f2533'),
-            card(p('Open decisions', 30, DINK, 600)
-                 + p('• Confirm the film is the production pattern at 1:1 (Dylan checking).', 26, DMUT)
-                 + p('• Detector tests when access returns: collimated scan across a pad, HV ramps and dwell, dry gas.', 26, DMUT)
-                 + p('• The sim’s strip imprint is ≥ 5–10× too strong: rework the strip response before trusting strip-based sim results?', 26, DMUT)
-                 + p('• Adopt wft.xasym in production (needs a re-alignment and per-run scales)?', 26, DMUT), bg='#1f2533'), gap=40))
+cl = (sd.kicker('Closed 2026-10-23')
+      + '<h2 style="font-size:56px;font-weight:600;line-height:1.1;width:1660px">The effect is well measured and corrected in the analysis. '
+        'Its cause is not identified: strips, pillars, electronics, copper, coupling and charging are excluded</h2>'
+      + row(card(p('What is left (needs the detector)', 30, DINK, 600)
+                 + p('• Attractor vs displacement: a point source (⁵⁵Fe / X-ray) across one pad.', 26, DMUT)
+                 + p('• A static surface charge on the fresh June bulks (gain-independent, unlike charging-up).', 26, DMUT)
+                 + p('• The bulk process itself (mesh, lamination): Stephan says "nothing different".', 26, DMUT)
+                 + p('• Something not named yet: X-only, June-only, pad-locked, sized by the cloud width.', 26, DMUT), bg='#1f2533'),
+            card(p('For the paper', 30, DINK, 600)
+                 + p('• Quote it as an empirically corrected, board-specific position systematic (wft.xasym, ≤ ±70 µm, resolution unchanged).', 26, DMUT)
+                 + p('• The sim’s strip imprint on sharing is ≥ 5–10× too strong: don’t lean on strip-level sim predictions.', 26, DMUT)
+                 + p('• Exclude the degraded bottom-slot nights (det2 6-17, det3 6-23) from timing / sharing results.', 26, DMUT)
+                 + p('• Compare cosmic sharing / timing to the sim only with M3 angles and matched pulse length.', 26, DMUT), bg='#1f2533'), gap=40))
 sl('close', cl, '<p>Audit text with every route re-graded (excluded / weakened / supported / untested, flagged for contaminated controls, board averages, selection effects '
    'and unvalidated models): <code>scratchpad/2026-10-21/audit/AUDIT.md</code> in MX17_Geant. Builder: <code>scratchpad/2026-10-21/audit/make_audit_deck.py</code>.</p>',
    dark=True, short='Open')
 
 OUTP = os.path.join(HERE, 'det3-x-asymmetry.html')
 D.write(OUTP, note_meta=dict(title='det3 X neighbour asymmetry: an audit',
-                             summary='Fresh-eyes summary of the study, kept current. Every June board carries a smooth, two-signed, X-only field that moves charge from neighbour n−1 to n+1, sized by the cloud width alone. Electronics, copies, linear coupling, Y→X transfer, charging and gap conduction are excluded. 2026-10-22: the print film of the resistive strips measures 761 µm (not 780): if it is the production print, strip registration cannot make the field and the sim overstates the strips. Fingerprint, exclusions and plan.',
-                             tags='MX17,detector,crosstalk', date='2026-10-22'))
+                             summary='CLOSED 2026-10-23, cause not identified. Fresh-eyes summary of the study. Every June board carries a smooth, two-signed, X-only field that moves charge from neighbour n−1 to n+1, sized by the cloud width alone. Electronics, copies, linear coupling, Y→X transfer, charging and gap conduction are excluded. 2026-10-22: the print film of the resistive strips measures 761 µm (not 780): if it is the production print, strip registration cannot make the field and the sim overstates the strips. 2026-10-23: no pillar lattice in the data either, and tracks cannot scan a pad. Fingerprint, exclusions, what is left.',
+                             tags='MX17,detector,crosstalk', date='2026-10-23'))
 print('wrote', OUTP)

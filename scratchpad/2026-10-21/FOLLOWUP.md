@@ -3,6 +3,25 @@
 Continues `audit/AUDIT.md` §4.3. Scripts and JSON in the subdirectories named below; data = raw survey (NB_RAW=~/x17/nb_asym_raw),
 sim arms copied from yoga `~/x17/nb_asym_raw/{simgapleak,simfunnel,simxoff}`.
 
+
+> **CLOSED 2026-10-23 — cause not identified.** Final state, for the paper and for anyone reopening this:
+> - **Observation (solid):** every June-built board (det2/3/4/6/7) carries a smooth, two-signed, X-only (across-strip)
+>   field of neighbour asymmetry a1. It moves charge from pad n−1 to n+1 with the ±1 sum unchanged. It is locked to the
+>   pad pitch, fixed in geometry per board, and its size is set by the cloud width (gas, drift field). Pre-June builds
+>   (det0, det1, det3 May on the same FEU) show none.
+> - **Excluded:** code/clustering, electronics after the input, connector or linear channel mixing, copper layout,
+>   copy/Y→X transfer, track angle, gas flow, charging transients (flat with gain ×6 and over hours), gap conduction as the
+>   local cause, and strip registration in every form (film pitch 761 µm ≠ 780: §14–15).
+>   Pillar moiré is also excluded (§16 B), as are fast-equalising or graded strips (§10).
+> - **Not decidable from archive data:** attractor vs displacement (needs a point source across one pad, §16 A); surface
+>   charge on the fresh June bulks; the bulk process (mesh, lamination).
+> - **Handled in the analysis:** `wft.xasym` (nTof_x17) corrects det2 and det3 June-15 positions with the measured map
+>   × per-run scale (K = −0.77 ± 0.13 vs M3), up to ±70 µm, with the resolution unchanged. For the paper: quote it as an
+>   empirically corrected, board-specific systematic of unknown origin.
+> - **Side results worth keeping:** the sim's strip imprint on sharing is ≥ 5–10× too strong (§15). Degraded nights in
+>   the bottom bench slot (det2 6-17, det3 6-23) should be excluded from timing/sharing studies (§13). Cosmic sharing and
+>   timing comparisons need M3 angles and matched pulse length (§11–12).
+
 ## 1. The even term: the exclusion does not hold (corrected the same evening; `even/`, `loop/`)
 **Correction.** The first version of this section (and audit §3.1) said the even term retires the attractor family. It does not:
 both compared the sharing at large |a1| with the sharing at delta = 0 *inside the same attractor*, not with an unpulled board.
@@ -391,6 +410,52 @@ below the sim's, in both sharing and asymmetry.
 
 If the film turns out to be a scaled printout rather than the production film, (1)–(2) still hold for the 800 µm design
 (B: identical numbers); only a production pitch of exactly 780 µm would reopen registration.
+
+## 16. Last checks before closing: a software pad scan and the pillar lattice (2026-10-23, dylan-Yoga)
+Scripts, logs and JSON: `../2026-10-23/lastditch/` (docstrings). Per-event tables from the wft bench caches (raw windows +
+M3 truth, `extract.py`; git-ignored `tables/`), production `events.parquet`, and the raw survey (`r5lib.ev`).
+
+**A. Sub-pad scan with M3 (`subpad.py`): not feasible with tracks.** The idea was a collimated scan in software: a1 vs the
+M3 sub-pad phase, strong-field vs reference cells of the same board (a flat difference = position-independent transfer,
+the derivative shape = a displacement, a localised feature = an attractor).
+- The M3 point has to be moved to the cluster plane: the max channel sits at ref_x + 12.6–13.8 mm × tan_x. Only
+  |tan_x| < 0.03 is kept.
+- Even then the charge centroid scatters **0.53 mm** (det3) / 0.62 (det2) about the M3 line. That is ionisation
+  fluctuation along the track, not M3's 0.21 mm pointing, and at the 0.78 mm pitch it leaves no phase contrast.
+- Sensitivity check fails. The reference cells' a1(φ) spans ≈ 0.13 peak to peak, while a symmetric response at the data's
+  sharing (s1 ≈ 0.85) should give ≈ ±0.8 across a pad.
+- The strong − reference difference is flat: det3 June c0 = −0.116 ± 0.023, χ² 2.5/7. det2: −0.136 ± 0.036, 8.5/7. That is
+  only the cell-mean difference and carries no shape information.
+- Distinguishing an attractor from a displacement needs a point-like source (⁵⁵Fe / X-ray). Tracks cannot do it.
+
+**B. Pillar lattice (`pillar.py`, `pillar_inject.py`): pillars are not the cause.** The pillars (Dynamask, Ø 0.6 mm on a
+4.68 mm = 6-pad grid, `3498A_bulk.gbr`) are the one June-bulk structure laid out on the pad grid. A pillar film printed
+~0.2 % off scale or a few mrad rotated would make a smooth two-signed moiré, X-only because Y is smeared along the strips.
+The 10-19 "flat mod 6" check averaged column mod 6 over the whole board, which cancels a drifting phase, so it never
+tested this.
+- **Method:** 2-D Fourier power at the lattice fundamentals, Hann-windowed. Search: scale 0.975–1.025, rotation ±1.5°.
+  Look-elsewhere null: the same search at off-lattice pitches (×0.86/0.90/1.10/1.14).
+- **No lattice on any June board, in anything** (Z_max at the lattice vs the off-lattice maxima):
+
+  | quantity | det3 June-15 | det2 | det4/6/7 |
+  |---|---|---|---|
+  | production occupancy | 5.3 vs 2.7–6.4 | 6.9 vs 4.2–6.1 | 3.6–5.2 vs ≤ 14.5 |
+  | production charge | 8.1 vs 4.9–5.9 | 5.0 vs 4.7–5.6 | 5.0–9.4 vs ≤ 12.2 |
+  | survey a1, 4 × 4 patches | 37.5 vs 49.0 | 31.1 vs 43.2 | |
+
+  det3 May (control): a1 47.0 vs 76.9.
+- **Sensitivity (pillars injected into the real events):**
+  - A fully dead pillar footprint in charge would give Z 106 (det3) / 85 (det2); a 50 % dip is marginal (10.5 / 14.9).
+  - A pillar-locked a1 with its sign flipping between patches, injected on 0.53 mm-smeared positions: patch field
+    0.057 → Z 133 / 66; 0.071 → 245 / 107; 0.142 → 411 / 179.
+  - The data's cells run 0.07–0.20, so a pillar-driven field of that size would have been seen at many times the null.
+- **Only escape:** a pillar influence spread uniformly over the whole 4.68 mm cell. That has no lattice signature, so
+  nothing would tie it to the pillars.
+
+**Consequence:** the last archive-data routes are spent. Strips (§15), pillars (B), electronics, copper, coupling, charging
+transients and gap conduction are excluded. Attractor vs displacement needs a point source on the detector, which isn't
+available. **The study is closed** (Dylan, 2026-10-23). Stephan has not confirmed the strip film; the 761 µm photo is taken
+as the production pattern.
 
 ## What this leaves
 - The fingerprint (audit §4.1) gains: (2) the transfer is n−1 → n+1 direct, ±2 odd ≈ 12 % of ±1; (5) gain- and
