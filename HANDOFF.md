@@ -1,5 +1,42 @@
 # Handoff
 
+## x↔y pairing simulation study (nTof_x17 rerun/pairing_sim) — 2026-10-26 night (dylan-Yoga)
+
+**Resume:** the sim FAILS the pairing gate; fix the x/y charge split before S3–S5. Report
+https://dylan-neff.web.cern.ch/notes/mx17-xy-pairing-sim.html; plan, results and remaining steps in nTof_x17
+`rerun/pairing_sim/PLAN.md` §7.
+
+**Done:**
+- `mm_sim --primaries-table <csv>` (event, particle, E_MeV, ux, uy, uz, dx_mm, dy_mm): several primaries per event,
+  common vertex and time, track ids 1..k. Smoke-tested (`scratchpad/2026-10-26/pairing_sim/primaries_smoke.csv`).
+  Not yet deployed to the AFS src or built on lxplus.
+- S1 = the existing v4c points (12 angles) through production wft on condor (`scratchpad/2026-10-26/pairing_sim/`
+  `pairsim_reco.sh`, `s1_reco.sub`; outputs `/eos/user/d/dneff/pairing_sim/s1/`). σ ln(q_x/q_y) 0.086–0.108 vs det3 data
+  0.042–0.056 at matched angle; σ(u50_x − u50_y) 86–186 vs 69–115 ns. Landau width passes (0.35 vs 0.38 after the
+  data's gain map).
+- Cause 1 located: Stage B lands each avalanche, and all its feedback secondaries, at ONE point, so the x/y split is one
+  random draw per primary electron: truth (induced) split 0.059 = 0.84/√N. Diagnostic `stageBC_xysplit.sub` (condor
+  4574255, prediction registered in the file) with `--feedback-spread-um` 150 / 400: truth 0.035 / 0.034 (passes the
+  prediction). Outputs EOS `response_sim/stageB_w2/xys{150,400}_th00` (1 000 events each).
+- Cause 2, open: the sim's waveforms carry more x/y scatter than the data (model-free, same strips: 0.07–0.09 vs
+  0.04) and the det3 bundle fits them worse (0.10 vs 0.055); with cause 1 removed the fit stays at 0.095–0.108.
+  Same direction as RECO_TRUTH's unexplained wft nonlinearity on simulated waveforms.
+
+**Next steps:**
+1. Decide the avalanche model for the split (displaced feedback secondaries, or a finite avalanche cloud) and re-check
+   the v4c pre-registered observables (±1 delay, cluster width, ladder) with it; displaced feedback was proposed on
+   10-18 as the physical origin of the prompt spread, which this result supports.
+2. Find cause 2: compare sim vs data waveform shapes on matched single tracks (x vs y pulse shape, ion tail within the
+   32-sample window, saturation), then refit.
+3. Rerun S1/S2 (nTof_x17 `rerun/pairing_sim/sim_gates.py`, `sim_overlay.py`); if they pass, build mm_sim with
+   `--primaries-table` on lxplus and run S3 (pair table from ipc_born.py + n_TOF geometry), S4 (needs a beam-gas
+   attachment table), S5.
+
+**Gotchas:** wft with the det3 phys bundle runs ~5 s/event on sim (saturated tracks); run it on condor, not the
+laptop. The sim reco needs the production env (`WFT_COL_GUARD=0.01 WFT_PIVOT_START=1`) and the bundle's t0 prior
+dropped (the sim's trigger timing is its own). Every v4c muon crosses one 31 mm spot: the S2 overlay moves b by whole
+strips.
+
 ## det3 X asymmetry — CLOSED 2026-10-23 (dylan-Yoga)
 
 **Resume:** CLOSED, cause not identified. Next work is Paper I (detector characterization), `nTof_x17/papers/paper1/`.

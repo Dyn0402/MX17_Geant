@@ -1,0 +1,22 @@
+# x/y charge-split diagnostic (nTof_x17 rerun/pairing_sim, 2026-10-26). v4c at th00 with the photon-feedback
+# secondaries displaced (--feedback-spread-um H), 1000 events each.
+# WHY: S1 v4c fails the pairing gate sigma(ln q_x/q_y): truth (induced, before electronics) 0.057 and
+# sigma x sqrt(n_seed) = 0.85 flat in n_seed, i.e. a per-avalanche random split; the det3 data's model-free ratio is
+# 0.031-0.041 vs the sim's 0.073-0.088. Stage B lands each avalanche (and, with H = 0, all its feedback secondaries) at
+# ONE point, so the split samples the sub-pad split function once per primary electron.
+# PREDICTION (registered before the run): if that is the mechanism, displaced secondaries are independent samples and
+# the truth sigma falls: H = 150 -> ~0.045, H = 400 -> ~0.040 (bG 0.48: ~0.9 secondaries per primary, sigma ~ 1/sqrt(N_eff)).
+# FALSIFIER: truth sigma unchanged within 0.004 at both H.
+universe                = vanilla
+executable              = /afs/cern.ch/work/d/dneff/mx17_s1/run_stageBC_w2.sh
+log                     = /afs/cern.ch/work/d/dneff/mx17_s1/logs/xysplit.log
+request_cpus            = 4
+request_memory          = 16000
+request_disk            = 12000000
++JobFlavour             = "workday"
+MY.SendCredential       = true
+environment             = "OMP_NUM_THREADS=4 MX17_GAS_TABLE=/afs/cern.ch/work/d/dneff/mx17_s1/src/design/gas/drift_velocity_Ar_iC4H10_95_5_H2O_1.0.json"
+arguments               = "rho5M xys$(H)_th00 /afs/cern.ch/work/d/dneff/mx17_s1/calib/noise_det3_satscan_feu07_cmq.json /afs/cern.ch/work/d/dneff/mx17_s1/clusters_ang_e17/mx17_muons_3k_ang_th00_e17_t0.root '--ion-model reconstructed --ion-mobility K0=2.05 --drift-gap-mm 26.5 --feedback-bg 0.48 --shaper-tp-ns 166 --wiring connector-inverted --sigma0-um 420 --calib /afs/cern.ch/work/d/dneff/mx17_s1/calib/aval_calib_meshfield_nc1_pooled.json --max-events 1000 --feedback-spread-um $(H)'"
+output                  = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_xys$(H).out
+error                   = /afs/cern.ch/work/d/dneff/mx17_s1/logs/stageBC_xys$(H).err
+queue H in (150 400)

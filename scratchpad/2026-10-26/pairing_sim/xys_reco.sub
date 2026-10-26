@@ -1,0 +1,16 @@
+# S1 sim points (v4c, det3 conditions) through production wft: condor_submit s1_reco.sub
+executable     = $ENV(HOME)/pairsim/pairsim_reco.sh
+arguments      = /eos/user/d/dneff/pairing_sim/code/code_slim_42e0f49.tgz /eos/experiment/ntof/data/x17/response_sim/stageB_w2/$(ang) $(tag) /eos/user/d/dneff/pairing_sim/bundles/$(bundle) 1000 /eos/user/d/dneff/pairing_sim/s1
+environment    = "CPUS=4"
+output         = log/s1.$(Cluster).$(ProcId).out
+error          = log/s1.$(Cluster).$(ProcId).err
+log            = log/s1.log
+request_cpus   = 4
+request_memory = 8000
++JobFlavour    = "workday"
+MY.SendCredential = true
+should_transfer_files = NO
+queue ang, tag, bundle from (
+xys150_th00, dphys, bundle_det3_phys_not0
+xys400_th00, dphys, bundle_det3_phys_not0
+)
