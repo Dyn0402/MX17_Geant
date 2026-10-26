@@ -21,6 +21,7 @@ public:
 
 private:
     void LoadSpectrum(const std::string& filepath);
+    void LoadPrimariesTable(const std::string& filepath);
     double SampleSpectrum() const;
 
     std::unique_ptr<G4ParticleGun> fGun;
@@ -33,4 +34,8 @@ private:
     std::vector<double> fSpecEnergies;  // energy values [MeV]
     std::vector<double> fSpecCDF;       // cumulative probabilities [0,1]
     bool fUseSpectrum = false;
+
+    // --primaries-table: per table event, the primaries it fires
+    struct Primary { G4ParticleDefinition* def; double E_MeV, ux, uy, uz, dx_mm, dy_mm; };
+    std::vector<std::vector<Primary>> fTable;
 };

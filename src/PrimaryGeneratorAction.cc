@@ -22,12 +22,9 @@
 #include <stdexcept>
 #include <map>
 
-PrimaryGeneratorAction::PrimaryGeneratorAction(const SimConfig& cfg,
-                                               const DetectorConstruction* detCon)
-    : G4VUserPrimaryGeneratorAction(), fConfig(cfg), fDetCon(detCon) {
-
-    fGun = std::make_unique<G4ParticleGun>(1);
-
+namespace {
+// The -p names (and the G4 names, accepted as they are) -> G4ParticleDefinition.
+G4ParticleDefinition* ParticleByName(const std::string& name) {
     static const std::map<std::string, std::string> particleMap = {
         {"gamma",    "gamma"},
         {"neutron",  "neutron"},
@@ -40,15 +37,22 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(const SimConfig& cfg,
         {"alpha",    "alpha"},
         {"triton",   "triton"},
     };
+    auto it = particleMap.find(name);
+    const std::string g4name = (it == particleMap.end()) ? name : it->second;
+    G4ParticleDefinition* p = G4ParticleTable::GetParticleTable()->FindParticle(g4name);
+    if (!p)
+        throw std::runtime_error("Unknown particle: " + name);
+    return p;
+}
+}  // namespace
 
-    auto it = particleMap.find(cfg.particle);
-    if (it == particleMap.end())
-        throw std::runtime_error("Unknown particle: " + cfg.particle);
+PrimaryGeneratorAction::PrimaryGeneratorAction(const SimConfig& cfg,
+                                               const DetectorConstruction* detCon)
+    : G4VUserPrimaryGeneratorAction(), fConfig(cfg), fDetCon(detCon) {
 
-    G4ParticleDefinition* particle =
-        G4ParticleTable::GetParticleTable()->FindParticle(it->second);
-    if (!particle)
-        throw std::runtime_error("G4 particle not found: " + it->second);
+    fGun = std::make_unique<G4ParticleGun>(1);
+
+    G4ParticleDefinition* particle = ParticleByName(cfg.particle);
 
     fGun->SetParticleDefinition(particle);
     fGun->SetParticleEnergy(cfg.energy);
@@ -75,6 +79,35 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(const SimConfig& cfg,
     if (!cfg.spectrum_file.empty()) {
         LoadSpectrum(cfg.spectrum_file);
     }
+    if (!cfg.primaries_table.empty()) {
+        LoadPrimariesTable(cfg.primaries_table);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+void PrimaryGeneratorAction::LoadPrimariesTable(const std::string& filepath) {
+    std::ifstream f(filepath);
+    if (!f.is_open())
+        throw std::runtime_error("Cannot open primaries table: " + filepath);
+    std::map<long, std::vector<Primary>> byEvent;
+    std::string line;
+    while (std::getline(f, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        for (auto& c : line) if (c == ',') c = ' ';
+        std::istringstream ss(line);
+        long ev; std::string name; Primary p{};
+        if (!(ss >> ev >> name >> p.E_MeV >> p.ux >> p.uy >> p.uz >> p.dx_mm >> p.dy_mm))
+            continue;                         // header or malformed line
+        p.def = ParticleByName(name);
+        byEvent[ev].push_back(p);
+    }
+    for (auto& kv : byEvent) fTable.push_back(kv.second);
+    if (fTable.empty())
+        throw std::runtime_error("Primaries table has no events: " + filepath);
+    size_t n = 0;
+    for (auto& e : fTable) n += e.size();
+    G4cout << "PrimaryGeneratorAction: " << fTable.size() << " table events, "
+           << n << " primaries from " << filepath << G4endl;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -143,5 +176,20 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* event) {
     }
     // The vertex is published by EventAction, which reads it back off the
     // G4Event -- no coupling needed here (audit C14).
+    if (!fTable.empty()) {
+        // Several primaries, one common vertex (time 0): each its own
+        // particle / energy / direction, displaced by its (dx, dy).
+        const auto& prims = fTable[event->GetEventID() % fTable.size()];
+        const G4ThreeVector base = fGun->GetParticlePosition();
+        for (const auto& p : prims) {
+            fGun->SetParticleDefinition(p.def);
+            fGun->SetParticleEnergy(p.E_MeV * MeV);
+            fGun->SetParticleMomentumDirection(G4ThreeVector(p.ux, p.uy, p.uz).unit());
+            fGun->SetParticlePosition(base + G4ThreeVector(p.dx_mm * mm, p.dy_mm * mm, 0.));
+            fGun->GeneratePrimaryVertex(event);
+        }
+        fGun->SetParticlePosition(base);
+        return;
+    }
     fGun->GeneratePrimaryVertex(event);
 }

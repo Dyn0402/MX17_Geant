@@ -58,6 +58,19 @@ struct SimConfig {
     double theta_x_deg = 0.0;
     double theta_y_deg = 0.0;
 
+    // ── Several primaries per event (x<->y pairing study, nTof_x17
+    //    rerun/pairing_sim/PLAN.md S3-S5) ─────────────────────────────────
+    // When non-empty, every event fires the primaries listed for it in this
+    // CSV (columns: event, particle, E_MeV, ux, uy, uz, dx_mm, dy_mm; '#' =
+    // comment) instead of the single gun: a common vertex and time, each
+    // primary its own particle / energy / direction, displaced by (dx, dy)
+    // from the event's impact point (which --beam-spread still randomises,
+    // once per event). Event k uses table event (k mod n_table_events), so a
+    // table can be reused with a different seed. -e / -p / --theta-* are then
+    // ignored. Primaries are G4 track ids 1..k in the order listed, which the
+    // ClusterTree's trackID / parentID branches carry to Stage B's truth.
+    std::string primaries_table;
+
     // ── LS cell wall parameters (from Full_Geant geometry) ───────────────
     double cfrpThickness_mm  = 2.0;    // Structural CFRP wall [mm]
     double ls_inner_cfrp_um  = 600.0;  // Inner CFRP liner [µm]
