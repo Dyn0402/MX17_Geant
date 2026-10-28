@@ -1,5 +1,49 @@
 # Handoff
 
+## Readout-board bow mechanics (mechanics/pcb_bow) — updated 2026-10-28 (dylan-Yoga)
+
+**Resume:** DONE: gas pressure is at most ~1/3 of the bench dish; next is a hardware check (window sag, Δp scan).
+
+**Goal:** test whether the gas overpressure explains the 1.2–2.3 mm mesh dish measured on the bench (nTof_x17
+fb_bow_maps), and how much the taped Rohacell, the edge mounting and the mesh tension (~10 N/cm) matter.
+
+**Done:**
+- 2-D large-deflection two-layer plate (PCB + Rohacell/mylar, interface bond map), validated against six closed-form
+  results; 81 scenarios (thickness 1.2–2.4 mm × bond pattern × edge × mesh tension × 0–100 mbar).
+- Real mounting from the STEP: O-ring seal at 208.4 mm, frame face and screws at 214 mm, outside the 402 mm plate
+  aperture. 1-D edge model gives an edge 96–97 % of a clamp.
+- Result: 1.6 mm PCB at 3 / 5 mbar gives 0.25–0.44 / 0.38–0.59 mm (Rohacell bonded – loose), vs 1.2–2.3 mm measured.
+  The measured 1.7 mm would need ~40–80 mbar.
+- Rohacell: glued full face −35 %, loose −3 %; bond coverage near the rim matters, grip doesn't.
+- Mesh tension 10 N/cm adds 0.02–0.04 mm. The w0 profile shape is not a pressure shape.
+- Slide note published: https://dylan-neff.web.cern.ch/notes/mx17-board-mechanics.html. Pointer added to nTof_x17
+  fb_bow_maps/REPORT.md (addendum).
+
+**Next steps:**
+1. Hardware (Dylan): measure the window sag at the centre while flowing (8.5 mm ↔ 3 mbar; sag ∝ Δp^⅓).
+2. Double the overpressure on the bench and re-measure the w0 route: a pressure dish grows ×1.5, a warp does not.
+3. Straightedge on an open, unpressurised board; get the PCB stack-up; check the Rohacell taping and whether the back
+   mylar is bonded to it.
+4. Revise the plausibility paragraph in nTof_x17 `papers/paper1/sections/08b_bow.tex` ("needs no exotic load"); not
+   done, as it is the paper's call.
+
+**Gotchas / decisions:**
+- The bench "depth at 150 mm" is a quadratic-fit number. For an edge-held plate it is about half the true dip, so
+  compare fit_depth, not centre deflection.
+- The linear estimate (fb_bow_maps/physmodel.py) over-predicts by 2–3×: membrane stiffening sets in at w ≈ t.
+- Bond-pattern runs (group B) used the earlier 3900 N·m/m edge. The fractions are edge-insensitive, the absolute values
+  are +3–7 % low.
+- The CAD screws end 1.5 mm into the Rohacell (z 267.7 vs plate top 266.2), so what they thread into is unknown.
+- Machine shared with other sessions: run scenarios with `NPROC=3`; BLAS threads are pinned to 1 in scenarios.py.
+
+**Key files & commands:**
+- `mechanics/pcb_bow/REPORT.md`: full record; `results/compare.md`: all tables.
+- `plate.py` (solver), `validate.py`, `scenarios.py`, `edge1d.py`, `real_edge.py`, `high_pressure.py`,
+  `window_gauge.py`, `compare.py`, `make_mech_deck.py`.
+- `cad/step_extents.py`, `cad/placed_bboxes.geo`: STEP geometry extraction (gmsh).
+- Run with `~/PycharmProjects/nTof_x17/.venv/bin/python <script>` from `mechanics/pcb_bow/`.
+- Republish: `python3 ~/PycharmProjects/dylan-cern-site/scripts/add-note.py mechanics/pcb_bow/deck/mx17-board-mechanics.html --slug mx17-board-mechanics --force --deploy`.
+
 ## x↔y pairing simulation study (nTof_x17 rerun/pairing_sim) — 2026-10-26 night (dylan-Yoga)
 
 **Resume:** the sim FAILS the pairing gate; fix the x/y charge split before S3–S5. Report

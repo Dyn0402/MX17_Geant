@@ -590,12 +590,12 @@ def s_mesh(D):
     d10 = at('M_t1.6_loose_T10', 3) - at('G_t1.6_loose_Keff', 3)
     d1k = at('M_t1.6_loose_T1000', 3) - at('G_t1.6_loose_Keff', 3)
     dss = at('M_t1.6_loose_T1000_ss', 3) - at('C_loose_ss', 3)
-    P.text(0.3, 1.1, f'5–10 N/m: +{max(d10, 0) * 1e3:.1f} µm, invisible', 24, INK, weight=600)
+    P.text(0.3, 1.1, f'10 N/cm: +{d1k * 1e3:.0f} µm at 3 mbar (real edge)', 24, INK, weight=600)
     side = sd.col(sd.legend([(lab, c, 'dash' if dash else 'line') for n, c, dash, lab in series if n in SC], 21),
                   sd.table(['at 3 mbar', 'added dish'],
                            [['T = 10 N/m, real edge', f'{d10 * 1e3:+.1f} µm'], ['T = 10 N/cm, real edge', f'{d1k * 1e3:+.0f} µm'],
                             ['T = 10 N/cm, SS edge', f'{dss * 1e3:+.0f} µm']], size=22), w=520, gap=20)
-    body = (sd.title('Mesh tension adds nothing at 5–10 N/m, and ≤ 0.1 mm even at 10 N/cm on the real edge',
+    body = (sd.title(f'Mesh tension (~10 N/cm) adds only {d1k * 1e3:.0f}–{(at("M_t1.6_loose_T1000", 0) - at("G_t1.6_loose_Keff", 0)) * 1e3:.0f} µm with the real edge',
                      'Board dish vs overpressure with the mesh-tension moment, 1.6 mm PCB') + sd.row(P.svg('mesh'), side, gap=40))
     notes = f"""
 <p><b>Mechanism.</b> The mesh is laminated on the board (bulk pillars). Its tension T is balanced inside the board by an

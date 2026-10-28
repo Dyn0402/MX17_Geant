@@ -41,7 +41,8 @@ nothing (−3 %). Where it is stuck matters far more than how strongly:
 - a centre that has come unstuck out to r = 100 mm costs nothing (98 % kept);
 - even a soft full-face tape captures ≥ 85 %.
 
-**Mesh tension** at 5–10 N/m adds less than 1 µm. Even at 10 N/cm it adds only 0.02–0.04 mm with the real edge.
+**Mesh tension** (Dylan: ~10 N/cm, i.e. 1000 N/m) adds only 0.02–0.04 mm with the real edge (0.05–0.23 mm on a simply
+supported edge). 5–10 N/m would add less than 1 µm.
 
 **Edges.** The board's bending span is the 402 mm support-plate aperture. The O-ring (seal at 208.4 mm) and the frame
 face sit just outside it and pinch the board onto the foam, so the edge is 96–97 % of a clamp. If the frame rides on
@@ -231,8 +232,8 @@ m = T·e about the board's neutral surface is left, with e ≈ 0.8 mm. It cups t
 
 | T | real edge, 0 / 3 / 10 mbar | simply supported edge |
 |---|---|---|
-| 10 N/m (the stated 5–10 N/m) | +0.3 µm | — |
-| 10 N/cm (1000 N/m) | +0.04 / +0.02 / +0.01 mm | +0.23 mm at 0 mbar, +0.05 at 3 |
+| 10 N/m | +0.3 µm | — |
+| 10 N/cm (1000 N/m; the actual tension, Dylan 2026-10-28) | +0.04 / +0.02 / +0.01 mm | +0.23 mm at 0 mbar, +0.05 at 3 |
 
 The moment and the pressure add almost linearly. A perfectly clamped plate suppresses a uniform moment completely.
 
