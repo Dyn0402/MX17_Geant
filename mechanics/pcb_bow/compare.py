@@ -191,6 +191,29 @@ md += ['', '## 6. The window as a pressure gauge (60 µm mylar, 400 mm, no pre-t
 for E, r in WG['rows'].items():
     md.append(f'| centre sag, E = {E} (mm) | ' + ' | '.join(f'{v:.1f}' for v in r['solver_mm']) + ' |')
 
+# ---- real edge (edge1d.py + real_edge.py) and mesh tension -------------------------------------------------------
+RE = {r['name']: r for r in json.load(open(f'{RES}/real_edge.json'))}
+E1 = json.load(open(f'{RES}/edge1d.json'))
+S.update(RE)
+md += ['', '## 7. The real mounting (STEP geometry, `edge1d.py`) and the 2-D scan with its edge stiffness', '',
+       'Edge zone from the active-area axis: plate aperture edge 201 mm, frame lip 205–206.55, O-ring groove '
+       '206.55–210.25 (seal ≈ 208.4), frame face 210.25–220, screws at 214. K_eff = M/θ at 201 mm; "→ pinned" = how far '
+       'the 1-D centre deflection moves from a perfect clamp (0 %) to a pinned edge (100 %).', '',
+       '| PCB | mode | Δp (mbar) | K_eff (N·m/m) | K·a/D | → pinned | max lift outside aperture (µm) |',
+       '|---|---|---|---|---|---|---|']
+for r in E1['rows']:
+    if r.get('F_or', 0) in (0.0, 2000.0) and 'delta0' not in r and 'kf' not in r and r.get('k_or', 1e6) == 1e6:
+        md.append(f"| {r['t_mm']} | {r['mode']}{' F_or=' + str(int(r.get('F_or', 0))) if r['mode'] == 'bottomed' else ''} "
+                  f"| {r['q_Pa'] / 100:g} | {r['K_eff']:.0f} | {r['K_a_over_D']:.0f} | {100 * r['frac_to_pinned']:.1f} % "
+                  f"| {r['lift_max_um']:.1f} |")
+md += ['', '2-D, real edge (K_eff 700 / 1110 / 1830 N·m/m), bench depth (mm):', '',
+       '| scenario | 0 | 1 | 2 | 3 | 5 | 7 | 10 mbar |', '|---|---|---|---|---|---|---|---|']
+for n, r in RE.items():
+    md.append(f'| {n} | ' + ' | '.join(f"{at(n, p):.2f}" for p in (0, 1, 2, 3, 5, 7, 10)) + ' |')
+md += ['', 'M_ rows: mesh-tension moment m = T·e (e = PCB neutral surface depth + 0.15 mm ≈ 0.8 mm), T = 10 N/m and '
+       '1000 N/m (= 10 N/cm); the last row with a simply supported edge for scale.']
+out['real_edge'] = {n: [dict(p_mbar=x['p_mbar'], fit_depth_mm=x['fit_depth_mm'], centre_mm=x['centre_mm'])
+                        for x in r['rows']] for n, r in RE.items()}
 json.dump(out, open(f'{RES}/compare.json', 'w'), indent=1, default=float)
 open(f'{RES}/compare.md', 'w').write('\n'.join(md) + '\n')
 print('\n'.join(md))
@@ -304,4 +327,41 @@ sec = ax.secondary_xaxis('top', functions=(lambda x: np.array([wsag(v) for v in 
                                            lambda s: 10 * (np.asarray(s) / WG['rows']['4.5GPa']['solver_mm'][-1]) ** 3))
 sec.set_ticks([8, 12, 16, 20, 24, 27]); sec.set_xlabel('expected window centre sag (mm)', color=MUTED, fontsize=8.5)
 fig.tight_layout(); fig.savefig(f'{FIG}/high_pressure.png'); plt.close(fig)
+# fig 7: PCB and window bow vs pressure (two panels, same units)
+fig, (a1, a2) = plt.subplots(1, 2, figsize=(10, 4.8))
+pp = np.r_[0, np.geomspace(0.01, 10, 120)]
+NUW = 0.38
+ws = lambda p, E: (100 * p * 0.2001 ** 4 * (1 - NUW) * (0.8 + 0.062 * NUW) ** 3 / (E * 60e-6)) ** (1 / 3) * 1e3
+a1.fill_between(pp, ws(pp, 5.0e9), ws(pp, 3.8e9), color=C[1], alpha=0.2, lw=0)
+a1.plot(pp, ws(pp, 4.5e9), color=C[1], label='window centre sag (E 3.8–5.0 GPa)')
+a1.plot(WG['p_mbar'], WG['rows']['4.5GPa']['solver_mm'], 'o', color=C[1], ms=4, label='solver points')
+p_, c_ = curve('G_t1.6_loose_Keff', 'centre_mm')
+a1.plot(p_, c_, color=C[0], label='board centre (1.6 mm, loose)')
+a1.set_xlabel('gas overpressure Δp (mbar)'); a1.set_ylabel('deflection (mm)'); a1.set_title('60 µm window vs board', fontsize=10, loc='left')
+a1.legend(fontsize=8); a1.set_xlim(0, 10); a1.set_ylim(0, 14)
+band(a2)
+for k, (n, lab) in enumerate([('G_t1.6_loose_Keff', 'Rohacell loose'), ('G_t1.6_bonded_sandwich_Keff', 'Rohacell + skin bonded')]):
+    p_, d_ = curve(n); _, c_ = curve(n, 'centre_mm')
+    a2.plot(p_, d_, color=C[2 * k], label=f'{lab}: bench depth'); a2.plot(p_, c_, '--', color=C[2 * k], label=f'{lab}: centre')
+a2.set_xlabel('gas overpressure Δp (mbar)'); a2.set_ylabel('board deflection (mm)')
+a2.set_title('readout board, 1.6 mm, real edge', fontsize=10, loc='left')
+a2.legend(fontsize=8, loc='upper center', bbox_to_anchor=(0.5, -0.2), ncol=2)
+a2.set_xlim(0, 10); a2.set_ylim(0, 2.6)
+fig.tight_layout(); fig.savefig(f'{FIG}/pcb_and_window.png'); plt.close(fig)
+
+# fig 8: the gauge, board dish vs window sag
+fig, ax = plt.subplots(figsize=(7.2, 4.6))
+band(ax)
+HPall = {r['name']: r for r in json.load(open(f'{RES}/high_pressure.json'))}
+for k, (n, lab) in enumerate([('t1.3_loose_Keff', '1.3 mm, loose'), ('t1.6_loose_Keff', '1.6 mm, loose'),
+                              ('t1.6_bonded_sandwich_Keff', '1.6 mm, bonded'), ('t2.0_bonded_sandwich_Keff', '2.0 mm, bonded')]):
+    rows = [x for x in S['G_' + n]['rows'] if 0 < x['p_mbar'] <= 10] + [x for x in HPall['HG_' + n]['rows'] if x['p_mbar'] > 10]
+    ax.plot([ws(x['p_mbar'], 4.5e9) for x in rows], [x['fit_depth_mm'] for x in rows], 'o-', ms=3, color=C[k], label=lab)
+for pm in (1, 3, 5, 10, 20, 40, 100):
+    ax.axvline(ws(pm, 4.5e9), color=GRID, lw=0.8, zorder=0); ax.text(ws(pm, 4.5e9), 2.52, f'{pm:g}', ha='center', fontsize=8, color=MUTED)
+ax.text(5.2, 2.52, 'Δp:', fontsize=8, color=MUTED)
+ax.set_xlabel('window centre sag (mm)'); ax.set_ylabel('expected board dish, bench depth (mm)')
+ax.set_title('Window sag as a pressure gauge for the board bow (real edge)', fontsize=10, loc='left', pad=14)
+ax.legend(fontsize=8.5, loc='lower right'); ax.set_xlim(5, 28); ax.set_ylim(0, 2.6)
+fig.tight_layout(); fig.savefig(f'{FIG}/gauge.png'); plt.close(fig)
 print('figures ->', FIG)

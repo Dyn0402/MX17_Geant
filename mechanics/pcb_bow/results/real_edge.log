@@ -1,0 +1,26 @@
+G_t1.6_loose_Keff                        59.3 s   depth@3mbar 0.44 mm
+G_t1.3_loose_Keff                        61.2 s   depth@3mbar 0.56 mm
+G_t1.3_bonded_sandwich_Keff              79.9 s   depth@3mbar 0.32 mm
+G_t2.0_loose_Keff                        54.2 s   depth@3mbar 0.29 mm
+G_t1.6_bonded_sandwich_Keff              74.1 s   depth@3mbar 0.25 mm
+G_t2.0_bonded_sandwich_Keff              72.8 s   depth@3mbar 0.18 mm
+G_t1.6_loose_Koring                      57.9 s   depth@3mbar 0.47 mm
+M_t1.6_loose_T10                         66.0 s   depth@3mbar 0.44 mm
+M_t1.6_loose_T1000                       67.1 s   depth@3mbar 0.46 mm
+G_t1.6_bonded_sandwich_Koring            88.4 s   depth@3mbar 0.26 mm
+M_t1.6_bonded_sandwich_T10               89.8 s   depth@3mbar 0.25 mm
+M_t1.6_bonded_sandwich_T1000             78.3 s   depth@3mbar 0.26 mm
+M_t1.6_loose_T1000_ss                    61.2 s   depth@3mbar 0.67 mm
+G_t1.3_loose_Keff                0:0.08 1:0.30 2:0.45 3:0.56 4:0.65 5:0.72 7:0.85 10:0.99
+G_t1.3_bonded_sandwich_Keff      0:0.03 1:0.13 2:0.23 3:0.32 4:0.40 5:0.47 7:0.60 10:0.75
+G_t1.6_loose_Keff                0:0.06 1:0.21 2:0.33 3:0.44 4:0.52 5:0.59 7:0.72 10:0.86
+G_t1.6_bonded_sandwich_Keff      0:0.03 1:0.11 2:0.18 3:0.25 4:0.32 5:0.38 7:0.50 10:0.64
+G_t2.0_loose_Keff                0:0.04 1:0.13 2:0.21 3:0.29 4:0.36 5:0.43 7:0.54 10:0.68
+G_t2.0_bonded_sandwich_Keff      0:0.02 1:0.08 2:0.13 3:0.18 4:0.23 5:0.28 7:0.37 10:0.49
+G_t1.6_loose_Koring              0:0.06 1:0.23 2:0.37 3:0.47 4:0.56 5:0.63 7:0.75 10:0.89
+M_t1.6_loose_T10                 0:0.06 1:0.21 2:0.34 3:0.44 4:0.52 5:0.59 7:0.72 10:0.86
+M_t1.6_loose_T1000               0:0.10 1:0.25 2:0.37 3:0.46 4:0.54 5:0.61 7:0.73 10:0.87
+G_t1.6_bonded_sandwich_Koring    0:0.03 1:0.11 2:0.18 3:0.26 4:0.32 5:0.39 7:0.50 10:0.64
+M_t1.6_bonded_sandwich_T10       0:0.03 1:0.11 2:0.18 3:0.25 4:0.32 5:0.38 7:0.50 10:0.64
+M_t1.6_bonded_sandwich_T1000     0:0.04 1:0.12 2:0.19 3:0.26 4:0.33 5:0.39 7:0.50 10:0.65
+M_t1.6_loose_T1000_ss            0:0.38 1:0.50 2:0.59 3:0.67 4:0.73 5:0.78 7:0.87 10:0.98

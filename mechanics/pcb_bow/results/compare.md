@@ -97,3 +97,57 @@ Each view: weighted fit w0 = c + α·s(u) (c = rigid tilt). χ² for 9 bins, 7 d
 | centre sag, E = 3.8GPa (mm) | 6.2 | 7.8 | 9.0 | 10.6 | 11.9 | 13.4 |
 | centre sag, E = 4.5GPa (mm) | 5.9 | 7.4 | 8.5 | 10.1 | 11.3 | 12.7 |
 | centre sag, E = 5.0GPa (mm) | 5.7 | 7.2 | 8.2 | 9.7 | 10.9 | 12.2 |
+
+## 7. The real mounting (STEP geometry, `edge1d.py`) and the 2-D scan with its edge stiffness
+
+Edge zone from the active-area axis: plate aperture edge 201 mm, frame lip 205–206.55, O-ring groove 206.55–210.25 (seal ≈ 208.4), frame face 210.25–220, screws at 214. K_eff = M/θ at 201 mm; "→ pinned" = how far the 1-D centre deflection moves from a perfect clamp (0 %) to a pinned edge (100 %).
+
+| PCB | mode | Δp (mbar) | K_eff (N·m/m) | K·a/D | → pinned | max lift outside aperture (µm) |
+|---|---|---|---|---|---|---|
+| 1.3 | bottomed F_or=0 | 1 | 701 | 70 | 2.9 % | 0.0 |
+| 1.3 | bottomed F_or=0 | 5 | 701 | 70 | 2.9 % | 0.0 |
+| 1.3 | bottomed F_or=0 | 10 | 701 | 70 | 2.9 % | 0.1 |
+| 1.3 | bottomed F_or=2000 | 1 | 2935 | 293 | 0.8 % | 14.3 |
+| 1.3 | bottomed F_or=2000 | 5 | 766 | 77 | 2.7 % | 5.0 |
+| 1.3 | bottomed F_or=2000 | 10 | 707 | 71 | 2.9 % | 0.0 |
+| 1.3 | oring | 1 | 2893 | 289 | 0.8 % | 30.0 |
+| 1.3 | oring | 5 | 762 | 76 | 2.7 % | 29.4 |
+| 1.3 | oring | 10 | 373 | 37 | 5.2 % | 621.9 |
+| 1.6 | bottomed F_or=0 | 1 | 1113 | 60 | 3.4 % | 0.0 |
+| 1.6 | bottomed F_or=0 | 5 | 1113 | 60 | 3.4 % | 0.0 |
+| 1.6 | bottomed F_or=0 | 10 | 1113 | 60 | 3.4 % | 0.0 |
+| 1.6 | bottomed F_or=2000 | 1 | 3586 | 192 | 1.3 % | 15.1 |
+| 1.6 | bottomed F_or=2000 | 5 | 1202 | 64 | 3.2 % | 6.6 |
+| 1.6 | bottomed F_or=2000 | 10 | 1116 | 60 | 3.4 % | 0.0 |
+| 1.6 | oring | 1 | 3264 | 175 | 1.5 % | 22.3 |
+| 1.6 | oring | 5 | 1151 | 62 | 3.3 % | 35.9 |
+| 1.6 | oring | 10 | 463 | 25 | 7.7 % | 589.7 |
+| 2.0 | bottomed F_or=0 | 1 | 1825 | 50 | 4.0 % | 0.0 |
+| 2.0 | bottomed F_or=0 | 5 | 1825 | 50 | 4.0 % | 0.0 |
+| 2.0 | bottomed F_or=0 | 10 | 1825 | 50 | 4.0 % | 0.0 |
+| 2.0 | bottomed F_or=2000 | 1 | 2980 | 82 | 3.1 % | 14.6 |
+| 2.0 | bottomed F_or=2000 | 5 | 1879 | 52 | 4.0 % | 9.0 |
+| 2.0 | bottomed F_or=2000 | 10 | 1794 | 49 | 4.1 % | 2.0 |
+| 2.0 | oring | 1 | 2788 | 76 | 3.2 % | 17.0 |
+| 2.0 | oring | 5 | 1641 | 45 | 4.6 % | 40.6 |
+| 2.0 | oring | 10 | 592 | 16 | 11.4 % | 492.0 |
+
+2-D, real edge (K_eff 700 / 1110 / 1830 N·m/m), bench depth (mm):
+
+| scenario | 0 | 1 | 2 | 3 | 5 | 7 | 10 mbar |
+|---|---|---|---|---|---|---|---|
+| G_t1.3_loose_Keff | 0.08 | 0.30 | 0.45 | 0.56 | 0.72 | 0.85 | 0.99 |
+| G_t1.3_bonded_sandwich_Keff | 0.03 | 0.13 | 0.23 | 0.32 | 0.47 | 0.60 | 0.75 |
+| G_t1.6_loose_Keff | 0.06 | 0.21 | 0.33 | 0.44 | 0.59 | 0.72 | 0.86 |
+| G_t1.6_bonded_sandwich_Keff | 0.03 | 0.11 | 0.18 | 0.25 | 0.38 | 0.50 | 0.64 |
+| G_t2.0_loose_Keff | 0.04 | 0.13 | 0.21 | 0.29 | 0.43 | 0.54 | 0.68 |
+| G_t2.0_bonded_sandwich_Keff | 0.02 | 0.08 | 0.13 | 0.18 | 0.28 | 0.37 | 0.49 |
+| G_t1.6_loose_Koring | 0.06 | 0.23 | 0.37 | 0.47 | 0.63 | 0.75 | 0.89 |
+| M_t1.6_loose_T10 | 0.06 | 0.21 | 0.34 | 0.44 | 0.59 | 0.72 | 0.86 |
+| M_t1.6_loose_T1000 | 0.10 | 0.25 | 0.37 | 0.46 | 0.61 | 0.73 | 0.87 |
+| G_t1.6_bonded_sandwich_Koring | 0.03 | 0.11 | 0.18 | 0.26 | 0.39 | 0.50 | 0.64 |
+| M_t1.6_bonded_sandwich_T10 | 0.03 | 0.11 | 0.18 | 0.25 | 0.38 | 0.50 | 0.64 |
+| M_t1.6_bonded_sandwich_T1000 | 0.04 | 0.12 | 0.19 | 0.26 | 0.39 | 0.50 | 0.65 |
+| M_t1.6_loose_T1000_ss | 0.38 | 0.50 | 0.59 | 0.67 | 0.78 | 0.87 | 0.98 |
+
+M_ rows: mesh-tension moment m = T·e (e = PCB neutral surface depth + 0.15 mm ≈ 0.8 mm), T = 10 N/m and 1000 N/m (= 10 N/cm); the last row with a simply supported edge for scale.
