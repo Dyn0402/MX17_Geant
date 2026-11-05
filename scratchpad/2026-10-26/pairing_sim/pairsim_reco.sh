@@ -12,7 +12,7 @@ cp $SIMD/*_0[78].root $W/sim/run/$TAG/decoded_root/
 cp -r $BUNDLE $W/bundle
 mkdir -p $W/bench/det3/mx17_det3_saturday_scan_6-27-26 && cp $(dirname $CODE)/run_config_sat_det3.json $W/bench/det3/mx17_det3_saturday_scan_6-27-26/run_config.json
 NAME=$(basename $SIMD)_$TAG
-env -u PYTHONPATH -u PYTHONHOME /eos/user/d/dneff/venvs/ntof-lock-cvmfs/bin/python $W/code/mx17_sim_wft/t13_reco.py \
+/afs/cern.ch/user/d/dneff/bin/lockpy $W/code/mx17_sim_wft/t13_reco.py \
    --decoded-dir $W/sim/run/$TAG --bundle $W/bundle --out $W/out/events_$NAME.parquet \
    --jobs ${CPUS:-4} --limit $LIMIT > $W/out/reco_$NAME.log 2>&1
 rc=$?
