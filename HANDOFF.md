@@ -1,5 +1,39 @@
 # Handoff
 
+## Measured calendered micromesh — updated 2026-11-18 (dylan-Yoga)
+
+**Resume:** G4 mesh now measured 18/50 µm, 11 µm thick; next: pin pre-calendering wire Ø, decide on field-map re-solve.
+
+**Goal:** replace the 19/48 µm round-wire placeholder mesh with Alexandra's measured weave
+("Calendered Mesh Anatomy" artifact, saved on the desktop as `~/Downloads/Calendered Mesh Anatomy.html`).
+
+**Done (commit f35197c):**
+- `shared/MX17ModuleGeometry.hh`: new `meshThick_um` (0 → 2×wire, legacy unchanged); AsBuiltSpec
+  18 µm wire width / 50 µm opening / 11 µm thick → 11 µm slab, fill π·w/(4p) = 0.208
+  (0.0018 g/cm² steel, was 0.0067). FR4 residual 264.4 → 269.8 µm/layer, board still 1.700 mm.
+- `scripts/model/mx17_model.py`, `scripts/stack_table.py` + regenerated README table,
+  `response/solver/v5_mesh_ripple.py` (68 µm, still PASS), `design/NEEDED_INPUTS.md` §1 (now 🟡),
+  GEOMETRY_IMPLEMENTATION_NOTES, RESPONSE_SIM_PLAN, warning at top of `response/meshcell/FIELD_MAP_RUNBOOK.md`.
+- Verified: `--legacy-geometry` fixed-seed digest identical to the previous build; as-built dump differs
+  only in Micromesh hz + uniform 13.5 µm shift; no overlaps; drift/amp edep same within stats; MX17_Full_Geant builds.
+
+**Next steps:**
+1. Get the wire diameter before calendering (or supplier areal weight). The ellipse 18 × 5.5 µm model
+   implies a ~10 µm wire; an 18 µm round wire flattened only at crossings would carry ~3× more steel.
+2. Decide whether to re-solve the T6 mesh-cell field maps (`response/meshcell`, `response/comsol/woven_map.py`)
+   with flattened wires on a 68 µm cell — they and the transparency still use round Ø19 µm / 67 µm.
+   The chain-animation deck inset (`design/report/deck/make_chain_animation.py`) shows that solved cell, left as is.
+3. `MX17_Full_Geant/README.md` still says "Micromesh 30 µm" (stale before this; that repo had uncommitted edits, not touched).
+
+**Gotchas:**
+- `mm_sim -t 8` aborts ("TClass::Init: gInterpreter not initialized") in old and new builds alike — run `-t 1`.
+- `--dump-geometry` JSON does not include the readout laminate layers; check FR4 via `scripts/stack_table.py`.
+- Claude couldn't read the shared artifact from a background session (consent prompt can't show); a saved HTML copy works
+  — the content is in `<name>_files/saved_resource.html`.
+
+**Key commands:** `python3 scripts/stack_table.py --check`; `python3 scripts/tree_digest.py a.root b.root`
+(needs `source ~/Software/root_6_40_04/bin/thisroot.sh`); Geant env `source ~/geant4/bin/geant4.sh`.
+
 ## Readout-board bow mechanics (mechanics/pcb_bow) — updated 2026-10-28 (dylan-Yoga)
 
 **Resume:** DONE: gas pressure is at most ~1/3 of the bench dish; next is a hardware check (window sag, Δp scan).
