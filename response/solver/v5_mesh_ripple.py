@@ -3,8 +3,8 @@
 v5_mesh_ripple.py — V5: is treating the woven mesh as a solid plane safe?
 
 THE ASSUMPTION UNDER TEST (plan §3, geometry model W1): the mesh at z = +g is
-modelled as a flat grounded plane. A real micromesh is a weave of 19 um wires
-on a 67 um pitch, so the potential on that boundary is not uniform — it is
+modelled as a flat grounded plane. A real micromesh is a weave of 18 um wires
+on a 68 um pitch, so the potential on that boundary is not uniform — it is
 modulated at the weave pitch, with the wires held at the mesh potential and the
 holes floating toward the drift field.
 
@@ -12,13 +12,13 @@ WHY IT IS SAFE, AND THE POINT OF THIS CHECK. A boundary modulation of spatial
 period p is a Fourier component with transverse wavenumber k = 2*pi/p, and
 Laplace's equation makes every such component decay as exp(-k z) away from the
 boundary. The ESL sits a full amplification gap away, z = g = 150 um, and the
-weave pitch is p = 67 um, so the fundamental is suppressed by
+weave pitch is p = 68 um, so the fundamental is suppressed by
 
     exp(-2*pi*g/p)
 
 which is a very large exponent. The plan asks for < 1 %. The check is worth
 doing rather than asserting because the answer depends on g/p, and g/p is only
-2.24 — "many pitches away" is not obviously true at a glance, and a mesh with a
+2.21 — "many pitches away" is not obviously true at a glance, and a mesh with a
 coarser weave or a narrower gap would fail it.
 
 WHAT THIS DOES NOT COVER. This is the ripple in the WEIGHTING geometry, i.e.
@@ -36,10 +36,10 @@ import numpy as np
 
 from ..common import constants as C
 
-# From shared/MX17ModuleGeometry.hh via response/meshcell/mesh_transparency.C:
-# 19 um wires on a 67 um pitch (400 lpi / 18 um weave scaled by 5.5 %).
-WEAVE_PITCH_M = 67e-6
-WIRE_DIAM_M = 19e-6
+# Measured MX17 mesh (shared/MX17ModuleGeometry.hh, 2026-11-18): calendered
+# weave, 18 um wire width, 50 um opening -> 68 um pitch. Was 19 um / 67 um.
+WEAVE_PITCH_M = 68e-6
+WIRE_DIAM_M = 18e-6
 
 TOL = 0.01          # plan §V5: ripple at the ESL < 1 %
 

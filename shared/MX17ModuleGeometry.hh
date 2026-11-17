@@ -79,8 +79,9 @@ struct ModuleSpec {
     double cageThick_mm  = 0.0;    // field-cage PCB thickness lining the aperture; 0 → none
 
     // ── Micromesh ──
-    double meshWire_um   = 0.0;    // woven model: wire diameter; 0 → legacy solid slab
+    double meshWire_um   = 0.0;    // woven model: wire width seen from above; 0 → legacy solid slab
     double meshOpen_um   = 0.0;    // woven model: opening
+    double meshThick_um  = 0.0;    // woven model: total thickness; 0 → 2×wire (round, uncalendered)
     double meshSolid_um  = 30.0;   // legacy solid-steel slab thickness
     double meshFace_mm   = 400.0;  // as-built 410
 
@@ -225,8 +226,10 @@ inline ModuleSpec AsBuiltSpec(double bulgeSag_mm = 8.0) {
     s.frameAp_mm     = 410.0;
     s.cageThick_mm   = 1.62;    // 4× drift field PCB lining the aperture
     s.driftFace_mm   = 410.0 - 2*1.62;
-    s.meshWire_um    = 19.0;    // P2-like weave, placeholder (design/NEEDED_INPUTS.md)
-    s.meshOpen_um    = 48.0;
+    s.meshWire_um    = 18.0;    // calendered plain weave, measured under the
+    s.meshOpen_um    = 50.0;    // microscope (Alexandra, 2026-11-18): 18 µm wire
+    s.meshThick_um   = 11.0;    // width, 50 µm opening, 68 µm pitch, 11 µm thick.
+                                // Was the 19/48 µm round-wire placeholder (38 µm).
     s.meshFace_mm    = 410.0;
     s.ampFace_mm     = 410.0;
     s.pasteFace_mm   = 412.0;   // resistive coat boundary (3498A_top-resist)
@@ -531,15 +534,18 @@ inline Module BuildModule(const ModuleSpec& s, const Materials& m) {
     const double tPCBCu  = s.pcbCu_um    * um;
     const double tRoh    = s.rohacell_mm * mm;
 
-    // Mesh: woven effective-density slab (areal mass of a plain weave: fill
-    // fraction π·d/(4p), slab thickness 2d) or the legacy solid slab.
+    // Mesh: woven effective-density slab or the legacy solid slab. A plain
+    // weave of wires of width w on pitch p, slab thickness t, each wire an
+    // ellipse w wide and t/2 thick (round, uncalendered: t = 2w), holds
+    // 2·(π/4)·w·(t/2)/p of steel per unit area, so the fill fraction is
+    // π·w/(4p) for any t. Calendering only thins the slab.
     // Optical transparency (~(open/pitch)²) is NOT modelled — material budget only.
     double tMesh;
     G4Material* matMesh;
     if (s.meshWire_um > 0.0) {
         const double dWire = s.meshWire_um * um;
         const double pitch = dWire + s.meshOpen_um * um;
-        tMesh = 2.0 * dWire;
+        tMesh = (s.meshThick_um > 0.0) ? s.meshThick_um * um : 2.0 * dWire;
         const double fill = M_PI * dWire / (4.0 * pitch);
         matMesh = G4Material::GetMaterial("MX17MeshSteelEff", false);
         if (!matMesh) {

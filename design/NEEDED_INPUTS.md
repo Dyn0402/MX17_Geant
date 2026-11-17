@@ -11,17 +11,34 @@ Legend: ⬜ needed · 🟡 partially known · ✅ resolved.
 
 ---
 
-## 1. ⬜ Micromesh weave specification
+## 1. 🟡 Micromesh weave specification
 
-**Assume now:** the P2 weave — 19 µm wire, 48 µm opening → 38 µm
-effective-density slab at fill 0.223 (areal mass of a plain weave). Chosen as
-a placeholder on 2026-08-06 because the real MX17 spec was not to hand.
+**Measured 2026-11-18 (Alexandra, microscope image + "Calendered Mesh
+Anatomy" note):** calendered plain weave, **18 µm wire width** (seen from
+above), **50 µm opening**, **68 µm pitch** (≈ 374 wires/inch), **11 µm thick**
+after calendering, optical open area (50/68)² = 54 %. In the header as
+`meshWire_um = 18`, `meshOpen_um = 50`, `meshThick_um = 11` → 11 µm
+effective-density slab at fill π·18/(4·68) = 0.208, 0.0018 g/cm² of steel
+(was the 19/48 µm round-wire placeholder: 38 µm at fill 0.223, 0.0067 g/cm²).
+The 38 → 11 µm goes into the FR4 residual (264.4 → 269.8 µm per layer).
+
+**Still assumed:** each wire is a flat ellipse 18 µm wide and 11/2 = 5.5 µm
+thick (the two wire sets just touch at a crossing), which is the note's own
+model. That cross-section implies a ~10 µm round wire before pressing. If the
+wire was really 18 µm round and only flattened at the crossings, the steel per
+area would be ~3× higher (≈ 0.006 g/cm², close to the old placeholder). The
+wire diameter before calendering, or the mesh areal weight from the supplier,
+settles it. Either way it is < 5·10⁻⁴ X₀.
+
+*History:* the P2 weave (19 µm wire, 48 µm opening → 38 µm slab at fill 0.223)
+was chosen as a placeholder on 2026-08-06 because the real MX17 spec was not
+to hand.
 
 **Why it matters:** the mesh is directly above the amplification gap; its
 areal mass sets electron backscatter/absorption at the gap boundary and the
 X-ray conversion rate closest to the amp region. The previous solid-30 µm
 model overstated the mass ×3.5; a wrong weave spec moves it by tens of
-percent. Optical transparency (~51 % for the P2 weave) is *not* modelled —
+percent. Optical transparency (54 % measured; ~51 % for the P2 weave) is *not* modelled —
 only the material budget.
 
 **Ask for:** the mesh designation on the MX17 build sheet (e.g. "48/19" or

@@ -16,8 +16,7 @@ default initialiser and AsBuiltSpec() overrides a subset. Both matter: the
 as-built ESL is 10 µm from the override, while the amp gap, both kaptons and the
 pad copper are only ever the declaration defaults. Reading one and not the other
 is exactly the mistake scripts/model/mx17_model.py makes (it hardcodes the
-LEGACY 100 µm paste, so its FR4 filler is 246.4 µm instead of the as-built
-264.4 µm).
+LEGACY 100 µm paste, so its FR4 filler is 18 µm per layer too thin).
 
 The FR4 filler is a RESIDUAL, not a measurement: the CAD gives one 1.70 mm
 number for the whole board body, and everything we think we know is subtracted
@@ -85,7 +84,7 @@ def fmt_t(um):
 
 def build_rows(s):
     """The stack in beam order, window front face -> support plate back."""
-    mesh = 2 * s["meshWire_um"]
+    mesh = s.get("meshThick_um", 0.0) or 2 * s["meshWire_um"]
     n_cu = 5                                   # pcbCuCoverage has 5 entries
     fr4 = (s["pcbTotal_mm"] * 1000 - mesh - s["amp_um"] - s["paste_um"]
            - s["pcbKapton_um"] - n_cu * s["pcbCu_um"]) / n_cu
@@ -106,7 +105,7 @@ def build_rows(s):
        s["drift_mm"] * 1000 - s["cathCu_um"], "**`DriftGas`**",
        "kapton back → mesh front = 30.000 mm"))
     a(("Micromesh", "Stainless steel", mesh, "`Micromesh`",
-       f"woven {s['meshWire_um']:.0f}/{s['meshOpen_um']:.0f} µm, fill {fill:.3f}"))
+       f"calendered woven {s['meshWire_um']:.0f}/{s['meshOpen_um']:.0f} µm, fill {fill:.3f}"))
     a(("**Amp gas** ★", "**chamber gas**", s["amp_um"], "**`AmpGas`**",
        "bulk pillars Ø0.6 mm on a 4.68 mm grid stand in it"))
     a(("Resistive layer (ESL)", "C/acrylic paste", s["paste_um"],
@@ -157,11 +156,12 @@ def markdown(s):
             "know is subtracted and the remainder is divided equally over the "
             "five laminate layers. So changing any other layer silently "
             "changes the FR4 — when the ESL went 100 → 10 µm the filler went "
-            "246.4 → 264.4 µm. A fab stackup drawing would turn this into a "
+            "246.4 → 264.4 µm, and the calendered mesh (38 → 11 µm) took it to "
+            "269.8 µm. A fab stackup drawing would turn this into a "
             "real number (`design/NEEDED_INPUTS.md` §6).",
             "",
             "*Do not read the ESL⇄pad capacitance off this ordering.* Taken "
-            "literally the table puts a 264 µm FR4 layer between the coverlay "
+            "literally the table puts a 270 µm FR4 layer between the coverlay "
             "and the pad copper, because the guard-ring layer above the pads "
             "is placed first — and that layer has **zero** copper inside the "
             "active window, so the separation there is an artifact of the "

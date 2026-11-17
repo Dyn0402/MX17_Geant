@@ -639,7 +639,7 @@ Anode stack, top (gas) to bottom. z=0 at the top surface of the ESL resistive la
 
 | # | Layer | Value | Source | Confidence |
 |---|---|---|---|---|
-| 1 | Micromesh (grounded ref. for amp field; at −HV_mesh in reality) | woven SS, wire 2×19 µm crossing, fill factor 0.223 | `shared/MX17ModuleGeometry.hh` | good |
+| 1 | Micromesh (grounded ref. for amp field; at −HV_mesh in reality) | calendered woven SS, 18 µm wire / 50 µm opening, 11 µm thick, fill factor 0.208 (measured 2026-11-18; was 19/48 round, 0.223) | `shared/MX17ModuleGeometry.hh` | good |
 | 2 | Amplification gap | **150 µm — CONFIRMED (user, 2026-08-06). Not 128. Do not scan.** | user; supersedes the "unverified" flag in `design/GEOMETRY_IMPLEMENTATION_NOTES.md` | fixed |
 | 2b | Pillars (inside the amp gap) | **Dynamask** dry-film (photoimageable solder mask; user 2026-08-06), Ø 0.60 mm on a 4.68 mm grid (3571 pillars), height = gap 150 µm; area coverage ≈ 1.3% | material: user; geometry: `3498A_bulk.gbr` | good |
 | 3 | **ESL resistive strips** | **550 µm wide, 250 µm gap, 800 µm pitch, running along y ("vertical")**; terminated on copper bus strips at both y-ends only (user 2026-08-07); print thickness ~10 µm (user estimate, unconfirmed — does NOT enter the model: S1 treats the ESL as a zero-thickness sheet, thickness is absorbed into ρ_s) | user/fab knowledge; NOT in gerbers (screen-printed after fab) | geometry good; ρ_s unknown → scan **{0.5, 1, 2, 5} MΩ/sq** |

@@ -41,9 +41,9 @@ FRAME_AP    = 410.0
 CAGE_T      = 1.62     # 4× drift field PCB lining the aperture
 DRIFT_FACE  = FRAME_AP - 2 * CAGE_T
 
-MESH_WIRE   = 0.019    # P2-like weave — placeholder (NEEDED_INPUTS)
-MESH_OPEN   = 0.048
-MESH_T      = 2 * MESH_WIRE
+MESH_WIRE   = 0.018    # calendered weave, measured 2026-11-18: wire width
+MESH_OPEN   = 0.050    #   18 µm, opening 50 µm (pitch 68), 11 µm thick
+MESH_T      = 0.011    # calendered thickness (round wires would be 2 * MESH_WIRE)
 MESH_FILL   = math.pi * MESH_WIRE / (4 * (MESH_WIRE + MESH_OPEN))
 MESH_FACE   = 410.0
 

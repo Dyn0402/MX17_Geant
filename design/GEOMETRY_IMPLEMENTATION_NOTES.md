@@ -218,6 +218,12 @@ with two orthogonal wire sets, `π·d²/(2p)`, divided by the slab thickness `2d
 
 For P2's 48 µm opening / 19 µm wire: pitch 67 µm → 38 µm slab at fill 0.223.
 
+*Update 2026-11-18:* the MX17 mesh is measured as a **calendered** weave, 18 µm
+wire width / 50 µm opening / 68 µm pitch, 11 µm thick. With each wire a flat
+ellipse w wide and t/2 thick the fill is still π·w/(4p) for any slab thickness t,
+so the header gained `meshThick_um` (0 → 2w, the round-wire case above) and the
+as-built mesh is an 11 µm slab at fill 0.208 (`design/NEEDED_INPUTS.md` §1).
+
 **Scale of the correction:** a 30 µm solid-steel slab carries ≈ 0.024 g/cm²;
 a P2-like weave carries ≈ 0.0068 g/cm². If MX17's mesh is a comparable weave,
 the current model overstates mesh material by roughly a factor of 3.5.
@@ -259,7 +265,7 @@ discrepancy 1.
 | 1 | Rohacell-back mylar: mylar µm, Al µm, which side | §3 | **assumed** 25 µm + 0.1 µm Al (Dylan: use as placeholder) |
 | 2 | Is the 50 µm `PCB_AlFoil` meant to be that foil? | §3 | **yes** — replaced by the aluminized mylar |
 | 3 | Operating gas overpressure | §4 | **assumed** ~3 mbar → 8 mm sag (`--bulge-front`) |
-| 4 | Micromesh wire Ø and opening | §5 | **placeholder** P2 weave 19/48 µm |
+| 4 | Micromesh wire Ø and opening | §5 | **measured** 2026-11-18: calendered 18/50 µm, 11 µm thick (was placeholder P2 weave 19/48 µm) |
 | 5 | Amplification gap: 150 µm or 128 µm | §5 | open — 150 µm kept |
 | 6 | Which side the window Al and cathode Cu face | §2 | open — drift-facing assumed |
 | 7 | Is the 8 mm Al support plate in the beam path? | §6 | **resolved** — plate has a 402 mm aperture in the STEP; modelled as a ring |

@@ -31,6 +31,15 @@ below.
 
 ## What is being solved
 
+> **2026-11-18: the measured mesh differs from this cell.** The MX17 mesh is a
+> *calendered* weave, 18 µm wire width / 50 µm opening / **68 µm** pitch,
+> **11 µm** thick (flat ~18 × 5.5 µm wires; `design/NEEDED_INPUTS.md` §1). The
+> maps below were solved for round Ø19 µm wires on 67 µm (37 µm at a crossing).
+> The Geant4 material budget now uses the measured weave; these field maps and
+> the T6 transparency built on them have **not** been re-solved. A re-solve
+> needs a flattened-wire cell, with the ESL datum kept at 150 µm below the
+> mesh underside.
+
 One unit cell (67 µm pitch) of the MX17 woven micromesh, approximated as a
 bi-planar crossed-wire grid (x-wires at z = +9.0 µm, y-wires at −9.0 µm,
 Ø19 µm, 1 µm kiss overlap at the crossing standing in for wires resting on

@@ -33,7 +33,8 @@ remaining assumptions in [`design/NEEDED_INPUTS.md`](design/NEEDED_INPUTS.md)):
 - **Window flange**: 5 mm Al ring (440/400.2) = 5 mm gas gap before the cathode
 - **Drift**: Cu-clad kapton cathode (406²), 30.000 mm gap set by the Al gas
   frame (440/410), 4× 1.62 mm field-cage PCBs lining the aperture
-- **Mesh**: woven SS 19/48 µm → 38 µm effective-density slab (fill 0.223);
+- **Mesh**: calendered woven SS, 18 µm wire / 50 µm opening (68 µm pitch, measured)
+  → 11 µm effective-density slab (fill 0.208);
   bulk pillars (Ø0.6 mm, 85×85 grid at 4.68 mm) stand in the amplification gap
 - **Resistive layer**: 515 discrete ESL strips, 550 µm wide on a 0.8 mm pitch,
   **10 µm** thick over 412²; the 250 µm inter-strip grooves are chamber gas and
@@ -137,21 +138,21 @@ and `--check` fails if it has drifted from the geometry.
 | Drift cathode | Kapton | 50 µm | `DriftCathode_Kapton` |  |
 | Drift cathode Cu | Copper | 9 µm | `DriftCathode_Cu` | cladding, drift side |
 | **Drift gas** ★ | **chamber gas** | 29.991 mm | **`DriftGas`** | kapton back → mesh front = 30.000 mm |
-| Micromesh | Stainless steel | 38 µm | `Micromesh` | woven 19/48 µm, fill 0.223 |
+| Micromesh | Stainless steel | 11 µm | `Micromesh` | calendered woven 18/50 µm, fill 0.208 |
 | **Amp gas** ★ | **chamber gas** | 150 µm | **`AmpGas`** | bulk pillars Ø0.6 mm on a 4.68 mm grid stand in it |
 | Resistive layer (ESL) | C/acrylic paste | 10 µm | `ResistLayer` + `ESLStrip` | 515 strips, 550 µm on 0.8 mm; grooves are `AmpGas` |
 | Coverlay kapton | Kapton | 50 µm | `PCB_Kapton` | **the ESL⇄pad insulator** — see the note below |
 | Lamination adhesive | Acrylic | 18.8 µm | — *not placed* | response-model estimate, not in the header |
 | Cu L3 guard ring | Copper | 26 µm | `PCB_Cu_3` | density-scaled |
-| FR4 under L3 | Epoxy-glass | 264.4 µm | `PCB_FR4_3` | **residual** of the CAD 1.70 mm board |
+| FR4 under L3 | Epoxy-glass | 269.8 µm | `PCB_FR4_3` | **residual** of the CAD 1.70 mm board |
 | Cu L4 pads | Copper | 26 µm | `PCB_Cu_4` | real 512×512 pattern |
-| FR4 under L4 | Epoxy-glass | 264.4 µm | `PCB_FR4_4` | **residual** of the CAD 1.70 mm board |
+| FR4 under L4 | Epoxy-glass | 269.8 µm | `PCB_FR4_4` | **residual** of the CAD 1.70 mm board |
 | Cu L5 Y strips | Copper | 26 µm | `PCB_Cu_5` | real 512×512 pattern |
-| FR4 under L5 | Epoxy-glass | 264.4 µm | `PCB_FR4_5` | **residual** of the CAD 1.70 mm board |
+| FR4 under L5 | Epoxy-glass | 269.8 µm | `PCB_FR4_5` | **residual** of the CAD 1.70 mm board |
 | Cu L6 X strips | Copper | 26 µm | `PCB_Cu_6` | real 512×512 pattern |
-| FR4 under L6 | Epoxy-glass | 264.4 µm | `PCB_FR4_6` | **residual** of the CAD 1.70 mm board |
+| FR4 under L6 | Epoxy-glass | 269.8 µm | `PCB_FR4_6` | **residual** of the CAD 1.70 mm board |
 | Cu L7 fan-out | Copper | 26 µm | `PCB_Cu_7` | density-scaled |
-| FR4 under L7 | Epoxy-glass | 264.4 µm | `PCB_FR4_7` | **residual** of the CAD 1.70 mm board |
+| FR4 under L7 | Epoxy-glass | 269.8 µm | `PCB_FR4_7` | **residual** of the CAD 1.70 mm board |
 | Rohacell 51 | PMI foam | 5 mm | `PCB_Rohacell` |  |
 | Backing mylar | Mylar (PET) | 25 µm | `PCB_BackMylar` | aluminized |
 | Backing Al | Aluminium | 0.1 µm | `PCB_AlFoil` |  |
@@ -161,9 +162,9 @@ Depths are in beam order from the window front face; the stack totals **49.835 m
 
 **Two cautions about the bottom half of this table.**
 
-*The FR4 is a residual, not a measurement.* The CAD gives one 1.70 mm number for the whole board body; everything we think we know is subtracted and the remainder is divided equally over the five laminate layers. So changing any other layer silently changes the FR4 — when the ESL went 100 → 10 µm the filler went 246.4 → 264.4 µm. A fab stackup drawing would turn this into a real number (`design/NEEDED_INPUTS.md` §6).
+*The FR4 is a residual, not a measurement.* The CAD gives one 1.70 mm number for the whole board body; everything we think we know is subtracted and the remainder is divided equally over the five laminate layers. So changing any other layer silently changes the FR4 — when the ESL went 100 → 10 µm the filler went 246.4 → 264.4 µm, and the calendered mesh (38 → 11 µm) took it to 269.8 µm. A fab stackup drawing would turn this into a real number (`design/NEEDED_INPUTS.md` §6).
 
-*Do not read the ESL⇄pad capacitance off this ordering.* Taken literally the table puts a 264 µm FR4 layer between the coverlay and the pad copper, because the guard-ring layer above the pads is placed first — and that layer has **zero** copper inside the active window, so the separation there is an artifact of the equal-division residual above, not geometry anyone measured. The response model instead takes the physically motivated adjacency for a resistive Micromegas: the ESL sits on the coverlay kapton, which is laminated straight onto the pads. That is the stack `response/solver/wpot.py` solves, and the ~19 µm of adhesive is 29 % of the insulator it sees. The two models disagree here and the disagreement is unresolved; it does not matter for material budget (order barely matters for energy deposit) and it matters completely for the induced signal. The same missing fab drawing settles both.
+*Do not read the ESL⇄pad capacitance off this ordering.* Taken literally the table puts a 270 µm FR4 layer between the coverlay and the pad copper, because the guard-ring layer above the pads is placed first — and that layer has **zero** copper inside the active window, so the separation there is an artifact of the equal-division residual above, not geometry anyone measured. The response model instead takes the physically motivated adjacency for a resistive Micromegas: the ESL sits on the coverlay kapton, which is laminated straight onto the pads. That is the stack `response/solver/wpot.py` solves, and the ~19 µm of adhesive is 29 % of the insulator it sees. The two models disagree here and the disagreement is unresolved; it does not matter for material budget (order barely matters for energy deposit) and it matters completely for the induced signal. The same missing fab drawing settles both.
 
 <!-- END STACK TABLE -->
 
